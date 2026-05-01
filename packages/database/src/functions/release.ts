@@ -22,10 +22,18 @@ export async function getRelease(releaseId: string): Promise<schema.releaseType 
  * @param slug - The release slug
  * @returns Promise resolving to release data or null if not found
  */
-export async function getReleaseBySlug(orgId: string, slug: string): Promise<schema.releaseType | null> {
-	const release = await db.query.release.findFirst({
+export async function getReleaseBySlug(orgId: string, slug: string): Promise<schema.ReleaseWithTasks | null> {
+
+	const release: any = await db.query.release.findFirst({
 		where: and(eq(schema.release.organizationId, orgId), eq(schema.release.slug, slug)),
 	});
+	if (release) {
+		// Fetch GitHub PRs
+		const githubPRs = await db.query.githubPullRequest.findMany({
+			where: eq(schema.githubPullRequest.releaseId, release.id),
+		});
+		release.githubPullRequests = githubPRs;
+	}
 
 	return release || null;
 }
@@ -200,12 +208,18 @@ export async function getReleaseWithTasks(releaseId: string): Promise<schema.Rel
 	});
 	const labels = labelAssignments.map((la) => la.label);
 
+	// Fetch GitHub PRs
+	const githubPRs = await db.query.githubPullRequest.findMany({
+		where: eq(schema.githubPullRequest.releaseId, releaseId),
+	});
+
 	const result: schema.ReleaseWithTasks = {
 		...release,
 		tasks: tasksWithLabels,
 		createdBy,
 		lead,
 		labels,
+		githubPullRequests: githubPRs,
 	};
 
 	return result;
@@ -449,9 +463,9 @@ export async function getReleaseStatusUpdates(
 			!visibility || visibility === "all"
 				? eq(schema.releaseStatusUpdate.releaseId, releaseId)
 				: and(
-						eq(schema.releaseStatusUpdate.releaseId, releaseId),
-						eq(schema.releaseStatusUpdate.visibility, visibility)
-					),
+					eq(schema.releaseStatusUpdate.releaseId, releaseId),
+					eq(schema.releaseStatusUpdate.visibility, visibility)
+				),
 		orderBy: [desc(schema.releaseStatusUpdate.createdAt)],
 		with: {
 			author: { columns: userSummaryColumns },

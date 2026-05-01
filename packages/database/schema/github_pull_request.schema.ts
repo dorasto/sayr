@@ -5,6 +5,7 @@ import { pgTable as table } from "drizzle-orm/pg-core";
 import { githubRepository } from "./github_repository.schema";
 import { organization } from "./organization.schema";
 import { task } from "./task.schema";
+import { release } from "./release.schema";
 
 export const githubPullRequest = table(
 	"github_pull_request",
@@ -32,6 +33,12 @@ export const githubPullRequest = table(
 		taskId: v
 			.text("task_id")
 			.references(() => task.id, {
+				onDelete: "set null",
+			}),
+
+		releaseId: v
+			.text("release_id")
+			.references(() => release.id, {
 				onDelete: "set null",
 			}),
 
@@ -91,5 +98,9 @@ export const githubPullRequestRelations =
 		task: one(task, {
 			fields: [githubPullRequest.taskId],
 			references: [task.id],
+		}),
+		release: one(release, {
+			fields: [githubPullRequest.releaseId],
+			references: [release.id],
 		}),
 	}));

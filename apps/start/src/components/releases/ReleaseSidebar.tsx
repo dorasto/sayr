@@ -20,11 +20,14 @@ import {
   IconTrendingUp,
 } from "@tabler/icons-react";
 import type { schema } from "@repo/database";
-import { useMemo, useCallback, type ReactNode } from "react";
+import { useMemo, useCallback, useState, type ReactNode } from "react";
 import { ReleaseStats } from "./ReleaseStats";
 import { Link } from "@tanstack/react-router";
 import { serializeFilters } from "@/components/tasks/filter/serialization";
 import type { FilterState } from "@/components/tasks/filter/types";
+import { Label } from "@repo/ui/components/label";
+import GithubPRPicker from "./GithubPRPicker";
+import { LinkedGithubPRs } from "./LinkedGithubPRs";
 
 interface ReleaseSidebarProps {
   tasks: schema.TaskWithLabels[];
@@ -38,7 +41,8 @@ interface ReleaseSidebarProps {
   };
   daysUntilTarget: number | null;
   organizationId: string;
-  releaseId: string;
+  release: schema.ReleaseWithTasks;
+  setRelease: React.Dispatch<React.SetStateAction<schema.ReleaseWithTasks | null>>;
 }
 
 export function ReleaseSidebar({
@@ -46,8 +50,10 @@ export function ReleaseSidebar({
   taskStats,
   daysUntilTarget,
   organizationId,
-  releaseId,
+  release,
+  setRelease
 }: ReleaseSidebarProps) {
+  const [prPickerOpen, setPrPickerOpen] = useState(false);
   // Render prop to wrap each assignee tile with a Link
   const renderTileWrapper = useCallback(
     (assigneeId: string, children: ReactNode) => {
@@ -68,7 +74,7 @@ export function ReleaseSidebar({
                 id: "release-filter",
                 field: "release",
                 operator: "any",
-                value: [releaseId],
+                value: [release.id],
               },
             ],
           },
@@ -90,7 +96,7 @@ export function ReleaseSidebar({
         </Link>
       );
     },
-    [organizationId, releaseId]
+    [organizationId, release.id]
   );
 
   // Generate progress data over time
@@ -287,6 +293,46 @@ export function ReleaseSidebar({
         </TileHeader>
         <TaskAssigneeChart tasks={tasks} renderTileWrapper={renderTileWrapper} />
       </Tile>
+      <div className="bg-card rounded-xl overflow-clip border p-3 flex flex-col gap-3">
+        <div className="flex items-center justify-between">
+          <Label variant={"subheading"}>GitHub Pull Request</Label>
+          <GithubPRPicker
+            organizationId={organizationId}
+            releaseId={release.id}
+            linkedPR={release.githubPullRequests?.[0] || null}
+            onLinkPR={(newPR) => {
+              setRelease((prev) =>
+                prev
+                  ? {
+                    ...prev,
+                    githubPullRequests: [newPR],
+                  }
+                  : null,
+              );
+            }}
+            open={prPickerOpen}
+            onOpenChange={setPrPickerOpen}
+            disabled={(release.githubPullRequests?.length ?? 0) >= 1}
+          />
+        </div>
+        {(release.githubPullRequests?.length ?? 0) > 0 && (
+          <LinkedGithubPRs
+            organizationId={organizationId}
+            releaseId={release.id}
+            githubPR={release.githubPullRequests?.[0] || null}
+            onUnlinkPR={() => {
+              setRelease((prev) =>
+                prev
+                  ? {
+                    ...prev,
+                    githubPullRequests: [],
+                  }
+                  : null,
+              );
+            }}
+          />
+        )}
+      </div>
     </div>
   );
 }

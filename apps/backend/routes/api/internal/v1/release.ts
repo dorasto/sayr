@@ -29,8 +29,9 @@ import type { AppEnv } from "@/index";
 import { findClientBysseId, sseBroadcastPublic, sseBroadcastToRoom } from "@/routes/events";
 import { ServerEventBaseMessage } from "@/routes/events/types";
 import { enforceLimit, traceOrgPermissionCheck } from "@/util";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { canCreateResource, getLimitReachedMessage } from "@repo/edition";
+import { getInstallationDetailsWithRepos, getInstallationToken } from "@repo/util/github/auth";
 
 export const apiRouteAdminRelease = new Hono<AppEnv>();
 
@@ -802,4 +803,172 @@ apiRouteAdminRelease.delete("/:releaseId/comments/:commentId/reactions/:emoji", 
 	await removeReleaseCommentReaction(commentId, session.userId, emoji);
 
 	return c.json({ success: true });
+});
+
+apiRouteAdminRelease.get("/:releaseId/github_prs", async (c) => {
+	const session = c.get("session");
+	const orgId = c.req.query("org_id") || "";
+
+	// Auth checks
+	if (!session?.userId) return c.json({ success: false, error: "Unauthorized" }, 401);
+	const isAuthorized = await traceOrgPermissionCheck(session.userId, orgId, "members");
+	if (!isAuthorized) return c.json({ success: false, error: "Permission denied" }, 401);
+
+	// Fetch ALL repos connected to this orgId from your DB
+	const repositories = await db.query.githubRepository.findMany({
+		where: eq(schema.githubRepository.organizationId, orgId),
+	});
+
+	// Fetch PRs for all repos in parallel
+	const allPRs = await Promise.all(
+		repositories.map(async (repo) => {
+			const token = await getInstallationToken(repo.installationId);
+			if (!token) return [];
+
+			try {
+				// Fetch repos accessible to this installation
+				const installationRepos = await fetch(
+					`  https://api.github.com/installation/repositories`,
+					{
+						headers: {
+							Authorization: `Bearer ${token}`,
+							Accept: "application/vnd.github.v3+json",
+						},
+					}
+				).then((res) => {
+					if (!res.ok) throw new Error(`GitHub API error: ${res.status}`);
+					return res.json();
+				});
+
+				// Find the repo by name (e.g., "sayr-io-test")
+				const repoInfo = installationRepos.repositories.find(
+					(r: any) => r.name === repo.repoName
+				);
+				if (!repoInfo) return [];
+
+				const orgName = repoInfo.owner.login;
+				const repoName = repoInfo.name;
+
+				// Fetch all open PRs for this repo
+				const prs = await fetch(
+					`https://api.github.com/repos/${orgName}/${repoName}/pulls?state=all`,
+					{
+						headers: {
+							Authorization: `Bearer ${token}`,
+							Accept: "application/vnd.github.v3+json",
+						},
+					}
+				).then((res) => res.json()).catch(() => []);
+				return prs;
+			} catch (error) {
+				console.error(`Failed to fetch PRs for repo ${repo.repoName}:`, error);
+				return [];
+			}
+		})
+	).then((results) => results.flat());
+
+	return c.json({ success: true, data: allPRs });
+});
+
+// Link a GitHub PR to a release
+apiRouteAdminRelease.post("/:releaseId/github_prs/link", async (c) => {
+	const session = c.get("session");
+	const orgId = c.req.query("org_id") || "";
+	const releaseId = c.req.param("releaseId");
+
+	// Auth checks
+	if (!session?.userId) return c.json({ success: false, error: "Unauthorized" }, 401);
+	const isAuthorized = await traceOrgPermissionCheck(session.userId, orgId, "members");
+	if (!isAuthorized) return c.json({ success: false, error: "Permission denied" }, 401);
+
+	const body = await c.req.json();
+	const {
+		prNumber,
+		prUrl,
+		title,
+		body: prBody,
+		headSha,
+		baseBranch,
+		headBranch,
+		state,
+		merged,
+		mergeCommitSha,
+		repositoryId,
+	} = body;
+
+	try {
+		// Create or update the GitHub PR record
+		const existingPR = await db.query.githubPullRequest.findFirst({
+			where: and(
+				eq(schema.githubPullRequest.repositoryId, repositoryId),
+				eq(schema.githubPullRequest.prNumber, prNumber)
+			)
+		});
+
+		let githubPR;
+		if (existingPR) {
+			// Update existing PR
+			githubPR = await db
+				.update(schema.githubPullRequest)
+				.set({ releaseId: releaseId })
+				.where(eq(schema.githubPullRequest.id, existingPR.id))
+				.returning();
+		} else {
+			// Create new PR record
+			githubPR = await db
+				.insert(schema.githubPullRequest)
+				.values({
+					repositoryId: repositoryId,
+					organizationId: orgId,
+					prNumber: prNumber,
+					prUrl: prUrl,
+					title,
+					body: prBody,
+					headSha,
+					headBranch,
+					baseBranch,
+					state: state,
+					merged: merged,
+					mergeCommitSha: mergeCommitSha,
+					releaseId: releaseId,
+				})
+				.returning();
+		}
+
+		const data = { type: "UPDATE_RELEASES" as ServerEventBaseMessage["type"], data: { releaseId } };
+		sseBroadcastToRoom(orgId, "releases", data);
+		sseBroadcastPublic(orgId, { ...data });
+		return c.json({ success: true, data: githubPR[0] });
+	} catch (error) {
+		console.error("Failed to link GitHub PR to release:", error);
+		return c.json({ success: false, error: "Failed to link GitHub PR" }, 500);
+	}
+});
+
+// Unlink a GitHub PR from a release
+apiRouteAdminRelease.delete("/:releaseId/github_prs/:githubPRId/unlink", async (c) => {
+	const session = c.get("session");
+	const orgId = c.req.query("org_id") || "";
+	const releaseId = c.req.param("releaseId");
+	const githubPRId = c.req.param("githubPRId");
+
+	// Auth checks
+	if (!session?.userId) return c.json({ success: false, error: "Unauthorized" }, 401);
+	const isAuthorized = await traceOrgPermissionCheck(session.userId, orgId, "members");
+	if (!isAuthorized) return c.json({ success: false, error: "Permission denied" }, 401);
+
+	try {
+		// Update the GitHub PR to remove the release association
+		await db
+			.update(schema.githubPullRequest)
+			.set({ releaseId: null })
+			.where(and(eq(schema.githubPullRequest.id, githubPRId), eq(schema.githubPullRequest.organizationId, orgId), eq(schema.githubPullRequest.releaseId, releaseId)));
+		const data = { type: "UPDATE_RELEASES" as ServerEventBaseMessage["type"], data: { releaseId } };
+		sseBroadcastToRoom(orgId, "releases", data);
+		sseBroadcastPublic(orgId, { ...data });
+		return c.json({ success: true });
+	} catch (error) {
+		console.error("Failed to unlink GitHub PR from release:", error);
+		return c.json({ success: false, error: "Failed to unlink GitHub PR" }, 500);
+	}
 });
