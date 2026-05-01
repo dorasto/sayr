@@ -91,9 +91,9 @@ zerops:
         # PostHog: baked into the client bundle at build time
         VITE_PUBLIC_POSTHOG_KEY: ${VITE_PUBLIC_POSTHOG_KEY}
         VITE_PUBLIC_POSTHOG_HOST: ${VITE_PUBLIC_POSTHOG_HOST}
-        # PostHog CLI: for source map uploads during build
-        POSTHOG_CLI_TOKEN: ${POSTHOG_CLI_TOKEN}
-        POSTHOG_CLI_ENV_ID: ${POSTHOG_CLI_ENV_ID}
+        # PostHog CLI: POSTHOG_CLI_TOKEN and POSTHOG_CLI_ENV_ID are defined as project-level
+        # custom environment variables in Zerops and are injected automatically — do NOT
+        # redeclare them here or Zerops will create a recursive self-reference loop.
       prepareCommands:
         # corepack ships with Node.js 22 — use it instead of npm install -g pnpm
         - corepack enable && corepack prepare pnpm@latest --activate

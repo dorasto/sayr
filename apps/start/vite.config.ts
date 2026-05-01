@@ -90,35 +90,29 @@ const config = defineConfig({
         },
       }),
 
-    // PostHog Rollup plugin for error tracking source maps
-    // Uploads source maps during CI/CD build process (as per PostHog docs)
+    // PostHog Rollup plugin: uploads source maps during CI/CD build (as per PostHog docs).
+    // Only runs when a valid token is present — skipped silently for local builds.
     !isDev &&
+      !!process.env.POSTHOG_CLI_TOKEN?.startsWith("phx_") &&
       posthog({
-        personalApiKey: process.env.POSTHOG_CLI_TOKEN || "",
+        personalApiKey: process.env.POSTHOG_CLI_TOKEN,
         projectId: process.env.POSTHOG_CLI_ENV_ID || "",
         host: process.env.VITE_PUBLIC_POSTHOG_HOST || "https://us.i.posthog.com",
         sourcemaps: {
           enabled: true,
           releaseName: "sayr-start",
-          // Version detection priority:
-          // 1. appVersionName (Zerops system variable)
-          // 2. ZEROPS_APP_VERSION (manual override)
-          // 3. npm_package_version (package.json)
-          // 4. git commit hash
-          // 5. timestamp fallback
-          releaseVersion: 
+          // Version priority: Zerops appVersionName → git short SHA → timestamp fallback
+          releaseVersion:
             process.env.appVersionName ||
-            process.env.ZEROPS_APP_VERSION ||
-            process.env.npm_package_version ||
             (() => {
               try {
-                const { execSync } = require('child_process');
-                return execSync('git rev-parse --short HEAD').toString().trim();
-              } catch (e) {
+                const { execSync } = require("child_process");
+                return execSync("git rev-parse --short HEAD").toString().trim();
+              } catch {
                 return `dev-${Date.now()}`;
               }
             })(),
-          deleteAfterUpload: false, // Keep source maps for debugging
+          deleteAfterUpload: false,
         },
       }),
 
