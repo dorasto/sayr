@@ -128,9 +128,9 @@ export function PublicReleaseDiscussion({
 
   useEffect(() => {
     if (organizationId) {
-      setMentionContext({ orgId: organizationId });
+      setMentionContext({ orgId: organizationId, releaseId });
     }
-  }, [organizationId, setMentionContext]);
+  }, [organizationId, releaseId, setMentionContext]);
 
   const commentLimit = 20;
 

@@ -117,12 +117,12 @@ export function PublicComments({
     });
   }, []);
 
-  // Set mentionContext so the Editor's useMentionUsers hook can fetch org members
+  // Set mentionContext so the Editor's useMentionUsers hook can fetch org members and task participants
   useEffect(() => {
     if (organizationId) {
-      setMentionContext({ orgId: organizationId });
+      setMentionContext({ orgId: organizationId, taskId });
     }
-  }, [organizationId, setMentionContext]);
+  }, [organizationId, taskId, setMentionContext]);
 
   const commentLimit = 20;
 

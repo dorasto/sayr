@@ -99,7 +99,6 @@ export function UpdateComposer({ account, availableUsers, onPost, onCancel }: Up
 							onChange={setContent}
 							hideBlockHandle
 							firstLinePlaceholder="What's the current status of this release?"
-							mentionViewUsers={availableUsers}
 							submit={handlePost}
 						/>
 					</Suspense>

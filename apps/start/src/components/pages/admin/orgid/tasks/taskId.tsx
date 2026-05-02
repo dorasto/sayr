@@ -45,12 +45,12 @@ export default function OrganizationTaskIdPage() {
   const { setValue: setMentionContext } =
     useStateManagement<MentionContext | null>("mentionContext", null);
 
-  // Set mentionContext so the Editor's useMentionUsers hook can fetch org members
+  // Set mentionContext so the Editor's useMentionUsers hook can fetch org members and task participants
   useEffect(() => {
     if (organization?.id) {
-      setMentionContext({ orgId: organization.id });
+      setMentionContext({ orgId: organization.id, taskId: task.id });
     }
-  }, [organization?.id, setMentionContext]);
+  }, [organization?.id, task.id, setMentionContext]);
 
   return (
     <PanelWrapper

@@ -404,7 +404,6 @@ export function StatusUpdateCard({
               readonly
               defaultContent={update.content as schema.NodeJSON}
               hideBlockHandle
-              mentionViewUsers={availableUsers}
               className="pl-1"
             />
           </Suspense>

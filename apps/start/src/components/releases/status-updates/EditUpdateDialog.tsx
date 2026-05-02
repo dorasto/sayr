@@ -141,7 +141,6 @@ export function EditUpdateDialog({
 									defaultContent={initialContent}
 									onChange={setContent}
 									hideBlockHandle
-									mentionViewUsers={availableUsers}
 									submit={handleSave}
 								/>
 							</Suspense>

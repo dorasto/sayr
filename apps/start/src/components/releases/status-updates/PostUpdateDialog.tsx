@@ -242,7 +242,6 @@ export function PostUpdateDialog({
                     onChange={setContent}
                     hideBlockHandle
                     firstLinePlaceholder="What's the current status of this release?"
-                    mentionViewUsers={availableUsers}
                     submit={handlePost}
                   />
                 </Suspense>

@@ -274,7 +274,6 @@ export function PublicCommentItem({
                     onChange={setEditedContent}
                     submit={handleSave}
                     hideBlockHandle
-                    mentionViewUsers={users}
                   />
                 </Suspense>
                 <div className="flex items-center gap-2 mt-2 justify-end">
@@ -311,7 +310,6 @@ export function PublicCommentItem({
                       readonly={true}
                       defaultContent={comment.content}
                       hideBlockHandle
-                      mentionViewUsers={users}
                     />
                   </Suspense>
                 </div>

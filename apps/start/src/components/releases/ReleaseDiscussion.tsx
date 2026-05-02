@@ -363,7 +363,6 @@ function TopLevelCommentCard({
                   }
                   onChange={setEditContent}
                   hideBlockHandle
-                  mentionViewUsers={availableUsers}
                 />
               </Suspense>
               <div className="flex items-center gap-2 mt-1 justify-end">
@@ -402,7 +401,6 @@ function TopLevelCommentCard({
                     comment.content as schema.NodeJSON | undefined
                   }
                   hideBlockHandle
-                  mentionViewUsers={availableUsers}
                 />
               </Suspense>
             )

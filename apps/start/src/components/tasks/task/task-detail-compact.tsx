@@ -57,12 +57,12 @@ export function TaskDetailCompact({
   const { setValue: setMentionContext } =
     useStateManagement<MentionContext | null>("mentionContext", null);
 
-  // Set mentionContext so the Editor's useMentionUsers hook can fetch org members
+  // Set mentionContext so the Editor's useMentionUsers hook can fetch org members and task participants
   useEffect(() => {
     if (task.organizationId) {
-      setMentionContext({ orgId: task.organizationId });
+      setMentionContext({ orgId: task.organizationId, taskId: task.id });
     }
-  }, [task.organizationId, setMentionContext]);
+  }, [task.organizationId, task.id, setMentionContext]);
 
   // Get labels and categories for this task's organization
   const orgLabels = labels.filter(

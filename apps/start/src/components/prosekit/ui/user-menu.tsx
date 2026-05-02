@@ -13,7 +13,6 @@ import {
 import { useMemo, useState } from "react";
 import { InlineLabel } from "@/components/tasks/shared/inlinelabel";
 import type { schema } from "@repo/database";
-import { cn } from "@/lib/utils";
 
 // Match inputs like "@", "@foo", "@foo bar" etc. Do not match "@ foo".
 const regex = canUseRegexLookbehind() ? /(?<!\S)@(\S.*)?$/u : /@(\S.*)?$/u;
@@ -62,18 +61,17 @@ export default function UserMenu(props: {
       onOpenChange={props.onOpenChange}
     >
       <AutocompleteList filter={null}>
-        <AutocompleteEmpty
-          className={cn(
-            "relative flex items-center min-w-32 scroll-my-1 rounded-sm box-border cursor-default select-none whitespace-nowrap outline-hidden text-sm",
-            !props.loading && "px-3 py-1.5",
-          )}
-        >
-          {props.loading ? (
-            <Skeleton className="h-8 w-full bg-accent" />
-          ) : (
-            "No results"
-          )}
-        </AutocompleteEmpty>
+        {filteredUsers.length === 0 && (
+          <AutocompleteEmpty
+            className="relative flex items-center min-w-32 scroll-my-1 rounded-sm box-border cursor-default select-none whitespace-nowrap outline-hidden text-sm px-3 py-1.5"
+          >
+            {props.loading ? (
+              <Skeleton className="h-8 w-full bg-accent" />
+            ) : (
+              "No results"
+            )}
+          </AutocompleteEmpty>
+        )}
 
         {filteredUsers.map((user) => {
           const displayName = getDisplayName(user);

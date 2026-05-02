@@ -172,7 +172,6 @@ export function CommentInput({
               onChange={setContent}
               hideBlockHandle
               firstLinePlaceholder={placeholder}
-              mentionViewUsers={availableUsers}
               submit={handlePost}
             />
           </Suspense>
