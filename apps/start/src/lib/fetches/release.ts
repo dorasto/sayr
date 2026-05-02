@@ -388,15 +388,6 @@ export async function removeReleaseCommentReactionAction(
 
 // ─── GitHub PRs ─────────────────────────────────────────────────────────────────
 
-export async function getReleaseGithubPRsAction(
-	orgId: string,
-	releaseId: string
-): Promise<{ success: boolean; data: any[]; error?: string }> {
-	return fetch(`${BASE}/${releaseId}/github_prs?org_id=${orgId}`, {
-		credentials: "include",
-	}).then((r) => r.json());
-}
-
 export async function linkGithubPRToReleaseAction(
 	orgId: string,
 	releaseId: string,

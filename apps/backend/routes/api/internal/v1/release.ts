@@ -31,7 +31,6 @@ import { ServerEventBaseMessage } from "@/routes/events/types";
 import { enforceLimit, traceOrgPermissionCheck } from "@/util";
 import { and, eq } from "drizzle-orm";
 import { canCreateResource, getLimitReachedMessage } from "@repo/edition";
-import { getInstallationDetailsWithRepos, getInstallationToken } from "@repo/util/github/auth";
 
 export const apiRouteAdminRelease = new Hono<AppEnv>();
 
@@ -803,71 +802,6 @@ apiRouteAdminRelease.delete("/:releaseId/comments/:commentId/reactions/:emoji", 
 	await removeReleaseCommentReaction(commentId, session.userId, emoji);
 
 	return c.json({ success: true });
-});
-
-apiRouteAdminRelease.get("/:releaseId/github_prs", async (c) => {
-	const session = c.get("session");
-	const orgId = c.req.query("org_id") || "";
-
-	// Auth checks
-	if (!session?.userId) return c.json({ success: false, error: "Unauthorized" }, 401);
-	const isAuthorized = await traceOrgPermissionCheck(session.userId, orgId, "members");
-	if (!isAuthorized) return c.json({ success: false, error: "Permission denied" }, 401);
-
-	// Fetch ALL repos connected to this orgId from your DB
-	const repositories = await db.query.githubRepository.findMany({
-		where: eq(schema.githubRepository.organizationId, orgId),
-	});
-
-	// Fetch PRs for all repos in parallel
-	const allPRs = await Promise.all(
-		repositories.map(async (repo) => {
-			const token = await getInstallationToken(repo.installationId);
-			if (!token) return [];
-
-			try {
-				// Fetch repos accessible to this installation
-				const installationRepos = await fetch(
-					`  https://api.github.com/installation/repositories`,
-					{
-						headers: {
-							Authorization: `Bearer ${token}`,
-							Accept: "application/vnd.github.v3+json",
-						},
-					}
-				).then((res) => {
-					if (!res.ok) throw new Error(`GitHub API error: ${res.status}`);
-					return res.json();
-				});
-
-				// Find the repo by name (e.g., "sayr-io-test")
-				const repoInfo = installationRepos.repositories.find(
-					(r: any) => r.name === repo.repoName
-				);
-				if (!repoInfo) return [];
-
-				const orgName = repoInfo.owner.login;
-				const repoName = repoInfo.name;
-
-				// Fetch all open PRs for this repo
-				const prs = await fetch(
-					`https://api.github.com/repos/${orgName}/${repoName}/pulls?state=all`,
-					{
-						headers: {
-							Authorization: `Bearer ${token}`,
-							Accept: "application/vnd.github.v3+json",
-						},
-					}
-				).then((res) => res.json()).catch(() => []);
-				return prs;
-			} catch (error) {
-				console.error(`Failed to fetch PRs for repo ${repo.repoName}:`, error);
-				return [];
-			}
-		})
-	).then((results) => results.flat());
-
-	return c.json({ success: true, data: allPRs });
 });
 
 // Link a GitHub PR to a release

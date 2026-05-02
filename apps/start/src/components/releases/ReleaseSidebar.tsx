@@ -18,6 +18,7 @@ import {
   IconUsers,
   IconCheckbox,
   IconTrendingUp,
+  IconBrandGithub,
 } from "@tabler/icons-react";
 import type { schema } from "@repo/database";
 import { useMemo, useCallback, useState, type ReactNode } from "react";
@@ -25,7 +26,6 @@ import { ReleaseStats } from "./ReleaseStats";
 import { Link } from "@tanstack/react-router";
 import { serializeFilters } from "@/components/tasks/filter/serialization";
 import type { FilterState } from "@/components/tasks/filter/types";
-import { Label } from "@repo/ui/components/label";
 import GithubPRPicker from "./GithubPRPicker";
 import { LinkedGithubPRs } from "./LinkedGithubPRs";
 
@@ -293,9 +293,17 @@ export function ReleaseSidebar({
         </TileHeader>
         <TaskAssigneeChart tasks={tasks} renderTileWrapper={renderTileWrapper} />
       </Tile>
-      <div className="bg-card rounded-xl overflow-clip border p-3 flex flex-col gap-3">
-        <div className="flex items-center justify-between">
-          <Label variant={"subheading"}>GitHub Pull Request</Label>
+      <Tile className="md:w-full flex-col gap-4 p-4">
+        <TileHeader className="w-full items-start gap-3 pb-2 border-b">
+          <div className="flex items-center gap-2">
+            <TileIcon>
+              <IconBrandGithub />
+            </TileIcon>
+            <TileTitle className="text-lg font-semibold">
+              GitHub Pull Request
+            </TileTitle>
+          </div>
+
           <GithubPRPicker
             organizationId={organizationId}
             releaseId={release.id}
@@ -314,25 +322,28 @@ export function ReleaseSidebar({
             onOpenChange={setPrPickerOpen}
             disabled={(release.githubPullRequests?.length ?? 0) >= 1}
           />
-        </div>
+        </TileHeader>
+
         {(release.githubPullRequests?.length ?? 0) > 0 && (
-          <LinkedGithubPRs
-            organizationId={organizationId}
-            releaseId={release.id}
-            githubPR={release.githubPullRequests?.[0] || null}
-            onUnlinkPR={() => {
-              setRelease((prev) =>
-                prev
-                  ? {
-                    ...prev,
-                    githubPullRequests: [],
-                  }
-                  : null,
-              );
-            }}
-          />
+          <div className="w-full mt-2">
+            <LinkedGithubPRs
+              organizationId={organizationId}
+              releaseId={release.id}
+              githubPR={release.githubPullRequests?.[0] || null}
+              onUnlinkPR={() => {
+                setRelease((prev) =>
+                  prev
+                    ? {
+                      ...prev,
+                      githubPullRequests: [],
+                    }
+                    : null,
+                );
+              }}
+            />
+          </div>
         )}
-      </div>
+      </Tile>
     </div>
   );
 }

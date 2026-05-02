@@ -16,9 +16,10 @@ import { cn } from "@repo/ui/lib/utils";
 import { IconLoader2, IconGitPullRequest } from "@tabler/icons-react";
 import { Badge } from "@repo/ui/components/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
-import { getReleaseGithubPRsAction, linkGithubPRToReleaseAction } from "@/lib/fetches/release";
+import { linkGithubPRToReleaseAction } from "@/lib/fetches/release";
 import { useToastAction } from "@/lib/util";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
+import { getGithubPRsAction } from "@/lib/fetches/organization";
 
 
 interface GithubPR {
@@ -123,7 +124,7 @@ export default function GithubPRPicker({
 		async (signal?: AbortSignal) => {
 			setIsLoading(true);
 			try {
-				const result = await getReleaseGithubPRsAction(organizationId, releaseId);
+				const result = await getGithubPRsAction(organizationId);
 				if (!signal?.aborted && result.success) {
 					// Filter out already linked PR (only one allowed)
 					const linkedPRNumber = linkedPR?.prNumber;
@@ -223,6 +224,7 @@ export default function GithubPRPicker({
 				console.error("Failed to link GitHub PR:", error);
 			} finally {
 				setIsLoading(false);
+				onOpenChange?.(false);
 			}
 		},
 		[organizationId, releaseId, sseClientId, runWithToast, onLinkPR, repositories],

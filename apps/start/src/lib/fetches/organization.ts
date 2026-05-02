@@ -1651,3 +1651,11 @@ export async function deleteOrganizationAction(
 	);
 	return res.json();
 }
+
+export async function getGithubPRsAction(
+	orgId: string,
+): Promise<{ success: boolean; data: any[]; error?: string }> {
+	return fetch(`${API_URL}/v1/admin/organization/${orgId}/github_prs`, {
+		credentials: "include",
+	}).then((r) => r.json());
+}

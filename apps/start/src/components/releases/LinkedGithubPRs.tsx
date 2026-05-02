@@ -64,12 +64,16 @@ export function LinkedGithubPRs({
 	}
 
 	return (
-		<div className="flex items-center gap-2 p-2 rounded-lg border hover:bg-accent transition-colors">
+		<div className="flex items-center gap-2 p-2 rounded-lg border hover:bg-accent transition-colors w-full">
 			<a
 				href={githubPR.prUrl}
 				target="_blank"
 				rel="noopener noreferrer"
-				className="flex-1 min-w-0"
+				className={`min-w-0 ${!editable
+					? "flex-1 cursor-pointer"
+					: "flex-1 cursor-not-allowed pointer-events-none"
+					}`}
+				aria-disabled={!editable}
 			>
 				<div className="flex items-center gap-2">
 					<IconGitPullRequest className="h-4 w-4 text-muted-foreground" />
