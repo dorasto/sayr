@@ -4105,10 +4105,9 @@ apiRouteAdminOrganization.get("/:orgId/github_prs", async (c) => {
 	// Fetch PRs for all repos in parallel
 	const allPRs = await Promise.all(
 		repositories.map(async (repo) => {
-			const token = await getInstallationToken(repo.installationId);
-			if (!token) return [];
-
 			try {
+				const token = await getInstallationToken(repo.installationId);
+				if (!token) return [];
 				// Fetch repos accessible to this installation
 				const installationRepos = await fetch(
 					`https://api.github.com/installation/repositories`,
