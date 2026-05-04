@@ -4111,7 +4111,7 @@ apiRouteAdminOrganization.get("/:orgId/github_prs", async (c) => {
 			try {
 				// Fetch repos accessible to this installation
 				const installationRepos = await fetch(
-					`  https://api.github.com/installation/repositories`,
+					`https://api.github.com/installation/repositories`,
 					{
 						headers: {
 							Authorization: `Bearer ${token}`,
