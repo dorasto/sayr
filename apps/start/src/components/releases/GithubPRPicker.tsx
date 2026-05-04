@@ -190,7 +190,7 @@ export default function GithubPRPicker({
         const headBranch = pr.head?.ref || "unknown";
         const baseBranch = pr.base?.ref || "main";
         const headSha = pr.head?.sha || "";
-        await unlinkGithubPRFromReleaseAction(organizationId, releaseId, linkedPR.id);
+        linkedPR?.id && await unlinkGithubPRFromReleaseAction(organizationId, releaseId, linkedPR.id);
 
         const result = await runWithToast(
           "link-github-pr",
