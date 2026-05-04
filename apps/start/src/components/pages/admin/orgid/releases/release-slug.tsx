@@ -306,7 +306,6 @@ function ReleaseDetailPageContent() {
             daysUntilTarget={daysUntilTarget}
             organizationId={organization.id}
             release={release}
-            setRelease={setRelease}
           />
         </div>
       }

@@ -18,16 +18,13 @@ import {
   IconUsers,
   IconCheckbox,
   IconTrendingUp,
-  IconBrandGithub,
 } from "@tabler/icons-react";
 import type { schema } from "@repo/database";
-import { useMemo, useCallback, useState, type ReactNode } from "react";
+import { useMemo, useCallback, type ReactNode } from "react";
 import { ReleaseStats } from "./ReleaseStats";
 import { Link } from "@tanstack/react-router";
 import { serializeFilters } from "@/components/tasks/filter/serialization";
 import type { FilterState } from "@/components/tasks/filter/types";
-import { ReleaseFieldToolbar } from "./release-field-toolbar";
-import { LinkedGithubPRs } from "./LinkedGithubPRs";
 
 interface ReleaseSidebarProps {
   tasks: schema.TaskWithLabels[];
@@ -42,9 +39,6 @@ interface ReleaseSidebarProps {
   daysUntilTarget: number | null;
   organizationId: string;
   release: schema.ReleaseWithTasks;
-  setRelease: React.Dispatch<
-    React.SetStateAction<schema.ReleaseWithTasks | null>
-  >;
 }
 
 export function ReleaseSidebar({
@@ -53,7 +47,6 @@ export function ReleaseSidebar({
   daysUntilTarget,
   organizationId,
   release,
-  setRelease,
 }: ReleaseSidebarProps) {
   // Render prop to wrap each assignee tile with a Link
   const renderTileWrapper = useCallback(
@@ -213,48 +206,6 @@ export function ReleaseSidebar({
 
   return (
     <div className="flex flex-col gap-3">
-      {/*<Tile className="md:w-full flex-col gap-4 p-4">
-        <TileHeader className="w-full items-start gap-3 pb-2 border-b">
-          <div className="flex items-center gap-2">
-            <TileIcon>
-              <IconBrandGithub />
-            </TileIcon>
-            <TileTitle className="text-lg font-semibold">
-              GitHub Pull Request
-            </TileTitle>
-          </div>
-        </TileHeader>
-
-        <div className="flex flex-col gap-3 mt-2">
-          <ReleaseFieldToolbar
-            release={release}
-            variant="sidebar"
-            fields={["githubPR"]}
-            editable={true}
-            onReleaseChange={setRelease}
-          />
-        </div>
-
-        {(release.githubPullRequests?.length ?? 0) > 0 && (
-          <div className="w-full mt-2">
-            <LinkedGithubPRs
-              organizationId={organizationId}
-              releaseId={release.id}
-              githubPR={release.githubPullRequests?.[0] || null}
-              onUnlinkPR={() => {
-                setRelease((prev) =>
-                  prev
-                    ? {
-                        ...prev,
-                        githubPullRequests: [],
-                      }
-                    : null,
-                );
-              }}
-            />
-          </div>
-        )}
-      </Tile>*/}
       {/* Release Progress Card */}
       <Tile className="md:w-full flex-col items-start gap-3">
         <TileHeader className="w-full">
