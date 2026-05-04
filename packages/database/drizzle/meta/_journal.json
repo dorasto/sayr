@@ -176,6 +176,13 @@
       "when": 1776623345057,
       "tag": "20260419182905_unusual_dragon_man",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1777645499432,
+      "tag": "20260501142459_nostalgic_giant_man",
+      "breakpoints": true
     }
   ]
 }

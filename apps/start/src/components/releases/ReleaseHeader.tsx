@@ -14,6 +14,7 @@ import IconPicker from "@/components/generic/icon-picker";
 import RenderIcon from "@/components/generic/RenderIcon";
 import { Input } from "@repo/ui/components/input";
 import { ReleaseFieldToolbar } from "./release-field-toolbar";
+import { LinkedGithubPRs } from "./LinkedGithubPRs";
 
 interface ReleaseHeaderProps {
   release: schema.ReleaseWithTasks;
@@ -181,6 +182,17 @@ export function ReleaseHeader({ release, onUpdate }: ReleaseHeaderProps) {
           fields={["status", "targetDate", "releasedAt"]}
         />
       </div>
+      {(release.githubPullRequests?.length ?? 0) > 0 && (
+        <div className="w-full mt-2">
+          <LinkedGithubPRs
+            organizationId={release.organizationId}
+            releaseId={release.id}
+            githubPR={release.githubPullRequests?.[0] || null}
+            editable={false}
+          />
+        </div>
+      )}
+
     </div>
   );
 }

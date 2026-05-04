@@ -305,7 +305,7 @@ function ReleaseDetailPageContent() {
             taskStats={taskStats}
             daysUntilTarget={daysUntilTarget}
             organizationId={organization.id}
-            releaseId={release.id}
+            release={release}
           />
         </div>
       }

@@ -7,11 +7,13 @@ import {
   PopoverTrigger,
 } from "@repo/ui/components/popover";
 import { cn } from "@repo/ui/lib/utils";
-import { formatDate, getDisplayName } from "@repo/util";
+import { formatDate, getDisplayName, parseGithubPrUrl } from "@repo/util";
 import {
   IconCalendarCheck,
   IconCalendarEvent,
   IconCalendarStats,
+  IconExternalLink,
+  IconGitPullRequest,
   IconLink,
   IconListCheck,
   IconPlus,
@@ -64,6 +66,12 @@ import {
 } from "@repo/ui/components/avatar";
 import { ensureCdnUrl } from "@repo/util";
 import {
+  Tile,
+  TileHeader,
+  TileTitle,
+  TileAction,
+} from "@repo/ui/components/doras-ui/tile";
+import {
   addReleaseLabelAction,
   removeReleaseLabelAction,
   updateReleaseAction,
@@ -74,6 +82,8 @@ import {
 } from "@/components/tasks/shared/label";
 import { useToastAction } from "@/lib/util";
 import { useMatch } from "@tanstack/react-router";
+import GithubPRPicker from "./GithubPRPicker";
+import { Badge } from "@repo/ui/components/badge";
 
 type ReleaseFieldKey =
   | "status"
@@ -82,7 +92,8 @@ type ReleaseFieldKey =
   | "tasks"
   | "publicPage"
   | "lead"
-  | "labels";
+  | "labels"
+  | "githubPR";
 
 interface ReleaseFieldToolbarProps {
   release: schema.releaseType | schema.ReleaseWithTasks;
@@ -120,6 +131,7 @@ const DEFAULT_FIELDS: ReleaseFieldKey[] = [
   "status",
   "targetDate",
   "releasedAt",
+  "githubPR",
 ];
 
 /**
@@ -329,6 +341,23 @@ export function ReleaseFieldToolbar({
     ],
   );
 
+  // ── GitHub PR ──────────────────────────────────────────────────────
+
+  const handleGithubPRChange = useCallback(
+    (newPR: any) => {
+      if (release.id === "draft") return;
+      setRelease((prev) =>
+        prev
+          ? {
+              ...prev,
+              githubPullRequests: [newPR],
+            }
+          : null,
+      );
+    },
+    [release.id, setRelease],
+  );
+
   // ── Render ────────────────────────────────────────────────────────
 
   const statusOptions = getReleaseStatusOptions();
@@ -350,7 +379,7 @@ export function ReleaseFieldToolbar({
                     variant="primary"
                     size="sm"
                     className={cn(
-                      "border-transparent! rounded-lg cursor-pointer gap-1.5 justify-start text-xs h-auto p-1 w-fit",
+                      "border-transparent! rounded-xl cursor-pointer gap-1.5 justify-start text-xs h-auto p-1 w-fit",
                       releaseStatusConfig[currentStatus].badgeClassName,
                     )}
                   >
@@ -376,7 +405,7 @@ export function ReleaseFieldToolbar({
             ) : (
               <span
                 className={cn(
-                  "inline-flex items-center gap-1.5 text-xs px-1 py-0.5 rounded-lg w-fit",
+                  "inline-flex items-center gap-1.5 text-xs px-1 py-0.5 rounded-xl w-fit",
                   releaseStatusConfig[currentStatus].badgeClassName,
                 )}
               >
@@ -397,7 +426,7 @@ export function ReleaseFieldToolbar({
                     variant="primary"
                     size="sm"
                     className={cn(
-                      "border-transparent! bg-transparent rounded-lg cursor-pointer gap-1.5 justify-start text-xs h-auto p-1 w-fit",
+                      "border-transparent! bg-transparent rounded-xl cursor-pointer gap-1.5 justify-start text-xs h-auto p-1 w-fit",
                       release.targetDate
                         ? "text-foreground"
                         : "text-muted-foreground",
@@ -424,7 +453,7 @@ export function ReleaseFieldToolbar({
                       <Button
                         variant="primary"
                         size="sm"
-                        className="border-transparent! bg-transparent rounded-lg cursor-pointer gap-1.5 justify-start text-xs h-auto p-1 w-fit"
+                        className="border-transparent! bg-transparent rounded-xl cursor-pointer gap-1.5 justify-start text-xs h-auto p-1 w-fit"
                         onClick={() => handleTargetDateChange(null)}
                       >
                         <IconX className="w-3 h-3 mr-1" />
@@ -462,7 +491,7 @@ export function ReleaseFieldToolbar({
                     variant="primary"
                     size="sm"
                     className={cn(
-                      "border-transparent! bg-transparent rounded-lg cursor-pointer gap-1.5 justify-start text-xs h-auto p-1 w-fit",
+                      "border-transparent! bg-transparent rounded-xl cursor-pointer gap-1.5 justify-start text-xs h-auto p-1 w-fit",
                       release.releasedAt
                         ? "text-foreground"
                         : "text-muted-foreground",
@@ -489,7 +518,7 @@ export function ReleaseFieldToolbar({
                       <Button
                         variant="primary"
                         size="sm"
-                        className="border-transparent! bg-transparent rounded-lg cursor-pointer gap-1.5 justify-start text-xs h-auto p-1 w-fit"
+                        className="border-transparent! bg-transparent rounded-xl cursor-pointer gap-1.5 justify-start text-xs h-auto p-1 w-fit"
                         onClick={() => handleReleasedAtChange(null)}
                       >
                         <IconX className="w-3 h-3 mr-1" />
@@ -524,7 +553,7 @@ export function ReleaseFieldToolbar({
               variant="primary"
               size="sm"
               className={cn(
-                "border-transparent! rounded-lg cursor-pointer gap-1.5 justify-start text-xs h-auto p-1 w-fit",
+                "border-transparent! rounded-xl cursor-pointer gap-1.5 justify-start text-xs h-auto p-1 w-fit",
               )}
             >
               <IconLink className="w-3 h-3" />
@@ -542,7 +571,7 @@ export function ReleaseFieldToolbar({
                   <Button
                     variant="primary"
                     size="sm"
-                    className="border-transparent! bg-transparent rounded-lg cursor-pointer gap-1.5 justify-start text-xs h-auto p-1 w-fit"
+                    className="border-transparent! bg-transparent rounded-xl cursor-pointer gap-1.5 justify-start text-xs h-auto p-1 w-fit"
                   >
                     {currentLead?.image ? (
                       <Avatar className="h-3 w-3">
@@ -614,79 +643,216 @@ export function ReleaseFieldToolbar({
         {/* Labels */}
         {showField("labels") && (
           <div className="flex flex-col gap-1.5">
-            <div className="flex flex-wrap gap-1">
-              {currentLabels.map((l) => (
-                <RenderLabel
-                  key={l.id}
-                  label={l}
-                  showRemove={editable}
-                  onRemove={(id) =>
-                    handleLabelToggle(
-                      currentLabels.map((x) => x.id).filter((x) => x !== id),
-                    )
-                  }
-                />
-              ))}
-              <ComboBox
-                values={currentLabels.map((l) => l.id)}
-                onValuesChange={handleLabelToggle}
-              >
-                <ComboBoxTrigger asChild disabled={!editable}>
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    className="h-6 w-6 aspect-square p-0 justify-center rounded-full"
-                  >
-                    <IconPlus className="w-3.5 h-3.5" />
-                  </Button>
-                </ComboBoxTrigger>
-                <ComboBoxContent>
-                  <ComboBoxSearch
-                    placeholder="Search labels..."
-                    onValueChange={setLabelSearch}
+            {editable ? (
+              <div className="flex flex-wrap gap-1">
+                {currentLabels.map((l) => (
+                  <RenderLabel
+                    key={l.id}
+                    label={l}
+                    showRemove={editable}
+                    onRemove={(id) =>
+                      handleLabelToggle(
+                        currentLabels.map((x) => x.id).filter((x) => x !== id),
+                      )
+                    }
                   />
-                  <ComboBoxList>
-                    <ComboBoxEmpty className="p-0">
-                      {canCreateLabel && labelSearch.trim().length > 0 ? (
-                        <InlineCreateLabelForm
-                          orgId={organization.id}
-                          searchValue={labelSearch.trim()}
-                          onCreated={(newLabels) => {
-                            setLabelSearch("");
-                            // Refresh org labels and add new label to release
-                            const newLabel = newLabels[0];
-                            if (newLabel) {
-                              handleLabelToggle([
-                                ...currentLabels.map((l) => l.id),
-                                newLabel.id,
-                              ]);
-                            }
-                          }}
-                        />
-                      ) : (
-                        "No labels found."
+                ))}
+                <ComboBox
+                  values={currentLabels.map((l) => l.id)}
+                  onValuesChange={handleLabelToggle}
+                >
+                  <ComboBoxTrigger asChild disabled={!editable}>
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      className={cn(
+                        "border-transparent! bg-transparent rounded-xl cursor-pointer gap-1.5 justify-start text-xs h-auto p-1 w-fit text-muted-foreground",
+                        currentLabels.length !== 0 && "rounded-full",
                       )}
-                    </ComboBoxEmpty>
-                    <ComboBoxGroup>
-                      {orgLabels.map((l) => (
-                        <ComboBoxItem
-                          key={l.id}
-                          value={l.id}
-                          searchValue={l.name}
-                        >
-                          <span
-                            className="w-2.5 h-2.5 rounded-full shrink-0"
-                            style={{ backgroundColor: l.color ?? "#ccc" }}
+                    >
+                      <IconPlus className="w-3 h-3" />
+                      {currentLabels.length === 0 && <span>Add label</span>}
+                    </Button>
+                  </ComboBoxTrigger>
+                  <ComboBoxContent>
+                    <ComboBoxSearch
+                      placeholder="Search labels..."
+                      onValueChange={setLabelSearch}
+                    />
+                    <ComboBoxList>
+                      <ComboBoxEmpty className="p-0">
+                        {canCreateLabel && labelSearch.trim().length > 0 ? (
+                          <InlineCreateLabelForm
+                            orgId={organization.id}
+                            searchValue={labelSearch.trim()}
+                            onCreated={(newLabels) => {
+                              setLabelSearch("");
+                              const newLabel = newLabels[0];
+                              if (newLabel) {
+                                handleLabelToggle([
+                                  ...currentLabels.map((l) => l.id),
+                                  newLabel.id,
+                                ]);
+                              }
+                            }}
                           />
-                          <span className="ml-2">{l.name}</span>
-                        </ComboBoxItem>
-                      ))}
-                    </ComboBoxGroup>
-                  </ComboBoxList>
-                </ComboBoxContent>
-              </ComboBox>
-            </div>
+                        ) : (
+                          "No labels found."
+                        )}
+                      </ComboBoxEmpty>
+                      <ComboBoxGroup>
+                        {orgLabels.map((l) => (
+                          <ComboBoxItem
+                            key={l.id}
+                            value={l.id}
+                            searchValue={l.name}
+                          >
+                            <span
+                              className="w-2.5 h-2.5 rounded-full shrink-0"
+                              style={{ backgroundColor: l.color ?? "#ccc" }}
+                            />
+                            <span className="ml-2">{l.name}</span>
+                          </ComboBoxItem>
+                        ))}
+                      </ComboBoxGroup>
+                    </ComboBoxList>
+                  </ComboBoxContent>
+                </ComboBox>
+              </div>
+            ) : (
+              <span
+                className={cn(
+                  "text-xs flex items-center gap-1.5",
+                  currentLabels.length > 0
+                    ? "text-foreground"
+                    : "text-muted-foreground",
+                )}
+              >
+                <IconTag className="w-3 h-3" />
+                {currentLabels.length > 0
+                  ? `${currentLabels.length} label${currentLabels.length === 1 ? "" : "s"}`
+                  : "No labels"}
+              </span>
+            )}
           </div>
+        )}
+
+        {/* GitHub PR */}
+        {showField("githubPR") && (
+          <Tile
+            className="md:w-full items-start p-0 flex-col gap-1"
+            variant={"transparent"}
+          >
+            <TileHeader>
+              <TileTitle asChild>
+                <Label variant={"description"} className="text-xs">
+                  Linked PR
+                </Label>
+              </TileTitle>
+            </TileHeader>
+            <TileAction>
+              {editable ? (
+                <div className="relative group/pr-link flex items-center gap-1 w-full">
+                  <GithubPRPicker
+                    variant="sidebar"
+                    organizationId={organization.id}
+                    releaseId={release.id}
+                    linkedPR={releaseWithTasks?.githubPullRequests?.[0] || null}
+                    onLinkPR={handleGithubPRChange}
+                    disabled={
+                      (releaseWithTasks?.githubPullRequests?.length ?? 0) >= 1
+                    }
+                    customTrigger={(() => {
+                      const linkedPR =
+                        releaseWithTasks?.githubPullRequests?.[0];
+                      const parsed = linkedPR?.prUrl
+                        ? parseGithubPrUrl(linkedPR.prUrl)
+                        : null;
+                      return (
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          className={cn(
+                            "border-transparent! bg-transparent rounded-xl cursor-pointer gap-1.5 justify-start text-xs h-auto p-1 w-fit",
+                            linkedPR
+                              ? "text-foreground"
+                              : "text-muted-foreground",
+                          )}
+                        >
+                          <IconGitPullRequest className="w-3 h-3" />
+                          {linkedPR
+                            ? parsed
+                              ? `${parsed.pr_org}/${parsed.pr_repo}#${parsed.pr_number}`
+                              : `PR #${linkedPR.prNumber}`
+                            : "Link GitHub PR"}
+
+                          <Badge
+                            variant="secondary"
+                            className={cn(
+                              "h-4 text-xs capitalize",
+                              linkedPR?.state === "open"
+                                ? "text-success"
+                                : "text-muted-foreground",
+                              !linkedPR && "hidden",
+                            )}
+                          >
+                            {linkedPR?.state}
+                          </Badge>
+                          {linkedPR?.merged && (
+                            <Badge
+                              variant="secondary"
+                              className="h-4 text-xs text-primary"
+                            >
+                              Merged
+                            </Badge>
+                          )}
+                        </Button>
+                      );
+                    })()}
+                  />
+                  {releaseWithTasks?.githubPullRequests?.[0]?.prUrl && (
+                    <a
+                      href={releaseWithTasks.githubPullRequests[0].prUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="opacity-0 group-hover/pr-link:opacity-100 transition-opacity"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-[26px] aspect-square p-0 rounded-xl"
+                      >
+                        <IconExternalLink className="h-3.5 w-3.5" />
+                      </Button>
+                    </a>
+                  )}
+                </div>
+              ) : (
+                <span
+                  className={cn(
+                    "text-xs flex items-center gap-1.5",
+                    releaseWithTasks?.githubPullRequests?.[0]
+                      ? "text-foreground"
+                      : "text-muted-foreground",
+                  )}
+                >
+                  <IconGitPullRequest className="w-3 h-3" />
+                  {(() => {
+                    const linkedPR = releaseWithTasks?.githubPullRequests?.[0];
+                    const parsed = linkedPR?.prUrl
+                      ? parseGithubPrUrl(linkedPR.prUrl)
+                      : null;
+                    return linkedPR
+                      ? parsed
+                        ? `${parsed.pr_org}/${parsed.pr_repo}#${parsed.pr_number}`
+                        : `PR #${linkedPR.prNumber}`
+                      : "Connect a GitHub PR";
+                  })()}
+                </span>
+              )}
+            </TileAction>
+          </Tile>
         )}
       </div>
     );
@@ -700,7 +866,7 @@ export function ReleaseFieldToolbar({
           value={currentStatus}
           onValueChange={(v) => v && handleStatusChange(v)}
         >
-          <ComboBoxTrigger className="w-fit text-xs h-7 border border-transparent hover:border-border bg-accent text-accent-foreground hover:bg-secondary rounded-lg px-2 flex items-center gap-2">
+          <ComboBoxTrigger className="w-fit text-xs h-7 border border-transparent hover:border-border bg-accent text-accent-foreground hover:bg-secondary rounded-xl px-2 flex items-center gap-2">
             <ComboBoxValue placeholder="Status">
               <div className="flex items-center gap-1.5">
                 {statusDisplay.icon}
@@ -732,7 +898,7 @@ export function ReleaseFieldToolbar({
               variant="primary"
               size="sm"
               className={cn(
-                "w-fit text-xs h-7 border border-transparent hover:border-border bg-accent text-accent-foreground hover:bg-secondary rounded-lg px-2",
+                "w-fit text-xs h-7 border border-transparent hover:border-border bg-accent text-accent-foreground hover:bg-secondary rounded-xl px-2",
                 release.targetDate ? "" : "text-muted-foreground",
               )}
             >
@@ -750,7 +916,7 @@ export function ReleaseFieldToolbar({
                 variant="primary"
                 size="sm"
                 className={cn(
-                  "border-transparent! bg-transparent rounded-lg cursor-pointer gap-1 justify-start text-xs h-auto p-1 w-fit ml-auto",
+                  "border-transparent! bg-transparent rounded-xl cursor-pointer gap-1 justify-start text-xs h-auto p-1 w-fit ml-auto",
                   !release.targetDate && "invisible",
                 )}
                 onClick={() => handleTargetDateChange(null)}
@@ -778,7 +944,7 @@ export function ReleaseFieldToolbar({
               variant="primary"
               size="sm"
               className={cn(
-                "w-fit text-xs h-7 border border-transparent hover:border-border bg-accent text-accent-foreground hover:bg-secondary rounded-lg px-2",
+                "w-fit text-xs h-7 border border-transparent hover:border-border bg-accent text-accent-foreground hover:bg-secondary rounded-xl px-2",
                 release.releasedAt ? "" : "text-muted-foreground",
               )}
             >
@@ -795,7 +961,7 @@ export function ReleaseFieldToolbar({
                 variant="primary"
                 size="sm"
                 className={cn(
-                  "border-transparent! bg-transparent rounded-lg cursor-pointer gap-1 justify-start text-xs h-auto p-1 w-fit ml-auto",
+                  "border-transparent! bg-transparent rounded-xl cursor-pointer gap-1 justify-start text-xs h-auto p-1 w-fit ml-auto",
                   !release.releasedAt && "invisible",
                 )}
                 onClick={() => handleReleasedAtChange(null)}
@@ -823,7 +989,7 @@ export function ReleaseFieldToolbar({
           open={taskPickerOpen}
           onOpenChange={handleTaskPickerOpen}
         >
-          <ComboBoxTrigger className="w-fit text-xs h-7 border border-transparent hover:border-border bg-accent text-accent-foreground hover:bg-secondary rounded-lg px-2 flex items-center gap-2">
+          <ComboBoxTrigger className="w-fit text-xs h-7 border border-transparent hover:border-border bg-accent text-accent-foreground hover:bg-secondary rounded-xl px-2 flex items-center gap-2">
             <ComboBoxValue placeholder="Add tasks">
               <div className="flex items-center gap-1.5">
                 <IconListCheck className="h-3.5 w-3.5" />
@@ -881,7 +1047,7 @@ export function ReleaseFieldToolbar({
             variant="primary"
             size="sm"
             className={cn(
-              "w-fit text-xs h-7 border border-transparent hover:border-border bg-accent text-accent-foreground hover:bg-secondary rounded-lg px-2",
+              "w-fit text-xs h-7 border border-transparent hover:border-border bg-accent text-accent-foreground hover:bg-secondary rounded-xl px-2",
             )}
           >
             <IconLink className="h-3.5 w-3.5" />
@@ -896,7 +1062,7 @@ export function ReleaseFieldToolbar({
             <Button
               variant="primary"
               size="sm"
-              className="w-fit text-xs h-7 border border-transparent hover:border-border bg-accent text-accent-foreground hover:bg-secondary rounded-lg px-2"
+              className="w-fit text-xs h-7 border border-transparent hover:border-border bg-accent text-accent-foreground hover:bg-secondary rounded-xl px-2"
             >
               {currentLead?.image ? (
                 <Avatar className="h-3.5 w-3.5">
@@ -950,7 +1116,7 @@ export function ReleaseFieldToolbar({
           values={currentLabels.map((l) => l.id)}
           onValuesChange={handleLabelToggle}
         >
-          <ComboBoxTrigger className="w-fit text-xs h-7 border border-transparent hover:border-border bg-accent text-accent-foreground hover:bg-secondary rounded-lg px-2 flex items-center gap-2">
+          <ComboBoxTrigger className="w-fit text-xs h-7 border border-transparent hover:border-border bg-accent text-accent-foreground hover:bg-secondary rounded-xl px-2 flex items-center gap-2">
             <ComboBoxValue placeholder="Labels">
               <div className="flex items-center gap-1.5">
                 <IconTag className="h-3.5 w-3.5" />

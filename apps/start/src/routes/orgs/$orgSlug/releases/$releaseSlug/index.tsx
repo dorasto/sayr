@@ -42,6 +42,7 @@ import { usePublicOrganizationLayout } from "@/contexts/publicContextOrg";
 import { useWSMessageHandler, type WSMessageHandler } from "@/hooks/useWSMessageHandler";
 import type { ServerEventMessage } from "@/lib/serverEvents";
 import { onWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
+import { LinkedGithubPRs } from "@/components/releases/LinkedGithubPRs";
 
 const fetchPublicRelease = createServerFn({ method: "GET" })
   .inputValidator((data: { orgSlug: string; releaseSlug: string }) => data)
@@ -125,14 +126,14 @@ export const Route = createFileRoute("/orgs/$orgSlug/releases/$releaseSlug/")({
         title: loaderData?.release?.name ?? "Release",
         image: loaderData?.release
           ? getOgImageUrl({
-              title: loaderData.release.name,
-              subtitle: loaderData.release.status
-                ? getReleaseStatusConfig(loaderData.release.status).label
-                : undefined,
-              meta: loaderData.org?.name || undefined,
-              logo: loaderData.org?.logo || undefined,
-              stats: stats.length > 0 ? stats : undefined,
-            })
+            title: loaderData.release.name,
+            subtitle: loaderData.release.status
+              ? getReleaseStatusConfig(loaderData.release.status).label
+              : undefined,
+            meta: loaderData.org?.name || undefined,
+            logo: loaderData.org?.logo || undefined,
+            stats: stats.length > 0 ? stats : undefined,
+          })
           : undefined,
       }),
     };
@@ -345,7 +346,7 @@ function ReleaseDetailPage() {
     <div className="flex flex-col h-full">
       {/* Top bar */}
       <div className="flex items-center justify-between h-11 shrink-0 border-b px-3">
-        <Link to={`/orgs/${orgSlug}/releases`}>
+        <Link to={`/orgs/$orgSlug/releases`} params={{ orgSlug }}>
           <Button
             variant="ghost"
             className="w-fit text-xs p-1 h-auto rounded-xl"
@@ -481,6 +482,12 @@ function ReleaseDetailPage() {
                   refreshKey={statusUpdatesRefreshKey}
                 />
               </div>
+              <LinkedGithubPRs
+                organizationId={organization.id}
+                releaseId={release.id}
+                githubPR={release.githubPullRequests?.[0] || null}
+                editable={false}
+              />
             </div>
           }
           className="h-full"
@@ -565,7 +572,8 @@ function TaskRow({ task, orgSlug }: { task: PublicTask; orgSlug: string }) {
 
   return (
     <Link
-      to={`/orgs/${orgSlug}/${task.shortId}`}
+      to={`/orgs/$orgSlug/$shortId`}
+      params={{ orgSlug, shortId: task.shortId as unknown as string || "0" }}
       className="transition-colors group"
     >
       <Tile

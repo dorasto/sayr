@@ -38,7 +38,7 @@ interface ReleaseSidebarProps {
   };
   daysUntilTarget: number | null;
   organizationId: string;
-  releaseId: string;
+  release: schema.ReleaseWithTasks;
 }
 
 export function ReleaseSidebar({
@@ -46,7 +46,7 @@ export function ReleaseSidebar({
   taskStats,
   daysUntilTarget,
   organizationId,
-  releaseId,
+  release,
 }: ReleaseSidebarProps) {
   // Render prop to wrap each assignee tile with a Link
   const renderTileWrapper = useCallback(
@@ -68,7 +68,7 @@ export function ReleaseSidebar({
                 id: "release-filter",
                 field: "release",
                 operator: "any",
-                value: [releaseId],
+                value: [release.id],
               },
             ],
           },
@@ -83,14 +83,17 @@ export function ReleaseSidebar({
         <Link
           to="/$orgId/tasks"
           params={{ orgId: organizationId }}
-          search={(prev) => ({ ...prev, filters: decodeURIComponent(filtersParam) })}
+          search={(prev) => ({
+            ...prev,
+            filters: decodeURIComponent(filtersParam),
+          })}
           className="block"
         >
           {children}
         </Link>
       );
     },
-    [organizationId, releaseId]
+    [organizationId, release.id],
   );
 
   // Generate progress data over time
@@ -285,7 +288,10 @@ export function ReleaseSidebar({
           <TileTitle>Assignee Workload</TileTitle>
           <TileDescription>Tasks assigned per team member</TileDescription>
         </TileHeader>
-        <TaskAssigneeChart tasks={tasks} renderTileWrapper={renderTileWrapper} />
+        <TaskAssigneeChart
+          tasks={tasks}
+          renderTileWrapper={renderTileWrapper}
+        />
       </Tile>
     </div>
   );

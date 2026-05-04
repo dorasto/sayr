@@ -179,6 +179,7 @@ export type ReleaseWithTasks = Omit<releaseType, "createdBy"> & {
 	createdBy?: UserSummary | null;
 	lead?: UserSummary | null;
 	labels: labelType[];
+	githubPullRequests?: githubPullRequestType[];
 	statusUpdates?: ReleaseStatusUpdateWithAuthor[];
 	comments?: ReleaseCommentWithAuthor[];
 };
