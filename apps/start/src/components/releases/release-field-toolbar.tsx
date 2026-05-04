@@ -785,6 +785,7 @@ export function ReleaseFieldToolbar({
                               ? `${parsed.pr_org}/${parsed.pr_repo}#${parsed.pr_number}`
                               : `PR #${linkedPR.prNumber}`
                             : "Link GitHub PR"}
+
                           <Badge
                             variant="secondary"
                             className={cn(
@@ -792,6 +793,7 @@ export function ReleaseFieldToolbar({
                               linkedPR?.state === "open"
                                 ? "text-success"
                                 : "text-muted-foreground",
+                              !linkedPR && "hidden",
                             )}
                           >
                             {linkedPR?.state}
