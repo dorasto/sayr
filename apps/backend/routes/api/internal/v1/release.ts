@@ -812,7 +812,7 @@ apiRouteAdminRelease.post("/:releaseId/github_prs/link", async (c) => {
 
 	// Auth checks
 	if (!session?.userId) return c.json({ success: false, error: "Unauthorized" }, 401);
-	const isAuthorized = await traceOrgPermissionCheck(session.userId, orgId, "members");
+	const isAuthorized = await traceOrgPermissionCheck(session.userId, orgId, "content.manageReleases");
 	if (!isAuthorized) return c.json({ success: false, error: "Permission denied" }, 401);
 
 	const body = await c.req.json();
@@ -891,7 +891,7 @@ apiRouteAdminRelease.delete("/:releaseId/github_prs/:githubPRId/unlink", async (
 
 	// Auth checks
 	if (!session?.userId) return c.json({ success: false, error: "Unauthorized" }, 401);
-	const isAuthorized = await traceOrgPermissionCheck(session.userId, orgId, "members");
+	const isAuthorized = await traceOrgPermissionCheck(session.userId, orgId, "content.manageReleases");
 	if (!isAuthorized) return c.json({ success: false, error: "Permission denied" }, 401);
 
 	try {
