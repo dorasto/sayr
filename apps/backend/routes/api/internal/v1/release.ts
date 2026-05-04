@@ -896,10 +896,13 @@ apiRouteAdminRelease.delete("/:releaseId/github_prs/:githubPRId/unlink", async (
 
 	try {
 		// Update the GitHub PR to remove the release association
-		await db
+		const result = await db
 			.update(schema.githubPullRequest)
 			.set({ releaseId: null })
 			.where(and(eq(schema.githubPullRequest.id, githubPRId), eq(schema.githubPullRequest.organizationId, orgId), eq(schema.githubPullRequest.releaseId, releaseId)));
+		if (result.count === 0) {
+			return c.json({ success: false, error: "GitHub PR not found or not linked to this release" }, 404);
+		}
 		const data = { type: "UPDATE_RELEASES" as ServerEventBaseMessage["type"], data: { releaseId } };
 		sseBroadcastToRoom(orgId, "releases", data);
 		sseBroadcastPublic(orgId, { ...data });
