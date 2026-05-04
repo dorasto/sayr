@@ -25,7 +25,7 @@ import { linkGithubPRToReleaseAction, unlinkGithubPRFromReleaseAction } from "@/
 import { useToastAction } from "@/lib/util";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { getGithubPRsAction } from "@/lib/fetches/organization";
-
+const API_URL = import.meta.env.VITE_APP_ENV === "development" ? "/backend-api/internal" : "/api/internal";
 interface GithubPR {
   id: number;
   node_id: string;
@@ -99,7 +99,7 @@ export default function GithubPRPicker({
     async function fetchRepositories() {
       try {
         const response = await fetch(
-          `/backend-api/internal/v1/admin/organization/${organizationId}/connections/github`,
+          `${API_URL}/v1/admin/organization/${organizationId}/connections/github`,
           {
             credentials: "include",
           },
