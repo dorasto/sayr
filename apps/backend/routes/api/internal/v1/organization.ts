@@ -19,7 +19,7 @@ import {
 import { removeObject, uploadObject, deleteFolder } from "@repo/storage";
 import { ensureCdnUrl, getFileNameFromUrl, isSlugBanned } from "@repo/util";
 import { getInstallationDetailsWithRepos, createAppJWT, getInstallationToken } from "@repo/util/github/auth";
-import { and, count, eq, ilike, ne, or } from "drizzle-orm";
+import { and, count, eq, ilike, isNull, ne, or } from "drizzle-orm";
 import { Hono } from "hono";
 import type { AppEnv } from "@/index";
 import { apiRouteAdminProjectTask } from "./task";
@@ -4090,6 +4090,7 @@ apiRouteAdminOrganization.get("/:orgId/blocked-user-ids", async (c) => {
 apiRouteAdminOrganization.get("/:orgId/github_prs", async (c) => {
 	const session = c.get("session");
 	const orgId = c.req.param("orgId");
+	const release_id = c.req.query("release_id");
 
 	// Auth checks
 	if (!session?.userId) return c.json({ success: false, error: "Unauthorized" }, 401);
@@ -4148,7 +4149,19 @@ apiRouteAdminOrganization.get("/:orgId/github_prs", async (c) => {
 			}
 		})
 	).then((results) => results.flat());
+	if (release_id) {
+		const prs = await db.query.githubPullRequest.findMany({
+			where: and(
+				eq(schema.githubPullRequest.organizationId, orgId),
+				or(
+					isNull(schema.githubPullRequest.releaseId),
+					eq(schema.githubPullRequest.releaseId, release_id)
+				)
+			),
+		});
 
+		return c.json({ success: true, data: allPRs.filter((pr) => prs.some((dbPr) => dbPr.prNumber === pr.number)) });
+	}
 	return c.json({ success: true, data: allPRs });
 });
 

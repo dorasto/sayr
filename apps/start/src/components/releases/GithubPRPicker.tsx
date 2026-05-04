@@ -133,7 +133,7 @@ export default function GithubPRPicker({
     async (signal?: AbortSignal) => {
       setIsLoading(true);
       try {
-        const result = await getGithubPRsAction(organizationId);
+        const result = await getGithubPRsAction(organizationId, { release_id: releaseId });
         if (!signal?.aborted && result.success) {
           // Filter out already linked PR (only one allowed)
           const linkedPRNumber = linkedPR?.prNumber;

@@ -1654,8 +1654,23 @@ export async function deleteOrganizationAction(
 
 export async function getGithubPRsAction(
 	orgId: string,
+	query?: Record<string, string | number | boolean | undefined>
 ): Promise<{ success: boolean; data: any[]; error?: string }> {
-	return fetch(`${API_URL}/v1/admin/organization/${orgId}/github_prs`, {
+	const params = new URLSearchParams();
+
+	if (query) {
+		for (const [key, value] of Object.entries(query)) {
+			if (value !== undefined && value !== null) {
+				params.set(key, String(value));
+			}
+		}
+	}
+
+	const url =
+		`${API_URL}/v1/admin/organization/${orgId}/github_prs` +
+		(params.toString() ? `?${params.toString()}` : "");
+
+	return fetch(url, {
 		credentials: "include",
 	}).then((r) => r.json());
 }

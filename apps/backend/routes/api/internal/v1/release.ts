@@ -841,6 +841,9 @@ apiRouteAdminRelease.post("/:releaseId/github_prs/link", async (c) => {
 
 		let githubPR;
 		if (existingPR) {
+			if (existingPR.releaseId && existingPR.releaseId !== releaseId) {
+				return c.json({ success: false, error: "GitHub PR is already linked to a different release" }, 400);
+			}
 			// Update existing PR
 			githubPR = await db
 				.update(schema.githubPullRequest)
