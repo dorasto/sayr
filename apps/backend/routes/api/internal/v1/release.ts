@@ -806,6 +806,8 @@ apiRouteAdminRelease.delete("/:releaseId/comments/:commentId/reactions/:emoji", 
 
 // Link a GitHub PR to a release
 apiRouteAdminRelease.post("/:releaseId/github_prs/link", async (c) => {
+	const traceAsync = createTraceAsync();
+	const recordWideError = c.get("recordWideError");
 	const session = c.get("session");
 	const orgId = c.req.query("org_id") || "";
 	const releaseId = c.req.param("releaseId");
@@ -832,27 +834,52 @@ apiRouteAdminRelease.post("/:releaseId/github_prs/link", async (c) => {
 
 	try {
 		// Create or update the GitHub PR record
-		const existingPR = await db.query.githubPullRequest.findFirst({
+		const existingPR = await traceAsync("release.link.github-pr-check", async () => db.query.githubPullRequest.findFirst({
 			where: and(
 				eq(schema.githubPullRequest.repositoryId, repositoryId),
 				eq(schema.githubPullRequest.prNumber, prNumber)
 			)
-		});
+		}),
+			{
+				description: "Checking for existing GitHub PR link",
+				data: { repositoryId, prNumber, releaseId },
+				onSuccess: (result) => ({
+					description: result ? "Existing GitHub PR link found" : "No existing GitHub PR link",
+					data: { repositoryId, prNumber, releaseId, existingPRId: result?.id },
+				}),
+			}
+		)
 
 		let githubPR;
 		if (existingPR) {
 			if (existingPR.releaseId && existingPR.releaseId !== releaseId) {
+				recordWideError({
+					name: "release.link.github-pr-conflict",
+					error: new Error("GitHub PR already linked to a different release"),
+					code: "GITHUB_PR_LINK_CONFLICT",
+					message: "GitHub PR is already linked to a different release",
+					contextData: { repositoryId, prNumber, existingReleaseId: existingPR.releaseId, attemptedReleaseId: releaseId },
+				});
 				return c.json({ success: false, error: "GitHub PR is already linked to a different release" }, 400);
 			}
 			// Update existing PR
-			githubPR = await db
+			githubPR = await traceAsync("release.link.github-pr-update", async () => db
 				.update(schema.githubPullRequest)
 				.set({ releaseId: releaseId })
 				.where(eq(schema.githubPullRequest.id, existingPR.id))
-				.returning();
+				.returning()
+				, {
+					description: "Linking existing GitHub PR to release",
+					data: { repositoryId, prNumber, releaseId },
+					onSuccess: () => ({
+						description: "GitHub PR linked to release successfully",
+						data: { organization: { id: orgId }, user: { id: session?.userId }, repositoryId, prNumber, releaseId },
+					})
+				}
+			);
 		} else {
 			// Create new PR record
-			githubPR = await db
+			githubPR = await traceAsync("release.link.github-pr-create", async () => db
 				.insert(schema.githubPullRequest)
 				.values({
 					repositoryId: repositoryId,
@@ -869,21 +896,38 @@ apiRouteAdminRelease.post("/:releaseId/github_prs/link", async (c) => {
 					mergeCommitSha: mergeCommitSha,
 					releaseId: releaseId,
 				})
-				.returning();
+				.returning()
+				, {
+					description: "Creating new GitHub PR link to release",
+					data: { repositoryId, prNumber, releaseId },
+					onSuccess: () => ({
+						description: "GitHub PR linked to release successfully",
+						data: { organization: { id: orgId }, user: { id: session?.userId }, repositoryId, prNumber, releaseId },
+					})
+				}
+			);
 		}
-
 		const data = { type: "UPDATE_RELEASES" as ServerEventBaseMessage["type"], data: { releaseId } };
 		sseBroadcastToRoom(orgId, "releases", data);
 		sseBroadcastPublic(orgId, { ...data });
 		return c.json({ success: true, data: githubPR[0] });
 	} catch (error) {
 		console.error("Failed to link GitHub PR to release:", error);
+		recordWideError({
+			name: "release.link.github-pr-failed",
+			error: error instanceof Error ? error : new Error("Unknown error"),
+			code: "GITHUB_PR_LINK_FAILED",
+			message: "Failed to link GitHub PR to release",
+			contextData: { repositoryId, prNumber, releaseId },
+		});
 		return c.json({ success: false, error: "Failed to link GitHub PR" }, 500);
 	}
 });
 
 // Unlink a GitHub PR from a release
 apiRouteAdminRelease.delete("/:releaseId/github_prs/:githubPRId/unlink", async (c) => {
+	const traceAsync = createTraceAsync();
+	const recordWideError = c.get("recordWideError");
 	const session = c.get("session");
 	const orgId = c.req.query("org_id") || "";
 	const releaseId = c.req.param("releaseId");
@@ -896,11 +940,27 @@ apiRouteAdminRelease.delete("/:releaseId/github_prs/:githubPRId/unlink", async (
 
 	try {
 		// Update the GitHub PR to remove the release association
-		const result = await db
+		const result = await traceAsync("release.unlink.github-pr", async () => db
 			.update(schema.githubPullRequest)
 			.set({ releaseId: null })
-			.where(and(eq(schema.githubPullRequest.id, githubPRId), eq(schema.githubPullRequest.organizationId, orgId), eq(schema.githubPullRequest.releaseId, releaseId)));
-		if (result.count === 0) {
+			.where(and(eq(schema.githubPullRequest.id, githubPRId), eq(schema.githubPullRequest.organizationId, orgId), eq(schema.githubPullRequest.releaseId, releaseId))).returning(),
+			{
+				description: "Unlinking GitHub PR from release",
+				data: { githubPRId, releaseId },
+				onSuccess: (result) => ({
+					description: result.length > 0 ? "GitHub PR unlinked from release successfully" : "GitHub PR not found or not linked to this release",
+					data: { organization: { id: orgId }, user: { id: session?.userId }, githubPRId, releaseId },
+				}),
+			}
+		);
+		if (result.length === 0) {
+			recordWideError({
+				name: "release.unlink.github-pr-notfound",
+				error: new Error("GitHub PR not found or not linked to this release"),
+				code: "GITHUB_PR_UNLINK_NOT_FOUND",
+				message: "GitHub PR not found or not linked to this release",
+				contextData: { githubPRId, releaseId },
+			});
 			return c.json({ success: false, error: "GitHub PR not found or not linked to this release" }, 404);
 		}
 		const data = { type: "UPDATE_RELEASES" as ServerEventBaseMessage["type"], data: { releaseId } };
@@ -909,6 +969,13 @@ apiRouteAdminRelease.delete("/:releaseId/github_prs/:githubPRId/unlink", async (
 		return c.json({ success: true });
 	} catch (error) {
 		console.error("Failed to unlink GitHub PR from release:", error);
+		recordWideError({
+			name: "release.unlink.github-pr-failed",
+			error: error instanceof Error ? error : new Error("Unknown error"),
+			code: "GITHUB_PR_UNLINK_FAILED",
+			message: "Failed to unlink GitHub PR from release",
+			contextData: { githubPRId, releaseId },
+		});
 		return c.json({ success: false, error: "Failed to unlink GitHub PR" }, 500);
 	}
 });
