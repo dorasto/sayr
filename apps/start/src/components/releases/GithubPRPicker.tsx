@@ -21,7 +21,7 @@ import {
   AvatarImage,
 } from "@repo/ui/components/avatar";
 import { Button } from "@repo/ui/components/button";
-import { linkGithubPRToReleaseAction } from "@/lib/fetches/release";
+import { linkGithubPRToReleaseAction, unlinkGithubPRFromReleaseAction } from "@/lib/fetches/release";
 import { useToastAction } from "@/lib/util";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { getGithubPRsAction } from "@/lib/fetches/organization";
@@ -65,10 +65,6 @@ interface GithubPRPickerProps {
   linkedPR: any | null;
   /** Called when a PR is linked */
   onLinkPR: (pr: any) => void;
-  /** Open state (controlled) */
-  open?: boolean;
-  /** Open change handler (controlled) */
-  onOpenChange?: (open: boolean) => void;
   /** Whether the picker is disabled */
   disabled?: boolean;
   /** Variant: 'standalone' for original usage, 'sidebar' for toolbar integration */
@@ -82,12 +78,11 @@ export default function GithubPRPicker({
   releaseId,
   linkedPR,
   onLinkPR,
-  open,
-  onOpenChange,
   disabled = false,
   variant = "standalone",
   customTrigger,
 }: GithubPRPickerProps) {
+  const [open, onOpenChange] = useState(false);
   const [results, setResults] = useState<GithubPR[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [query, setQuery] = useState("");
@@ -129,7 +124,6 @@ export default function GithubPRPicker({
         console.error("Failed to fetch repositories:", error);
       }
     }
-
     if (open) {
       fetchRepositories();
     }
@@ -196,6 +190,7 @@ export default function GithubPRPicker({
         const headBranch = pr.head?.ref || "unknown";
         const baseBranch = pr.base?.ref || "main";
         const headSha = pr.head?.sha || "";
+        await unlinkGithubPRFromReleaseAction(organizationId, releaseId, linkedPR.id);
 
         const result = await runWithToast(
           "link-github-pr",
@@ -258,12 +253,12 @@ export default function GithubPRPicker({
   // Filter results based on search query
   const filteredResults = query
     ? results.filter(
-        (pr) =>
-          pr.title.toLowerCase().includes(query.toLowerCase()) ||
-          pr.number.toString().includes(query) ||
-          pr.user.login.toLowerCase().includes(query.toLowerCase()) ||
-          pr.head.repo.name.toLowerCase().includes(query.toLowerCase()),
-      )
+      (pr) =>
+        pr.title.toLowerCase().includes(query.toLowerCase()) ||
+        pr.number.toString().includes(query) ||
+        pr.user.login.toLowerCase().includes(query.toLowerCase()) ||
+        pr.head.repo.name.toLowerCase().includes(query.toLowerCase()),
+    )
     : results;
 
   // Render different variants
