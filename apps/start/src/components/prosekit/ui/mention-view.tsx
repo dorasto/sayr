@@ -7,6 +7,8 @@ import { useMemo } from "react";
 import { RenderCategory } from "@/components/tasks";
 import { InlineLabel } from "@/components/tasks/shared/inlinelabel";
 import { TaskMention } from "./TaskMention";
+import { IconUser } from "@tabler/icons-react";
+import { cn } from "@/lib/utils";
 
 function MentionViewInner(
   props: ReactNodeViewProps,
@@ -33,9 +35,12 @@ function MentionViewInner(
             ? "bg-primary text-primary-foreground font-semibold"
             : "bg-accent text-accent-foreground",
         ].join(" ")}
-        avatarClassName="size-4"
+        avatarClassName={cn("size-4")}
         text={`${displayText}`}
-        image={image}
+        image={image ? image : null}
+        icon={
+          !image && <IconUser className="size-3.5 bg-secondary rounded-full" />
+        }
       />
     );
   }

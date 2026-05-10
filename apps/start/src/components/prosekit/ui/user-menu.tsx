@@ -39,7 +39,6 @@ export default function UserMenu(props: {
       className="relative block max-h-100 min-w-60 select-none overflow-auto whitespace-nowrap p-1 z-50 box-border rounded-lg border bg-popover text-foreground shadow-lg [&:not([data-state])]:hidden"
       onQueryChange={props.onQueryChange}
       onOpenChange={props.onOpenChange}
-      sameWidth
     >
       <AutocompleteList filter={null}>
         {props.loading && (
