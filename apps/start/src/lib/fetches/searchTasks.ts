@@ -41,6 +41,8 @@ export type OrgTaskSearchResult = {
 	parentId: string | null;
 	subtaskCount: number | null;
 	releaseId: string | null;
+	organizationId: string;
+	category: string | null;
 };
 
 /**

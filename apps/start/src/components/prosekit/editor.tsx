@@ -8,6 +8,7 @@ import { useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import { useMentionUsers } from "@/hooks/useMentionUsers";
+import { useMentionTasks } from "@/hooks/useMentionTasks";
 import { resolveUsersByIds } from "@/lib/fetches/mention";
 import { EditorModeContext } from "./editor-mode-context";
 import { defineExtension } from "./extensions/index";
@@ -75,6 +76,7 @@ export default function Editor({
   // fetches users from the backend, and supports async search.
   // Falls back to empty when no mentionContext is set.
   const mention = useMentionUsers();
+  const mentionTasks = useMentionTasks();
 
   // Extract mention user IDs from the document content and resolve any that are missing.
   // This ensures MentionView can always render chips, regardless of context (inbox, org, etc.).
@@ -225,7 +227,11 @@ export default function Editor({
               onQueryChange={mention.setSearchQuery}
             />
             <CategoryMenu categories={categories || []} />
-            <TaskMenu tasks={tasks || []} />
+            <TaskMenu
+              tasks={mentionTasks.tasks}
+              loading={mentionTasks.loading}
+              onQueryChange={mentionTasks.setSearchQuery}
+            />
           </>
         )}
         <CodeBlockView />

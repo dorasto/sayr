@@ -38,7 +38,8 @@ export default function SlashMenu() {
     <>
       <AutocompletePopover
         regex={regex}
-        className="relative block max-h-100 min-w-60 select-none overflow-auto whitespace-nowrap p-1 z-50 box-border rounded-lg border bg-popover text-foreground shadow-lg [&:not([data-state])]:hidden"
+        className="relative block max-h-100 min-w-60 select-none overflow-auto whitespace-nowrap p-1 z-50 box-border rounded-xl border bg-popover text-foreground shadow-lg [&:not([data-state])]:hidden"
+        placement="top"
       >
         <AutocompleteList>
           <SlashMenuItem
