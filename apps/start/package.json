@@ -42,7 +42,7 @@
     "@tanstack/router-plugin": "^1.157.17",
     "@tanstack/store": "^0.8.0",
     "@types/sharp": "^0.32.0",
-    "better-auth": "^1.4.21",
+    "better-auth": "^1.6.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "gif-picker-react-klipy": "github:micenx/gif-picker-react-klipy",

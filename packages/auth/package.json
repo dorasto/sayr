@@ -21,7 +21,7 @@
     "@repo/database": "workspace:*",
     "@repo/edition": "workspace:*",
     "@repo/util": "workspace:*",
-    "better-auth": "^1.4.21",
+    "better-auth": "^1.6.2",
     "drizzle-orm": "^0.45.2"
   },
   "devDependencies": {
