@@ -1,17 +1,18 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": [
-    "config:recommended",
-    "group:all-minor-patch"
-  ],
-  "prConcurrentLimit": 1,
-  "prHourlyLimit": 1,
+  "extends": ["config:recommended"],
   "labels": ["release:patch"],
+  "prConcurrentLimit": 1,
+  "group": {
+    "minorAndPatch": {
+      "groupName": "all minor and patch updates",
+      "matchUpdateTypes": ["minor", "patch"]
+    }
+  },
   "packageRules": [
     {
       "matchUpdateTypes": ["patch"],
-      "automerge": true,
-      "automergeType": "pr"
+      "automerge": true
     }
   ]
 }
