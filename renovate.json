@@ -1,10 +1,12 @@
 {
-  "extends": [
-    "config:recommended",
-    ":groupAllMinorPatch"
-  ],
+  "extends": ["config:recommended"],
   "labels": ["release:patch"],
   "prConcurrentLimit": 1,
+  "group": {
+    "allMinorPatch": {
+      "extends": ["all-minor-patch"]
+    }
+  },
   "packageRules": [
     {
       "matchUpdateTypes": ["patch"],
