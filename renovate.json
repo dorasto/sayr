@@ -3,6 +3,7 @@
   "extends": [
     "config:recommended"
   ],
+    "enabledManagers": ["github-actions", "npm"],
     "packageRules": [
     {
       "groupName": "all non-major dependencies",
@@ -18,7 +19,12 @@
     {
       "matchPackageNames": ["*"],
       "labels": ["release:patch"]
-    }
+    },
+    {
+      "matchManagers": ["github-actions"],
+      "groupName": "GitHub Actions",
+      "groupSlug": "github-actions"
+    },
   ],
   "labels": ["dependencies"]
 }
