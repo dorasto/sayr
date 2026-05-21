@@ -7,7 +7,6 @@ updates:
       day: "monday"
     groups:
       all-dependencies:
-        dependency-type: "all"
         update-types:
           - "minor"
           - "patch"
