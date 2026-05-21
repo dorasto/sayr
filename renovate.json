@@ -14,13 +14,11 @@
         "minor",
         "patch"
       ]
-    }
-  ],
-  "labels": ["dependencies"],
-  "packageRules": [
+    },
     {
       "matchPackageNames": ["*"],
       "labels": ["release:patch"]
     }
-  ]
+  ],
+  "labels": ["dependencies"]
 }
