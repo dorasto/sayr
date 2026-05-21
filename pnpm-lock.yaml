@@ -50,7 +50,7 @@ importers:
         version: 1.18.2
       '@hono/standard-validator':
         specifier: ^0.2.0
-        version: 0.2.0(@standard-schema/spec@1.1.0)(hono@4.12.14)
+        version: 0.2.0(@standard-schema/spec@1.1.0)(hono@4.12.18)
       '@opentelemetry/api':
         specifier: ^1.9.0
         version: 1.9.0
@@ -83,16 +83,16 @@ importers:
         version: link:../../packages/util
       '@scalar/hono-api-reference':
         specifier: ^0.9.25
-        version: 0.9.25(hono@4.12.14)
+        version: 0.9.25(hono@4.12.18)
       drizzle-zod:
         specifier: ^0.8.3
         version: 0.8.3(drizzle-orm@0.45.2(@opentelemetry/api@1.9.0)(bun-types@1.2.21(@types/react@19.2.8))(kysely@0.28.9)(pg@8.16.3)(postgres@3.4.3))(zod@4.1.5)
       hono:
         specifier: ^4.12.14
-        version: 4.12.14
+        version: 4.12.18
       hono-openapi:
         specifier: ^1.3.0
-        version: 1.3.0(@hono/standard-validator@0.2.0(@standard-schema/spec@1.1.0)(hono@4.12.14))(@standard-community/standard-json@0.3.5(@standard-schema/spec@1.1.0)(@types/json-schema@7.0.15)(quansync@0.2.11)(zod-to-json-schema@3.25.1(zod@4.1.5))(zod@4.1.5))(@standard-community/standard-openapi@0.2.9(@standard-community/standard-json@0.3.5(@standard-schema/spec@1.1.0)(@types/json-schema@7.0.15)(quansync@0.2.11)(zod-to-json-schema@3.25.1(zod@4.1.5))(zod@4.1.5))(@standard-schema/spec@1.1.0)(openapi-types@12.1.3)(zod@4.1.5))(@types/json-schema@7.0.15)(hono@4.12.14)(openapi-types@12.1.3)
+        version: 1.3.0(@hono/standard-validator@0.2.0(@standard-schema/spec@1.1.0)(hono@4.12.18))(@standard-community/standard-json@0.3.5(@standard-schema/spec@1.1.0)(@types/json-schema@7.0.15)(quansync@0.2.11)(zod-to-json-schema@3.25.1(zod@4.1.5))(zod@4.1.5))(@standard-community/standard-openapi@0.2.9(@standard-community/standard-json@0.3.5(@standard-schema/spec@1.1.0)(@types/json-schema@7.0.15)(quansync@0.2.11)(zod-to-json-schema@3.25.1(zod@4.1.5))(zod@4.1.5))(@standard-schema/spec@1.1.0)(openapi-types@12.1.3)(zod@4.1.5))(@types/json-schema@7.0.15)(hono@4.12.18)(openapi-types@12.1.3)
       jsdom:
         specifier: ^27.2.0
         version: 27.2.0
@@ -117,7 +117,7 @@ importers:
         version: 2.1.1
       '@hono/node-server':
         specifier: ^1.19.13
-        version: 1.19.14(hono@4.12.14)
+        version: 1.19.14(hono@4.12.18)
       '@repo/typescript-config':
         specifier: workspace:*
         version: link:../../packages/typescript-config
@@ -531,11 +531,11 @@ importers:
         version: link:../packages/integrations
       hono:
         specifier: ^4.12.14
-        version: 4.12.14
+        version: 4.12.18
     devDependencies:
       '@hono/node-server':
         specifier: ^1.19.13
-        version: 1.19.14(hono@4.12.14)
+        version: 1.19.14(hono@4.12.18)
       '@repo/typescript-config':
         specifier: workspace:*
         version: link:../packages/typescript-config
@@ -580,7 +580,7 @@ importers:
         version: 4.1.0
       hono:
         specifier: ^4.12.14
-        version: 4.12.14
+        version: 4.12.18
     devDependencies:
       '@repo/typescript-config':
         specifier: workspace:*
@@ -674,7 +674,7 @@ importers:
         version: link:../integrations
       hono:
         specifier: ^4.12.14
-        version: 4.12.14
+        version: 4.12.18
     devDependencies:
       '@repo/typescript-config':
         specifier: workspace:*
@@ -730,7 +730,7 @@ importers:
         version: link:../ui
       hono:
         specifier: ^4.12.14
-        version: 4.12.14
+        version: 4.12.18
       react:
         specifier: ^19.0.0
         version: 19.2.3
@@ -6668,8 +6668,8 @@ packages:
   caniuse-lite@1.0.30001759:
     resolution: {integrity: sha512-Pzfx9fOKoKvevQf8oCXoyNRQ5QyxJj+3O0Rqx2V5oxT61KGx8+n6hV/IUyJeifUci2clnmmKVpvtiqRzgiWjSw==}
 
-  caniuse-lite@1.0.30001792:
-    resolution: {integrity: sha512-hVLMUZFgR4JJ6ACt1uEESvQN1/dBVqPAKY0hgrV70eN3391K6juAfTjKZLKvOMsx8PxA7gsY1/tLMMTcfFLLpw==}
+  caniuse-lite@1.0.30001793:
+    resolution: {integrity: sha512-iwSsYWaCOoh26cV8NwNRViHlrfUvYsHDfRVcbtmw0Kg6PJIZZXwMkj1442FYLBGkeUf1juAsU3DTfxW579mrPA==}
 
   ccount@2.0.1:
     resolution: {integrity: sha512-eyrF0jiFpY+3drT6383f1qhkbGsLSifNAjA61IUjZjmLCWjItY6LB9ft9YhoDgwfmclB2zhu51Lc7+95b8NRAg==}
@@ -7813,8 +7813,8 @@ packages:
       hono:
         optional: true
 
-  hono@4.12.14:
-    resolution: {integrity: sha512-am5zfg3yu6sqn5yjKBNqhnTX7Cv+m00ox+7jbaKkrLMRJ4rAdldd1xPd/JzbBWspqaQv6RSTrgFN95EsfhC+7w==}
+  hono@4.12.18:
+    resolution: {integrity: sha512-RWzP96k/yv0PQfyXnWjs6zot20TqfpfsNXhOnev8d1InAxubW93L11/oNUc3tQqn2G0bSdAOBpX+2uDFHV7kdQ==}
     engines: {node: '>=16.9.0'}
 
   hookable@5.5.3:
@@ -12648,14 +12648,14 @@ snapshots:
 
   '@hexagon/base64@1.1.28': {}
 
-  '@hono/node-server@1.19.14(hono@4.12.14)':
+  '@hono/node-server@1.19.14(hono@4.12.18)':
     dependencies:
-      hono: 4.12.14
+      hono: 4.12.18
 
-  '@hono/standard-validator@0.2.0(@standard-schema/spec@1.1.0)(hono@4.12.14)':
+  '@hono/standard-validator@0.2.0(@standard-schema/spec@1.1.0)(hono@4.12.18)':
     dependencies:
       '@standard-schema/spec': 1.1.0
-      hono: 4.12.14
+      hono: 4.12.18
 
   '@hookform/resolvers@5.1.1(react-hook-form@7.60.0(react@19.2.3))':
     dependencies:
@@ -16819,10 +16819,10 @@ snapshots:
 
   '@scalar/helpers@0.2.8': {}
 
-  '@scalar/hono-api-reference@0.9.25(hono@4.12.14)':
+  '@scalar/hono-api-reference@0.9.25(hono@4.12.18)':
     dependencies:
       '@scalar/core': 0.3.23
-      hono: 4.12.14
+      hono: 4.12.18
 
   '@scalar/icons@0.5.2(typescript@5.9.3)':
     dependencies:
@@ -19002,7 +19002,7 @@ snapshots:
 
   caniuse-lite@1.0.30001759: {}
 
-  caniuse-lite@1.0.30001792:
+  caniuse-lite@1.0.30001793:
     optional: true
 
   ccount@2.0.1: {}
@@ -20237,17 +20237,17 @@ snapshots:
 
   highlightjs-curl@1.3.0: {}
 
-  hono-openapi@1.3.0(@hono/standard-validator@0.2.0(@standard-schema/spec@1.1.0)(hono@4.12.14))(@standard-community/standard-json@0.3.5(@standard-schema/spec@1.1.0)(@types/json-schema@7.0.15)(quansync@0.2.11)(zod-to-json-schema@3.25.1(zod@4.1.5))(zod@4.1.5))(@standard-community/standard-openapi@0.2.9(@standard-community/standard-json@0.3.5(@standard-schema/spec@1.1.0)(@types/json-schema@7.0.15)(quansync@0.2.11)(zod-to-json-schema@3.25.1(zod@4.1.5))(zod@4.1.5))(@standard-schema/spec@1.1.0)(openapi-types@12.1.3)(zod@4.1.5))(@types/json-schema@7.0.15)(hono@4.12.14)(openapi-types@12.1.3):
+  hono-openapi@1.3.0(@hono/standard-validator@0.2.0(@standard-schema/spec@1.1.0)(hono@4.12.18))(@standard-community/standard-json@0.3.5(@standard-schema/spec@1.1.0)(@types/json-schema@7.0.15)(quansync@0.2.11)(zod-to-json-schema@3.25.1(zod@4.1.5))(zod@4.1.5))(@standard-community/standard-openapi@0.2.9(@standard-community/standard-json@0.3.5(@standard-schema/spec@1.1.0)(@types/json-schema@7.0.15)(quansync@0.2.11)(zod-to-json-schema@3.25.1(zod@4.1.5))(zod@4.1.5))(@standard-schema/spec@1.1.0)(openapi-types@12.1.3)(zod@4.1.5))(@types/json-schema@7.0.15)(hono@4.12.18)(openapi-types@12.1.3):
     dependencies:
       '@standard-community/standard-json': 0.3.5(@standard-schema/spec@1.1.0)(@types/json-schema@7.0.15)(quansync@0.2.11)(zod-to-json-schema@3.25.1(zod@4.1.5))(zod@4.1.5)
       '@standard-community/standard-openapi': 0.2.9(@standard-community/standard-json@0.3.5(@standard-schema/spec@1.1.0)(@types/json-schema@7.0.15)(quansync@0.2.11)(zod-to-json-schema@3.25.1(zod@4.1.5))(zod@4.1.5))(@standard-schema/spec@1.1.0)(openapi-types@12.1.3)(zod@4.1.5)
       '@types/json-schema': 7.0.15
       openapi-types: 12.1.3
     optionalDependencies:
-      '@hono/standard-validator': 0.2.0(@standard-schema/spec@1.1.0)(hono@4.12.14)
-      hono: 4.12.14
+      '@hono/standard-validator': 0.2.0(@standard-schema/spec@1.1.0)(hono@4.12.18)
+      hono: 4.12.18
 
-  hono@4.12.14: {}
+  hono@4.12.18: {}
 
   hookable@5.5.3: {}
 
@@ -21334,7 +21334,7 @@ snapshots:
     dependencies:
       '@next/env': 15.4.8
       '@swc/helpers': 0.5.15
-      caniuse-lite: 1.0.30001792
+      caniuse-lite: 1.0.30001793
       postcss: 8.4.31
       react: 19.2.3
       react-dom: 19.2.3(react@19.2.3)
