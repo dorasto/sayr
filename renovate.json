@@ -1,16 +1,6 @@
 {
-  "extends": ["config:recommended"],
-  "labels": ["release:patch"],
-  "prConcurrentLimit": 1,
-  "group": {
-    "allMinorPatch": {
-      "extends": ["all-minor-patch"]
-    }
-  },
-  "packageRules": [
-    {
-      "matchUpdateTypes": ["patch"],
-      "automerge": true
-    }
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended"
   ]
 }
