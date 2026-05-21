@@ -24,7 +24,7 @@
       "matchManagers": ["github-actions"],
       "groupName": "GitHub Actions",
       "groupSlug": "github-actions"
-    },
+    }
   ],
   "labels": ["dependencies"]
 }
