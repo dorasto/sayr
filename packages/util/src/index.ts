@@ -482,3 +482,4 @@ export class PermissionError extends Error {
 }
 
 export { sendEmail } from "./email";
+export { parseGithubPrUrl, type ParsedGithubPrUrl } from "./github/parse-pr-url";

@@ -1,0 +1,2 @@
+ALTER TABLE "github_pull_request" ADD COLUMN "release_id" text;--> statement-breakpoint
+ALTER TABLE "github_pull_request" ADD CONSTRAINT "github_pull_request_release_id_release_id_fk" FOREIGN KEY ("release_id") REFERENCES "public"."release"("id") ON DELETE set null ON UPDATE no action;

@@ -295,10 +295,10 @@ export async function getReleaseCommentsAction(
 	const qs = statusUpdateId !== undefined ? `&statusUpdateId=${statusUpdateId ?? "null"}` : "";
 	const paginationQs = pagination
 		? [
-				pagination.limit !== undefined ? `&limit=${pagination.limit}` : "",
-				pagination.page !== undefined ? `&page=${pagination.page}` : "",
-				pagination.direction ? `&direction=${pagination.direction}` : "",
-			].join("")
+			pagination.limit !== undefined ? `&limit=${pagination.limit}` : "",
+			pagination.page !== undefined ? `&page=${pagination.page}` : "",
+			pagination.direction ? `&direction=${pagination.direction}` : "",
+		].join("")
 		: "";
 	return fetch(`${BASE}/${releaseId}/comments?org_id=${orgId}${qs}${paginationQs}`, {
 		credentials: "include",
@@ -381,6 +381,45 @@ export async function removeReleaseCommentReactionAction(
 	emoji: string
 ): Promise<{ success: boolean; error?: string }> {
 	return fetch(`${BASE}/${releaseId}/comments/${commentId}/reactions/${encodeURIComponent(emoji)}`, {
+		method: "DELETE",
+		credentials: "include",
+	}).then((r) => r.json());
+}
+
+// ─── GitHub PRs ─────────────────────────────────────────────────────────────────
+
+export async function linkGithubPRToReleaseAction(
+	orgId: string,
+	releaseId: string,
+	prData: {
+		prNumber: number;
+		prUrl: string;
+		title: string;
+		body: string | null;
+		headSha: string;
+		baseBranch: string;
+		headBranch: string;
+		state: string;
+		merged: boolean;
+		mergeCommitSha: string | null;
+		repositoryId: string;
+	},
+	sseClientId: string
+): Promise<{ success: boolean; data: schema.githubPullRequestType; error?: string }> {
+	return fetch(`${BASE}/${releaseId}/github_prs/link?org_id=${orgId}`, {
+		method: "POST",
+		body: JSON.stringify({ org_id: orgId, sseClientId, ...prData }),
+		headers: { "Content-Type": "application/json" },
+		credentials: "include",
+	}).then((r) => r.json());
+}
+
+export async function unlinkGithubPRFromReleaseAction(
+	orgId: string,
+	releaseId: string,
+	githubPRId: string
+): Promise<{ success: boolean; error?: string }> {
+	return fetch(`${BASE}/${releaseId}/github_prs/${githubPRId}/unlink?org_id=${orgId}`, {
 		method: "DELETE",
 		credentials: "include",
 	}).then((r) => r.json());

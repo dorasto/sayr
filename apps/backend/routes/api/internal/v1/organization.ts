@@ -18,8 +18,8 @@ import {
 
 import { removeObject, uploadObject, deleteFolder } from "@repo/storage";
 import { ensureCdnUrl, getFileNameFromUrl, isSlugBanned } from "@repo/util";
-import { getInstallationDetailsWithRepos, createAppJWT } from "@repo/util/github/auth";
-import { and, count, eq, ilike, ne, or } from "drizzle-orm";
+import { getInstallationDetailsWithRepos, createAppJWT, getInstallationToken } from "@repo/util/github/auth";
+import { and, count, eq, ilike, isNull, ne, or } from "drizzle-orm";
 import { Hono } from "hono";
 import type { AppEnv } from "@/index";
 import { apiRouteAdminProjectTask } from "./task";
@@ -4085,6 +4085,83 @@ apiRouteAdminOrganization.get("/:orgId/blocked-user-ids", async (c) => {
 		});
 		return c.json({ success: false, error: "Failed to list blocked user IDs" }, 500);
 	}
+});
+
+apiRouteAdminOrganization.get("/:orgId/github_prs", async (c) => {
+	const session = c.get("session");
+	const orgId = c.req.param("orgId");
+	const release_id = c.req.query("release_id");
+
+	// Auth checks
+	if (!session?.userId) return c.json({ success: false, error: "Unauthorized" }, 401);
+	const isAuthorized = await traceOrgPermissionCheck(session.userId, orgId, "members");
+	if (!isAuthorized) return c.json({ success: false, error: "Permission denied" }, 401);
+
+	// Fetch ALL repos connected to this orgId from your DB
+	const repositories = await db.query.githubRepository.findMany({
+		where: eq(schema.githubRepository.organizationId, orgId),
+	});
+
+	// Fetch PRs for all repos in parallel
+	const allPRs = await Promise.all(
+		repositories.map(async (repo) => {
+			try {
+				const token = await getInstallationToken(repo.installationId);
+				if (!token) return [];
+				// Fetch repos accessible to this installation
+				const installationRepos = await fetch(
+					`https://api.github.com/installation/repositories`,
+					{
+						headers: {
+							Authorization: `Bearer ${token}`,
+							Accept: "application/vnd.github.v3+json",
+						},
+					}
+				).then((res) => {
+					if (!res.ok) throw new Error(`GitHub API error: ${res.status}`);
+					return res.json();
+				});
+
+				// Find the repo by name (e.g., "sayr-io-test")
+				const repoInfo = installationRepos.repositories.find(
+					(r: any) => r.name === repo.repoName
+				);
+				if (!repoInfo) return [];
+
+				const orgName = repoInfo.owner.login;
+				const repoName = repoInfo.name;
+
+				// Fetch all open PRs for this repo
+				const prs = await fetch(
+					`https://api.github.com/repos/${orgName}/${repoName}/pulls?state=all`,
+					{
+						headers: {
+							Authorization: `Bearer ${token}`,
+							Accept: "application/vnd.github.v3+json",
+						},
+					}
+				).then((res) => res.json()).catch(() => []);
+				return prs;
+			} catch (error) {
+				console.error(`Failed to fetch PRs for repo ${repo.repoName}:`, error);
+				return [];
+			}
+		})
+	).then((results) => results.flat());
+	if (release_id) {
+		const prs = await db.query.githubPullRequest.findMany({
+			where: and(
+				eq(schema.githubPullRequest.organizationId, orgId),
+				or(
+					isNull(schema.githubPullRequest.releaseId),
+					eq(schema.githubPullRequest.releaseId, release_id)
+				)
+			),
+		});
+
+		return c.json({ success: true, data: allPRs.filter((pr) => prs.some((dbPr) => dbPr.prNumber === pr.number)) });
+	}
+	return c.json({ success: true, data: allPRs });
 });
 
 // Task routes
