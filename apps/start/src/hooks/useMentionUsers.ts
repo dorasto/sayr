@@ -1,18 +1,20 @@
 import type { schema } from "@repo/database";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { searchMentionUsers } from "@/lib/fetches/mention";
+import { searchGlobalUsers } from "@/lib/fetches/mention";
 
 export interface MentionContext {
 	orgId: string;
+	taskId?: string;
+	releaseId?: string;
 }
 
 /**
  * Hook that provides mentionable users for the ProseKit Editor.
  *
- * Reads `mentionContext` (orgId) from the global state management store,
- * fetches org members from the backend, and supports async search.
+ * Reads `mentionContext` (orgId, taskId, releaseId) from the global state management store,
+ * fetches users from the backend using the global search endpoint, and supports async search.
  *
  * Page-level components set `mentionContext` via `useStateManagement`,
  * and the Editor consumes this hook internally.
@@ -23,6 +25,7 @@ export interface MentionContext {
 export function useMentionUsers(seedUsers?: schema.UserSummary[]) {
 	const { value: mentionContext } = useStateManagement<MentionContext | null>("mentionContext", null);
 	const orgId = mentionContext?.orgId;
+	const taskId = mentionContext?.taskId;
 
 	const [searchQuery, setSearchQuery] = useState("");
 
@@ -54,34 +57,25 @@ export function useMentionUsers(seedUsers?: schema.UserSummary[]) {
 		}
 	}
 
-	// Initial load: get the first batch of org members (no query filter)
-	const initialQuery = useQuery<schema.UserSummary[]>({
-		queryKey: ["mentionUsers", orgId, "initial"],
-		queryFn: () => searchMentionUsers(orgId!, undefined, 20),
-		enabled: !!orgId,
-		staleTime: 1000 * 60 * 5, // 5 min
-		gcTime: 1000 * 60 * 10,
-	});
-
-	// Search query: fires after debounce delay, only when query is >= 2 chars.
-	// Shorter queries are handled by client-side filtering of the initial load.
+	// Single query to the global search endpoint
+	// Handles context-aware ordering (task participants > org members > all users)
 	const searchQueryResult = useQuery<schema.UserSummary[]>({
-		queryKey: ["mentionUsers", orgId, "search", debouncedQuery],
-		queryFn: () => searchMentionUsers(orgId!, debouncedQuery, 20),
-		enabled: !!orgId && debouncedQuery.length >= 2,
-		staleTime: 1000 * 60 * 2, // 2 min
-		gcTime: 1000 * 60 * 5,
+		queryKey: ["mentionUsers", orgId, taskId, "search", debouncedQuery],
+		queryFn: () => searchGlobalUsers({
+			query: debouncedQuery || undefined,
+			orgId,
+			taskId,
+			limit: 20,
+		}),
+		enabled: !!orgId,
+		staleTime: debouncedQuery ? 1000 * 60 * 2 : 1000 * 60 * 5, // 2 min for search, 5 min for initial
+		gcTime: 1000 * 60 * 10,
+		placeholderData: keepPreviousData,
 	});
 
 	// Update the cumulative cache whenever we get new data
-	const baseUsers = initialQuery.data ?? [];
 	const searchUsers = searchQueryResult.data;
 
-	for (const u of baseUsers) {
-		if (!seenUsersRef.current.has(u.id)) {
-			seenUsersRef.current.set(u.id, u);
-		}
-	}
 	if (searchUsers) {
 		for (const u of searchUsers) {
 			if (!seenUsersRef.current.has(u.id)) {
@@ -90,21 +84,13 @@ export function useMentionUsers(seedUsers?: schema.UserSummary[]) {
 		}
 	}
 
-	// The users to display in the autocomplete popover:
-	// - If a debounced search has returned results, show those
-	// - Otherwise, use initial load (UserMenu does its own client-side filtering)
+	// The users to display in the autocomplete popover
 	const displayUsers = useMemo(() => {
-		if (debouncedQuery && searchUsers) {
-			return searchUsers;
-		}
-		return baseUsers;
-	}, [debouncedQuery, searchUsers, baseUsers]);
+		return searchUsers ?? [];
+	}, [searchUsers]);
 
-	// Show loading when:
-	// 1. A debounced search is actively fetching, OR
-	// 2. The user has typed 2+ chars but debounce hasn't fired yet (query differs from debouncedQuery)
-	const isWaitingForDebounce = searchQuery.length >= 2 && searchQuery !== debouncedQuery;
-	const loading = isWaitingForDebounce || (debouncedQuery.length >= 2 ? searchQueryResult.isFetching : initialQuery.isLoading);
+	// Show loading when a search is actively fetching
+	const loading = searchQueryResult.isFetching;
 
 	// Look up a user by ID from the cumulative cache (for MentionView chips)
 	const getUserById = useCallback(

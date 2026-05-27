@@ -40,6 +40,7 @@ export interface PublicCommentItemProps {
 	onEdit?: (commentId: string, content: NodeJSON) => Promise<boolean>;
 	onDelete?: (commentId: string) => Promise<boolean>;
 	categories: schema.categoryType[];
+	tasks?: schema.TaskWithLabels[];
 	/** Footer slot for rendering thread trigger + body inside the card */
 	footer?: React.ReactNode;
 	/** Whether this comment is a reply (adjusts styling) */

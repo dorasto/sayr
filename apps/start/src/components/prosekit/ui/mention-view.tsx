@@ -7,6 +7,9 @@ import { useMemo } from "react";
 import { RenderCategory } from "@/components/tasks";
 import { InlineLabel } from "@/components/tasks/shared/inlinelabel";
 import { TaskMention } from "./TaskMention";
+import { IconUser } from "@tabler/icons-react";
+import { cn } from "@/lib/utils";
+import { useMentionTasks } from "@/hooks/useMentionTasks";
 
 function MentionViewInner(
   props: ReactNodeViewProps,
@@ -33,9 +36,12 @@ function MentionViewInner(
             ? "bg-primary text-primary-foreground font-semibold"
             : "bg-accent text-accent-foreground",
         ].join(" ")}
-        avatarClassName="size-4"
+        avatarClassName={cn("size-4")}
         text={`${displayText}`}
-        image={image}
+        image={image ? image : null}
+        icon={
+          !image && <IconUser className="size-3.5 bg-secondary rounded-full" />
+        }
       />
     );
   }
@@ -53,7 +59,7 @@ function MentionViewInner(
     if (task) {
       return <TaskMention task={task} categories={categories} />;
     }
-    return <span className="text-primary">{value}</span>;
+    return <span className="text-muted-foreground italic">Private task</span>;
   }
 
   return <span>{value}</span>;
@@ -73,14 +79,21 @@ export default function MentionView({
     null,
   );
 
+  const mentionTasks = useMentionTasks();
+
+  const resolvedTasks = useMemo(() => {
+    if (tasks.length > 0) return tasks;
+    return mentionTasks.allSeenTasks as schema.TaskWithLabels[];
+  }, [tasks, mentionTasks.allSeenTasks]);
+
   const extension = useMemo(
     () =>
       defineReactNodeView({
         name: "mention",
         component: (props: ReactNodeViewProps) =>
-          MentionViewInner(props, users, categories, tasks, Newaccount?.id),
+          MentionViewInner(props, users, categories, resolvedTasks, Newaccount?.id),
       }),
-    [users, Newaccount?.id, categories, tasks],
+    [users, Newaccount?.id, categories, resolvedTasks],
   );
 
   useExtension(extension);

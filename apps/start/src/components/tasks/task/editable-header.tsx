@@ -318,7 +318,6 @@ export function TaskEditableHeader({
               tasks={tasks}
               hideBlockHandle={true}
               readonly={true}
-              mentionViewUsers={orgMemberUsers}
             />
           </div>
         ) : null}
@@ -359,7 +358,6 @@ export function TaskEditableHeader({
               categories={categories}
               tasks={tasks}
               hideBlockHandle={true}
-              mentionViewUsers={orgMemberUsers}
             />
             <div className="flex w-full">
               {hasUnsavedChanges && (

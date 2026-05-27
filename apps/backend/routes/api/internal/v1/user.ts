@@ -1,4 +1,4 @@
-import { auth, db, getUsersByIds, schema } from "@repo/database";
+import { auth, db, getUsersByIds, schema, searchUsers, getOrgMemberUserIds, getTaskParticipantUserIds } from "@repo/database";
 import { createTraceAsync, getTraceContext } from "@repo/opentelemetry/trace";
 import { removeObject, uploadObject, deleteFolder } from "@repo/storage";
 import { ensureCdnUrl, getFileNameFromUrl } from "@repo/util";
@@ -10,9 +10,179 @@ import { auth as betterAuth } from "@repo/auth";
 
 export const apiRouteAdminUser = new Hono<AppEnv>();
 
+const MENTION_MEMBERS_TTL = 300; // 5 minutes
+const MENTION_USER_TTL = 1800; // 30 minutes
+
+/**
+ * Global user search for @mention autocomplete.
+ * Returns users in tiers: task participants first, org members second, all other users third.
+ * Uses Redis caching for org members and task participants to reduce DB load.
+ */
+apiRouteAdminUser.get("/search", async (c) => {
+	const traceAsync = createTraceAsync();
+	const recordWideError = c.get("recordWideError");
+	const session = c.get("session");
+
+	if (!session?.userId) {
+		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
+	}
+
+	const query = c.req.query("query");
+	const orgId = c.req.query("orgId");
+	const taskId = c.req.query("taskId");
+	const limitParam = c.req.query("limit");
+	const limit = limitParam ? Number.parseInt(limitParam, 10) : 20;
+
+	try {
+		const redis = getRedis();
+		let tier1Users: schema.UserSummary[] = []; // Task participants
+		let tier2Users: schema.UserSummary[] = []; // Org members
+
+		// Tier 1: Task participants (if taskId provided)
+		if (taskId) {
+			const cacheKey = `mention:participants:${taskId}`;
+			let cachedParticipants: schema.UserSummary[] | null = null;
+
+			try {
+				const cached = await redis.get(cacheKey);
+				if (cached) {
+					cachedParticipants = JSON.parse(cached) as schema.UserSummary[];
+				}
+			} catch {
+				// Cache miss or parse error, will fetch from DB
+			}
+
+			if (!cachedParticipants) {
+				const participantIds = await traceAsync(
+					"mention.task_participants",
+					() => getTaskParticipantUserIds(taskId),
+					{ description: "Getting task participant IDs", data: { taskId } }
+				);
+
+				if (participantIds.length > 0) {
+					cachedParticipants = await traceAsync(
+						"mention.task_participants.resolve",
+						() => getUsersByIds(participantIds),
+						{ description: "Resolving task participant IDs", data: { count: participantIds.length } }
+					);
+
+					// Cache for 5 minutes
+					try {
+						await redis.set(cacheKey, JSON.stringify(cachedParticipants), "EX", MENTION_MEMBERS_TTL);
+					} catch {
+						// Redis error, continue without caching
+					}
+				} else {
+					cachedParticipants = [];
+				}
+			}
+
+			// Filter by query if provided
+			if (query) {
+				const lowerQuery = query.toLowerCase();
+				tier1Users = cachedParticipants.filter((u) =>
+					u.name.toLowerCase().includes(lowerQuery) ||
+					u.displayName?.toLowerCase().includes(lowerQuery)
+				);
+			} else {
+				tier1Users = cachedParticipants;
+			}
+		}
+
+		// Tier 2: Org members (if orgId provided)
+		if (orgId) {
+			const cacheKey = `mention:members:${orgId}`;
+			let cachedMembers: schema.UserSummary[] | null = null;
+
+			try {
+				const cached = await redis.get(cacheKey);
+				if (cached) {
+					cachedMembers = JSON.parse(cached) as schema.UserSummary[];
+				}
+			} catch {
+				// Cache miss or parse error, will fetch from DB
+			}
+
+			if (!cachedMembers) {
+				const memberIds = await traceAsync(
+					"mention.org_members",
+					() => getOrgMemberUserIds(orgId),
+					{ description: "Getting org member IDs", data: { orgId } }
+				);
+
+				if (memberIds.length > 0) {
+					cachedMembers = await traceAsync(
+						"mention.org_members.resolve",
+						() => getUsersByIds(memberIds),
+						{ description: "Resolving org member IDs", data: { count: memberIds.length } }
+					);
+
+					// Cache for 5 minutes
+					try {
+						await redis.set(cacheKey, JSON.stringify(cachedMembers), "EX", MENTION_MEMBERS_TTL);
+					} catch {
+						// Redis error, continue without caching
+					}
+				} else {
+					cachedMembers = [];
+				}
+			}
+
+			// Filter by query if provided, exclude tier1 users
+			const tier1Ids = new Set(tier1Users.map((u) => u.id));
+			if (query) {
+				const lowerQuery = query.toLowerCase();
+				tier2Users = cachedMembers.filter((u) =>
+					!tier1Ids.has(u.id) &&
+					(u.name.toLowerCase().includes(lowerQuery) ||
+						u.displayName?.toLowerCase().includes(lowerQuery))
+				);
+			} else {
+				tier2Users = cachedMembers.filter((u) => !tier1Ids.has(u.id));
+			}
+		}
+
+		// Tier 3: All other users (search across entire user table)
+		let tier3Users: schema.UserSummary[] = [];
+		const remainingSlots = limit - tier1Users.length - tier2Users.length;
+
+		if (remainingSlots > 0 && query && query.length >= 2) {
+			const excludeIds = [
+				...tier1Users.map((u) => u.id),
+				...tier2Users.map((u) => u.id),
+			];
+
+			tier3Users = await traceAsync(
+				"mention.global_search",
+				() => searchUsers({
+					query,
+					limit: remainingSlots,
+					excludeIds,
+				}),
+				{ description: "Searching all users", data: { query, excludeCount: excludeIds.length } }
+			);
+		}
+
+		// Combine tiers and return
+		const results = [...tier1Users, ...tier2Users, ...tier3Users].slice(0, limit);
+
+		return c.json({ success: true, data: results });
+	} catch (err) {
+		await recordWideError({
+			name: "user.search.failed",
+			error: err,
+			code: "USER_SEARCH_FAILED",
+			message: "Failed to search users",
+			contextData: { query, orgId, taskId },
+		});
+		return c.json({ success: false, error: "Failed to search users" }, 500);
+	}
+});
+
 /**
  * Resolve user IDs to UserSummary objects.
  * Used by MentionView to render mention chips for any user by ID.
+ * Now includes Redis caching per user for faster readonly rendering.
  */
 apiRouteAdminUser.post("/resolve", async (c) => {
 	const traceAsync = createTraceAsync();
@@ -32,14 +202,51 @@ apiRouteAdminUser.post("/resolve", async (c) => {
 	const ids = body.ids.slice(0, 50) as string[];
 
 	try {
-		const users = await traceAsync(
-			"user.resolve",
-			() => getUsersByIds(ids),
-			{
-				description: "Resolving user IDs to summaries",
-				data: { count: ids.length },
-			},
-		);
+		const redis = getRedis();
+		const cachedUsers: schema.UserSummary[] = [];
+		const missingIds: string[] = [];
+
+		// Check Redis cache for each user ID
+		for (const id of ids) {
+			const cacheKey = `mention:user:${id}`;
+			try {
+				const cached = await redis.get(cacheKey);
+				if (cached) {
+					const user = JSON.parse(cached) as schema.UserSummary;
+					cachedUsers.push(user);
+				} else {
+					missingIds.push(id);
+				}
+			} catch {
+				missingIds.push(id);
+			}
+		}
+
+		// Fetch missing users from DB
+		let dbUsers: schema.UserSummary[] = [];
+		if (missingIds.length > 0) {
+			dbUsers = await traceAsync(
+				"user.resolve",
+				() => getUsersByIds(missingIds),
+				{
+					description: "Resolving user IDs to summaries",
+					data: { count: missingIds.length },
+				},
+			);
+
+			// Cache each resolved user
+			for (const user of dbUsers) {
+				const cacheKey = `mention:user:${user.id}`;
+				try {
+					await redis.set(cacheKey, JSON.stringify(user), "EX", MENTION_USER_TTL);
+				} catch {
+					// Redis error, continue without caching
+				}
+			}
+		}
+
+		// Combine cached and freshly resolved users
+		const users = [...cachedUsers, ...dbUsers];
 		return c.json({ success: true, data: users });
 	} catch (err) {
 		await recordWideError({

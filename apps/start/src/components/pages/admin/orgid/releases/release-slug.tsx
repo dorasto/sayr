@@ -92,12 +92,12 @@ function ReleaseDetailPageContent() {
     [organization?.members],
   );
 
-  // Set mentionContext so the Editor's useMentionUsers hook can fetch org members
+  // Set mentionContext so the Editor's useMentionUsers hook can fetch org members with release context
   useEffect(() => {
     if (organization?.id) {
-      setMentionContext({ orgId: organization.id });
+      setMentionContext({ orgId: organization.id, releaseId: release?.id });
     }
-  }, [organization?.id, setMentionContext]);
+  }, [organization?.id, release?.id, setMentionContext]);
 
   useServerEventsSubscription({
     serverEvents,

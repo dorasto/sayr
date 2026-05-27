@@ -61,6 +61,7 @@ export function PublicCommentItem({
   onEdit,
   onDelete,
   categories,
+  tasks,
   footer,
   isReply,
   onReply,
@@ -271,10 +272,10 @@ export function PublicCommentItem({
                   <Editor
                     defaultContent={comment.content}
                     categories={categories}
+                    tasks={tasks}
                     onChange={setEditedContent}
                     submit={handleSave}
                     hideBlockHandle
-                    mentionViewUsers={users}
                   />
                 </Suspense>
                 <div className="flex items-center gap-2 mt-2 justify-end">
@@ -310,8 +311,8 @@ export function PublicCommentItem({
                     <Editor
                       readonly={true}
                       defaultContent={comment.content}
+                      tasks={tasks}
                       hideBlockHandle
-                      mentionViewUsers={users}
                     />
                   </Suspense>
                 </div>

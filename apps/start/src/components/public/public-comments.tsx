@@ -83,16 +83,19 @@ interface PublicCommentsProps {
   taskId: string;
   organizationId: string;
   taskStatus: string;
+  tasks?: schema.TaskWithLabels[];
 }
 
 export function PublicComments({
   taskId,
   organizationId,
   taskStatus,
+  tasks: tasksProp,
 }: PublicCommentsProps) {
   const queryClient = useQueryClient();
   const { data: session } = authClient.useSession();
-  const { organization, categories } = usePublicOrganizationLayout();
+  const { organization, categories, tasks: tasksContext } = usePublicOrganizationLayout();
+  const tasks = tasksProp ?? tasksContext;
   const { value: sseClientId } = useStateManagement<string>("sse-clientId", "");
   const { setValue: setMentionContext } =
     useStateManagement<MentionContext | null>("mentionContext", null);
@@ -117,12 +120,12 @@ export function PublicComments({
     });
   }, []);
 
-  // Set mentionContext so the Editor's useMentionUsers hook can fetch org members
+  // Set mentionContext so the Editor's useMentionUsers hook can fetch org members and task participants
   useEffect(() => {
     if (organizationId) {
-      setMentionContext({ orgId: organizationId });
+      setMentionContext({ orgId: organizationId, taskId });
     }
-  }, [organizationId, setMentionContext]);
+  }, [organizationId, taskId, setMentionContext]);
 
   const commentLimit = 20;
 
@@ -531,6 +534,7 @@ export function PublicComments({
                       onEdit={canAct ? handleEditComment : undefined}
                       onDelete={session?.user ? handleDeleteComment : undefined}
                       categories={categories}
+                      tasks={tasks}
                       blockedUserIds={blockedUserIds}
                       isOrgMember={isOrgMember}
                       canAct={canAct}
@@ -554,6 +558,7 @@ export function PublicComments({
                 onEdit={canAct ? handleEditComment : undefined}
                 onDelete={session?.user ? handleDeleteComment : undefined}
                 categories={categories}
+                tasks={tasks}
                 footer={threadFooter}
                 onReply={
                   canAct
@@ -614,6 +619,7 @@ export function PublicComments({
                       onEdit={canAct ? handleEditComment : undefined}
                       onDelete={session?.user ? handleDeleteComment : undefined}
                       categories={categories}
+                      tasks={tasks}
                       blockedUserIds={blockedUserIds}
                       isOrgMember={isOrgMember}
                       canAct={canAct}
@@ -637,6 +643,7 @@ export function PublicComments({
                 onEdit={canAct ? handleEditComment : undefined}
                 onDelete={session?.user ? handleDeleteComment : undefined}
                 categories={categories}
+                tasks={tasks}
                 footer={threadFooter}
                 onReply={
                   canAct
@@ -668,6 +675,7 @@ export function PublicComments({
               onChange={setCommentContent}
               submit={handleSubmitComment}
               categories={categories}
+              tasks={tasks}
               hideBlockHandle
             />
           </Suspense>

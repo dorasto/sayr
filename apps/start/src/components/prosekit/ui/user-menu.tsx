@@ -10,10 +10,8 @@ import {
   AutocompleteList,
   AutocompletePopover,
 } from "prosekit/react/autocomplete";
-import { useMemo, useState } from "react";
 import { InlineLabel } from "@/components/tasks/shared/inlinelabel";
 import type { schema } from "@repo/database";
-import { cn } from "@/lib/utils";
 
 // Match inputs like "@", "@foo", "@foo bar" etc. Do not match "@ foo".
 const regex = canUseRegexLookbehind() ? /(?<!\S)@(\S.*)?$/u : /@(\S.*)?$/u;
@@ -25,25 +23,6 @@ export default function UserMenu(props: {
   onOpenChange?: (open: boolean) => void;
 }) {
   const editor = useEditor<Union<[MentionExtension, BasicExtension]>>();
-  const [query, setQuery] = useState("");
-
-  const handleQueryChange = (newQuery: string) => {
-    setQuery(newQuery);
-    props.onQueryChange?.(newQuery);
-  };
-
-  // Filter users by both username and displayName
-  const filteredUsers = useMemo(() => {
-    if (!query) return props.users;
-    const lowerQuery = query.toLowerCase();
-    return props.users.filter((user) => {
-      const matchesName = user.name.toLowerCase().includes(lowerQuery);
-      const matchesDisplayName = user.displayName
-        ?.toLowerCase()
-        .includes(lowerQuery);
-      return matchesName || matchesDisplayName;
-    });
-  }, [props.users, query]);
 
   const handleUserInsert = (id: string, username: string) => {
     editor.commands.insertMention({
@@ -57,47 +36,53 @@ export default function UserMenu(props: {
   return (
     <AutocompletePopover
       regex={regex}
-      className="relative block max-h-100 min-w-60 select-none overflow-auto whitespace-nowrap p-1 z-50 box-border rounded-lg border bg-popover text-foreground shadow-lg [&:not([data-state])]:hidden"
-      onQueryChange={handleQueryChange}
+      className="relative block max-h-100 min-w-60 select-none overflow-auto whitespace-nowrap p-1 z-50 box-border rounded-xl border bg-popover text-foreground shadow-lg [&:not([data-state])]:hidden"
+      placement="top"
+      onQueryChange={props.onQueryChange}
       onOpenChange={props.onOpenChange}
     >
       <AutocompleteList filter={null}>
-        <AutocompleteEmpty
-          className={cn(
-            "relative flex items-center min-w-32 scroll-my-1 rounded-sm box-border cursor-default select-none whitespace-nowrap outline-hidden text-sm",
-            !props.loading && "px-3 py-1.5",
-          )}
-        >
-          {props.loading ? (
-            <Skeleton className="h-8 w-full bg-accent" />
-          ) : (
-            "No results"
-          )}
-        </AutocompleteEmpty>
-
-        {filteredUsers.map((user) => {
-          const displayName = getDisplayName(user);
-
-          return (
-            <AutocompleteItem
-              key={user.id}
-              className="relative flex items-center justify-between min-w-32 scroll-my-1 rounded-lg px-3 py-1.5 box-border cursor-default select-none whitespace-nowrap outline-hidden data-focused:bg-accent text-foreground"
-              onSelect={() => handleUserInsert(user.id, user.name)}
-            >
-              <div className="flex items-center gap-2">
-                <InlineLabel
-                  className="text-sm ps-6"
-                  avatarClassName="size-4"
-                  text={displayName}
-                  image={user.image}
-                />
-                <span className="text-xs text-muted-foreground">
-                  {user.name}
-                </span>
+        {props.loading && (
+          <div className="py-1">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="flex items-center gap-2 px-3 py-1.5">
+                <Skeleton className="size-6 rounded-full" />
+                <Skeleton className="h-4 w-24" />
               </div>
-            </AutocompleteItem>
-          );
-        })}
+            ))}
+          </div>
+        )}
+
+        {!props.loading && props.users.length === 0 && (
+          <AutocompleteEmpty className="relative flex items-center min-w-32 scroll-my-1 rounded-sm box-border cursor-default select-none whitespace-nowrap outline-hidden text-sm px-3 py-1.5">
+            No results
+          </AutocompleteEmpty>
+        )}
+
+        {!props.loading &&
+          props.users.map((user) => {
+            const displayName = getDisplayName(user);
+
+            return (
+              <AutocompleteItem
+                key={user.id}
+                className="relative flex items-center justify-between min-w-32 scroll-my-1 rounded-lg px-3 py-1.5 box-border cursor-default select-none whitespace-nowrap outline-hidden data-focused:bg-accent text-foreground"
+                onSelect={() => handleUserInsert(user.id, user.name)}
+              >
+                <div className="flex items-center gap-2">
+                  <InlineLabel
+                    className="text-sm ps-6"
+                    avatarClassName="size-4"
+                    text={displayName}
+                    image={user.image}
+                  />
+                  <span className="text-xs text-muted-foreground">
+                    {user.name}
+                  </span>
+                </div>
+              </AutocompleteItem>
+            );
+          })}
       </AutocompleteList>
     </AutocompletePopover>
   );

@@ -2,6 +2,7 @@ import type { schema } from "@repo/database";
 import { Button } from "@repo/ui/components/button";
 import {
   useStateManagement,
+  useStateManagementFetch,
   useStateManagementInfiniteFetch,
 } from "@repo/ui/hooks/useStateManagement.ts";
 import { IconArrowBack, IconLoader2 } from "@tabler/icons-react";
@@ -106,13 +107,37 @@ export function PublicReleaseDiscussion({
 }: PublicReleaseDiscussionProps) {
   const queryClient = useQueryClient();
   const { data: session } = authClient.useSession();
-  const { organization, categories, serverEvents } = usePublicOrganizationLayout();
+  const { organization, categories, tasks: contextTasks, serverEvents } = usePublicOrganizationLayout();
   const { value: sseClientId } = useStateManagement<string>("sseClientId", "");
   const { setValue: setMentionContext } = useStateManagement<MentionContext | null>("mentionContext", null);
   const [commentContent, setCommentContent] = useState<NodeJSON | undefined>(undefined);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editorKey, setEditorKey] = useState(0);
   const [expandedThreads, setExpandedThreads] = useState<Set<string>>(new Set());
+
+  // Fetch public tasks for this org if context tasks are empty
+  const baseApiUrl =
+    import.meta.env.VITE_APP_ENV === "development"
+      ? "/backend-api/internal"
+      : "/api/internal";
+  const {
+    value: { data: fetchedTasks },
+  } = useStateManagementFetch<schema.TaskWithLabels[]>({
+    key: ["org-public-tasks", organizationId],
+    fetch: {
+      url: `${baseApiUrl}/v1/admin/organization/task/tasks?org_id=${organizationId}&limit=50`,
+      custom: async (url: string) => {
+        const res = await fetch(url);
+        if (!res.ok) return [];
+        const json = await res.json();
+        return json.data ?? [];
+      },
+    },
+    staleTime: 1000 * 60 * 5,
+    enabled: contextTasks.length === 0,
+  });
+
+  const tasks = contextTasks.length > 0 ? contextTasks : (fetchedTasks ?? []);
 
   const toggleThread = useCallback((commentId: string) => {
     setExpandedThreads((prev) => {
@@ -128,9 +153,9 @@ export function PublicReleaseDiscussion({
 
   useEffect(() => {
     if (organizationId) {
-      setMentionContext({ orgId: organizationId });
+      setMentionContext({ orgId: organizationId, releaseId });
     }
-  }, [organizationId, setMentionContext]);
+  }, [organizationId, releaseId, setMentionContext]);
 
   const commentLimit = 20;
 
@@ -548,6 +573,7 @@ export function PublicReleaseDiscussion({
             onEdit={canAct ? handleEditComment : undefined}
             onDelete={session?.user ? handleDeleteComment : undefined}
             categories={categories}
+            tasks={tasks}
             blockedUserIds={blockedUserIds}
             isOrgMember={isOrgMember}
             canAct={canAct}
@@ -573,6 +599,7 @@ export function PublicReleaseDiscussion({
         onEdit={canAct ? handleEditComment : undefined}
         onDelete={session?.user ? handleDeleteComment : undefined}
         categories={categories}
+        tasks={tasks}
         footer={threadFooter}
         onReply={canAct ? () => {
           if (!expandedThreads.has(comment.id)) {
@@ -673,6 +700,7 @@ export function PublicReleaseDiscussion({
               onChange={setCommentContent}
               submit={handleSubmitComment}
               categories={categories}
+              tasks={tasks}
               hideBlockHandle
             />
           </Suspense>

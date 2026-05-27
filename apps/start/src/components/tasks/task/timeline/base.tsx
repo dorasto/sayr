@@ -260,7 +260,6 @@ export function TimelineItemWrapper({
                   tasks={tasks}
                   onChange={onContentChange}
                   submit={onSave}
-                  mentionViewUsers={availableUsers}
                 />
                 <div className="flex items-center gap-2 mt-2 justify-end">
                   <Button
@@ -290,7 +289,6 @@ export function TimelineItemWrapper({
                 defaultContent={item.content as any}
                 categories={categories}
                 tasks={tasks}
-                mentionViewUsers={availableUsers}
                 className="pl-1"
               />
             )}

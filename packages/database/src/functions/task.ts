@@ -783,6 +783,8 @@ export async function searchTasksByOrganization(
 		parentId: string | null;
 		releaseId: string | null;
 		subtaskCount: number | null;
+		organizationId: string;
+		category: string | null;
 	}[]
 > {
 	const clampedLimit = Math.min(Math.max(limit, 1), 50);
@@ -829,6 +831,8 @@ export async function searchTasksByOrganization(
 			parentId: schema.task.parentId,
 			releaseId: schema.task.releaseId,
 			subtaskCount: sql<number>`(SELECT COUNT(*) FROM task AS child WHERE child.parent_id = ${schema.task.id})`.as("subtask_count"),
+			organizationId: schema.task.organizationId,
+			category: schema.task.category,
 		})
 		.from(schema.task)
 		.where(and(...conditions))

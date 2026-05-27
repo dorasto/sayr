@@ -8,6 +8,7 @@ import { useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import { useMentionUsers } from "@/hooks/useMentionUsers";
+import { useMentionTasks } from "@/hooks/useMentionTasks";
 import { resolveUsersByIds } from "@/lib/fetches/mention";
 import { EditorModeContext } from "./editor-mode-context";
 import { defineExtension } from "./extensions/index";
@@ -19,7 +20,6 @@ import InlineMenu from "./ui/inline-menu";
 import MentionView from "./ui/mention-view";
 import SlashMenu from "./ui/slash-menu";
 import TableHandle from "./ui/table-handle";
-import Toolbar from "./ui/toolbar";
 import UserMenu from "./ui/user-menu";
 import CategoryMenu from "./ui/category-menu";
 import TaskMenu from "./ui/task-menu";
@@ -56,8 +56,6 @@ export interface EditorProps {
   hideBlockHandle?: boolean;
   /** When true, shows the Placeholder slash menu item for template authoring. */
   isTemplateEditor?: boolean;
-  /** Users for MentionView chip rendering (readonly editors). Merged with search cache. */
-  mentionViewUsers?: schema.UserSummary[];
 }
 
 export default function Editor({
@@ -73,26 +71,12 @@ export default function Editor({
   hasTemplate = false,
   hideBlockHandle = false,
   isTemplateEditor = false,
-  mentionViewUsers,
 }: EditorProps) {
   // Use the mention hook — it reads mentionContext from the global store,
-  // fetches org members from the backend, and supports async search.
+  // fetches users from the backend, and supports async search.
   // Falls back to empty when no mentionContext is set.
   const mention = useMentionUsers();
-
-  // Determine which users to show
-  const mentionUsers = mention.users;
-  // Merge search-system users with any explicitly provided users (for readonly editors).
-  // Deduplicate by user ID so MentionView can always resolve mention chips.
-  const allUsersForView = useMemo(() => {
-    if (!mentionViewUsers?.length) return mention.allSeenUsers;
-    const merged = new Map<string, schema.UserSummary>();
-    for (const u of mention.allSeenUsers) merged.set(u.id, u);
-    for (const u of mentionViewUsers) {
-      if (!merged.has(u.id)) merged.set(u.id, u);
-    }
-    return Array.from(merged.values());
-  }, [mention.allSeenUsers, mentionViewUsers]);
+  const mentionTasks = useMentionTasks();
 
   // Extract mention user IDs from the document content and resolve any that are missing.
   // This ensures MentionView can always render chips, regardless of context (inbox, org, etc.).
@@ -100,9 +84,9 @@ export default function Editor({
 
   const missingUserIds = useMemo(() => {
     if (!mentionedUserIds.length) return [];
-    const knownIds = new Set(allUsersForView.map((u) => u.id));
+    const knownIds = new Set(mention.allSeenUsers.map((u) => u.id));
     return mentionedUserIds.filter((id) => !knownIds.has(id));
-  }, [mentionedUserIds, allUsersForView]);
+  }, [mentionedUserIds, mention.allSeenUsers]);
 
   const { data: resolvedUsers } = useQuery<schema.UserSummary[]>({
     queryKey: ["resolveUsers", missingUserIds],
@@ -112,16 +96,16 @@ export default function Editor({
     gcTime: 1000 * 60 * 30,
   });
 
-  // Final user list: merge allUsersForView with any resolved users
+  // Final user list: merge mention.allSeenUsers with any resolved users
   const finalUsersForView = useMemo(() => {
-    if (!resolvedUsers?.length) return allUsersForView;
+    if (!resolvedUsers?.length) return mention.allSeenUsers;
     const merged = new Map<string, schema.UserSummary>();
-    for (const u of allUsersForView) merged.set(u.id, u);
+    for (const u of mention.allSeenUsers) merged.set(u.id, u);
     for (const u of resolvedUsers) {
       if (!merged.has(u.id)) merged.set(u.id, u);
     }
     return Array.from(merged.values());
-  }, [allUsersForView, resolvedUsers]);
+  }, [mention.allSeenUsers, resolvedUsers]);
 
 	const editor = useMemo(() => {
 		const extension = defineExtension({ readonly, placeholder, firstLinePlaceholder, hasTemplate });
@@ -138,15 +122,8 @@ export default function Editor({
     const abort = new AbortController();
     const { signal } = abort;
 
-    // -------------------------------
-    // 📋 PASTE HANDLER
-    // -------------------------------
     const handlePaste = async (event: ClipboardEvent) => {
-      // console.group("📋 Paste event detected!");
-
       if (!event.clipboardData) {
-        // console.log("⚠️ No clipboardData found on paste event.");
-        // console.groupEnd();
         return;
       }
 
@@ -156,33 +133,25 @@ export default function Editor({
       );
 
       if (mediaItems.length === 0) {
-        // console.log("😐 No media found in clipboard.");
-        // console.groupEnd();
         return;
       }
 
       event.preventDefault();
-      // console.group(`🧩 Processing ${mediaItems.length} media item(s)`);
 
       for (const item of mediaItems) {
-        // console.log("➡️ Item type:", item.type);
         const file = item.getAsFile();
         if (!file) {
-          // console.log("🚫 Skipped — clipboard item not a File.");
           continue;
         }
 
         const blobUrl = URL.createObjectURL(file);
-        // console.log("🪣 Blob URL created:", blobUrl);
 
         const type = file.type.startsWith("video/") ? "video" : "image";
 
         if (type === "video") {
-          // console.log("🎞️ Inserting video node...");
           const { state, view } = editor;
           const videoType = state.schema.nodes.video;
           if (!videoType) {
-            // console.warn("⚠️ No 'video' node type found in schema.");
             continue;
           }
 
@@ -190,54 +159,35 @@ export default function Editor({
             const node = videoType.create({ src: blobUrl });
             const tr = state.tr.replaceSelectionWith(node).scrollIntoView();
             view.dispatch(tr);
-            // console.log("✅ Video inserted successfully.");
           } catch (err) {
             // console.error("❌ Video insert error:", err);
           }
         } else {
-          // console.log("🖼️ Inserting image node...");
           try {
             // @ts-expect-error ProseKit typing gap
             editor.commands?.insertImage?.({ src: blobUrl });
-            // console.log("✅ Image inserted successfully.");
           } catch (err) {
             // console.error("❌ Image insert error:", err);
           }
         }
       }
-
-      // console.groupEnd();
-      // console.log("🎉 Paste handler done.");
-      // console.groupEnd();
     };
-    // -------------------------------
-    // 📌 Attach listeners
-    // -------------------------------
     view.dom.addEventListener("paste", handlePaste, { signal });
-    // console.log("✅ Paste listener attached");
-    // -------------------------------
-    // 🧹 Cleanup
-    // -------------------------------
     return () => {
       abort.abort();
-      // console.log("🧹 Paste listener removed");
     };
   }, [editor, readonly]);
   useEffect(() => {
     const view = editor?.view;
     if (!view) return;
     const handleCtrlEnter = (event: KeyboardEvent) => {
-      // detect Enter + Ctrl (Windows/Linux) or Cmd (Mac)
       if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
-        // ✋ stop the default editor behavior entirely
-        event.preventDefault(); // stops default line break
-        event.stopPropagation(); // blocks ProseKit/ProseMirror keymaps
-        event.stopImmediatePropagation?.(); // fully block bubbling
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation?.();
         submit?.();
       }
     };
-    // Attach listener before ProseKit’s handlers get a chance
-    // Use capture phase for reliability
     view.dom.addEventListener("keydown", handleCtrlEnter, true);
     return () => {
       view.dom.removeEventListener("keydown", handleCtrlEnter, true);
@@ -246,7 +196,7 @@ export default function Editor({
   useDocChange(
     () => {
       const json = editor.getDocJSON();
-      if (onChange) onChange(json); // ✅ send data to parent
+      if (onChange) onChange(json);
     },
     { editor },
   );
@@ -258,9 +208,6 @@ export default function Editor({
     <EditorModeContext.Provider value={editorMode}>
     <ProseKit editor={editor}>
       <div className={className}>
-        {/* <div className="z-10 box-border border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950">
-					<Toolbar />
-				</div> */}
         <div
           ref={editor.mount}
           className={cn(
@@ -275,12 +222,16 @@ export default function Editor({
             <InlineMenu />
 			{!hasTemplate ? <SlashMenu /> : <SlashMenuTemplate />}
             <UserMenu
-              users={mentionUsers}
+              users={mention.users}
               loading={mention.loading}
               onQueryChange={mention.setSearchQuery}
             />
             <CategoryMenu categories={categories || []} />
-            <TaskMenu tasks={tasks || []} />
+            <TaskMenu
+              tasks={mentionTasks.tasks}
+              loading={mentionTasks.loading}
+              onQueryChange={mentionTasks.setSearchQuery}
+            />
           </>
         )}
         <CodeBlockView />

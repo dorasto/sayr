@@ -194,7 +194,6 @@ export function CommentItem({
                 defaultContent={comment.content ?? undefined}
                 onChange={setEditContent}
                 hideBlockHandle
-                mentionViewUsers={availableUsers}
               />
             </Suspense>
             <div className="flex gap-2 justify-end mt-1">
@@ -228,7 +227,6 @@ export function CommentItem({
                 readonly
                 defaultContent={comment.content}
                 hideBlockHandle
-                mentionViewUsers={availableUsers}
                 className="pl-1"
               />
             </Suspense>

@@ -4,6 +4,7 @@ const API_URL = import.meta.env.VITE_APP_ENV === "development" ? "/backend-api/i
 
 /**
  * Searches organization members for @mention autocomplete.
+ * @deprecated Use searchGlobalUsers instead. Kept for backwards compatibility.
  *
  * @param orgId - The organization to search within.
  * @param query - Optional text to filter by name/displayName.
@@ -28,6 +29,49 @@ export async function searchMentionUsers(
 
 	if (!res.ok) {
 		throw new Error(`Failed to search members: ${res.statusText}`);
+	}
+
+	const json = await res.json();
+	return json.data ?? [];
+}
+
+/**
+ * Global user search for @mention autocomplete.
+ * Searches across the entire platform with context-aware ordering:
+ * - Tier 1: Task participants (if taskId provided)
+ * - Tier 2: Org members (if orgId provided)
+ * - Tier 3: All other users matching the query
+ *
+ * @param options - Search parameters.
+ * @param options.query - Optional text to filter by name/displayName.
+ * @param options.orgId - Optional organization ID for org member context.
+ * @param options.taskId - Optional task ID for task participant context.
+ * @param options.limit - Max results (default 20).
+ * @returns Array of UserSummary objects.
+ */
+export async function searchGlobalUsers(
+	options: {
+		query?: string;
+		orgId?: string;
+		taskId?: string;
+		limit?: number;
+	},
+): Promise<schema.UserSummary[]> {
+	const params = new URLSearchParams();
+	if (options.query) params.set("query", options.query);
+	if (options.orgId) params.set("orgId", options.orgId);
+	if (options.taskId) params.set("taskId", options.taskId);
+	if (options.limit) params.set("limit", String(options.limit));
+
+	const qs = params.toString();
+	const url = `${API_URL}/v1/admin/user/search${qs ? `?${qs}` : ""}`;
+
+	const res = await fetch(url, {
+		credentials: "include",
+	});
+
+	if (!res.ok) {
+		throw new Error(`Failed to search users: ${res.statusText}`);
 	}
 
 	const json = await res.json();
