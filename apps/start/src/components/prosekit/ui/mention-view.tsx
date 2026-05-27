@@ -59,7 +59,7 @@ function MentionViewInner(
     if (task) {
       return <TaskMention task={task} categories={categories} />;
     }
-    return <span className="text-primary">{value}</span>;
+    return <span className="text-muted-foreground italic">Private task</span>;
   }
 
   return <span>{value}</span>;

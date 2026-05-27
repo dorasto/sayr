@@ -100,6 +100,7 @@ export function PublicCommentThreadBody({
 	onEdit,
 	onDelete,
 	categories,
+	tasks,
 	blockedUserIds,
 	isOrgMember,
 	canAct,
@@ -113,6 +114,7 @@ export function PublicCommentThreadBody({
 	onEdit?: (commentId: string, content: NodeJSON) => Promise<boolean>;
 	onDelete?: (commentId: string) => Promise<boolean>;
 	categories: schema.categoryType[];
+	tasks?: schema.TaskWithLabels[];
 	blockedUserIds?: Set<string>;
 	isOrgMember?: boolean;
 	/** Whether the current user can perform write actions (comment, react, reply). */
@@ -265,6 +267,7 @@ export function PublicCommentThreadBody({
 								onEdit={onEdit}
 								onDelete={onDelete}
 								categories={categories}
+								tasks={tasks}
 								isReply
 								blockedUserIds={blockedUserIds}
 								isOrgMember={isOrgMember}
@@ -280,6 +283,7 @@ export function PublicCommentThreadBody({
 					<PublicReplyInput
 						parentComment={parentComment}
 						categories={categories}
+						tasks={tasks}
 						onReplyPosted={() => refetch()}
 						onPostReply={onPostReply}
 					/>
@@ -307,11 +311,13 @@ function isMultiline(doc: NodeJSON | undefined): boolean {
 function PublicReplyInput({
 	parentComment,
 	categories,
+	tasks,
 	onReplyPosted,
 	onPostReply,
 }: {
 	parentComment: CommentData;
 	categories?: schema.categoryType[];
+	tasks?: schema.TaskWithLabels[];
 	onReplyPosted?: () => void;
 	/** Optional custom post reply function (e.g., for release comments). */
 	onPostReply?: (content: NodeJSON) => Promise<boolean>;
@@ -405,6 +411,7 @@ function PublicReplyInput({
 							key={editorKey}
 							onChange={setContent}
 							categories={categories}
+							tasks={tasks}
 							submit={handleSubmit}
 							hideBlockHandle
 							firstLinePlaceholder="Reply..."

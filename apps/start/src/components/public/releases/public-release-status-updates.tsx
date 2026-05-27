@@ -125,7 +125,7 @@ export function PublicReleaseStatusUpdates({
     null,
   );
   const [dialogOpen, setDialogOpen] = useState(false);
-  const { serverEvents, organization } = usePublicOrganizationLayout();
+  const { serverEvents, organization, tasks, categories } = usePublicOrganizationLayout();
   const queryClient = useQueryClient();
 
   const loadUpdates = useCallback(async () => {
@@ -344,7 +344,7 @@ function StatusUpdateDialog({
   releaseSlug,
 }: StatusUpdateDialogProps) {
   const { data: session } = authClient.useSession();
-  const { categories } = usePublicOrganizationLayout();
+  const { categories, tasks } = usePublicOrganizationLayout();
   const queryClient = useQueryClient();
   const { value: sseClientId } = useStateManagement<string>("sseClientId", "");
   const [commentContent, setCommentContent] = useState<NodeJSON | undefined>(
@@ -490,6 +490,7 @@ function StatusUpdateDialog({
                 <Editor
                   readonly
                   defaultContent={update.content as schema.NodeJSON}
+                  tasks={tasks}
                   hideBlockHandle
                   className="text-sm"
                 />
@@ -552,6 +553,7 @@ function StatusUpdateDialog({
                             <Editor
                               readonly
                               defaultContent={comment.content as NodeJSON}
+                              tasks={tasks}
                               hideBlockHandle
                               className="text-sm"
                             />
@@ -580,6 +582,7 @@ function StatusUpdateDialog({
                   onChange={setCommentContent}
                   submit={handleSubmitComment}
                   categories={categories}
+                  tasks={tasks}
                   hideBlockHandle
                 />
               </Suspense>

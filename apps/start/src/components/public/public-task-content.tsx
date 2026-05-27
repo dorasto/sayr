@@ -61,11 +61,31 @@ export function PublicTaskContent({
   panelOpen,
   setPanelOpen,
 }: PublicTaskContentProps) {
-  const { organization, categories, serverEvents } =
+  const { organization, categories, tasks: contextTasks, serverEvents } =
     usePublicOrganizationLayout();
   const queryClient = useQueryClient();
   const { value: sseClientId } = useStateManagement<string>("sse-clientId", "");
   const isMember = useIsOrgMember(organization);
+
+  // Fetch public tasks for this org if context tasks are empty (e.g., on direct task detail navigation)
+  const {
+    value: { data: fetchedTasks },
+  } = useStateManagementFetch<schema.TaskWithLabels[]>({
+    key: ["org-public-tasks", organization.id],
+    fetch: {
+      url: `${baseApiUrl}/v1/admin/organization/task/tasks?org_id=${organization.id}&limit=50`,
+      custom: async (url) => {
+        const res = await fetch(url);
+        if (!res.ok) return [];
+        const json = await res.json();
+        return json.data ?? [];
+      },
+    },
+    staleTime: 1000 * 60 * 5,
+    enabled: contextTasks.length === 0,
+  });
+
+  const tasks = contextTasks.length > 0 ? contextTasks : (fetchedTasks ?? []);
 
   const rawPathname = useRouterState({ select: (s) => s.location.pathname });
   const orgSlugMatch = rawPathname.match(/^\/orgs\/([^/]+)/);
@@ -482,6 +502,7 @@ export function PublicTaskContent({
                 <Editor
                   readonly={true}
                   defaultContent={task.description}
+                  tasks={tasks}
                   hideBlockHandle
                 />
               </Suspense>
@@ -492,6 +513,7 @@ export function PublicTaskContent({
             taskId={task.id}
             organizationId={task.organizationId}
             taskStatus={task.status}
+            tasks={tasks}
           />
         </div>
       </div>

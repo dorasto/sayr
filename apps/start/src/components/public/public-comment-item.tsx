@@ -61,6 +61,7 @@ export function PublicCommentItem({
   onEdit,
   onDelete,
   categories,
+  tasks,
   footer,
   isReply,
   onReply,
@@ -271,6 +272,7 @@ export function PublicCommentItem({
                   <Editor
                     defaultContent={comment.content}
                     categories={categories}
+                    tasks={tasks}
                     onChange={setEditedContent}
                     submit={handleSave}
                     hideBlockHandle
@@ -309,6 +311,7 @@ export function PublicCommentItem({
                     <Editor
                       readonly={true}
                       defaultContent={comment.content}
+                      tasks={tasks}
                       hideBlockHandle
                     />
                   </Suspense>
