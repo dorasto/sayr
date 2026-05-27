@@ -73,7 +73,7 @@ export function PublicTaskContent({
   } = useStateManagementFetch<schema.TaskWithLabels[]>({
     key: ["org-public-tasks", organization.id],
     fetch: {
-      url: `${baseApiUrl}/v1/admin/organization/task/tasks?org_id=${organization.id}&limit=50`,
+      url: `${baseApiUrl}/v1/admin/organization/task/tasks?org_id=${organization.id}&limit=200&include_closed=true`,
       custom: async (url) => {
         const res = await fetch(url);
         if (!res.ok) return [];

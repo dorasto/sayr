@@ -3133,13 +3133,13 @@ apiRouteAdminProjectTask.get("/voted", async (c) => {
 	});
 });
 
-function baseTaskWhere(orgId: string, categoryId?: string, search?: string, includeClosed?: boolean) {
+function baseTaskWhere(orgId: string, categoryId?: string, search?: string, includeClosed?: boolean, isPublic?: boolean) {
 	const conditions = [
 		eq(schema.task.organizationId, orgId),
 		...(includeClosed
 			? []
 			: [or(eq(schema.task.status, "todo"), eq(schema.task.status, "in-progress"), eq(schema.task.status, "backlog"))]),
-		eq(schema.task.visible, "public"),
+		...(isPublic === false ? [] : [eq(schema.task.visible, "public")])
 	];
 
 	if (categoryId) {
@@ -3179,7 +3179,7 @@ apiRouteAdminProjectTask.get("/tasks", async (c) => {
 		const includeClosed = query.include_closed === "true";
 		const page = Math.max(Number(query.page) || 1, 1);
 		const requestedLimit = Number(query.limit);
-		const limit = Math.min(requestedLimit || 15, 30);
+		const limit = Math.min(requestedLimit || 200, 30);
 		const offset = (page - 1) * limit;
 		if (!orgId) {
 			await recordWideError({
@@ -3194,16 +3194,18 @@ apiRouteAdminProjectTask.get("/tasks", async (c) => {
 
 			return c.json(errorResponse("Missing organization id", "Route parameter `org_id` is required"), 400);
 		}
-		if (requestedLimit > 20) {
+		const session = c.get("session");
+		const isPublic = !session || !(await traceOrgPermissionCheck(session.userId, orgId, "members"));
+		if (requestedLimit > 200) {
 			await recordWideError({
 				name: "organization.tasks.limit_overflow",
 				error: new Error("Limit overflow"),
 				code: "LIMIT_OVERFLOW",
-				message: `Requested limit ${requestedLimit} exceeds max ${20}`,
+				message: `Requested limit ${requestedLimit} exceeds max ${200}`,
 				contextData: { orgId, requestedLimit },
 			});
 
-			return c.json(errorResponse("Invalid limit", `Query parameter \`limit\` must be between 1 and ${20}`), 400);
+			return c.json(errorResponse("Invalid limit", `Query parameter \`limit\` must be between 1 and ${200}`), 400);
 		}
 
 		const totalItems = await traceAsync(
@@ -3212,7 +3214,7 @@ apiRouteAdminProjectTask.get("/tasks", async (c) => {
 				const [result] = await db
 					.select({ count: sql<number>`count(*)` })
 					.from(schema.task)
-					.where(baseTaskWhere(orgId, category_id, searchQuery, includeClosed));
+					.where(baseTaskWhere(orgId, category_id, searchQuery, includeClosed, isPublic));
 
 				return Number(result?.count ?? 0);
 			},
@@ -3227,7 +3229,7 @@ apiRouteAdminProjectTask.get("/tasks", async (c) => {
 			"organization.tasks.fetch",
 			async () =>
 				db.query.task.findMany({
-					where: baseTaskWhere(orgId, category_id, searchQuery, includeClosed),
+					where: baseTaskWhere(orgId, category_id, searchQuery, includeClosed, isPublic),
 
 					// ✅ DB handles ordering when possible
 					orderBy: isTrending
