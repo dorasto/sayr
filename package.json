@@ -35,17 +35,17 @@
   },
   "pnpm": {
     "overrides": {
-      "prosemirror-model": "1.25.4",
+      "prosemirror-model": "1.25.7",
       "prosemirror-state": "1.4.4",
-      "prosemirror-view": "1.41.4",
-      "prosemirror-transform": "1.10.5",
+      "prosemirror-view": "1.41.8",
+      "prosemirror-transform": "1.12.0",
       "prosemirror-commands": "1.7.1",
       "prosemirror-history": "1.5.0",
       "prosemirror-inputrules": "1.5.1",
       "prosemirror-keymap": "1.2.3",
-      "prosemirror-schema-basic": "1.2.3",
-      "prosemirror-schema-list": "1.5.0"
+      "prosemirror-schema-basic": "1.2.4",
+      "prosemirror-schema-list": "1.5.1"
     }
   },
-  "packageManager": "pnpm@10.6.2"
+  "packageManager": "pnpm@10.34.1"
 }
