@@ -19,7 +19,7 @@
   },
   "dependencies": {
     "pg": "^8.11.3",
-    "postgres": "3.4.3",
+    "postgres": "3.4.9",
     "@repo/storage": "workspace:*",
     "@repo/util": "workspace:*"
   },
