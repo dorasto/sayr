@@ -33,4 +33,4 @@ fi
 echo "📦 current branch: $branch"
 prompt="use update-pr to update this PR https://github.com/dorasto/sayr/pull/$PR_number"
 echo $prompt
-opencode -m "opencode/minimax-m2.5-free" --prompt "$prompt"
+opencode -m "opencode/qwen3.6-plus" --prompt "$prompt"

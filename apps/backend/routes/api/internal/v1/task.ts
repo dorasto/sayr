@@ -315,6 +315,7 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 				where: eq(schema.organization.id, orgId),
 			});
 			if (!org || !taskWithData) return;
+			if (visible === "private") return;
 			const sayrTaskUrl = `https://${org.slug}.${process.env.VITE_ROOT_DOMAIN}/${taskWithData.shortId}`;
 			const token = await getInstallationToken(foundLink.installationId);
 			const octokit = new Octokit({ auth: token });
