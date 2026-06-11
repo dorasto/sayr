@@ -476,16 +476,16 @@ summarizeTaskRoute.post("/", async (c) => {
 							events: [
 								{
 									name: "ai.task_summary",
-									customerId: polarCustomerId,
+									externalCustomerId: polarCustomerId,
 									metadata: {
-										_cost: { amount: costCents, currency: "usd" } as any,
+										_cost: { amount: costCents, currency: "usd" },
 										_llm: {
 											vendor: "mistral",
 											model: activeModel,
-											input_tokens: promptTokens,
-											output_tokens: completionTokens,
-											total_tokens: totalTokens,
-										} as any,
+											inputTokens: promptTokens,
+											outputTokens: completionTokens,
+											totalTokens: totalTokens,
+										},
 										org_id: orgId,
 										task_id: taskId,
 										task_url: `https://${orgSlug}.${process.env.VITE_ROOT_DOMAIN}/${task.shortId}`,
