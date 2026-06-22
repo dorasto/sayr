@@ -88,7 +88,7 @@ jobs:
         platform: ${{ fromJson(needs.define-matrix.outputs.platforms) }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Determine Docker Config
         id: config
