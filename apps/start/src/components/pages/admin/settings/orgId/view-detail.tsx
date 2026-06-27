@@ -48,34 +48,37 @@ import ColorPickerCustom from "@repo/ui/components/tomui/color-picker-custom";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { cn } from "@repo/ui/lib/utils";
 import {
-  IconCheck,
-  IconDeviceFloppy,
-  IconEyeOff,
-  IconLayoutKanban,
-  IconLayoutRows,
-  IconList,
-  IconTrash,
+	IconCheck,
+	IconDeviceFloppy,
+	IconEyeOff,
+	IconLayoutKanban,
+	IconLayoutRows,
+	IconList,
+	IconSortAscending,
+	IconTrash,
 } from "@tabler/icons-react";
 import { useRouter } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { ViewFilterEditor } from "./view-filter-editor";
 import {
-  TASK_GROUPING_OPTIONS,
-  TASK_GROUPINGS,
-  TaskGroupingId,
+	TASK_GROUPING_OPTIONS,
+	TASK_GROUPINGS,
+	TaskGroupingId,
+	SORT_OPTIONS,
 } from "@/components/tasks";
+import type { SortField, SortDirection } from "@/components/tasks/filter/types";
 import { useLayoutOrganization } from "@/contexts/ContextOrg";
 import { useLayoutTasks } from "@/contexts/ContextOrgTasks";
 import { usePlanLimits } from "@/hooks/usePlanLimits";
 
 const slugify = (text: string) => {
-  return text
-    .toString()
-    .toLowerCase()
-    .trim()
-    .replace(/\s+/g, "-") // Replace spaces with -
-    .replace(/[^\w-]+/g, "") // Remove all non-word chars
-    .replace(/--+/g, "-"); // Replace multiple - with single -
+	return text
+		.toString()
+		.toLowerCase()
+		.trim()
+		.replace(/\s+/g, "-") // Replace spaces with -
+		.replace(/[^\w-]+/g, "") // Remove all non-word chars
+		.replace(/--+/g, "-"); // Replace multiple - with single -
 };
 
 export default function SettingsOrganizationViewDetailPage({
@@ -128,13 +131,15 @@ export default function SettingsOrganizationViewDetailPage({
   const [name, setName] = useState(view?.name || "");
   const [filterParams, setFilterParams] = useState(view?.filterParams || "");
   const [slug, setSlug] = useState(view?.slug || "");
-  const defaultConfig: NonNullable<schema.savedViewType["viewConfig"]> = {
-    mode: "list",
-    groupBy: "status",
-    showCompletedTasks: true,
-    color: "#ffffff",
-    icon: "IconStack2",
-  };
+	const defaultConfig: NonNullable<schema.savedViewType["viewConfig"]> = {
+		mode: "list",
+		groupBy: "status",
+		showCompletedTasks: true,
+		sortField: "vote_count",
+		sortDirection: "desc",
+		color: "#ffffff",
+		icon: "IconStack2",
+	};
 
   const [viewConfig, setViewConfig] = useState<
     NonNullable<schema.savedViewType["viewConfig"]>
@@ -471,22 +476,96 @@ export default function SettingsOrganizationViewDetailPage({
             </DropdownMenu>
           </TileAction>
         </Tile>
-        <Tile className="md:w-full" variant={"transparent"}>
-          <TileHeader className="md:w-full">
-            <TileTitle>Show completed tasks</TileTitle>
-          </TileHeader>
-          <TileAction>
-            <Switch
-              checked={viewConfig?.showCompletedTasks}
-              onCheckedChange={(c) =>
-                setViewConfig((prev) => ({
-                  ...(prev ?? defaultConfig),
-                  showCompletedTasks: c,
-                }))
-              }
-            />
-          </TileAction>
-        </Tile>
+		<Tile className="md:w-full" variant={"transparent"}>
+			<TileHeader className="md:w-full">
+				<TileTitle>Show completed tasks</TileTitle>
+			</TileHeader>
+			<TileAction>
+				<Switch
+					checked={viewConfig?.showCompletedTasks}
+					onCheckedChange={(c) =>
+						setViewConfig((prev) => ({
+							...(prev ?? defaultConfig),
+							showCompletedTasks: c,
+						}))
+					}
+				/>
+			</TileAction>
+		</Tile>
+		<Tile className="md:w-full" variant={"transparent"}>
+			<TileHeader className="md:w-full">
+				<TileTitle>Sort by</TileTitle>
+			</TileHeader>
+			<TileAction>
+				<DropdownMenu>
+					<DropdownMenuTrigger asChild>
+						<Button variant="outline" className="gap-2">
+							<IconSortAscending className="h-4 w-4" />
+							<span>
+								{SORT_OPTIONS.find((opt) => opt.id === viewConfig?.sortField)?.label || "Votes"}
+							</span>
+						</Button>
+					</DropdownMenuTrigger>
+					<DropdownMenuContent align="end">
+						<DropdownMenuRadioGroup
+							value={viewConfig?.sortField || "vote_count"}
+							onValueChange={(v) =>
+								setViewConfig((prev) => ({
+									...(prev ?? defaultConfig),
+									sortField: v as SortField,
+								}))
+							}
+						>
+							{SORT_OPTIONS.map((option) => (
+								<DropdownMenuRadioItem key={option.id} value={option.id}>
+									{option.label}
+								</DropdownMenuRadioItem>
+							))}
+						</DropdownMenuRadioGroup>
+					</DropdownMenuContent>
+				</DropdownMenu>
+			</TileAction>
+		</Tile>
+		<Tile className="md:w-full" variant={"transparent"}>
+			<TileHeader className="md:w-full">
+				<TileTitle>Sort direction</TileTitle>
+			</TileHeader>
+			<TileAction>
+				<RadioGroup
+					value={viewConfig?.sortDirection || "desc"}
+					className="flex items-center gap-2"
+					onValueChange={(v) =>
+						setViewConfig((prev) => ({
+							...(prev ?? defaultConfig),
+							sortDirection: v as SortDirection,
+						}))
+					}
+				>
+					<Label
+						className={cn(
+							"flex items-start gap-2 rounded border p-3 cursor-pointer hover:bg-accent/50 transition-colors",
+							(viewConfig?.sortDirection || "desc") === "desc" && "border-primary/50 bg-accent",
+						)}
+					>
+						<RadioGroupItem value="desc" className="sr-only" />
+						<div className="flex items-center gap-1">
+							<span className="cursor-pointer text-sm font-semibold">Descending</span>
+						</div>
+					</Label>
+					<Label
+						className={cn(
+							"flex items-start gap-2 rounded border p-3 cursor-pointer hover:bg-accent/50 transition-colors",
+							viewConfig?.sortDirection === "asc" && "border-primary/50 bg-accent",
+						)}
+					>
+						<RadioGroupItem value="asc" className="sr-only" />
+						<div className="flex items-center gap-1">
+							<span className="cursor-pointer text-sm font-semibold">Ascending</span>
+						</div>
+					</Label>
+				</RadioGroup>
+			</TileAction>
+		</Tile>
       </div>
       <div className="flex flex-col gap-4 max-w-2xl">
         {viewsOverLimit && (

@@ -27,33 +27,34 @@ import { updateTaskAction } from "@/lib/fetches/task";
 import { useToastAction } from "@/lib/util";
 import type { FieldUpdatePayload } from "../actions/types";
 import {
-  getStatusUpdatePayload,
-  getPriorityUpdatePayload,
-  getAssigneeBulkUpdatePayload,
-  getLabelBulkUpdatePayload,
-  getCategoryUpdatePayload,
-  getReleaseUpdatePayload,
-  getParentUpdatePayload,
-  getRelationUpdatePayload,
+	getStatusUpdatePayload,
+	getPriorityUpdatePayload,
+	getAssigneeBulkUpdatePayload,
+	getLabelBulkUpdatePayload,
+	getCategoryUpdatePayload,
+	getReleaseUpdatePayload,
+	getParentUpdatePayload,
+	getRelationUpdatePayload,
 } from "../actions";
 import type { ServerEventMessage } from "@/lib/serverEvents";
 import useServerEvents from "@/lib/serverEvents";
 import { applyFilters } from "../filter/filter-config";
-import type { TaskGroup } from "../filter/types";
+import type { TaskGroup, SortField, SortDirection } from "../filter/types";
 import {
-  applyNestedGrouping,
-  type NestedTaskGroup,
+	applyNestedGrouping,
+	type NestedTaskGroup,
 } from "../shared/nested-grouping";
 import { TaskGroupSectionHeader } from "../task/task-group-section-header";
 import { UnifiedTaskItem } from "./unified-task-item";
 import {
-  getTaskFieldPermissions,
-  type FieldPermissions,
+	getTaskFieldPermissions,
+	type FieldPermissions,
 } from "../shared/task-field-toolbar-types";
 import { BulkActionBar, type BulkUpdateAddRemove } from "./bulk-action-bar";
 import Loader from "@/components/Loader";
 import { userPreferencesStore } from "@/lib/stores/user-preferences-store";
 import { TaskDetailDialog } from "../task/task-detail-dialog";
+import { statusConfig, priorityConfig, DEFAULT_STATUS_ORDER, DEFAULT_PRIORITY_ORDER } from "../shared/config";
 
 interface UnifiedTaskViewProps {
   tasks: schema.TaskWithLabels[];
@@ -110,10 +111,10 @@ export function UnifiedTaskView({
     setMounted(true);
   }, []);
 
-  // Shared State
-  // Consolidated task view state management - pass views to enable auto-loading
-  const { filters, grouping, subGrouping, showCompletedTasks, viewMode } =
-    useTaskViewManager(viewsProp);
+	// Shared State
+	// Consolidated task view state management - pass views to enable auto-loading
+	const { filters, grouping, subGrouping, showCompletedTasks, viewMode, sortField, sortDirection } =
+		useTaskViewManager(viewsProp);
 
   // Override showCompletedTasks if forceShowCompleted is true
   const effectiveShowCompleted = forceShowCompleted || showCompletedTasks;
@@ -377,43 +378,95 @@ export function UnifiedTaskView({
     deselectAll();
   };
 
-  // Grouping Logic with nested sub-grouping support
-  const groupedTasks = useMemo((): NestedTaskGroup[] => {
-    return applyNestedGrouping(grouping, subGrouping, {
-      tasks: filteredTasks,
-      availableUsers,
-      showCompletedTasks: effectiveShowCompleted,
-      categories,
-      releases,
-    });
-  }, [
-    filteredTasks,
-    availableUsers,
-    effectiveShowCompleted,
-    grouping,
-    subGrouping,
-    categories,
-    releases,
-  ]);
+	// Grouping Logic with nested sub-grouping support
+	const groupedTasks = useMemo((): NestedTaskGroup[] => {
+		return applyNestedGrouping(grouping, subGrouping, {
+			tasks: filteredTasks,
+			availableUsers,
+			showCompletedTasks: effectiveShowCompleted,
+			categories,
+			releases,
+		});
+	}, [
+		filteredTasks,
+		availableUsers,
+		effectiveShowCompleted,
+		grouping,
+		subGrouping,
+		categories,
+		releases,
+	]);
 
-  // Compute the IDs of tasks that are actually visible (non-collapsed groups,
-  // completed tasks filtered out per showCompletedTasks). This is what
-  // "select all" should be scoped to.
-  const visibleTaskIds = useMemo(() => {
-    const ids: string[] = [];
-    for (const group of groupedTasks) {
-      if (collapsedSections.has(group.id)) continue;
-      if (group.subGroups) {
-        for (const subGroup of group.subGroups) {
-          if (collapsedSections.has(subGroup.id)) continue;
-          for (const task of subGroup.tasks) ids.push(task.id);
-        }
-      } else {
-        for (const task of group.tasks) ids.push(task.id);
-      }
-    }
-    return ids;
-  }, [groupedTasks, collapsedSections]);
+	// Sorting Logic - apply sorting within each group
+	const sortedGroupedTasks = useMemo(() => {
+		const sortTasks = (tasks: schema.TaskWithLabels[]): schema.TaskWithLabels[] => {
+			return [...tasks].sort((a, b) => {
+				let comparison = 0;
+
+				switch (sortField) {
+					case "vote_count":
+						comparison = (a.voteCount || 0) - (b.voteCount || 0);
+						break;
+					case "created_at":
+						comparison =
+							new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime();
+						break;
+					case "updated_at":
+						comparison =
+							new Date(a.updatedAt || 0).getTime() - new Date(b.updatedAt || 0).getTime();
+						break;
+					case "title":
+						comparison = (a.title || "").localeCompare(b.title || "");
+						break;
+					case "status": {
+						const aIndex = DEFAULT_STATUS_ORDER.indexOf(a.status as keyof typeof statusConfig);
+						const bIndex = DEFAULT_STATUS_ORDER.indexOf(b.status as keyof typeof statusConfig);
+						comparison = aIndex - bIndex;
+						break;
+					}
+					case "priority": {
+						const aIndex = DEFAULT_PRIORITY_ORDER.indexOf(a.priority as keyof typeof priorityConfig);
+						const bIndex = DEFAULT_PRIORITY_ORDER.indexOf(b.priority as keyof typeof priorityConfig);
+						comparison = bIndex - aIndex;
+						break;
+					}
+					case "short_id":
+						comparison = (a.shortId || 0) - (b.shortId || 0);
+						break;
+				}
+
+				return sortDirection === "asc" ? comparison : -comparison;
+			});
+		};
+
+		return groupedTasks.map((group) => ({
+			...group,
+			tasks: sortTasks(group.tasks),
+			subGroups: group.subGroups?.map((subGroup) => ({
+				...subGroup,
+				tasks: sortTasks(subGroup.tasks),
+			})),
+		}));
+	}, [groupedTasks, sortField, sortDirection]);
+
+	// Compute the IDs of tasks that are actually visible (non-collapsed groups,
+	// completed tasks filtered out per showCompletedTasks). This is what
+	// "select all" should be scoped to.
+	const visibleTaskIds = useMemo(() => {
+		const ids: string[] = [];
+		for (const group of sortedGroupedTasks) {
+			if (collapsedSections.has(group.id)) continue;
+			if (group.subGroups) {
+				for (const subGroup of group.subGroups) {
+					if (collapsedSections.has(subGroup.id)) continue;
+					for (const task of subGroup.tasks) ids.push(task.id);
+				}
+			} else {
+				for (const task of group.tasks) ids.push(task.id);
+			}
+		}
+		return ids;
+	}, [sortedGroupedTasks, collapsedSections]);
 
   const {
     selectedSet: selectedTasks,
@@ -445,11 +498,11 @@ export function UnifiedTaskView({
     };
   }, [deselectAll]);
 
-  // Check if we have sub-groups for kanban view
-  const hasKanbanSubGroups =
-    groupedTasks.length > 0 &&
-    groupedTasks[0]?.subGroups &&
-    groupedTasks[0].subGroups.length > 0;
+	// Check if we have sub-groups for kanban view
+	const hasKanbanSubGroups =
+		sortedGroupedTasks.length > 0 &&
+		sortedGroupedTasks[0]?.subGroups &&
+		sortedGroupedTasks[0].subGroups.length > 0;
 
   // ============================================================================
   // Render Functions
@@ -519,58 +572,58 @@ export function UnifiedTaskView({
     <div className="flex items-center justify-center">No issues found</div>
   );
 
-  const renderKanbanView = () => {
-    // Transform groupedTasks into GridBoard columns
-    const gridColumns: GridBoardColumnData[] = groupedTasks.map((group) => ({
-      id: group.id,
-      label: group.label,
-      count: group.count,
-      icon: group.icon,
-      accentClassName: group.accentClassName,
-    }));
+	const renderKanbanView = () => {
+		// Transform sortedGroupedTasks into GridBoard columns
+		const gridColumns: GridBoardColumnData[] = sortedGroupedTasks.map((group) => ({
+			id: group.id,
+			label: group.label,
+			count: group.count,
+			icon: group.icon,
+			accentClassName: group.accentClassName,
+		}));
 
-    // Transform subGroups into GridBoard rows (if they exist)
-    const gridRows: GridBoardRowData[] | undefined = hasKanbanSubGroups
-      ? groupedTasks[0]?.subGroups?.map((sg) => ({
-          id: sg.id,
-          label: sg.label,
-          icon: sg.icon,
-          accentClassName: sg.accentClassName,
-        }))
-      : undefined;
+		// Transform subGroups into GridBoard rows (if they exist)
+		const gridRows: GridBoardRowData[] | undefined = hasKanbanSubGroups
+			? sortedGroupedTasks[0]?.subGroups?.map((sg) => ({
+					id: sg.id,
+					label: sg.label,
+					icon: sg.icon,
+					accentClassName: sg.accentClassName,
+				}))
+			: undefined;
 
-    // Build a flat list of items with columnId and rowId for GridBoard
-    type GridItem = schema.TaskWithLabels & {
-      columnId: string;
-      rowId?: string;
-    };
-    const gridItems: GridItem[] = [];
+		// Build a flat list of items with columnId and rowId for GridBoard
+		type GridItem = schema.TaskWithLabels & {
+			columnId: string;
+			rowId?: string;
+		};
+		const gridItems: GridItem[] = [];
 
-    for (const group of groupedTasks) {
-      if (hasKanbanSubGroups && group.subGroups) {
-        for (const subGroup of group.subGroups) {
-          for (const task of subGroup.tasks) {
-            gridItems.push({ ...task, columnId: group.id, rowId: subGroup.id });
-          }
-        }
-      } else {
-        for (const task of group.tasks) {
-          gridItems.push({ ...task, columnId: group.id });
-        }
-      }
-    }
+		for (const group of sortedGroupedTasks) {
+			if (hasKanbanSubGroups && group.subGroups) {
+				for (const subGroup of group.subGroups) {
+					for (const task of subGroup.tasks) {
+						gridItems.push({ ...task, columnId: group.id, rowId: subGroup.id });
+					}
+				}
+			} else {
+				for (const task of group.tasks) {
+					gridItems.push({ ...task, columnId: group.id });
+				}
+			}
+		}
 
-    // Custom getItemsForCell to look up tasks by column/row
-    const getItemsForCell = (columnId: string, rowId?: string): GridItem[] => {
-      const group = groupedTasks.find((g) => g.id === columnId);
-      if (!group) return [];
+		// Custom getItemsForCell to look up tasks by column/row
+		const getItemsForCell = (columnId: string, rowId?: string): GridItem[] => {
+			const group = sortedGroupedTasks.find((g) => g.id === columnId);
+			if (!group) return [];
 
-      if (rowId !== undefined && group.subGroups) {
-        const subGroup = group.subGroups.find((sg) => sg.id === rowId);
-        return (subGroup?.tasks || []).map((t) => ({ ...t, columnId, rowId }));
-      }
-      return group.tasks.map((t) => ({ ...t, columnId }));
-    };
+			if (rowId !== undefined && group.subGroups) {
+				const subGroup = group.subGroups.find((sg) => sg.id === rowId);
+				return (subGroup?.tasks || []).map((t) => ({ ...t, columnId, rowId }));
+			}
+			return group.tasks.map((t) => ({ ...t, columnId }));
+		};
 
     // Calculate row totals for row headers
     const getRowTotal = (rowId: string): number => {
@@ -861,16 +914,16 @@ export function UnifiedTaskView({
     );
   };
 
-  const renderListView = () => {
-    if (groupedTasks.length === 0) {
-      return renderEmptyState();
-    }
-    return (
-      <div className={cn("rounded h-full", compact && "px-0")}>
-        {groupedTasks.map(renderListGroup)}
-      </div>
-    );
-  };
+	const renderListView = () => {
+		if (sortedGroupedTasks.length === 0) {
+			return renderEmptyState();
+		}
+		return (
+			<div className={cn("rounded h-full", compact && "px-0")}>
+				{sortedGroupedTasks.map(renderListGroup)}
+			</div>
+		);
+	};
 
   const renderMainContent = () => {
     if (viewMode === "kanban") {

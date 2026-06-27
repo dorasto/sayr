@@ -11,6 +11,8 @@ import {
 	type FilterOperator,
 	type TaskViewState,
 	type TaskGroupingId,
+	type SortField,
+	type SortDirection,
 	DEFAULT_TASK_VIEW_STATE,
 } from "@/components/tasks/filter/types";
 import { serializeFilters, deserializeFilters } from "@/components/tasks/filter/serialization";
@@ -29,6 +31,8 @@ export type {
 	FilterField,
 	TaskViewState,
 	TaskGroupingId,
+	SortField,
+	SortDirection,
 } from "@/components/tasks/filter/types";
 
 // Combined state that we manage as a single unit
@@ -64,7 +68,9 @@ function areViewConfigsEqual(a: TaskViewState, b: TaskViewState): boolean {
 		a.grouping === b.grouping &&
 		a.subGrouping === b.subGrouping &&
 		a.viewMode === b.viewMode &&
-		a.showCompletedTasks === b.showCompletedTasks
+		a.showCompletedTasks === b.showCompletedTasks &&
+		a.sortField === b.sortField &&
+		a.sortDirection === b.sortDirection
 	);
 }
 
@@ -84,6 +90,8 @@ function mapViewConfigToState(config: NonNullable<schema.savedViewType["viewConf
 		subGrouping: config.subGroupBy ?? "none",
 		showCompletedTasks: config.showCompletedTasks,
 		viewMode: config.mode,
+		sortField: config.sortField ?? "vote_count",
+		sortDirection: config.sortDirection ?? "desc",
 	};
 }
 
@@ -135,6 +143,8 @@ export function useTaskViewManager(availableViews?: schema.savedViewType[]) {
 	const subGrouping = viewConfig.subGrouping ?? "none";
 	const viewMode = viewConfig.viewMode;
 	const showCompletedTasks = viewConfig.showCompletedTasks;
+	const sortField = viewConfig.sortField;
+	const sortDirection = viewConfig.sortDirection;
 
 	/**
 	 * Internal helper to execute the actual state + URL update
@@ -259,16 +269,26 @@ export function useTaskViewManager(availableViews?: schema.savedViewType[]) {
 	 */
 	const applyFilter = useCallback(
 		(newFilters: FilterState) => {
-			updateStateAndUrl(
-				{ filters: newFilters, viewConfig: DEFAULT_TASK_VIEW_STATE },
-				{
-					view: null,
-					filters: newFilters.groups.length > 0 ? serializeFilters(newFilters) : null,
-					category: null,
-				}
-			);
+			// Check if this filter matches an existing view
+			const serialized = serializeFilters(newFilters);
+			const matchingView = availableViews?.find((v) => v.filterParams === serialized);
+
+			if (matchingView) {
+				// Activate the matching view instead of just applying filters
+				selectView(matchingView);
+			} else {
+				// Apply filters normally
+				updateStateAndUrl(
+					{ filters: newFilters, viewConfig: DEFAULT_TASK_VIEW_STATE },
+					{
+						view: null,
+						filters: newFilters.groups.length > 0 ? serialized : null,
+						category: null,
+					}
+				);
+			}
 		},
-		[updateStateAndUrl]
+		[availableViews, selectView, updateStateAndUrl]
 	);
 
 	/**
@@ -407,6 +427,16 @@ export function useTaskViewManager(availableViews?: schema.savedViewType[]) {
 		[setViewConfig]
 	);
 
+	const setSortField = useCallback(
+		(sortField: SortField) => setViewConfig({ sortField }),
+		[setViewConfig]
+	);
+
+	const setSortDirection = useCallback(
+		(sortDirection: SortDirection) => setViewConfig({ sortDirection }),
+		[setViewConfig]
+	);
+
 	/**
 	 * Auto-load saved view from URL on mount
 	 * This syncs the view configuration when the page is loaded with ?view=<slug>
@@ -498,6 +528,40 @@ export function useTaskViewManager(availableViews?: schema.savedViewType[]) {
 		}
 	}, [viewSlug, filtersParam, state, setCombinedState]);
 
+	/**
+	 * Auto-activate matching saved views
+	 * When filters or config change, check if they match an existing saved view and activate it
+	 */
+	useEffect(() => {
+		if (!availableViews || viewSlug || isHandlingAction.current) {
+			return;
+		}
+
+		const currentFiltersSerialized = serializeFilters(filters);
+
+		// Find a view that matches current filters AND config
+		const matchingView = availableViews.find((view) => {
+			const filtersMatch = view.filterParams === currentFiltersSerialized;
+			const config = view.viewConfig;
+			const configMatch =
+				config &&
+				config.mode === viewConfig.viewMode &&
+				config.groupBy === viewConfig.grouping &&
+				config.subGroupBy === (viewConfig.subGrouping === "none" ? undefined : viewConfig.subGrouping) &&
+				config.showCompletedTasks === viewConfig.showCompletedTasks &&
+				config.sortField === viewConfig.sortField &&
+				config.sortDirection === viewConfig.sortDirection;
+
+			return filtersMatch && configMatch;
+		});
+
+		if (matchingView) {
+			// Auto-activate the matching view
+			const matchingViewSlug = matchingView.slug || matchingView.id;
+			updateStateAndUrl(state, { view: matchingViewSlug, filters: null, category: null });
+		}
+	}, [filters, viewConfig, availableViews, viewSlug, state, updateStateAndUrl]);
+
 	return {
 		// Current state
 		filters,
@@ -510,6 +574,8 @@ export function useTaskViewManager(availableViews?: schema.savedViewType[]) {
 		subGrouping,
 		viewMode,
 		showCompletedTasks,
+		sortField,
+		sortDirection,
 
 		// View operations
 		selectView,
@@ -531,6 +597,8 @@ export function useTaskViewManager(availableViews?: schema.savedViewType[]) {
 		setSubGrouping,
 		setViewMode,
 		setShowCompletedTasks,
+		setSortField,
+		setSortDirection,
 
 		// For checking if we're in the middle of an action (prevents duplicate updates)
 		isHandlingAction,

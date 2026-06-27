@@ -37,6 +37,8 @@ export type {
 	FilterState,
 	FilterOption,
 	FilterFieldConfig,
+	SortField,
+	SortDirection,
 } from "./types";
 
 export {

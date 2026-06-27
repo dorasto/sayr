@@ -16,15 +16,18 @@ import OptionField from "@repo/ui/components/tomui/option-field";
 import { cn } from "@repo/ui/lib/utils";
 import {
 	IconAdjustmentsHorizontal,
+	IconArrowBigDownLine,
+	IconArrowBigUpLine,
 	IconCheck,
 	IconEyeOff,
 	IconLayoutKanban,
 	IconLayoutList,
 	IconLayoutRows,
+	IconSortAscending,
 } from "@tabler/icons-react";
 import { useMemo } from "react";
-import { useTaskViewManager, type TaskGroupingId } from "@/hooks/useTaskViewManager";
-import { TASK_GROUPING_OPTIONS, TASK_GROUPINGS } from "../shared/config";
+import { useTaskViewManager, type TaskGroupingId, type SortField, type SortDirection } from "@/hooks/useTaskViewManager";
+import { TASK_GROUPING_OPTIONS, TASK_GROUPINGS, SORT_OPTIONS } from "../shared/config";
 
 const VIEW_MODE_OPTIONS = [
 	{ id: "list", label: "List", icon: <IconLayoutList className="h-4 w-4" /> },
@@ -43,10 +46,14 @@ export function TaskViewDropdown() {
 		subGrouping,
 		showCompletedTasks,
 		viewMode,
+		sortField,
+		sortDirection,
 		setGrouping,
 		setSubGrouping,
 		setShowCompletedTasks,
 		setViewMode,
+		setSortField,
+		setSortDirection,
 	} = useTaskViewManager();
 
 	const activeGrouping = TASK_GROUPINGS[grouping] ?? TASK_GROUPINGS.status;
@@ -164,16 +171,60 @@ export function TaskViewDropdown() {
 						</DropdownMenu>
 					}
 				/>
-				<OptionField
-					title="Show completed tasks"
-					icon={<IconCheck className="h-4 w-4" />}
-					customSide={
-						<Switch
-							checked={showCompletedTasks}
-							onCheckedChange={(checked) => setShowCompletedTasks(Boolean(checked))}
-						/>
-					}
-				/>
+			<OptionField
+				title="Show completed tasks"
+				icon={<IconCheck className="h-4 w-4" />}
+				customSide={
+					<Switch
+						checked={showCompletedTasks}
+						onCheckedChange={(checked) => setShowCompletedTasks(Boolean(checked))}
+					/>
+				}
+			/>
+			<OptionField
+				title="Sort by"
+				icon={<IconSortAscending className="h-4 w-4" />}
+				customSide={
+					<div className="flex items-center gap-1">
+						<DropdownMenu>
+							<DropdownMenuTrigger asChild>
+								<Button variant="accent" className={cn("gap-2 border-transparent p-1 h-auto")}>
+									{SORT_OPTIONS.find((opt) => opt.id === sortField)?.icon}
+									<span className="text-xs">{SORT_OPTIONS.find((opt) => opt.id === sortField)?.label}</span>
+								</Button>
+							</DropdownMenuTrigger>
+							<DropdownMenuContent className="w-64" side="bottom" align="end">
+								<DropdownMenuRadioGroup
+									value={sortField}
+									onValueChange={(value) => setSortField(value as SortField)}
+								>
+									{SORT_OPTIONS.map((option) => (
+										<DropdownMenuRadioItem key={option.id} value={option.id} className="pl-8">
+											<span className="mr-3 flex h-5 w-5 items-center justify-center text-muted-foreground">
+												{option.icon}
+											</span>
+											<span className={cn("text-sm", sortField === option.id && "font-semibold text-foreground")}>
+												{option.label}
+											</span>
+										</DropdownMenuRadioItem>
+									))}
+								</DropdownMenuRadioGroup>
+							</DropdownMenuContent>
+						</DropdownMenu>
+						<Button
+							variant="accent"
+							className={cn("gap-1 border-transparent p-1 h-auto")}
+							onClick={() => setSortDirection(sortDirection === "asc" ? "desc" : "asc")}
+						>
+							{sortDirection === "asc" ? (
+								<IconArrowBigUpLine className="h-4 w-4" />
+							) : (
+								<IconArrowBigDownLine className="h-4 w-4" />
+							)}
+						</Button>
+					</div>
+				}
+			/>
 			</PopoverContent>
 		</Popover>
 	);

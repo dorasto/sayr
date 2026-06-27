@@ -3,6 +3,17 @@ import type { ReactNode } from "react";
 
 export type TaskGroupingId = "status" | "assignee" | "priority" | "category" | "release";
 
+export type SortField =
+	| "created_at"
+	| "updated_at"
+	| "title"
+	| "status"
+	| "priority"
+	| "vote_count"
+	| "short_id";
+
+export type SortDirection = "asc" | "desc";
+
 export interface TaskGroup {
 	id: string;
 	key: string;
@@ -36,6 +47,8 @@ export interface TaskViewState {
 	subGrouping?: TaskGroupingId | "none";
 	showCompletedTasks: boolean;
 	viewMode: "list" | "kanban";
+	sortField: SortField;
+	sortDirection: SortDirection;
 }
 
 export const TASK_VIEW_STATE_KEY = "task-view";
@@ -45,6 +58,8 @@ export const DEFAULT_TASK_VIEW_STATE: TaskViewState = {
 	subGrouping: "none",
 	showCompletedTasks: false,
 	viewMode: "list",
+	sortField: "vote_count",
+	sortDirection: "desc",
 };
 // Clean-slate operator set
 export type FilterOperator =

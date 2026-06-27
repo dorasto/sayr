@@ -7,9 +7,11 @@ import { organization } from "./organization.schema";
 
 type viewConfig = {
 	mode: "list" | "kanban";
-	groupBy: "status" | "priority" | "assignee" | "category";
-	subGroupBy?: "status" | "priority" | "assignee" | "category" | "none";
+	groupBy: "status" | "priority" | "assignee" | "category" | "release";
+	subGroupBy?: "status" | "priority" | "assignee" | "category" | "release" | "none";
 	showCompletedTasks: boolean;
+	sortField?: "created_at" | "updated_at" | "title" | "status" | "priority" | "vote_count" | "short_id";
+	sortDirection?: "asc" | "desc";
 	color?: string;
 	icon?: string;
 };

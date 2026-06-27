@@ -1,22 +1,29 @@
 import type { schema } from "@repo/database";
 import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
+	Avatar,
+	AvatarFallback,
+	AvatarImage,
 } from "@repo/ui/components/avatar";
 import PriorityIcon from "@repo/ui/components/icons/priority";
 import StatusIcon from "@repo/ui/components/icons/status";
 import {
-  IconAlertSquareFilled,
-  IconCategory2,
-  IconRocket,
-  IconUser,
+	IconAlertSquareFilled,
+	IconCalendar,
+	IconCalendarClock,
+	IconCategory2,
+	IconCheck,
+	IconHash,
+	IconRocket,
+	IconSortAscending,
+	IconTextCaption,
+	IconUser,
 } from "@tabler/icons-react";
 import type {
-  TaskGroup,
-  TaskGroupingContext,
-  TaskGroupingDefinition,
-  TaskGroupingId,
+	SortField,
+	TaskGroup,
+	TaskGroupingContext,
+	TaskGroupingDefinition,
+	TaskGroupingId,
 } from "../filter/types";
 
 export const statusConfig = {
@@ -565,7 +572,17 @@ export const TASK_GROUPINGS: Record<TaskGroupingId, TaskGroupingDefinition> = {
 };
 
 export const TASK_GROUPING_OPTIONS: TaskGroupingDefinition[] =
-  Object.values(TASK_GROUPINGS);
+	Object.values(TASK_GROUPINGS);
 
 export const DEFAULT_STATUS_ORDER = STATUS_ORDER;
 export const DEFAULT_PRIORITY_ORDER = PRIORITY_ORDER;
+
+export const SORT_OPTIONS: Array<{ id: SortField; label: string; icon: React.ReactNode }> = [
+	{ id: "vote_count", label: "Votes", icon: <IconSortAscending className="h-4 w-4" /> },
+	{ id: "created_at", label: "Created date", icon: <IconCalendar className="h-4 w-4" /> },
+	{ id: "updated_at", label: "Updated date", icon: <IconCalendarClock className="h-4 w-4" /> },
+	{ id: "title", label: "Title", icon: <IconTextCaption className="h-4 w-4" /> },
+	{ id: "status", label: "Status", icon: <IconCheck className="h-4 w-4" /> },
+	{ id: "priority", label: "Priority", icon: <IconSortAscending className="h-4 w-4" /> },
+	{ id: "short_id", label: "ID", icon: <IconHash className="h-4 w-4" /> },
+];
