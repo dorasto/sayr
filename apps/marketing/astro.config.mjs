@@ -89,48 +89,48 @@ export default defineConfig({
               },
               {
                 label: "Tasks",
-                autogenerate: { directory: "/docs/tasks" },
+                items: [{ autogenerate: { directory: "docs/tasks" } }],
                 collapsed: true,
               },
               {
                 label: "Organize",
-                autogenerate: { directory: "/docs/organize" },
+                items: [{ autogenerate: { directory: "docs/organize" } }],
                 collapsed: true,
               },
               {
                 label: "Visibility & Pages",
-                autogenerate: { directory: "/docs/visibility" },
+                items: [{ autogenerate: { directory: "docs/visibility" } }],
                 collapsed: true,
               },
               {
                 label: "Account",
-                autogenerate: { directory: "/docs/account" },
+                items: [{ autogenerate: { directory: "docs/account" } }],
                 collapsed: true,
               },
               {
                 label: "Organizations",
-                autogenerate: { directory: "/docs/organizations" },
+                items: [{ autogenerate: { directory: "docs/organizations" } }],
                 collapsed: true,
               },
               {
                 label: "AI Features",
-                autogenerate: { directory: "/docs/ai" },
+                items: [{ autogenerate: { directory: "docs/ai" } }],
                 collapsed: true,
               },
               {
                 label: "Integrations",
-                autogenerate: { directory: "/docs/integrations" },
+                items: [{ autogenerate: { directory: "docs/integrations" } }],
                 collapsed: true,
               },
 
               {
                 label: "Self Hosting",
-                autogenerate: { directory: "/docs/self-hosting" },
+                items: [{ autogenerate: { directory: "docs/self-hosting" } }],
                 collapsed: true,
               },
               {
                 label: "Contributing",
-                autogenerate: { directory: "/docs/contributing" },
+                items: [{ autogenerate: { directory: "docs/contributing" } }],
                 collapsed: true,
               },
             ],
@@ -143,7 +143,7 @@ export default defineConfig({
             items: [
               {
                 label: "API Reference",
-                autogenerate: { directory: "/docs/api" },
+                items: [{ autogenerate: { directory: "docs/api" } }],
               },
             ],
           },
@@ -155,7 +155,7 @@ export default defineConfig({
             items: [
               {
                 label: "Help",
-                autogenerate: { directory: "/docs/knowledge-base" },
+                items: [{ autogenerate: { directory: "docs/knowledge-base" } }],
               },
             ],
           },
@@ -165,9 +165,8 @@ export default defineConfig({
           actions: {
             chatgpt: true,
             claude: true,
-            viewMarkdown: true,
             t3chat: true,
-            copyMarkdown: true,
+            markdown: true,
           },
         }),
       ],
