@@ -20,7 +20,7 @@
   },
   "dependencies": {
     "@astrojs/mdx": "^5.0.4",
-    "@astrojs/node": "^10.0.6",
+    "@astrojs/node": "^11.0.2",
     "@astrojs/react": "^5.0.4",
     "@astrojs/starlight": "^0.38.4",
     "@astrojs/starlight-tailwind": "^5.0.0",
