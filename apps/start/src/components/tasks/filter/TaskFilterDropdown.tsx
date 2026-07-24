@@ -134,8 +134,8 @@ export function TaskFilterDropdown({
 				config.groupBy === currentViewConfig.groupBy &&
 				config.subGroupBy === currentViewConfig.subGroupBy &&
 				config.showCompletedTasks === currentViewConfig.showCompletedTasks &&
-				config.sortField === currentViewConfig.sortField &&
-				config.sortDirection === currentViewConfig.sortDirection;
+				(config.sortField ?? "vote_count") === currentViewConfig.sortField &&
+				(config.sortDirection ?? "desc") === currentViewConfig.sortDirection;
 
 			return filtersMatch && configMatch;
 		});

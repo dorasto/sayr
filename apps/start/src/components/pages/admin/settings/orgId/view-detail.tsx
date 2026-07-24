@@ -143,14 +143,14 @@ export default function SettingsOrganizationViewDetailPage({
 
   const [viewConfig, setViewConfig] = useState<
     NonNullable<schema.savedViewType["viewConfig"]>
-  >(view?.viewConfig || defaultConfig);
+  >({ ...defaultConfig, ...view?.viewConfig });
 
   useEffect(() => {
     if (view) {
       setName(view.name);
       setFilterParams(view.filterParams);
       setSlug(view.slug || "");
-      setViewConfig(view.viewConfig || defaultConfig);
+      setViewConfig({ ...defaultConfig, ...view.viewConfig });
     }
   }, [view]);
 
