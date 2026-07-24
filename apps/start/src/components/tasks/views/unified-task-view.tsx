@@ -39,7 +39,7 @@ import {
 import type { ServerEventMessage } from "@/lib/serverEvents";
 import useServerEvents from "@/lib/serverEvents";
 import { applyFilters } from "../filter/filter-config";
-import type { TaskGroup, SortField, SortDirection } from "../filter/types";
+import type { TaskGroup } from "../filter/types";
 import {
 	applyNestedGrouping,
 	type NestedTaskGroup,

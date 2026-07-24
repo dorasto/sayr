@@ -549,8 +549,8 @@ export function useTaskViewManager(availableViews?: schema.savedViewType[]) {
 				config.groupBy === viewConfig.grouping &&
 				config.subGroupBy === (viewConfig.subGrouping === "none" ? undefined : viewConfig.subGrouping) &&
 				config.showCompletedTasks === viewConfig.showCompletedTasks &&
-				config.sortField === viewConfig.sortField &&
-				config.sortDirection === viewConfig.sortDirection;
+				(config.sortField ?? "vote_count") === viewConfig.sortField &&
+				(config.sortDirection ?? "desc") === viewConfig.sortDirection;
 
 			return filtersMatch && configMatch;
 		});
