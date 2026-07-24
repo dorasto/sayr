@@ -2,7 +2,6 @@ import mdx from "@astrojs/mdx";
 import node from "@astrojs/node";
 import react from "@astrojs/react";
 import starlight from "@astrojs/starlight";
-import { ion } from "starlight-ion-theme";
 import starlightPageActions from "starlight-page-actions";
 import starlightSidebarTopics from "starlight-sidebar-topics";
 import tailwindcss from "@tailwindcss/vite";
@@ -171,7 +170,6 @@ export default defineConfig({
             copyMarkdown: true,
           },
         }),
-        // ion(),
       ],
     }),
     react(),
