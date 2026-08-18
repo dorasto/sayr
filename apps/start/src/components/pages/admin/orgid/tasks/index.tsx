@@ -419,22 +419,24 @@ export default function OrganizationTasksHomePage() {
 				},
 			}}
 		>
-			{/* Outer div is the padded "gap" — plain flex sizing, no h-full/overflow of
-			    its own, so the inner card can't overflow it by its own border/margin
-			    (the classic m-3-on-an-h-full-element sizing bug). The inner div is
-			    exactly the old wrapper (same overflow-y-auto/relative, which the
-			    BulkActionBar inside UnifiedTaskView anchors its `absolute bottom-4`
-			    to) with a rounded/border outline layered on, so the list reads as a
-			    floating surface next to the panel instead of running flush to the
-			    page edges. No bg-card fill on purpose — the group headers (bg-muted)
-			    are the visual anchor, task rows stay transparent against the page
-			    background instead of sitting on a second solid surface. */}
-			<div className="flex-1 min-h-0 flex flex-col p-3">
+			{/* Outer div uses h-full, NOT flex-1 — its own parent here (Page's
+			    "min-h-0 flex-1 overflow-y-auto" content wrapper) is a plain block
+			    div, not a flex container, so flex-1 on this div is inert and it
+			    silently shrinks to content height instead of filling the available
+			    space (reproduced live: kanban columns stopped ~140px short of the
+			    real bottom). h-full (percentage height) works here because the
+			    parent's own height is still definite via ITS flex-grow ancestor —
+			    percentage height doesn't require an immediate flex parent, only a
+			    definite one. The inner div is exactly the old wrapper (same
+			    overflow-y-auto/relative, which the BulkActionBar inside
+			    UnifiedTaskView anchors its `absolute bottom-4` to), just inset by
+			    the outer padding so it lines up with the panel's own floating inset
+			    instead of running flush to the page edges. No border/bg-card —
+			    group headers (bg-muted) are the visual anchor, task rows stay
+			    transparent against the page background. */}
+			<div className="h-full flex flex-col p-3">
 				<div
-					className={cn(
-						"flex-1 min-h-0 overflow-y-auto flex flex-col relative rounded-xl border",
-						viewMode === "kanban" && "px-0"
-					)}
+					className={cn("flex-1 min-h-0 overflow-y-auto flex flex-col relative", viewMode === "kanban" && "px-0")}
 				>
 					<UnifiedTaskView
 						tasks={tasks}
