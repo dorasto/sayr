@@ -1,8 +1,8 @@
 "use client";
 import type { schema } from "@repo/database";
 import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
-import { useStateManagement, useStateManagementKey } from "@repo/ui/hooks/useStateManagement.ts";
-import { createContext, type ReactNode, useContext, useEffect } from "react";
+import { useStateManagementKey } from "@repo/ui/hooks/useStateManagement.ts";
+import { createContext, type ReactNode, useContext } from "react";
 import { useHydration } from "./HydrationContext";
 
 interface ContextType {
@@ -18,8 +18,6 @@ interface ContextType {
 	setIssueTemplates: (newValue: ContextType["issueTemplates"]) => void;
 	releases: schema.releaseType[];
 	setReleases: (newValue: ContextType["releases"]) => void;
-	isProjectPanelOpen: boolean;
-	setProjectPanelOpen: (newValue: boolean) => void;
 	isMobile: boolean;
 	isMobileHydrated: boolean;
 	permissions: schema.TeamPermissions;
@@ -50,21 +48,41 @@ export function RootProviderOrganization({
 	const { isHydrated } = useHydration();
 
 	// Use useStateManagement - cache is already seeded above, so it will find the data
-	const { value: organization, setValue: setOrganization } = useStateManagementKey(["organization", initialOrganization.id], initialOrganization, 30000);
-	const { value: labels, setValue: setLabels } = useStateManagementKey(["labels", initialOrganization.id], initialLabels, 30000);
-	const { value: views, setValue: setViews } = useStateManagementKey(["views", initialOrganization.id], initialViews, 30000);
-	const { value: categories, setValue: setCategories } = useStateManagementKey(["categories", initialOrganization.id], initialCategories, 30000);
-	const { value: issueTemplates, setValue: setIssueTemplates } = useStateManagementKey(["issueTemplates", initialOrganization.id], initialIssueTemplates, 30000);
-	const { value: releases, setValue: setReleases } = useStateManagementKey(["releases", initialOrganization.id], initialReleases, 30000);
-	const { value: permissions } = useStateManagementKey(["permissions", initialOrganization.id], initialPermissions, 30000);
-	const { value: isProjectPanelOpen, setValue: setProjectPanelOpen } = useStateManagement("isProjectPanelOpen", true, 30000);
-
-	// After hydration, sync panel state with mobile detection (only once)
-	useEffect(() => {
-		if (isHydrated && isMobile) {
-			setProjectPanelOpen(false);
-		}
-	}, [isHydrated, isMobile, setProjectPanelOpen]);
+	const { value: organization, setValue: setOrganization } = useStateManagementKey(
+		["organization", initialOrganization.id],
+		initialOrganization,
+		30000
+	);
+	const { value: labels, setValue: setLabels } = useStateManagementKey(
+		["labels", initialOrganization.id],
+		initialLabels,
+		30000
+	);
+	const { value: views, setValue: setViews } = useStateManagementKey(
+		["views", initialOrganization.id],
+		initialViews,
+		30000
+	);
+	const { value: categories, setValue: setCategories } = useStateManagementKey(
+		["categories", initialOrganization.id],
+		initialCategories,
+		30000
+	);
+	const { value: issueTemplates, setValue: setIssueTemplates } = useStateManagementKey(
+		["issueTemplates", initialOrganization.id],
+		initialIssueTemplates,
+		30000
+	);
+	const { value: releases, setValue: setReleases } = useStateManagementKey(
+		["releases", initialOrganization.id],
+		initialReleases,
+		30000
+	);
+	const { value: permissions } = useStateManagementKey(
+		["permissions", initialOrganization.id],
+		initialPermissions,
+		30000
+	);
 
 	return (
 		<RootContext.Provider
@@ -81,8 +99,6 @@ export function RootProviderOrganization({
 				setIssueTemplates,
 				releases,
 				setReleases,
-				isProjectPanelOpen,
-				setProjectPanelOpen,
 				isMobile,
 				isMobileHydrated: isHydrated,
 				permissions: permissions!,

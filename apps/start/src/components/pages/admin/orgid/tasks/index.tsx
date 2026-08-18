@@ -1,91 +1,77 @@
 "use client";
 import type { schema } from "@repo/database";
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "@repo/ui/components/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
 import { Button } from "@repo/ui/components/button";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuLabel,
+	DropdownMenuSeparator,
+	DropdownMenuTrigger,
 } from "@repo/ui/components/dropdown-menu";
 import { Separator } from "@repo/ui/components/separator";
 import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
-import {
-  useStateManagementKey,
-} from "@repo/ui/hooks/useStateManagement.ts";
+import { useStateManagementKey } from "@repo/ui/hooks/useStateManagement.ts";
 import { cn } from "@repo/ui/lib/utils";
 import { ensureCdnUrl } from "@repo/util";
 import {
-  IconCheck,
-  IconChevronDown,
-  IconLayoutSidebarRight,
-  IconLayoutSidebarRightFilled,
-  IconStack2,
-  IconUser,
-  IconUsers,
+	IconCheck,
+	IconChevronDown,
+	IconLayoutSidebarRight,
+	IconLayoutSidebarRightFilled,
+	IconStack2,
+	IconUser,
+	IconUsers,
 } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
 import { useEffect, useCallback, useState } from "react";
 import { useLayoutData } from "@/components/generic/Context";
+import { Page } from "@/components/generic/page";
 import { PageHeader } from "@/components/generic/PageHeader";
 import RenderIcon from "@/components/generic/RenderIcon";
-import { PanelWrapper } from "@/components/generic/wrapper";
-import {
-  TasksPanelHeader,
-  TasksPanelContent,
-} from "@/components/admin/panels/tasks";
-import {
-  TaskFilterDropdown,
-  serializeFilters,
-} from "@/components/tasks/filter";
+import { usePage, usePanel } from "@/components/generic/use-page";
+import { TasksPanelHeader, TasksPanelContent } from "@/components/admin/panels/tasks";
+import { TaskFilterDropdown, serializeFilters } from "@/components/tasks/filter";
 import CreateIssueDialog from "@/components/tasks/task/creator";
-import {
-  useTaskViewManager,
-  type FilterState,
-} from "@/hooks/useTaskViewManager";
+import { useTaskViewManager, type FilterState } from "@/hooks/useTaskViewManager";
 import { TaskViewDropdown, UnifiedTaskView } from "@/components/tasks/views";
 import { useLayoutOrganization } from "@/contexts/ContextOrg";
 import { useLayoutTasks } from "@/contexts/ContextOrgTasks";
 import { useServerEventsSubscription } from "@/hooks/useServerEventsSubscription";
-import {
-  useWSMessageHandler,
-  type WSMessageHandler,
-} from "@/hooks/useWSMessageHandler";
+import { useWSMessageHandler, type WSMessageHandler } from "@/hooks/useWSMessageHandler";
 import { usePlanLimits } from "@/hooks/usePlanLimits";
 import type { ServerEventMessage } from "@/lib/serverEvents";
 import { sendWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
+import { sidebarActions } from "@/lib/sidebar/sidebar-store";
+
+const TASKS_LIST_PANEL_ID = "tasks-list-panel";
 
 export default function OrganizationTasksHomePage() {
-  const { serverEvents, account } = useLayoutData();
-  const {
-    organization,
-    setOrganization,
-    labels,
-    setLabels,
-    views,
-    setViews,
-    categories,
-    setCategories,
-    releases,
-    issueTemplates,
-    isProjectPanelOpen,
-    setProjectPanelOpen,
-    permissions,
-  } = useLayoutOrganization();
-  const {
-    viewMode,
-    filters,
-    viewSlug: selectedViewSlug,
-    selectView,
-    clearView,
-    applyFilter,
-  } = useTaskViewManager(views);
+	const { serverEvents, account } = useLayoutData();
+	const {
+		organization,
+		setOrganization,
+		labels,
+		setLabels,
+		views,
+		setViews,
+		categories,
+		setCategories,
+		releases,
+		issueTemplates,
+		permissions,
+	} = useLayoutOrganization();
+	const { setPanelContent, closePanel } = usePage();
+	const panel = usePanel(TASKS_LIST_PANEL_ID);
+	const {
+		viewMode,
+		filters,
+		viewSlug: selectedViewSlug,
+		selectView,
+		clearView,
+		applyFilter,
+	} = useTaskViewManager(views);
 	const { tasks, setTasks } = useLayoutTasks();
 	const useMobile = useIsMobile();
 	const { canCreateResource, getLimitMessage } = usePlanLimits();
@@ -101,379 +87,354 @@ export default function OrganizationTasksHomePage() {
 	const sseChannel = activeDialogTaskId ? `task:${activeDialogTaskId}` : "tasks";
 
 	// Get categories and views from state management (for breadcrumb view switcher)
-  const { value: stateCategories } = useStateManagementKey<
-    schema.categoryType[]
-  >(["categories", organization.id], [], 1);
+	const { value: stateCategories } = useStateManagementKey<schema.categoryType[]>(
+		["categories", organization.id],
+		[],
+		1
+	);
 
-  // "My Assigned" filter for current user
-  const myAssignedFilterState: FilterState = {
-    groups: [
-      {
-        id: "my-assigned-group",
-        operator: "AND",
-        conditions: [
-          {
-            id: `assignee-any-${account?.id}`,
-            field: "assignee",
-            operator: "any",
-            value: account?.id || "",
-          },
-        ],
-      },
-    ],
-    operator: "AND",
-  };
+	// "My Assigned" filter for current user
+	const myAssignedFilterState: FilterState = {
+		groups: [
+			{
+				id: "my-assigned-group",
+				operator: "AND",
+				conditions: [
+					{
+						id: `assignee-any-${account?.id}`,
+						field: "assignee",
+						operator: "any",
+						value: account?.id || "",
+					},
+				],
+			},
+		],
+		operator: "AND",
+	};
 
-  // Category filter helper
-  const createCategoryFilter = (categoryId: string): FilterState => ({
-    groups: [
-      {
-        id: `category-${categoryId}-group`,
-        operator: "AND",
-        conditions: [
-          {
-            id: `category-any-${categoryId}`,
-            field: "category",
-            operator: "any",
-            value: categoryId,
-          },
-        ],
-      },
-    ],
-    operator: "AND",
-  });
+	// Category filter helper
+	const createCategoryFilter = (categoryId: string): FilterState => ({
+		groups: [
+			{
+				id: `category-${categoryId}-group`,
+				operator: "AND",
+				conditions: [
+					{
+						id: `category-any-${categoryId}`,
+						field: "category",
+						operator: "any",
+						value: categoryId,
+					},
+				],
+			},
+		],
+		operator: "AND",
+	});
 
-  // Determine active view for breadcrumb display
-  const currentFiltersSerialized = serializeFilters(filters);
-  const isAllTasksActive = filters.groups.length === 0 && !selectedViewSlug;
-  const isMyAssignedActive =
-    currentFiltersSerialized === serializeFilters(myAssignedFilterState);
+	// Determine active view for breadcrumb display
+	const currentFiltersSerialized = serializeFilters(filters);
+	const isAllTasksActive = filters.groups.length === 0 && !selectedViewSlug;
+	const isMyAssignedActive = currentFiltersSerialized === serializeFilters(myAssignedFilterState);
 
-  let currentViewName = "All tasks";
-  let CurrentViewIcon = (
-    <IconStack2 className="size-3.5 text-muted-foreground" />
-  );
+	let currentViewName = "All tasks";
+	let CurrentViewIcon = <IconStack2 className="size-3.5 text-muted-foreground" />;
 
-  if (isMyAssignedActive) {
-    currentViewName = "Your tasks";
-    CurrentViewIcon = <IconUser className="size-3.5 text-muted-foreground" />;
-  } else if (selectedViewSlug) {
-    const view = views.find((v) => (v.slug || v.id) === selectedViewSlug);
-    if (view) {
-      currentViewName = view.name;
-      CurrentViewIcon = (
-        <RenderIcon
-          iconName={view.viewConfig?.icon || "IconStack2"}
-          color={view.viewConfig?.color || undefined}
-          className="size-3.5! [&_svg]:size-3.5! border-0"
-          button
-        />
-      );
-    }
-  } else if (!isAllTasksActive) {
-    const category = stateCategories.find(
-      (c) =>
-        serializeFilters(createCategoryFilter(c.id)) ===
-        currentFiltersSerialized,
-    );
-    if (category) {
-      currentViewName = category.name;
-      CurrentViewIcon = (
-        <RenderIcon
-          iconName={category.icon || "IconCircleFilled"}
-          color={category.color || undefined}
-          className="size-3.5! [&_svg]:size-3.5! border-0"
-          button
-        />
-      );
-    } else {
-      const view = views.find(
-        (v) => v.filterParams === currentFiltersSerialized,
-      );
-      if (view) {
-        currentViewName = view.name;
-        CurrentViewIcon = (
-          <RenderIcon
-            iconName={view.viewConfig?.icon || "IconStack2"}
-            color={view.viewConfig?.color || undefined}
-            className="size-3.5! [&_svg]:size-3.5! border-0"
-            button
-          />
-        );
-      }
-    }
-  }
+	if (isMyAssignedActive) {
+		currentViewName = "Your tasks";
+		CurrentViewIcon = <IconUser className="size-3.5 text-muted-foreground" />;
+	} else if (selectedViewSlug) {
+		const view = views.find((v) => (v.slug || v.id) === selectedViewSlug);
+		if (view) {
+			currentViewName = view.name;
+			CurrentViewIcon = (
+				<RenderIcon
+					iconName={view.viewConfig?.icon || "IconStack2"}
+					color={view.viewConfig?.color || undefined}
+					className="size-3.5! [&_svg]:size-3.5! border-0"
+					button
+				/>
+			);
+		}
+	} else if (!isAllTasksActive) {
+		const category = stateCategories.find(
+			(c) => serializeFilters(createCategoryFilter(c.id)) === currentFiltersSerialized
+		);
+		if (category) {
+			currentViewName = category.name;
+			CurrentViewIcon = (
+				<RenderIcon
+					iconName={category.icon || "IconCircleFilled"}
+					color={category.color || undefined}
+					className="size-3.5! [&_svg]:size-3.5! border-0"
+					button
+				/>
+			);
+		} else {
+			const view = views.find((v) => v.filterParams === currentFiltersSerialized);
+			if (view) {
+				currentViewName = view.name;
+				CurrentViewIcon = (
+					<RenderIcon
+						iconName={view.viewConfig?.icon || "IconStack2"}
+						color={view.viewConfig?.color || undefined}
+						className="size-3.5! [&_svg]:size-3.5! border-0"
+						button
+					/>
+				);
+			}
+		}
+	}
 
-  // DEBUG: Check releases in parent component
-  // console.log('[OrganizationTasksHomePage] releases:', releases);
-  // console.log('[OrganizationTasksHomePage] releases.length:', releases?.length ?? 'undefined');
+	// DEBUG: Check releases in parent component
+	// console.log('[OrganizationTasksHomePage] releases:', releases);
+	// console.log('[OrganizationTasksHomePage] releases.length:', releases?.length ?? 'undefined');
 
-  useServerEventsSubscription({
-    serverEvents,
-    orgId: organization.id,
-    organization: organization,
-    channel: sseChannel,
-    setOrganization: setOrganization,
-  });
-  const handlers: WSMessageHandler<ServerEventMessage> = {
-    CREATE_TASK: (msg) => {
-      setTasks([...tasks, msg.data]);
-    },
-    UPDATE_TASK: (msg) => {
-      const updatedTask = msg.data;
-      const updatedTasks = tasks.map((task) =>
-        task.id === updatedTask.id ? updatedTask : task,
-      );
-      setTasks(updatedTasks);
-      // When a task dialog is open, forward timeline updates via window message
-      // so GlobalTimeline inside the dialog can refetch
-      if (activeDialogTaskId && updatedTask.id === activeDialogTaskId) {
-        sendWindowMessage(
-          window,
-          { type: "timeline-update", payload: updatedTask.id },
-          "*",
-        );
-      }
-    },
-    UPDATE_TASK_COMMENTS: async (msg) => {
-      if (activeDialogTaskId && msg.data.id === activeDialogTaskId) {
-        sendWindowMessage(
-          window,
-          { type: "timeline-update-comment", payload: msg.data.id },
-          "*",
-        );
-      }
-    },
-    UPDATE_LABELS: (msg) => {
-      if (msg.scope === "INDIVIDUAL" && msg.meta?.orgId === organization.id) {
-        setLabels(msg.data);
-      }
-    },
-    UPDATE_VIEWS: (msg) => {
-      if (msg.scope === "INDIVIDUAL" && msg.meta?.orgId === organization.id) {
-        setViews(msg.data);
-      }
-    },
-    UPDATE_CATEGORIES: (msg) => {
-      if (msg.scope === "INDIVIDUAL" && msg.meta?.orgId === organization.id) {
-        setCategories(msg.data);
-      }
-    },
-  };
-  const handleMessage = useWSMessageHandler<ServerEventMessage>(handlers, {
-    // onUnhandled: (msg) => console.warn("⚠️ [UNHANDLED MESSAGE PROJECT PAGE]", msg),
-  });
-  useEffect(() => {
-    if (!serverEvents.event) return;
-    serverEvents.event.addEventListener("message", handleMessage);
-    // Cleanup on unmount or dependency change
-    return () => {
-      serverEvents.event?.removeEventListener("message", handleMessage);
-    };
-  }, [serverEvents.event, handleMessage]);
+	useServerEventsSubscription({
+		serverEvents,
+		orgId: organization.id,
+		organization: organization,
+		channel: sseChannel,
+		setOrganization: setOrganization,
+	});
+	const handlers: WSMessageHandler<ServerEventMessage> = {
+		CREATE_TASK: (msg) => {
+			setTasks([...tasks, msg.data]);
+		},
+		UPDATE_TASK: (msg) => {
+			const updatedTask = msg.data;
+			const updatedTasks = tasks.map((task) => (task.id === updatedTask.id ? updatedTask : task));
+			setTasks(updatedTasks);
+			// When a task dialog is open, forward timeline updates via window message
+			// so GlobalTimeline inside the dialog can refetch
+			if (activeDialogTaskId && updatedTask.id === activeDialogTaskId) {
+				sendWindowMessage(window, { type: "timeline-update", payload: updatedTask.id }, "*");
+			}
+		},
+		UPDATE_TASK_COMMENTS: async (msg) => {
+			if (activeDialogTaskId && msg.data.id === activeDialogTaskId) {
+				sendWindowMessage(window, { type: "timeline-update-comment", payload: msg.data.id }, "*");
+			}
+		},
+		UPDATE_LABELS: (msg) => {
+			if (msg.scope === "INDIVIDUAL" && msg.meta?.orgId === organization.id) {
+				setLabels(msg.data);
+			}
+		},
+		UPDATE_VIEWS: (msg) => {
+			if (msg.scope === "INDIVIDUAL" && msg.meta?.orgId === organization.id) {
+				setViews(msg.data);
+			}
+		},
+		UPDATE_CATEGORIES: (msg) => {
+			if (msg.scope === "INDIVIDUAL" && msg.meta?.orgId === organization.id) {
+				setCategories(msg.data);
+			}
+		},
+	};
+	const handleMessage = useWSMessageHandler<ServerEventMessage>(handlers, {
+		// onUnhandled: (msg) => console.warn("⚠️ [UNHANDLED MESSAGE PROJECT PAGE]", msg),
+	});
+	useEffect(() => {
+		if (!serverEvents.event) return;
+		serverEvents.event.addEventListener("message", handleMessage);
+		// Cleanup on unmount or dependency change
+		return () => {
+			serverEvents.event?.removeEventListener("message", handleMessage);
+		};
+	}, [serverEvents.event, handleMessage]);
 
-  const availableUsers =
-    organization?.members.map((member) => member.user) || [];
+	// TasksPanelContent pulls everything it needs from context itself, so it
+	// only needs to be handed to the panel once — it stays in sync on its own.
+	// Gated on isRegistered, not just mount: Page defers registering the
+	// panel to its client-only pass, so a plain `[]`-effect here would race
+	// it and silently no-op.
+	useEffect(() => {
+		if (!panel.isRegistered) return;
+		setPanelContent(TASKS_LIST_PANEL_ID, <TasksPanelContent />);
+	}, [panel.isRegistered, setPanelContent]);
 
-  return (
-    <PanelWrapper
-      isOpen={isProjectPanelOpen}
-      setOpen={setProjectPanelOpen}
-      panelHeader={<TasksPanelHeader />}
-      panelBody={<TasksPanelContent />}
-    >
-      <div className="relative flex flex-col h-full max-h-full">
-        <PageHeader>
-          <PageHeader.Identity
-            actions={
-              <div className="flex items-center gap-2">
-                <CreateIssueDialog
-                  organization={organization}
-                  tasks={tasks}
-                  setTasks={setTasks}
-                  _labels={labels}
-                  issueTemplates={issueTemplates}
-                  releases={releases ?? []}
-                />
-                <Button
-                  variant="accent"
-                  className={cn(
-                    "gap-2 h-6 w-fit bg-accent border-transparent p-1",
-                    !isProjectPanelOpen && "bg-transparent",
-                  )}
-                  onClick={() =>
-                    isProjectPanelOpen
-                      ? setProjectPanelOpen(false)
-                      : setProjectPanelOpen(true)
-                  }
-                >
-                  {isProjectPanelOpen ? (
-                    <IconLayoutSidebarRightFilled />
-                  ) : (
-                    <IconLayoutSidebarRight />
-                  )}
-                </Button>
-              </div>
-            }
-          >
-            {!useMobile && (
-              <>
-                <Link to="/$orgId/tasks" params={{ orgId: organization.id }}>
-                  <Button
-                    variant={"primary"}
-                    className="w-fit text-xs p-1 h-auto rounded-lg bg-transparent"
-                    size={"sm"}
-                  >
-                    <Avatar className="h-4 w-4">
-                      <AvatarImage
-                        src={
-                          organization.logo
-                            ? ensureCdnUrl(organization.logo)
-                            : ""
-                        }
-                        alt={organization.name}
-                      />
-                      <AvatarFallback className="rounded-md uppercase text-xs">
-                        <IconUsers className="h-4 w-4" />
-                      </AvatarFallback>
-                    </Avatar>
-                    <span>{organization.name}</span>
-                  </Button>
-                </Link>
-                <span className="text-muted-foreground text-xs">/</span>
-              </>
-            )}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant={"primary"}
-                  className="w-fit text-xs p-1 h-auto rounded-lg bg-transparent gap-1 max-w-40"
-                  size={"sm"}
-                >
-                  {CurrentViewIcon}
-                  <span className="truncate">{currentViewName}</span>
-                  <IconChevronDown className="size-3 text-muted-foreground shrink-0" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-56">
-                <DropdownMenuItem onClick={() => clearView()}>
-                  <IconStack2 className="size-4 text-muted-foreground" />
-                  All tasks
-                  {isAllTasksActive && <IconCheck className="ml-auto size-4" />}
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => applyFilter(myAssignedFilterState)}
-                >
-                  <IconUser className="size-4 text-muted-foreground" />
-                  Your tasks
-                  {isMyAssignedActive && (
-                    <IconCheck className="ml-auto size-4" />
-                  )}
-                </DropdownMenuItem>
+	const availableUsers = organization?.members.map((member) => member.user) || [];
 
-                {stateCategories.length > 0 && (
-                  <>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuLabel>Categories</DropdownMenuLabel>
-                    {stateCategories.map((category) => {
-                      const categoryFilter = createCategoryFilter(category.id);
-                      const isActive =
-                        currentFiltersSerialized ===
-                        serializeFilters(categoryFilter);
-                      return (
-                        <DropdownMenuItem
-                          key={category.id}
-                          onClick={() => applyFilter(categoryFilter)}
-                        >
-                          <RenderIcon
-                            iconName={category.icon || "IconCircleFilled"}
-                            color={category.color || undefined}
-                            className="size-4! [&_svg]:size-3! border-0"
-                            button
-                          />
-                          <span>{category.name}</span>
-                          {isActive && <IconCheck className="ml-auto size-4" />}
-                        </DropdownMenuItem>
-                      );
-                    })}
-                  </>
-                )}
+	const header = (
+		<>
+			<PageHeader.Identity
+				actions={
+					<div className="flex items-center gap-2">
+						<CreateIssueDialog
+							organization={organization}
+							tasks={tasks}
+							setTasks={setTasks}
+							_labels={labels}
+							issueTemplates={issueTemplates}
+							releases={releases ?? []}
+						/>
+						<Button
+							variant="accent"
+							className={cn(
+								"gap-2 h-6 w-fit bg-accent border-transparent p-1",
+								!panel.isOpen && "bg-transparent"
+							)}
+							onClick={() =>
+								panel.isOpen
+									? closePanel(TASKS_LIST_PANEL_ID)
+									: sidebarActions.setOpen(TASKS_LIST_PANEL_ID, true)
+							}
+						>
+							{panel.isOpen ? <IconLayoutSidebarRightFilled /> : <IconLayoutSidebarRight />}
+						</Button>
+					</div>
+				}
+			>
+				{!useMobile && (
+					<>
+						<Link to="/$orgId/tasks" params={{ orgId: organization.id }}>
+							<Button
+								variant={"primary"}
+								className="w-fit text-xs p-1 h-auto rounded-lg bg-transparent"
+								size={"sm"}
+							>
+								<Avatar className="h-4 w-4">
+									<AvatarImage
+										src={organization.logo ? ensureCdnUrl(organization.logo) : ""}
+										alt={organization.name}
+									/>
+									<AvatarFallback className="rounded-md uppercase text-xs">
+										<IconUsers className="h-4 w-4" />
+									</AvatarFallback>
+								</Avatar>
+								<span>{organization.name}</span>
+							</Button>
+						</Link>
+						<span className="text-muted-foreground text-xs">/</span>
+					</>
+				)}
+				<DropdownMenu>
+					<DropdownMenuTrigger asChild>
+						<Button
+							variant={"primary"}
+							className="w-fit text-xs p-1 h-auto rounded-lg bg-transparent gap-1 max-w-40"
+							size={"sm"}
+						>
+							{CurrentViewIcon}
+							<span className="truncate">{currentViewName}</span>
+							<IconChevronDown className="size-3 text-muted-foreground shrink-0" />
+						</Button>
+					</DropdownMenuTrigger>
+					<DropdownMenuContent align="start" className="w-56">
+						<DropdownMenuItem onClick={() => clearView()}>
+							<IconStack2 className="size-4 text-muted-foreground" />
+							All tasks
+							{isAllTasksActive && <IconCheck className="ml-auto size-4" />}
+						</DropdownMenuItem>
+						<DropdownMenuItem onClick={() => applyFilter(myAssignedFilterState)}>
+							<IconUser className="size-4 text-muted-foreground" />
+							Your tasks
+							{isMyAssignedActive && <IconCheck className="ml-auto size-4" />}
+						</DropdownMenuItem>
 
-                {views.length > 0 && (
-                  <>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuLabel>Custom Views</DropdownMenuLabel>
-                    {views.map((view) => {
-                      const viewSlug = view.slug || view.id;
-                      const isActive = selectedViewSlug === viewSlug;
-                      return (
-                        <DropdownMenuItem
-                          key={view.id}
-                          onClick={() => selectView(view)}
-                        >
-                          <RenderIcon
-                            iconName={view.viewConfig?.icon || "IconStack2"}
-                            color={view.viewConfig?.color || undefined}
-                            className="size-4! [&_svg]:size-3! border-0"
-                            button
-                          />
-                          <span>{view.name}</span>
-                          {isActive && <IconCheck className="ml-auto size-4" />}
-                        </DropdownMenuItem>
-                      );
-                    })}
-                  </>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </PageHeader.Identity>
+						{stateCategories.length > 0 && (
+							<>
+								<DropdownMenuSeparator />
+								<DropdownMenuLabel>Categories</DropdownMenuLabel>
+								{stateCategories.map((category) => {
+									const categoryFilter = createCategoryFilter(category.id);
+									const isActive = currentFiltersSerialized === serializeFilters(categoryFilter);
+									return (
+										<DropdownMenuItem key={category.id} onClick={() => applyFilter(categoryFilter)}>
+											<RenderIcon
+												iconName={category.icon || "IconCircleFilled"}
+												color={category.color || undefined}
+												className="size-4! [&_svg]:size-3! border-0"
+												button
+											/>
+											<span>{category.name}</span>
+											{isActive && <IconCheck className="ml-auto size-4" />}
+										</DropdownMenuItem>
+									);
+								})}
+							</>
+						)}
+
+						{views.length > 0 && (
+							<>
+								<DropdownMenuSeparator />
+								<DropdownMenuLabel>Custom Views</DropdownMenuLabel>
+								{views.map((view) => {
+									const viewSlug = view.slug || view.id;
+									const isActive = selectedViewSlug === viewSlug;
+									return (
+										<DropdownMenuItem key={view.id} onClick={() => selectView(view)}>
+											<RenderIcon
+												iconName={view.viewConfig?.icon || "IconStack2"}
+												color={view.viewConfig?.color || undefined}
+												className="size-4! [&_svg]:size-3! border-0"
+												button
+											/>
+											<span>{view.name}</span>
+											{isActive && <IconCheck className="ml-auto size-4" />}
+										</DropdownMenuItem>
+									);
+								})}
+							</>
+						)}
+					</DropdownMenuContent>
+				</DropdownMenu>
+			</PageHeader.Identity>
 			<PageHeader.Toolbar
 				left={
 					<>
 						<TaskFilterDropdown
-                  tasks={tasks}
-                  labels={labels}
-                  availableUsers={availableUsers}
-                  organizationId={organization.id}
-                  views={views}
-                  setViews={setViews}
-                  categories={categories}
-                  releases={releases}
-                  canCreateView={canCreateResource("savedViews")}
-                  viewLimitMessage={getLimitMessage("savedViews")}
-                />
-              </>
-            }
-            right={
-              <>
-                <Separator orientation="vertical" className="h-5" />
-                <TaskViewDropdown />
-              </>
-            }
-          />
-        </PageHeader>
-        <div
-          className={cn(
-            "flex-1 overflow-y-auto h-full flex flex-col relative",
-            viewMode === "kanban" && "px-0",
-          )}
-        >
-          <UnifiedTaskView
-            tasks={tasks}
-            setTasks={setTasks}
-            serverEvents={serverEvents}
-            availableUsers={availableUsers}
-            availableLabels={labels}
-            organization={organization}
-            categories={categories}
-            releases={releases}
-            views={views}
-            onActiveDialogTaskChange={handleActiveDialogTaskChange}
-            permissionsByOrg={{ [organization.id]: permissions }}
-            accountId={account.id}
-          />
-        </div>
-      </div>
-    </PanelWrapper>
-  );
+							tasks={tasks}
+							labels={labels}
+							availableUsers={availableUsers}
+							organizationId={organization.id}
+							views={views}
+							setViews={setViews}
+							categories={categories}
+							releases={releases}
+							canCreateView={canCreateResource("savedViews")}
+							viewLimitMessage={getLimitMessage("savedViews")}
+						/>
+					</>
+				}
+				right={
+					<>
+						<Separator orientation="vertical" className="h-5" />
+						<TaskViewDropdown />
+					</>
+				}
+			/>
+		</>
+	);
+
+	return (
+		<Page
+			header={header}
+			panels={{
+				right: {
+					id: TASKS_LIST_PANEL_ID,
+					header: <TasksPanelHeader />,
+					defaultOpen: true,
+					width: "420px",
+				},
+			}}
+		>
+			<div className={cn("flex-1 overflow-y-auto h-full flex flex-col relative", viewMode === "kanban" && "px-0")}>
+				<UnifiedTaskView
+					tasks={tasks}
+					setTasks={setTasks}
+					serverEvents={serverEvents}
+					availableUsers={availableUsers}
+					availableLabels={labels}
+					organization={organization}
+					categories={categories}
+					releases={releases}
+					views={views}
+					onActiveDialogTaskChange={handleActiveDialogTaskChange}
+					permissionsByOrg={{ [organization.id]: permissions }}
+					accountId={account.id}
+				/>
+			</div>
+		</Page>
+	);
 }

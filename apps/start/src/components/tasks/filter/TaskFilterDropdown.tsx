@@ -121,6 +121,12 @@ export function TaskFilterDropdown({
 	const showNewViewPopover = useMemo(() => {
 		// Don't show if no org context (cross-org mode) or no setViews
 		if (!organizationId || !setViews || !views) return false;
+		// Don't show with no active filters — the unfiltered "All tasks" state
+		// never matches any saved view's filterParams (views always have at
+		// least one condition), so without this check Save showed constantly
+		// on the default view with nothing to save. Confirmed live + reported
+		// in https://platform.sayr.io/20.
+		if (activeFiltersCount === 0) return false;
 		// Don't show if a view with these exact filters AND config already exists
 		const viewExists = views.some((view) => {
 			const filtersMatch = view.filterParams === currentFiltersString;
@@ -136,7 +142,7 @@ export function TaskFilterDropdown({
 			return filtersMatch && configMatch;
 		});
 		return !viewExists;
-	}, [organizationId, setViews, views, currentFiltersString, currentViewConfig]);
+	}, [organizationId, setViews, views, activeFiltersCount, currentFiltersString, currentViewConfig]);
 
 	const handleFilterAdd = (field: string, operator: FilterOperator, value: string) => {
 		hookAddFilter({
@@ -217,25 +223,29 @@ export function TaskFilterDropdown({
 					className="gap-1 h-6 w-6 bg-accent border-transparent p-1 relative"
 				/>
 			)}
-		{showNewViewPopover && canCreateView && (
-			<NewViewPopover
-				organizationId={organizationId!}
-				setViews={setViews!}
-				currentFilters={currentFiltersString}
-				viewConfig={currentViewConfig}
-			/>
-		)}
-		{showNewViewPopover && !canCreateView && (
-			<Tooltip>
-				<TooltipTrigger asChild>
-					<Button variant="accent" className="gap-2 h-6 w-fit p-1 text-xs opacity-60 cursor-not-allowed" disabled>
-						<IconLock className="w-4 h-4" />
-						Save
-					</Button>
-				</TooltipTrigger>
-				<TooltipContent>{viewLimitMessage || "Upgrade your plan to save more views"}</TooltipContent>
-			</Tooltip>
-		)}
+			{showNewViewPopover && canCreateView && (
+				<NewViewPopover
+					organizationId={organizationId!}
+					setViews={setViews!}
+					currentFilters={currentFiltersString}
+					viewConfig={currentViewConfig}
+				/>
+			)}
+			{showNewViewPopover && !canCreateView && (
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<Button
+							variant="accent"
+							className="gap-2 h-6 w-fit p-1 text-xs opacity-60 cursor-not-allowed"
+							disabled
+						>
+							<IconLock className="w-4 h-4" />
+							Save
+						</Button>
+					</TooltipTrigger>
+					<TooltipContent>{viewLimitMessage || "Upgrade your plan to save more views"}</TooltipContent>
+				</Tooltip>
+			)}
 		</div>
 	);
 }

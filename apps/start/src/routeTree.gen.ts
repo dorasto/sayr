@@ -66,7 +66,6 @@ import { Route as adminSettingsOrgOrgIdCategoriesIndexRouteImport } from './rout
 import { Route as adminSettingsOrgOrgIdBillingIndexRouteImport } from './routes/(admin)/settings/org/$orgId/billing/index'
 import { Route as adminSettingsOrgOrgIdAiIndexRouteImport } from './routes/(admin)/settings/org/$orgId/ai/index'
 import { Route as adminSettingsOrgOrgIdTeamsNewRouteImport } from './routes/(admin)/settings/org/$orgId/teams/new'
-import { Route as adminSettingsOrgOrgIdViewsViewIdIndexRouteImport } from './routes/(admin)/settings/org/$orgId/views/$viewId/index'
 import { Route as adminSettingsOrgOrgIdTeamsTeamIdIndexRouteImport } from './routes/(admin)/settings/org/$orgId/teams/$teamId/index'
 import { Route as adminSettingsOrgOrgIdConnectionsGithubIndexRouteImport } from './routes/(admin)/settings/org/$orgId/connections/github/index'
 import { Route as adminSettingsOrgOrgIdConnectionsIntegrationIdIndexRouteImport } from './routes/(admin)/settings/org/$orgId/connections/$integrationId/index'
@@ -377,12 +376,6 @@ const adminSettingsOrgOrgIdTeamsNewRoute =
     path: '/teams/new',
     getParentRoute: () => adminSettingsOrgOrgIdRouteRoute,
   } as any)
-const adminSettingsOrgOrgIdViewsViewIdIndexRoute =
-  adminSettingsOrgOrgIdViewsViewIdIndexRouteImport.update({
-    id: '/views/$viewId/',
-    path: '/views/$viewId/',
-    getParentRoute: () => adminSettingsOrgOrgIdRouteRoute,
-  } as any)
 const adminSettingsOrgOrgIdTeamsTeamIdIndexRoute =
   adminSettingsOrgOrgIdTeamsTeamIdIndexRouteImport.update({
     id: '/teams/$teamId/',
@@ -462,7 +455,6 @@ export interface FileRoutesByFullPath {
   '/settings/org/$orgId/connections/$integrationId/': typeof adminSettingsOrgOrgIdConnectionsIntegrationIdIndexRoute
   '/settings/org/$orgId/connections/github/': typeof adminSettingsOrgOrgIdConnectionsGithubIndexRoute
   '/settings/org/$orgId/teams/$teamId/': typeof adminSettingsOrgOrgIdTeamsTeamIdIndexRoute
-  '/settings/org/$orgId/views/$viewId/': typeof adminSettingsOrgOrgIdViewsViewIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/health': typeof HealthRoute
@@ -514,7 +506,6 @@ export interface FileRoutesByTo {
   '/settings/org/$orgId/connections/$integrationId': typeof adminSettingsOrgOrgIdConnectionsIntegrationIdIndexRoute
   '/settings/org/$orgId/connections/github': typeof adminSettingsOrgOrgIdConnectionsGithubIndexRoute
   '/settings/org/$orgId/teams/$teamId': typeof adminSettingsOrgOrgIdTeamsTeamIdIndexRoute
-  '/settings/org/$orgId/views/$viewId': typeof adminSettingsOrgOrgIdViewsViewIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -578,7 +569,6 @@ export interface FileRoutesById {
   '/(admin)/settings/org/$orgId/connections/$integrationId/': typeof adminSettingsOrgOrgIdConnectionsIntegrationIdIndexRoute
   '/(admin)/settings/org/$orgId/connections/github/': typeof adminSettingsOrgOrgIdConnectionsGithubIndexRoute
   '/(admin)/settings/org/$orgId/teams/$teamId/': typeof adminSettingsOrgOrgIdTeamsTeamIdIndexRoute
-  '/(admin)/settings/org/$orgId/views/$viewId/': typeof adminSettingsOrgOrgIdViewsViewIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -642,7 +632,6 @@ export interface FileRouteTypes {
     | '/settings/org/$orgId/connections/$integrationId/'
     | '/settings/org/$orgId/connections/github/'
     | '/settings/org/$orgId/teams/$teamId/'
-    | '/settings/org/$orgId/views/$viewId/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/health'
@@ -694,7 +683,6 @@ export interface FileRouteTypes {
     | '/settings/org/$orgId/connections/$integrationId'
     | '/settings/org/$orgId/connections/github'
     | '/settings/org/$orgId/teams/$teamId'
-    | '/settings/org/$orgId/views/$viewId'
   id:
     | '__root__'
     | '/(admin)'
@@ -757,7 +745,6 @@ export interface FileRouteTypes {
     | '/(admin)/settings/org/$orgId/connections/$integrationId/'
     | '/(admin)/settings/org/$orgId/connections/github/'
     | '/(admin)/settings/org/$orgId/teams/$teamId/'
-    | '/(admin)/settings/org/$orgId/views/$viewId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -1180,13 +1167,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof adminSettingsOrgOrgIdTeamsNewRouteImport
       parentRoute: typeof adminSettingsOrgOrgIdRouteRoute
     }
-    '/(admin)/settings/org/$orgId/views/$viewId/': {
-      id: '/(admin)/settings/org/$orgId/views/$viewId/'
-      path: '/views/$viewId'
-      fullPath: '/settings/org/$orgId/views/$viewId/'
-      preLoaderRoute: typeof adminSettingsOrgOrgIdViewsViewIdIndexRouteImport
-      parentRoute: typeof adminSettingsOrgOrgIdRouteRoute
-    }
     '/(admin)/settings/org/$orgId/teams/$teamId/': {
       id: '/(admin)/settings/org/$orgId/teams/$teamId/'
       path: '/teams/$teamId'
@@ -1324,7 +1304,6 @@ interface adminSettingsOrgOrgIdRouteRouteChildren {
   adminSettingsOrgOrgIdConnectionsIntegrationIdIndexRoute: typeof adminSettingsOrgOrgIdConnectionsIntegrationIdIndexRoute
   adminSettingsOrgOrgIdConnectionsGithubIndexRoute: typeof adminSettingsOrgOrgIdConnectionsGithubIndexRoute
   adminSettingsOrgOrgIdTeamsTeamIdIndexRoute: typeof adminSettingsOrgOrgIdTeamsTeamIdIndexRoute
-  adminSettingsOrgOrgIdViewsViewIdIndexRoute: typeof adminSettingsOrgOrgIdViewsViewIdIndexRoute
 }
 
 const adminSettingsOrgOrgIdRouteRouteChildren: adminSettingsOrgOrgIdRouteRouteChildren =
@@ -1352,8 +1331,6 @@ const adminSettingsOrgOrgIdRouteRouteChildren: adminSettingsOrgOrgIdRouteRouteCh
       adminSettingsOrgOrgIdConnectionsGithubIndexRoute,
     adminSettingsOrgOrgIdTeamsTeamIdIndexRoute:
       adminSettingsOrgOrgIdTeamsTeamIdIndexRoute,
-    adminSettingsOrgOrgIdViewsViewIdIndexRoute:
-      adminSettingsOrgOrgIdViewsViewIdIndexRoute,
   }
 
 const adminSettingsOrgOrgIdRouteRouteWithChildren =

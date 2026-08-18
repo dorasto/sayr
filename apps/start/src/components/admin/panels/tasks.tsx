@@ -602,5 +602,5 @@ function TasksPanelContent() {
   );
 }
 
-// Export the panel components directly for use as PanelWrapper props
+// Export the panel components directly for use as Page's panels.right.header/content
 export { TasksPanelHeader, TasksPanelContent };

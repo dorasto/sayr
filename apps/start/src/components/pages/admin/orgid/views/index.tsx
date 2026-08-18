@@ -35,8 +35,7 @@ export default function OrganizationViewsPage() {
 		},
 	};
 
-	const handleMessage = useWSMessageHandler<ServerEventMessage>(handlers, {
-	});
+	const handleMessage = useWSMessageHandler<ServerEventMessage>(handlers, {});
 
 	useEffect(() => {
 		if (!serverEvents.event) return;
@@ -98,7 +97,7 @@ export default function OrganizationViewsPage() {
 					{views.map((view) => (
 						<Tile
 							className={cn(
-								"bg-card hover:bg-accent md:w-full transition-colors cursor-pointer h-full p-0 gap-0",
+								"bg-card hover:bg-accent md:w-full transition-colors cursor-pointer h-full p-0 gap-0"
 							)}
 							key={view.id}
 						>
@@ -123,9 +122,14 @@ export default function OrganizationViewsPage() {
 								</TileHeader>
 							</Link>
 							<TileAction className="p-3">
+								{/* No standalone edit page anymore — editing happens inline from
+								    the tasks page (pencil icon on the saved-view tile in the
+								    panel opens the same SettingsOrganizationViewDetailPage in a
+								    Sheet). This just gets you there with the view applied. */}
 								<Link
-									to="/settings/org/$orgId/views/$viewId"
-									params={{ orgId: organization.id, viewId: view.id }}
+									to="/$orgId/tasks"
+									params={{ orgId: organization.id }}
+									search={{ view: view.slug || view.id }}
 									onClick={(e) => e.stopPropagation()}
 									className=""
 								>
@@ -144,8 +148,8 @@ export default function OrganizationViewsPage() {
 						<IconStack2 className="size-12 text-muted-foreground mb-4" />
 						<h3 className="text-lg font-semibold mb-2">No saved views yet</h3>
 						<p className="text-sm text-muted-foreground mb-4 max-w-md">
-							Create custom filtered views to quickly access specific sets of tasks. Views can be created
-							from the tasks page or in settings.
+							Create custom filtered views to quickly access specific sets of tasks. Views can be created from
+							the tasks page or in settings.
 						</p>
 						<div className="flex gap-2">
 							<Link to="/$orgId/tasks" params={{ orgId: organization.id }}>
