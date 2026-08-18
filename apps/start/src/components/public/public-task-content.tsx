@@ -3,7 +3,7 @@ import { Tile, TileDescription, TileHeader, TileIcon, TileTitle } from "@repo/ui
 import { useStateManagement, useStateManagementFetch } from "@repo/ui/hooks/useStateManagement.ts";
 import { cn } from "@repo/ui/lib/utils";
 import { Button } from "@repo/ui/components/button";
-import { extractHslValues, formatDate, generateSlug } from "@repo/util";
+import { extractHslValues, formatDate, formatTaskKey, generateSlug } from "@repo/util";
 import { IconArrowUpRight, IconChevronUp, IconCircleFilled, IconTag } from "@tabler/icons-react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
@@ -450,7 +450,9 @@ export function PublicTaskContent({ task: initialTask, release }: PublicTaskCont
 				<div className="flex flex-col gap-4 p-6">
 					<div className="flex flex-col gap-1">
 						<h1 className="text-2xl font-bold leading-tight">{task.title}</h1>
-						<span className="text-muted-foreground text-sm">#{task.shortId}</span>
+						<span className="text-muted-foreground text-sm">
+							#{formatTaskKey(organization.shortId, task.shortId)}
+						</span>
 					</div>
 
 					{task.description && (

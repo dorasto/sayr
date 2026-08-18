@@ -38,7 +38,7 @@ export function extractIdsFromUrl(url?: string): {
 			return {
 				hasPrivateId: true,
 				privateId: afterFiles[0] || null,
-				userId: afterFiles[1] || null
+				userId: afterFiles[1] || null,
 			};
 		}
 
@@ -470,12 +470,36 @@ export function extractTaskText(description: unknown): string {
 	return texts.join(" ");
 }
 
+/**
+ * Formats a task's display identifier as `{orgShortId}-{taskShortId}`,
+ * matching the "copy branch name" convention (see
+ * apps/start/src/components/admin/panels/task.tsx and the branch-name
+ * parser in apps/backend/routes/webhook/github.ts) — e.g. a task with
+ * shortId 123 in an org with shortId "SAY" displays as "SAY-123" instead
+ * of the old bare "#123".
+ *
+ * @param orgShortId - The organization's short identifier (e.g. "SAY").
+ * @param taskShortId - The task's own short numeric id. Falls back to "?"
+ * when null/undefined (a task can be momentarily shortId-less right after
+ * creation, before the per-org sequence assigns one).
+ *
+ * @example
+ * ```ts
+ * formatTaskKey("SAY", 123);
+ * // "SAY-123"
+ *
+ * formatTaskKey("SAY", null);
+ * // "SAY-?"
+ * ```
+ */
+export function formatTaskKey(orgShortId: string, taskShortId: number | null | undefined): string {
+	return `${orgShortId}-${taskShortId ?? "?"}`;
+}
+
 export class PermissionError extends Error {
 	readonly type = "PERMISSION_ERROR";
 
-	constructor(
-		message = "You do not have permission to access this page."
-	) {
+	constructor(message = "You do not have permission to access this page.") {
 		super(message);
 		this.name = "PermissionError";
 	}

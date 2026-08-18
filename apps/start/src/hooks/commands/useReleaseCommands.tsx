@@ -20,7 +20,7 @@ import { useRegisterCommands } from "../useRegisterCommands";
 export function useReleaseCommands(
 	release: schema.ReleaseWithTasks | null,
 	tasks: schema.TaskWithLabels[],
-	setTasks: React.Dispatch<React.SetStateAction<schema.TaskWithLabels[]>>,
+	setTasks: React.Dispatch<React.SetStateAction<schema.TaskWithLabels[]>>
 ) {
 	const { organization } = useLayoutOrganization();
 	const { value: sseClientId } = useStateManagement<string>("sse-clientId", "");
@@ -38,7 +38,7 @@ export function useReleaseCommands(
 				setTasks((prev) => [...prev, result.data as schema.TaskWithLabels]);
 			}
 		},
-		[release, organization.id, sseClientId, setTasks],
+		[release, organization.id, sseClientId, setTasks]
 	);
 
 	const onRemove = useMemo(
@@ -49,7 +49,7 @@ export function useReleaseCommands(
 				setTasks((prev) => prev.filter((t) => t.id !== taskId));
 			}
 		},
-		[release, organization.id, sseClientId, setTasks],
+		[release, organization.id, sseClientId, setTasks]
 	);
 
 	// Register / update assignment context whenever relevant deps change
@@ -58,6 +58,7 @@ export function useReleaseCommands(
 		commandActions.setTaskAssignmentContext({
 			viewId: addTasksViewId,
 			orgId: organization.id,
+			orgShortId: organization.shortId,
 			assignedTaskIds,
 			onAssign,
 			onRemove,
@@ -65,7 +66,7 @@ export function useReleaseCommands(
 		return () => {
 			commandActions.clearTaskAssignmentContext();
 		};
-	}, [addTasksViewId, organization.id, assignedTaskIds, onAssign, onRemove, release]);
+	}, [addTasksViewId, organization.id, organization.shortId, assignedTaskIds, onAssign, onRemove, release]);
 
 	const commands: CommandMap | null = useMemo(() => {
 		if (!release) return null;
@@ -75,7 +76,7 @@ export function useReleaseCommands(
 			id: `release-in-release-${release.id}-${t.id}`,
 			label: t.title || "Untitled task",
 			icon: taskStatusIcon(t.status, true),
-			metadata: inReleaseMeta(t.shortId),
+			metadata: inReleaseMeta(t.shortId, organization.shortId),
 			keywords: `${t.shortId ?? ""} ${t.title ?? ""}`,
 			closeOnSelect: false,
 			action: async () => {
@@ -102,7 +103,20 @@ export function useReleaseCommands(
 			[addTasksViewId]: [
 				...(inReleaseItems.length > 0
 					? [{ heading: "In this release", priority: 1, items: inReleaseItems }]
-					: [{ heading: "In this release", priority: 1, items: [{ id: "release-empty", label: "No tasks in this release yet", icon: <IconMinus size={16} className="opacity-40" />, action: () => {} }] }]),
+					: [
+							{
+								heading: "In this release",
+								priority: 1,
+								items: [
+									{
+										id: "release-empty",
+										label: "No tasks in this release yet",
+										icon: <IconMinus size={16} className="opacity-40" />,
+										action: () => {},
+									},
+								],
+							},
+						]),
 			],
 		};
 	}, [release, tasks, addTasksViewId, onRemove]);

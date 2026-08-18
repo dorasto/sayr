@@ -9,6 +9,7 @@ export type MinimalOrganization = {
 	name: string;
 	slug: string;
 	logo: string | null;
+	shortId: string;
 };
 
 /**
@@ -19,17 +20,13 @@ export type MinimalOrganization = {
  *
  * Use the `"members" in organization` type guard when you need to access members.
  */
-export type TaskDetailOrganization =
-	| schema.OrganizationWithMembers
-	| MinimalOrganization;
+export type TaskDetailOrganization = schema.OrganizationWithMembers | MinimalOrganization;
 
 /**
  * Type guard: returns `true` when the organization carries a `.members` array,
  * narrowing to `schema.OrganizationWithMembers`.
  */
-export function hasMembers(
-	org: TaskDetailOrganization,
-): org is schema.OrganizationWithMembers {
+export function hasMembers(org: TaskDetailOrganization): org is schema.OrganizationWithMembers {
 	return "members" in org;
 }
 
@@ -40,7 +37,7 @@ export function hasMembers(
  */
 export function deriveAvailableUsers(
 	organization?: TaskDetailOrganization,
-	task?: { assignees?: schema.TaskWithLabels["assignees"] },
+	task?: { assignees?: schema.TaskWithLabels["assignees"] }
 ): schema.userType[] {
 	if (organization && hasMembers(organization)) {
 		return organization.members.map((m) => m.user);

@@ -7,6 +7,8 @@ export interface TaskAssignmentContext {
 	viewId: string;
 	/** Org to search tasks within */
 	orgId: string;
+	/** Org's short identifier, used to format shown task ids as `{orgShortId}-{shortId}`. */
+	orgShortId?: string;
 	/** IDs of tasks currently assigned to the release */
 	assignedTaskIds: string[];
 	onAssign: (task: OrgTaskSearchResult) => Promise<void>;

@@ -102,6 +102,7 @@ export default function InboxPage() {
 						name: org.name,
 						slug: org.slug,
 						logo: org.logo,
+						shortId: org.shortId,
 					},
 				}),
 			};

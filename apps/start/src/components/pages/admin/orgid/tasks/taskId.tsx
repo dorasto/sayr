@@ -2,7 +2,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar"
 import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { cn } from "@repo/ui/lib/utils";
-import { ensureCdnUrl } from "@repo/util";
+import { ensureCdnUrl, formatTaskKey } from "@repo/util";
 import { Outlet } from "@tanstack/react-router";
 import { Link } from "@tanstack/react-router";
 import { useEffect } from "react";
@@ -86,7 +86,7 @@ export default function OrganizationTaskIdPage() {
 						</Button>
 					</Link>
 					<span className="text-muted-foreground text-xs">/</span>
-					<span className="text-xs">#{task.shortId}</span>
+					<span className="text-xs">#{formatTaskKey(organization.shortId, task.shortId)}</span>
 					<div className="ml-auto flex items-center gap-2">
 						{!panel.isOpen && (
 							<SimpleClipboard

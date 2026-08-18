@@ -255,7 +255,9 @@ export function UnifiedTaskView({
 			await dispatchPayload(getReleaseUpdatePayload(task, updates.releaseId, releases));
 		}
 		if (updates.parentId !== undefined) {
-			await dispatchPayload(getParentUpdatePayload(task, updates.parentId, tasks, sseClientId));
+			await dispatchPayload(
+				getParentUpdatePayload(task, updates.parentId, tasks, sseClientId, organization?.shortId)
+			);
 		}
 	};
 
@@ -266,7 +268,9 @@ export function UnifiedTaskView({
 	) => {
 		const task = tasks.find((t) => t.id === sourceTaskId);
 		if (!task) return;
-		await dispatchPayload(getRelationUpdatePayload(task, targetTaskId, type, tasks, sseClientId));
+		await dispatchPayload(
+			getRelationUpdatePayload(task, targetTaskId, type, tasks, sseClientId, organization?.shortId)
+		);
 	};
 
 	// Bulk update handler - iterates over selected tasks in parallel
@@ -438,6 +442,7 @@ export function UnifiedTaskView({
 				overviewLayout={overviewLayout}
 				personal={personal}
 				fieldPermissions={fieldPerms}
+				organization={organization}
 				className={cn(overviewLayout ? "bg-accent hover:bg-secondary! rounded-xl mb-1" : undefined)}
 			/>
 		);
@@ -660,6 +665,7 @@ export function UnifiedTaskView({
 						compact={compact}
 						personal={personal}
 						fieldPermissions={dragFieldPerms}
+						organization={organization}
 					/>
 				</div>
 			);

@@ -7,6 +7,7 @@ export type TaskSearchResult = {
 	organizationId: string;
 	organizationName: string | null;
 	organizationSlug: string | null;
+	organizationShortId: string | null;
 };
 
 const API_URL = import.meta.env.VITE_APP_ENV === "development" ? "/backend-api/internal" : "/api/internal";
@@ -61,7 +62,7 @@ export async function searchOrgTasks(
 	query = "",
 	limit = 20,
 	offset = 0,
-	signal?: AbortSignal,
+	signal?: AbortSignal
 ): Promise<OrgTaskSearchResult[]> {
 	const params = new URLSearchParams({
 		org_id: orgId,

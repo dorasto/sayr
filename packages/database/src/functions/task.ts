@@ -27,9 +27,7 @@ import { userSummaryColumns } from "./index";
  * });
  * ```
  */
-export async function getTasksByOrganizationId(
-	orgId: string
-): Promise<schema.TaskWithLabels[]> {
+export async function getTasksByOrganizationId(orgId: string): Promise<schema.TaskWithLabels[]> {
 	const tasks = await db.query.task.findMany({
 		where: (t) => eq(t.organizationId, orgId),
 
@@ -102,8 +100,18 @@ export async function getTasksByOrganizationId(
  * unified TaskRelationWithTarget[] format used by the frontend.
  */
 function normalizeTaskRelations(
-	asSource: { id: string; type: string; targetTask: { id: string; shortId: number | null; title: string | null; status: string }; createdBy?: schema.UserSummary | null }[],
-	asTarget: { id: string; type: string; sourceTask: { id: string; shortId: number | null; title: string | null; status: string }; createdBy?: schema.UserSummary | null }[],
+	asSource: {
+		id: string;
+		type: string;
+		targetTask: { id: string; shortId: number | null; title: string | null; status: string };
+		createdBy?: schema.UserSummary | null;
+	}[],
+	asTarget: {
+		id: string;
+		type: string;
+		sourceTask: { id: string; shortId: number | null; title: string | null; status: string };
+		createdBy?: schema.UserSummary | null;
+	}[]
 ): schema.TaskRelationWithTarget[] {
 	return [
 		...asSource.map((r) => ({
@@ -126,15 +134,11 @@ function normalizeTaskRelations(
 export async function getTaskByShortId(
 	orgId: string,
 	shortId: number,
-	visible?: "public" | "private",
+	visible?: "public" | "private"
 ): Promise<schema.TaskWithLabels | null> {
 	const task = await db.query.task.findFirst({
 		where: (t) =>
-			and(
-				eq(t.organizationId, orgId),
-				eq(t.shortId, shortId),
-				visible ? eq(t.visible, visible) : undefined,
-			),
+			and(eq(t.organizationId, orgId), eq(t.shortId, shortId), visible ? eq(t.visible, visible) : undefined),
 		with: {
 			labels: {
 				with: {
@@ -174,9 +178,7 @@ export async function getTaskByShortId(
 
 	return {
 		...task,
-		labels: task.labels
-			.map((assignment) => assignment.label)
-			.filter(Boolean),
+		labels: task.labels.map((assignment) => assignment.label).filter(Boolean),
 		assignees: task.assignees.map((assignment) => assignment.user),
 		parent: task.parent ?? null,
 		subtaskCount: task.subtasks?.length ?? 0,
@@ -516,8 +518,13 @@ export async function getCommentReplies(
 export async function getCommentReplyCountBatch(
 	orgId: string,
 	commentIds: string[]
-): Promise<Map<string, { replyCount: number; latestReplyAuthor: schema.UserSummary | null; replyAuthors: schema.UserSummary[] }>> {
-	const result = new Map<string, { replyCount: number; latestReplyAuthor: schema.UserSummary | null; replyAuthors: schema.UserSummary[] }>();
+): Promise<
+	Map<string, { replyCount: number; latestReplyAuthor: schema.UserSummary | null; replyAuthors: schema.UserSummary[] }>
+> {
+	const result = new Map<
+		string,
+		{ replyCount: number; latestReplyAuthor: schema.UserSummary | null; replyAuthors: schema.UserSummary[] }
+	>();
 
 	if (commentIds.length === 0) return result;
 
@@ -695,6 +702,7 @@ export async function getTasksByUserId(userId: string): Promise<schema.TaskWithL
 					name: true,
 					slug: true,
 					logo: true,
+					shortId: true,
 				},
 			},
 			githubIssue: {},
@@ -723,7 +731,7 @@ export async function getTasksByUserId(userId: string): Promise<schema.TaskWithL
 export async function searchTasksForUser(
 	userId: string,
 	query: string,
-	limit = 10,
+	limit = 10
 ): Promise<
 	{
 		id: string;
@@ -734,6 +742,7 @@ export async function searchTasksForUser(
 		organizationId: string;
 		organizationName: string | null;
 		organizationSlug: string | null;
+		organizationShortId: string | null;
 	}[]
 > {
 	if (!query || query.trim().length < 2) return [];
@@ -750,12 +759,19 @@ export async function searchTasksForUser(
 			organizationId: schema.task.organizationId,
 			organizationName: schema.organization.name,
 			organizationSlug: schema.organization.slug,
+			organizationShortId: schema.organization.shortId,
 		})
 		.from(schema.task)
-		.innerJoin(schema.member, and(eq(schema.member.organizationId, schema.task.organizationId), eq(schema.member.userId, userId)))
+		.innerJoin(
+			schema.member,
+			and(eq(schema.member.organizationId, schema.task.organizationId), eq(schema.member.userId, userId))
+		)
 		.innerJoin(schema.organization, eq(schema.organization.id, schema.task.organizationId))
 		.where(sql`${schema.task.title} ILIKE ${searchPattern}`)
-		.orderBy(sql`CASE WHEN LOWER(${schema.task.title}) LIKE ${`${query.trim().toLowerCase()}%`} THEN 0 ELSE 1 END`, sql`${schema.task.updatedAt} DESC`)
+		.orderBy(
+			sql`CASE WHEN LOWER(${schema.task.title}) LIKE ${`${query.trim().toLowerCase()}%`} THEN 0 ELSE 1 END`,
+			sql`${schema.task.updatedAt} DESC`
+		)
 		.limit(limit);
 
 	return results;
@@ -772,7 +788,7 @@ export async function searchTasksByOrganization(
 	orgId: string,
 	query?: string,
 	limit = 20,
-	offset = 0,
+	offset = 0
 ): Promise<
 	{
 		id: string;
@@ -801,8 +817,8 @@ export async function searchTasksByOrganization(
 			conditions.push(
 				or(
 					sql`${schema.task.title} ILIKE ${`%${trimmed}%`}`,
-					sql`CAST(${schema.task.shortId} AS TEXT) LIKE ${`${shortIdDigits}%`}`,
-				)!,
+					sql`CAST(${schema.task.shortId} AS TEXT) LIKE ${`${shortIdDigits}%`}`
+				)!
 			);
 		} else {
 			const searchPattern = `%${trimmed}%`;
@@ -830,7 +846,9 @@ export async function searchTasksByOrganization(
 			priority: schema.task.priority,
 			parentId: schema.task.parentId,
 			releaseId: schema.task.releaseId,
-			subtaskCount: sql<number>`(SELECT COUNT(*) FROM task AS child WHERE child.parent_id = ${schema.task.id})`.as("subtask_count"),
+			subtaskCount: sql<number>`(SELECT COUNT(*) FROM task AS child WHERE child.parent_id = ${schema.task.id})`.as(
+				"subtask_count"
+			),
 			organizationId: schema.task.organizationId,
 			category: schema.task.category,
 		})
@@ -847,7 +865,7 @@ export async function searchTasksByOrganization(
 				: trimmedQuery.length >= 2
 					? [sql`CASE WHEN LOWER(${schema.task.title}) LIKE ${`${trimmedQuery.toLowerCase()}%`} THEN 0 ELSE 1 END`]
 					: []),
-			desc(schema.task.updatedAt),
+			desc(schema.task.updatedAt)
 		)
 		.limit(clampedLimit)
 		.offset(offset);
@@ -1020,11 +1038,7 @@ export async function createOrToggleTaskVote({
  * @param parentId - The task to set as parent.
  * @returns The updated task row, or throws on validation failure.
  */
-export async function setTaskParent(
-	orgId: string,
-	taskId: string,
-	parentId: string,
-): Promise<schema.taskType> {
+export async function setTaskParent(orgId: string, taskId: string, parentId: string): Promise<schema.taskType> {
 	if (taskId === parentId) {
 		throw new Error("A task cannot be its own parent");
 	}
@@ -1073,10 +1087,7 @@ export async function setTaskParent(
  * @param taskId - The subtask to promote.
  * @returns The updated task row.
  */
-export async function removeTaskParent(
-	orgId: string,
-	taskId: string,
-): Promise<schema.taskType> {
+export async function removeTaskParent(orgId: string, taskId: string): Promise<schema.taskType> {
 	const [updated] = await db
 		.update(schema.task)
 		.set({ parentId: null, updatedAt: new Date() })
@@ -1097,10 +1108,7 @@ export async function removeTaskParent(
  * @param parentId - The parent task ID.
  * @returns An array of subtask summaries.
  */
-export async function getSubtasks(
-	orgId: string,
-	parentId: string,
-): Promise<schema.SubtaskSummary[]> {
+export async function getSubtasks(orgId: string, parentId: string): Promise<schema.SubtaskSummary[]> {
 	const subtasks = await db.query.task.findMany({
 		where: (t) => and(eq(t.organizationId, orgId), eq(t.parentId, parentId)),
 		with: {
@@ -1141,7 +1149,7 @@ export async function createTaskRelation(
 	sourceTaskId: string,
 	targetTaskId: string,
 	type: schema.taskRelationType["type"],
-	createdBy?: string | null,
+	createdBy?: string | null
 ): Promise<schema.taskRelationType> {
 	if (sourceTaskId === targetTaskId) {
 		throw new Error("A task cannot be related to itself");
@@ -1155,7 +1163,7 @@ export async function createTaskRelation(
 					eq(r.organizationId, orgId),
 					eq(r.sourceTaskId, targetTaskId),
 					eq(r.targetTaskId, sourceTaskId),
-					eq(r.type, "related"),
+					eq(r.type, "related")
 				),
 		});
 
@@ -1188,10 +1196,7 @@ export async function createTaskRelation(
  * @param orgId - The organization ID.
  * @param relationId - The relation ID to remove.
  */
-export async function removeTaskRelation(
-	orgId: string,
-	relationId: string,
-): Promise<void> {
+export async function removeTaskRelation(orgId: string, relationId: string): Promise<void> {
 	const result = await db
 		.delete(taskRelation)
 		.where(and(eq(taskRelation.organizationId, orgId), eq(taskRelation.id, relationId)))
@@ -1211,10 +1216,7 @@ export async function removeTaskRelation(
  * @param taskId - The task to fetch relations for.
  * @returns An array of task relations with target task summaries.
  */
-export async function getTaskRelations(
-	orgId: string,
-	taskId: string,
-): Promise<schema.TaskRelationWithTarget[]> {
+export async function getTaskRelations(orgId: string, taskId: string): Promise<schema.TaskRelationWithTarget[]> {
 	// Fetch relations where this task is the source
 	const asSource = await db.query.taskRelation.findMany({
 		where: (r) => and(eq(r.organizationId, orgId), eq(r.sourceTaskId, taskId)),
@@ -1285,7 +1287,7 @@ export async function updateTaskAiSummaryMeta(
 	orgId: string,
 	taskId: string,
 	hash: string,
-	generatedAt: Date,
+	generatedAt: Date
 ): Promise<void> {
 	await db
 		.update(schema.task)

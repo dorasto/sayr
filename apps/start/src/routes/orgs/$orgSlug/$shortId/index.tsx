@@ -13,6 +13,7 @@ import { cn } from "@repo/ui/lib/utils";
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { getOgImageUrl, seo } from "@/seo";
+import { formatTaskKey } from "@repo/util";
 import { IconArrowLeft, IconLayoutSidebarRight, IconLayoutSidebarRightFilled } from "@tabler/icons-react";
 import type { NodeJSON } from "prosekit/core";
 import { extractTextContent } from "@/lib/util";
@@ -44,7 +45,7 @@ const fetchPublicTask = createServerFn({ method: "GET" })
 			return {
 				task: null,
 				release: null,
-				org: { name: organization.name, logo: organization.logo },
+				org: { name: organization.name, logo: organization.logo, shortId: organization.shortId },
 				descriptionHtml: "",
 				descriptionText: "",
 				commentsHtml: [],
@@ -128,7 +129,7 @@ const fetchPublicTask = createServerFn({ method: "GET" })
 		return {
 			task,
 			release,
-			org: { name: organization.name, logo: organization.logo },
+			org: { name: organization.name, logo: organization.logo, shortId: organization.shortId },
 			descriptionHtml,
 			descriptionText,
 			commentsHtml: commentsWithReplies,
@@ -158,9 +159,11 @@ export const Route = createFileRoute("/orgs/$orgSlug/$shortId/")({
 		const org = loaderData?.org;
 		const descriptionText = loaderData?.descriptionText ?? "";
 		const commentsText = loaderData?.commentsText ?? [];
+		// Display identifier only — URLs below still route on the raw numeric shortId.
+		const taskKey = task ? (org?.shortId ? formatTaskKey(org.shortId, task.shortId) : task.shortId) : null;
 
 		const ogDescription = task
-			? descriptionText.trim().slice(0, 160) || `Task #${task.shortId} in ${org?.name ?? "Sayr"}`
+			? descriptionText.trim().slice(0, 160) || `Task #${taskKey} in ${org?.name ?? "Sayr"}`
 			: undefined;
 
 		// Rich JSON-LD using schema.org Article type for better LLMO
@@ -168,7 +171,7 @@ export const Route = createFileRoute("/orgs/$orgSlug/$shortId/")({
 			? {
 					"@context": "https://schema.org",
 					"@type": "Article",
-					headline: `#${task.shortId} - ${task.title}`,
+					headline: `#${taskKey} - ${task.title}`,
 					name: task.title,
 					description: descriptionText.trim() || undefined,
 					url: `https://${org?.name?.toLowerCase().replace(/\s+/g, "-")}.sayr.io/${task.shortId}`,
@@ -202,12 +205,12 @@ export const Route = createFileRoute("/orgs/$orgSlug/$shortId/")({
 
 		return {
 			meta: seo({
-				title: task ? `#${task.shortId} - ${task.title} | ${org?.name}` : "Task Not Available",
+				title: task ? `#${taskKey} - ${task.title} | ${org?.name}` : "Task Not Available",
 				description: ogDescription,
 				image: task
 					? getOgImageUrl({
 							title: task.title || undefined,
-							subtitle: `#${task.shortId}`,
+							subtitle: `#${taskKey}`,
 							meta: org?.name || undefined,
 							logo: org?.logo || undefined,
 						})
@@ -264,7 +267,11 @@ function RouteComponent() {
 			<LLMOContent
 				type="task"
 				title={task.title ?? "Untitled Task"}
-				shortId={task.shortId ?? undefined}
+				shortId={
+					org?.shortId && task.shortId != null
+						? formatTaskKey(org.shortId, task.shortId)
+						: (task.shortId ?? undefined)
+				}
 				status={task.status}
 				priority={task.priority ?? undefined}
 				labels={task.labels?.map((l) => l.name)}

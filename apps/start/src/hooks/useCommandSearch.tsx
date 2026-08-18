@@ -1,5 +1,6 @@
 "use client";
 
+import { formatTaskKey } from "@repo/util";
 import { IconCircleFilled } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -46,7 +47,12 @@ export function useCommandSearch(query: string, isOpen: boolean) {
 							</span>
 						)}
 						{result.shortId != null && (
-							<span className="text-xs text-muted-foreground font-mono">#{result.shortId}</span>
+							<span className="text-xs text-muted-foreground font-mono">
+								#
+								{result.organizationShortId
+									? formatTaskKey(result.organizationShortId, result.shortId)
+									: result.shortId}
+							</span>
 						)}
 					</span>
 				),
@@ -61,7 +67,7 @@ export function useCommandSearch(query: string, isOpen: boolean) {
 				},
 			};
 		},
-		[navigate],
+		[navigate]
 	);
 
 	useEffect(() => {

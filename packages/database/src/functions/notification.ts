@@ -74,7 +74,7 @@ export async function getNotificationsForUser(
 		offset?: number;
 		unreadOnly?: boolean;
 		organizationId?: string;
-	},
+	}
 ): Promise<NotificationWithDetails[]> {
 	const limit = options?.limit ?? 50;
 	const offset = options?.offset ?? 0;
@@ -95,28 +95,21 @@ export async function getNotificationsForUser(
 	const allowedOrgIds = new Set(
 		memberships
 			.filter((m) => {
-				if (m.organization.plan !== "pro")
-					return true;
+				if (m.organization.plan !== "pro") return true;
 				return m.seatAssigned === true;
 			})
-			.map((m) => m.organizationId),
+			.map((m) => m.organizationId)
 	);
 
 	// If filtering by specific org, ensure it's allowed
-	if (
-		options?.organizationId &&
-		!allowedOrgIds.has(options.organizationId)
-	) {
+	if (options?.organizationId && !allowedOrgIds.has(options.organizationId)) {
 		return [];
 	}
 
 	const conditions = [
 		eq(notification.userId, userId),
 		eq(notification.archived, false),
-		inArray(
-			notification.organizationId,
-			Array.from(allowedOrgIds),
-		),
+		inArray(notification.organizationId, Array.from(allowedOrgIds)),
 	];
 
 	if (options?.unreadOnly) {
@@ -124,51 +117,46 @@ export async function getNotificationsForUser(
 	}
 
 	if (options?.organizationId) {
-		conditions.push(
-			eq(
-				notification.organizationId,
-				options.organizationId,
-			),
-		);
+		conditions.push(eq(notification.organizationId, options.organizationId));
 	}
 
-	const results =
-		await db.query.notification.findMany({
-			where: and(...conditions),
-			with: {
-				actor: {
-					columns: userSummaryColumns,
-				},
-				task: {
-					columns: {
-						id: true,
-						shortId: true,
-						title: true,
-						status: true,
-						priority: true,
-					},
-				},
-				organization: {
-					columns: {
-						id: true,
-						name: true,
-						slug: true,
-						logo: true,
-					},
-				},
-				timelineEvent: {
-					columns: {
-						id: true,
-						eventType: true,
-						fromValue: true,
-						toValue: true,
-					},
+	const results = await db.query.notification.findMany({
+		where: and(...conditions),
+		with: {
+			actor: {
+				columns: userSummaryColumns,
+			},
+			task: {
+				columns: {
+					id: true,
+					shortId: true,
+					title: true,
+					status: true,
+					priority: true,
 				},
 			},
-			orderBy: desc(notification.createdAt),
-			limit,
-			offset,
-		});
+			organization: {
+				columns: {
+					id: true,
+					name: true,
+					slug: true,
+					logo: true,
+					shortId: true,
+				},
+			},
+			timelineEvent: {
+				columns: {
+					id: true,
+					eventType: true,
+					fromValue: true,
+					toValue: true,
+				},
+			},
+		},
+		orderBy: desc(notification.createdAt),
+		limit,
+		offset,
+	});
 
 	return results as NotificationWithDetails[];
 }
@@ -176,10 +164,7 @@ export async function getNotificationsForUser(
 /**
  * Gets the unread notification count for a user.
  */
-export async function getUnreadNotificationCount(
-	userId: string,
-	organizationId?: string,
-): Promise<number> {
+export async function getUnreadNotificationCount(userId: string, organizationId?: string): Promise<number> {
 	const memberships = await db.query.member.findMany({
 		where: (member) => eq(member.userId, userId),
 		with: {
@@ -195,17 +180,13 @@ export async function getUnreadNotificationCount(
 	const allowedOrgIds = new Set(
 		memberships
 			.filter((m) => {
-				if (m.organization.plan !== "pro")
-					return true;
+				if (m.organization.plan !== "pro") return true;
 				return m.seatAssigned === true;
 			})
-			.map((m) => m.organizationId),
+			.map((m) => m.organizationId)
 	);
 
-	if (
-		organizationId &&
-		!allowedOrgIds.has(organizationId)
-	) {
+	if (organizationId && !allowedOrgIds.has(organizationId)) {
 		return 0;
 	}
 
@@ -213,16 +194,11 @@ export async function getUnreadNotificationCount(
 		eq(notification.userId, userId),
 		eq(notification.read, false),
 		eq(notification.archived, false),
-		inArray(
-			notification.organizationId,
-			Array.from(allowedOrgIds),
-		),
+		inArray(notification.organizationId, Array.from(allowedOrgIds)),
 	];
 
 	if (organizationId) {
-		conditions.push(
-			eq(notification.organizationId, organizationId),
-		);
+		conditions.push(eq(notification.organizationId, organizationId));
 	}
 
 	const [result] = await db
@@ -259,8 +235,8 @@ export async function markNotificationsReadByTask(userId: string, taskId: string
 				eq(notification.userId, userId),
 				eq(notification.taskId, taskId),
 				eq(notification.read, false),
-				eq(notification.archived, false),
-			),
+				eq(notification.archived, false)
+			)
 		)
 		.returning({ id: notification.id });
 
@@ -271,10 +247,7 @@ export async function markNotificationsReadByTask(userId: string, taskId: string
  * Marks all notifications as read for a user, optionally scoped to an org.
  */
 export async function markAllNotificationsRead(userId: string, organizationId?: string) {
-	const conditions = [
-		eq(notification.userId, userId),
-		eq(notification.read, false),
-	];
+	const conditions = [eq(notification.userId, userId), eq(notification.read, false)];
 
 	if (organizationId) {
 		conditions.push(eq(notification.organizationId, organizationId));

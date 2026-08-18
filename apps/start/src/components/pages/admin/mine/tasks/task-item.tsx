@@ -1,10 +1,7 @@
 import type { schema } from "@repo/database";
-import {
-	Avatar,
-	AvatarFallback,
-	AvatarImage,
-} from "@repo/ui/components/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
 import { cn } from "@repo/ui/lib/utils";
+import { formatTaskKey } from "@repo/util";
 import { IconUsers } from "@tabler/icons-react";
 import { InlineLabel } from "@/components/tasks/shared/inlinelabel";
 import { priorityConfig, statusConfig } from "@/components/tasks/shared/config";
@@ -26,11 +23,8 @@ export function TaskListItem({ task, isSelected, onClick }: TaskListItemProps) {
 			className={cn(
 				"flex flex-col gap-1.5 p-3 text-left hover:bg-accent transition-colors rounded-lg text-muted-foreground",
 				isSelected && "bg-secondary hover:bg-secondary text-foreground",
-				task.priority === "urgent" &&
-					"bg-destructive/10 hover:bg-destructive/20",
-				isSelected &&
-					task.priority === "urgent" &&
-					"bg-destructive/20 hover:bg-destructive/20",
+				task.priority === "urgent" && "bg-destructive/10 hover:bg-destructive/20",
+				isSelected && task.priority === "urgent" && "bg-destructive/20 hover:bg-destructive/20"
 			)}
 		>
 			{/* Organization badge */}
@@ -40,11 +34,7 @@ export function TaskListItem({ task, isSelected, onClick }: TaskListItemProps) {
 						className="shrink"
 						icon={
 							<Avatar className="h-4 w-4">
-								<AvatarImage
-									src={task.organization.logo || ""}
-									alt={task.organization.name}
-									className=""
-								/>
+								<AvatarImage src={task.organization.logo || ""} alt={task.organization.name} className="" />
 								<AvatarFallback className="rounded-md uppercase text-xs">
 									<IconUsers className="h-4 w-4" />
 								</AvatarFallback>
@@ -53,27 +43,23 @@ export function TaskListItem({ task, isSelected, onClick }: TaskListItemProps) {
 						text={task.organization.name}
 					/>
 
-					<span className="text-xs text-muted-foreground">#{task.shortId}</span>
+					<span className="text-xs text-muted-foreground">
+						#{formatTaskKey(task.organization.shortId, task.shortId)}
+					</span>
 					{/* meta */}
 					<div className="flex items-center gap-2 text-xs ml-auto shrink-0">
 						{status && (
-							<div className="flex items-center gap-1">
-								{status.icon(cn(status.className, "size-4"))}
-							</div>
+							<div className="flex items-center gap-1">{status.icon(cn(status.className, "size-4"))}</div>
 						)}
 						{priority && task.priority !== "none" && (
-							<div className="flex items-center gap-1">
-								{priority.icon(cn(priority.className, "size-4"))}
-							</div>
+							<div className="flex items-center gap-1">{priority.icon(cn(priority.className, "size-4"))}</div>
 						)}
 					</div>
 				</div>
 			)}
 
 			{/* Title */}
-			<p className="text-sm font-medium line-clamp-1 ps-1.5">
-				{task.title || "Untitled"}
-			</p>
+			<p className="text-sm font-medium line-clamp-1 ps-1.5">{task.title || "Untitled"}</p>
 		</button>
 	);
 }

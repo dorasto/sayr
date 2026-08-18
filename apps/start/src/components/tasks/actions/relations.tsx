@@ -1,5 +1,6 @@
 import type { schema } from "@repo/database";
 import StatusIcon from "@repo/ui/components/icons/status";
+import { formatTaskKey } from "@repo/util";
 import { IconArrowUpRight, IconCopy, IconLink } from "@tabler/icons-react";
 import { createTaskRelationAction } from "@/lib/fetches/task";
 import type { FieldOption, RelationFieldUpdatePayload } from "./types";
@@ -42,12 +43,13 @@ export function getRelationTypeOptions(): FieldOption<RelationType>[] {
 export function getRelationTargetOptions(
 	task: schema.TaskWithLabels,
 	tasks: schema.TaskWithLabels[],
+	orgShortId?: string
 ): FieldOption<string>[] {
 	return tasks
 		.filter((t) => t.id !== task.id)
 		.map((t) => ({
 			id: t.id,
-			label: `#${t.shortId} ${t.title}`,
+			label: `#${orgShortId ? formatTaskKey(orgShortId, t.shortId) : t.shortId} ${t.title}`,
 			icon: <StatusIcon status={t.status} className="h-4 w-4" />,
 			value: t.id,
 			keywords: `${t.title} ${t.shortId}`,
@@ -63,9 +65,12 @@ export function getRelationUpdatePayload(
 	type: RelationType,
 	tasks: schema.TaskWithLabels[],
 	sseClientId: string,
+	orgShortId?: string
 ): RelationFieldUpdatePayload {
 	const targetTask = tasks.find((t) => t.id === targetTaskId);
-	const shortIdLabel = targetTask ? `#${targetTask.shortId}` : targetTaskId;
+	const shortIdLabel = targetTask
+		? `#${orgShortId ? formatTaskKey(orgShortId, targetTask.shortId) : targetTask.shortId}`
+		: targetTaskId;
 
 	return {
 		kind: "relation",
