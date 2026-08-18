@@ -227,8 +227,12 @@ export function IndentDrawerContent({
 						"max-md:data-starting-style:transform-[translateY(100%)]",
 						"max-md:data-ending-style:transform-[translateY(100%)]",
 						// desktop: floating card, inset from every edge by the
-						// Viewport's padding above.
-						"md:w-(--indent-drawer-width) md:rounded-xl md:shadow-2xl",
+						// Viewport's padding above. shadow-lg (not -2xl) on purpose —
+						// matches every other floating surface in this app (Popover,
+						// DropdownMenu, Sheet all cap at shadow-md/-lg); shadow-2xl
+						// read as visibly heavier than the rest of the UI's flatter,
+						// borderless-in-dark-mode look and stood out as "off".
+						"md:w-(--indent-drawer-width) md:rounded-xl",
 						"md:transform-[translateX(var(--drawer-swipe-movement-x))]",
 						side === "left"
 							? "md:data-ending-style:transform-[translateX(-100%)] md:data-starting-style:transform-[translateX(-100%)]"
