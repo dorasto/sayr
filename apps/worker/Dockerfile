@@ -6,14 +6,16 @@ RUN npm install -g turbo
 COPY . .
 RUN turbo prune worker --docker
 
-FROM oven/bun:1 AS installer
+# Official Node 22 image (same Debian release — trixie — as oven/bun:1 below,
+# so the bun binary copied in next is glibc-compatible) instead of apt-get'ing
+# Debian's own "nodejs" package, which lags behind and is too old for pnpm's
+# engine requirement (>=22.13).
+FROM node:22-trixie-slim AS installer
+COPY --from=oven/bun:1 /usr/local/bin/bun /usr/local/bin/bun
 WORKDIR /app
 
-# Install dependencies
-RUN apt-get update && apt-get install -y nodejs npm
-
-# Install pnpm
-RUN npm install -g pnpm
+# Install pnpm via corepack (ships with Node) — matches the zerops.yml build path
+RUN corepack enable && corepack prepare pnpm@latest --activate
 
 # Copy lockfile and package.json's of isolated subworkspace
 COPY --from=builder /app/out/json/ .
