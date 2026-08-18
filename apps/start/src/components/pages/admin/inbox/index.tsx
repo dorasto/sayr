@@ -1,11 +1,7 @@
 import type { schema } from "@repo/database";
 import { Badge } from "@repo/ui/components/badge";
 import { Button } from "@repo/ui/components/button";
-import {
-  ResizableHandle,
-  ResizablePanel,
-  ResizablePanelGroup,
-} from "@repo/ui/components/resizable";
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@repo/ui/components/resizable";
 import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
 import { sendWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
 import { cn } from "@repo/ui/lib/utils";
@@ -15,10 +11,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLayoutData } from "@/components/generic/Context";
 import { PageHeader } from "@/components/generic/PageHeader";
 import { useInbox } from "@/contexts/ContextInbox";
-import {
-  useWSMessageHandler,
-  type WSMessageHandler,
-} from "@/hooks/useWSMessageHandler";
+import { useWSMessageHandler, type WSMessageHandler } from "@/hooks/useWSMessageHandler";
 import { markAllNotificationsReadAction } from "@/lib/fetches/notification";
 import { getTaskByIdForInbox } from "@/lib/serverFunctions/getTaskByIdForInbox";
 import { TaskDetailCompact } from "@/components/tasks/task/task-detail-compact";
@@ -28,351 +21,332 @@ import { ServerEventMessage } from "@/lib/serverEvents";
 import { useServerEventsSubscription } from "@/hooks/useServerEventsSubscription";
 
 export default function InboxPage() {
-  const queryClient = useQueryClient();
-  queryClient.removeQueries({ queryKey: ["organization"] });
-  const { serverEvents, account } = useLayoutData();
-  const {
-    tasks,
-    setTasks,
-    labels,
-    setLabels,
-    categories,
-    setCategories,
-    releases,
-    notifications,
-    setNotifications,
-    unreadCount,
-    setUnreadCount,
-    refreshNotifications,
-    permissionsByOrg,
-  } = useInbox();
+	const queryClient = useQueryClient();
+	queryClient.removeQueries({ queryKey: ["organization"] });
+	const { serverEvents, account } = useLayoutData();
+	const {
+		tasks,
+		setTasks,
+		labels,
+		setLabels,
+		categories,
+		setCategories,
+		releases,
+		notifications,
+		setNotifications,
+		unreadCount,
+		setUnreadCount,
+		refreshNotifications,
+		permissionsByOrg,
+	} = useInbox();
 
-  const handleMarkAllRead = async () => {
-    setNotifications(notifications.map((n) => ({ ...n, read: true })));
-    setUnreadCount(0);
-    const result = await markAllNotificationsReadAction();
-    if (!result.success) {
-      refreshNotifications();
-    }
-  };
-  const [selectedTask, setSelectedTask] =
-    useState<schema.TaskWithLabels | null>(null);
-  const [selectedNotificationId, setSelectedNotificationId] = useState<
-    string | null
-  >(null);
-  useServerEventsSubscription({ serverEvents });
+	const handleMarkAllRead = async () => {
+		setNotifications(notifications.map((n) => ({ ...n, read: true })));
+		setUnreadCount(0);
+		const result = await markAllNotificationsReadAction();
+		if (!result.success) {
+			refreshNotifications();
+		}
+	};
+	const [selectedTask, setSelectedTask] = useState<schema.TaskWithLabels | null>(null);
+	const [selectedNotificationId, setSelectedNotificationId] = useState<string | null>(null);
+	useServerEventsSubscription({ serverEvents });
 
-  // Get unique organizations from tasks for filtering
-  const organizations = useMemo(() => {
-    return Array.from(
-      new Map(
-        tasks
-          .filter((t) => t.organization)
-          .map((t) => [t.organization!.id, t.organization!]),
-      ).values(),
-    );
-  }, [tasks]);
+	// Get unique organizations from tasks for filtering
+	const organizations = useMemo(() => {
+		return Array.from(
+			new Map(tasks.filter((t) => t.organization).map((t) => [t.organization!.id, t.organization!])).values()
+		);
+	}, [tasks]);
 
-  // Handle selecting a task from the notification list
-  const handleNotificationSelectTask = useCallback(
-    async (taskId: string, orgId: string, notificationId: string) => {
-      // Toggle selection if clicking the same notification
-      if (selectedNotificationId === notificationId) {
-        setSelectedTask(null);
-        setSelectedNotificationId(null);
-        return;
-      }
-      setSelectedNotificationId(notificationId);
-      const found = tasks.find((t) => t.id === taskId);
-      if (found) {
-        setSelectedTask(found);
-        return;
-      }
-      // Task not in local list (e.g. user was mentioned but not assigned)
-      // Fetch it from the server
-      try {
-        const result = await getTaskByIdForInbox({
-          data: { accountId: account.id, orgId, taskId },
-        });
-        if (result.task) {
-          setSelectedTask(result.task);
-        }
-      } catch {
-        // Task may have been deleted or user lost access
-      }
-    },
-    [tasks, selectedNotificationId, account.id],
-  );
+	// Handle selecting a task from the notification list
+	const handleNotificationSelectTask = useCallback(
+		async (taskId: string, orgId: string, notificationId: string) => {
+			// Toggle selection if clicking the same notification
+			if (selectedNotificationId === notificationId) {
+				setSelectedTask(null);
+				setSelectedNotificationId(null);
+				return;
+			}
+			setSelectedNotificationId(notificationId);
+			const found = tasks.find((t) => t.id === taskId);
+			if (found) {
+				setSelectedTask(found);
+				return;
+			}
+			// Task not in local list (e.g. user was mentioned but not assigned)
+			// Fetch it from the server
+			try {
+				const result = await getTaskByIdForInbox({
+					data: { accountId: account.id, orgId, taskId },
+				});
+				if (result.task) {
+					setSelectedTask(result.task);
+				}
+			} catch {
+				// Task may have been deleted or user lost access
+			}
+		},
+		[tasks, selectedNotificationId, account.id]
+	);
 
-  const handlers: WSMessageHandler<ServerEventMessage> = {
-    UPDATE_TASK: (msg) => {
-      const org = organizations.find((e) => e.id === msg.data.organizationId);
+	const handlers: WSMessageHandler<ServerEventMessage> = {
+		UPDATE_TASK: (msg) => {
+			const org = organizations.find((e) => e.id === msg.data.organizationId);
 
-      const updatedTask: schema.TaskWithLabels = {
-        ...msg.data,
-        ...(org && {
-          organization: {
-            id: org.id,
-            name: org.name,
-            slug: org.slug,
-            logo: org.logo,
-          },
-        }),
-      };
+			const updatedTask: schema.TaskWithLabels = {
+				...msg.data,
+				...(org && {
+					organization: {
+						id: org.id,
+						name: org.name,
+						slug: org.slug,
+						logo: org.logo,
+					},
+				}),
+			};
 
-      const isUserInList = updatedTask.assignees?.some(
-        (user) => user.id === account.id,
-      );
+			const isUserInList = updatedTask.assignees?.some((user) => user.id === account.id);
 
-      const taskExists = tasks.some((task) => task.id === updatedTask.id);
+			const taskExists = tasks.some((task) => task.id === updatedTask.id);
 
-      let newTasks: schema.TaskWithLabels[];
+			let newTasks: schema.TaskWithLabels[];
 
-      if (isUserInList) {
-        newTasks = taskExists
-          ? tasks.map((task) =>
-            task.id === updatedTask.id ? updatedTask : task,
-          )
-          : [...tasks, updatedTask];
-      } else {
-        newTasks = tasks.filter((task) => task.id !== updatedTask.id);
-      }
+			if (isUserInList) {
+				newTasks = taskExists
+					? tasks.map((task) => (task.id === updatedTask.id ? updatedTask : task))
+					: [...tasks, updatedTask];
+			} else {
+				newTasks = tasks.filter((task) => task.id !== updatedTask.id);
+			}
 
-      setTasks(newTasks);
+			setTasks(newTasks);
 
-      // Update the selected task with latest data (even if not assigned,
-      // e.g. opened via a mention notification)
-      if (selectedTask?.id === updatedTask.id) {
-        setSelectedTask(updatedTask);
-      }
-      sendWindowMessage(
-        window,
-        {
-          type: "timeline-update",
-          payload: updatedTask.id,
-        },
-        "*",
-      );
-    },
-    CREATE_TASK: (msg) => {
-      if (msg.data.assignees.find((e: { id: string }) => e.id === account.id)) {
-        setTasks([...tasks, msg.data]);
-      }
-    },
-    UPDATE_LABELS: (msg) => {
-      if (msg.scope === "INDIVIDUAL") {
-        const newLabels = msg.data;
-        if (!Array.isArray(newLabels)) return;
+			// Update the selected task with latest data (even if not assigned,
+			// e.g. opened via a mention notification)
+			if (selectedTask?.id === updatedTask.id) {
+				setSelectedTask(updatedTask);
+			}
+			sendWindowMessage(
+				window,
+				{
+					type: "timeline-update",
+					payload: updatedTask.id,
+				},
+				"*"
+			);
+		},
+		CREATE_TASK: (msg) => {
+			if (msg.data.assignees.find((e: { id: string }) => e.id === account.id)) {
+				setTasks([...tasks, msg.data]);
+			}
+		},
+		UPDATE_LABELS: (msg) => {
+			if (msg.scope === "INDIVIDUAL") {
+				const newLabels = msg.data;
+				if (!Array.isArray(newLabels)) return;
 
-        const orgId = msg.meta?.orgId || newLabels[0]?.organizationId;
-        if (!orgId) return;
+				const orgId = msg.meta?.orgId || newLabels[0]?.organizationId;
+				if (!orgId) return;
 
-        const updatedList = labels.filter(
-          (label) => label.organizationId !== orgId,
-        );
-        const newList = [...updatedList, ...newLabels];
-        setLabels(newList);
-      }
-    },
-    UPDATE_CATEGORIES: (msg) => {
-      if (msg.scope === "INDIVIDUAL") {
-        const newCategories = msg.data;
-        if (!Array.isArray(newCategories)) return;
+				const updatedList = labels.filter((label) => label.organizationId !== orgId);
+				const newList = [...updatedList, ...newLabels];
+				setLabels(newList);
+			}
+		},
+		UPDATE_CATEGORIES: (msg) => {
+			if (msg.scope === "INDIVIDUAL") {
+				const newCategories = msg.data;
+				if (!Array.isArray(newCategories)) return;
 
-        const orgId = msg.meta?.orgId || newCategories[0]?.organizationId;
-        if (!orgId) return;
+				const orgId = msg.meta?.orgId || newCategories[0]?.organizationId;
+				if (!orgId) return;
 
-        const updatedList = categories.filter(
-          (cat) => cat.organizationId !== orgId,
-        );
-        const newList = [...updatedList, ...newCategories];
-        setCategories(newList);
-      }
-    },
-    UPDATE_TASK_COMMENTS: async (msg) => {
-      if (msg.scope === "INDIVIDUAL" && msg.data.id === selectedTask?.id) {
-        sendWindowMessage(
-          window,
-          {
-            type: "timeline-update-comment",
-            payload: msg.data.id,
-          },
-          "*",
-        );
-      }
-    },
-    UPDATE_TASK_VOTE: async (msg) => {
-      if (msg.scope === "INDIVIDUAL" && msg.meta?.orgId) {
-        const { id, voteCount } = msg.data;
-        const updatedTasks = tasks.map((task) =>
-          task.id === id && task.organizationId === msg.meta?.orgId
-            ? {
-              ...task,
-              voteCount,
-            }
-            : task,
-        );
-        setTasks(updatedTasks);
-        if (selectedTask?.id === id) {
-          setSelectedTask({
-            ...selectedTask,
-            voteCount,
-          });
-        }
-        sendWindowMessage(
-          window,
-          {
-            type: "update-votes",
-            payload: msg.meta?.orgId,
-          },
-          "*",
-        );
-      }
-    },
-    NEW_NOTIFICATION: (_msg) => {
-      // Refresh from server to get full notification details (actor, task, org relations)
-      refreshNotifications();
-    },
-    NOTIFICATION_READ: (msg) => {
-      if (msg.data.all) {
-        // Mark all as read
-        setNotifications(notifications.map((n) => ({ ...n, read: true })));
-        setUnreadCount(0);
-      } else if (msg.data.taskId) {
-        // Mark all notifications for a specific task as read
-        let markedCount = 0;
-        setNotifications(
-          notifications.map((n) => {
-            if (n.task.id === msg.data.taskId && !n.read) {
-              markedCount++;
-              return { ...n, read: true };
-            }
-            return n;
-          }),
-        );
-        if (markedCount > 0) {
-          setUnreadCount(Math.max(0, unreadCount - markedCount));
-        }
-      } else if (msg.data.id) {
-        // Mark single as read
-        setNotifications(
-          notifications.map((n) =>
-            n.id === msg.data.id ? { ...n, read: true } : n,
-          ),
-        );
-        setUnreadCount(Math.max(0, unreadCount - 1));
-      }
-    },
-  };
+				const updatedList = categories.filter((cat) => cat.organizationId !== orgId);
+				const newList = [...updatedList, ...newCategories];
+				setCategories(newList);
+			}
+		},
+		UPDATE_TASK_COMMENTS: async (msg) => {
+			if (msg.scope === "INDIVIDUAL" && msg.data.id === selectedTask?.id) {
+				sendWindowMessage(
+					window,
+					{
+						type: "timeline-update-comment",
+						payload: msg.data.id,
+					},
+					"*"
+				);
+			}
+		},
+		UPDATE_TASK_VOTE: async (msg) => {
+			if (msg.scope === "INDIVIDUAL" && msg.meta?.orgId) {
+				const { id, voteCount } = msg.data;
+				const updatedTasks = tasks.map((task) =>
+					task.id === id && task.organizationId === msg.meta?.orgId
+						? {
+								...task,
+								voteCount,
+							}
+						: task
+				);
+				setTasks(updatedTasks);
+				if (selectedTask?.id === id) {
+					setSelectedTask({
+						...selectedTask,
+						voteCount,
+					});
+				}
+				sendWindowMessage(
+					window,
+					{
+						type: "update-votes",
+						payload: msg.meta?.orgId,
+					},
+					"*"
+				);
+			}
+		},
+		NEW_NOTIFICATION: (_msg) => {
+			// Refresh from server to get full notification details (actor, task, org relations)
+			refreshNotifications();
+		},
+		NOTIFICATION_READ: (msg) => {
+			if (msg.data.all) {
+				// Mark all as read
+				setNotifications(notifications.map((n) => ({ ...n, read: true })));
+				setUnreadCount(0);
+			} else if (msg.data.taskId) {
+				// Mark all notifications for a specific task as read
+				let markedCount = 0;
+				setNotifications(
+					notifications.map((n) => {
+						if (n.task.id === msg.data.taskId && !n.read) {
+							markedCount++;
+							return { ...n, read: true };
+						}
+						return n;
+					})
+				);
+				if (markedCount > 0) {
+					setUnreadCount(Math.max(0, unreadCount - markedCount));
+				}
+			} else if (msg.data.id) {
+				// Mark single as read
+				setNotifications(notifications.map((n) => (n.id === msg.data.id ? { ...n, read: true } : n)));
+				setUnreadCount(Math.max(0, unreadCount - 1));
+			}
+		},
+	};
 
-  const handleMessage = useWSMessageHandler<ServerEventMessage>(handlers, {
-    // onUnhandled: (msg) => console.warn("[UNHANDLED MESSAGE InboxPage]", msg),
-  });
+	const handleMessage = useWSMessageHandler<ServerEventMessage>(handlers, {
+		// onUnhandled: (msg) => console.warn("[UNHANDLED MESSAGE InboxPage]", msg),
+	});
 
-  useEffect(() => {
-    if (!serverEvents.event) return;
-    serverEvents.event.addEventListener("message", handleMessage);
-    return () => {
-      serverEvents.event?.removeEventListener("message", handleMessage);
-    };
-  }, [serverEvents.event, handleMessage]);
+	useEffect(() => {
+		if (!serverEvents.event) return;
+		serverEvents.event.addEventListener("message", handleMessage);
+		return () => {
+			serverEvents.event?.removeEventListener("message", handleMessage);
+		};
+	}, [serverEvents.event, handleMessage]);
 
-  const isMobile = useIsMobile();
+	const isMobile = useIsMobile();
 
-  const leftPanelContent = (
-    <div className="flex-1 overflow-hidden h-full min-h-0 flex flex-col">
-      <NotificationList
-        onSelectTask={handleNotificationSelectTask}
-        selectedNotificationId={selectedNotificationId}
-      />
-    </div>
-  );
+	const leftPanelContent = (
+		<div className="flex-1 overflow-hidden h-full min-h-0 flex flex-col">
+			<NotificationList
+				onSelectTask={handleNotificationSelectTask}
+				selectedNotificationId={selectedNotificationId}
+			/>
+		</div>
+	);
 
-  return (
-    <div className="relative flex flex-col h-full max-h-full overflow-hidden">
-      {isMobile ? (
-        <>
-          <PageHeader>
-            <PageHeader.Identity
-              icon={<IconNotification className="size-4" />}
-              title="Inbox"
-              actions={
-                <>
-                  {unreadCount > 0 && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 text-xs gap-1"
-                      onClick={handleMarkAllRead}
-                    >
-                      <IconChecks className="size-3.5" />
-                      Mark all read
-                    </Button>
-                  )}
-                </>
-              }
-            />
-          </PageHeader>
-          {leftPanelContent}
-        </>
-      ) : (
-        <ResizablePanelGroup direction="horizontal" className="h-full">
-          {/* Left panel - Notification list */}
-          <ResizablePanel defaultSize={25} minSize={10} maxSize={30}>
-            <div className="flex flex-col h-full">
-              <div className="flex items-center gap-2 h-11 px-3 shrink-0 border-b">
-                <IconNotification className="size-4 shrink-0" />
-                <span className="text-xs font-medium truncate">Inbox</span>
+	return (
+		<div className="relative flex flex-col h-full max-h-full overflow-hidden">
+			{isMobile ? (
+				<>
+					<PageHeader>
+						<PageHeader.Identity
+							icon={<IconNotification className="size-4" />}
+							title="Inbox"
+							actions={
+								<>
+									{unreadCount > 0 && (
+										<Button
+											variant="ghost"
+											size="sm"
+											className="h-7 text-xs gap-1"
+											onClick={handleMarkAllRead}
+										>
+											<IconChecks className="size-3.5" />
+											Mark all read
+										</Button>
+									)}
+								</>
+							}
+						/>
+					</PageHeader>
+					{leftPanelContent}
+				</>
+			) : (
+				<ResizablePanelGroup direction="horizontal" className="h-full">
+					{/* Left panel - Notification list */}
+					<ResizablePanel defaultSize={25} minSize={10} maxSize={30}>
+						<div className="flex flex-col h-full">
+							<div className="flex items-center gap-2 h-11 px-3 shrink-0 border-b">
+								<IconNotification className="size-4 shrink-0" />
+								<span className="text-xs font-medium truncate">Inbox</span>
 
-                <div className="flex items-center gap-1 shrink-0 ml-auto">
-                  {unreadCount > 0 && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 text-xs gap-1"
-                      onClick={handleMarkAllRead}
-                    >
-                      <IconChecks className="size-3.5" />
-                      Mark all read
-                    </Button>
-                  )}
-                </div>
-              </div>
-              {leftPanelContent}
-            </div>
-          </ResizablePanel>
+								<div className="flex items-center gap-1 shrink-0 ml-auto">
+									{unreadCount > 0 && (
+										<Button
+											variant="ghost"
+											size="sm"
+											className="h-7 text-xs gap-1"
+											onClick={handleMarkAllRead}
+										>
+											<IconChecks className="size-3.5" />
+											Mark all read
+										</Button>
+									)}
+								</div>
+							</div>
+							{leftPanelContent}
+						</div>
+					</ResizablePanel>
 
-          <ResizableHandle />
+					<ResizableHandle />
 
-          {/* Right panel - Task detail */}
-          <ResizablePanel defaultSize={75}>
-            <div
-              className={cn(
-                "flex-1 overflow-y-auto h-full flex flex-col relative",
-              )}
-            >
-              {selectedTask ? (
-                <TaskDetailCompact
-                  task={selectedTask}
-                  tasks={tasks}
-                  setTasks={setTasks}
-                  setSelectedTask={setSelectedTask}
-                  labels={labels}
-                  categories={categories}
-                  releases={releases}
-                  fieldPermissions={getTaskFieldPermissions(
-                    selectedTask,
-                    account.id,
-                    permissionsByOrg[selectedTask.organizationId],
-                  )}
-                />
-              ) : (
-                <div className="flex items-center justify-center h-full text-muted-foreground" />
-              )}
-            </div>
-          </ResizablePanel>
-        </ResizablePanelGroup>
-      )}
-    </div>
-  );
+					{/* Right panel - Task detail */}
+					<ResizablePanel defaultSize={75}>
+						<div className={cn("flex-1 overflow-y-auto h-full flex flex-col relative")}>
+							{selectedTask ? (
+								<TaskDetailCompact
+									task={selectedTask}
+									tasks={tasks}
+									setTasks={setTasks}
+									setSelectedTask={setSelectedTask}
+									labels={labels}
+									categories={categories}
+									releases={releases}
+									fieldPermissions={getTaskFieldPermissions(
+										selectedTask,
+										account.id,
+										permissionsByOrg[selectedTask.organizationId]
+									)}
+								/>
+							) : (
+								<div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+									<IconNotification className="size-8 mb-2 opacity-50" />
+									<p className="text-sm">No task selected</p>
+									<p className="text-xs mt-1">Pick a notification to view its task</p>
+								</div>
+							)}
+						</div>
+					</ResizablePanel>
+				</ResizablePanelGroup>
+			)}
+		</div>
+	);
 }
