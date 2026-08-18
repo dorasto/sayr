@@ -282,7 +282,7 @@ These use `cross-env` to set `SAYR_EDITION` and `VITE_SAYR_EDITION`, passed thro
 1. **Never import `@repo/edition` in client-side React components** -- it uses `process.env`. Use `import.meta.env.VITE_SAYR_EDITION` instead.
 2. **Server-side code** (backend, loaders, server functions) should import from `@repo/edition` directly.
 3. **Resource limits are always checked server-side** -- frontend checks are for UX only (hiding buttons), never for enforcement.
-4. **Self-hosted editions get unlimited resources** -- only edition-level capabilities (like max orgs) are restricted on CE.
+4. **Self-hosted editions get unlimited resources except `members`**, which is capped at 1000/org even on CE/Enterprise (see the Plan limits table below) -- everything else in `PlanLimits` is `null` (unlimited) for self-hosted; only edition-level capabilities (like max orgs on CE) are otherwise restricted.
 5. **Enterprise uses community images** -- never create separate enterprise Docker images.
 6. **The `SAYR_EDITION_BAKED` build arg must appear BEFORE `pnpm build`** in Dockerfiles so it's compiled into the bundle.
 7. **`null` means unlimited** in both `PlanLimits` and `EditionCapabilities`.

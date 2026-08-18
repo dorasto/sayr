@@ -126,7 +126,7 @@ function PublicLayout() {
   const { organization, labels, categories, issueTemplates } =
     Route.useLoaderData();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  // Detail pages (release detail, task shortId) manage their own internal scroll via PanelWrapper
+  // Detail pages (release detail, task shortId) manage their own internal scroll via Page
   const isPanelPage =
     /\/releases\/[^/]+/.test(pathname) || /\/orgs\/[^/]+\/\d+/.test(pathname);
 

@@ -1,6 +1,17 @@
 /** biome-ignore-all lint/suspicious/noExplicitAny: <allow any> */
 import { type UseQueryResult, useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useMemo } from "react";
+
+// Shared across every useStateManagementInfiniteFetch call so `data` falls
+// back to the SAME empty array reference during loading, instead of a
+// fresh `[]` literal every render. A fresh literal there is a real,
+// confirmed bug: any consumer deriving a useMemo/useEffect dependency from
+// `value.data` while loading gets a changing dependency on every render,
+// which can cascade into "Maximum update depth exceeded" if that effect
+// also writes state something else subscribes to (reproduced live via
+// ReleasesChangelog → setPanelContent → sidebar store → re-render loop).
+const EMPTY_ARRAY: never[] = [];
+
 export interface UseStateManagementResult<T> {
 	value: T;
 	setValue: (newValue: T) => void;
@@ -109,14 +120,12 @@ export function useStateManagementKey<T>(
 	};
 }
 
-export function useReadOnlyStateManagementKey<T>(
-	key: string[],
-) {
+export function useReadOnlyStateManagementKey<T>(key: string[]) {
 	// MUST memo key
 	const queryKey = useMemo(() => key, [...key]);
 	const { data } = useQuery<T>({
 		queryKey,
-		enabled: false, // critical: read-only mode 
+		enabled: false, // critical: read-only mode
 		queryFn: () => {
 			throw new Error("Should never fetch in read-only hook");
 		},
@@ -417,7 +426,7 @@ export function useStateManagementInfiniteFetch<TypePage, TypeMutate = any>({
 	// --- Unified Return (mirrors useStateManagementFetch) ---
 	const result = {
 		value: {
-			data: fetchingData.data?.pages ?? [],
+			data: fetchingData.data?.pages ?? EMPTY_ARRAY,
 			isLoading: fetchingData.isLoading,
 			isError: fetchingData.isError,
 			isFetching: fetchingData.isFetching,

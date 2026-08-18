@@ -1,5 +1,6 @@
 import type { schema } from "@repo/database";
 import type { ReactNode } from "react";
+import type { TaskSortDirection, TaskSortField } from "./sort-config";
 
 export type TaskGroupingId = "status" | "assignee" | "priority" | "category" | "release";
 
@@ -36,6 +37,9 @@ export interface TaskViewState {
 	subGrouping?: TaskGroupingId | "none";
 	showCompletedTasks: boolean;
 	viewMode: "list" | "kanban";
+	/** Undefined/"none" means no explicit sort — tasks stay in fetch order. */
+	sortBy?: TaskSortField | "none";
+	sortDirection?: TaskSortDirection;
 }
 
 export const TASK_VIEW_STATE_KEY = "task-view";
@@ -45,6 +49,8 @@ export const DEFAULT_TASK_VIEW_STATE: TaskViewState = {
 	subGrouping: "none",
 	showCompletedTasks: false,
 	viewMode: "list",
+	sortBy: "none",
+	sortDirection: "asc",
 };
 // Clean-slate operator set
 export type FilterOperator =

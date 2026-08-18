@@ -19,6 +19,7 @@ import { getFieldConfig, isMultiCondition } from "./multi-select";
 import { NewViewPopover } from "./NewView";
 import { getOperatorLabel } from "./operators"; // re-exported below
 import { serializeFilters } from "./serialization";
+import { DEFAULT_TASK_VIEW_STATE } from "./types";
 
 interface Props {
 	tasks: schema.TaskWithLabels[];
@@ -114,13 +115,39 @@ export function TaskFilterDropdown({
 			groupBy: viewConfig.grouping,
 			subGroupBy: viewConfig.subGrouping === "none" ? undefined : viewConfig.subGrouping,
 			showCompletedTasks: viewConfig.showCompletedTasks,
+			sortBy: viewConfig.sortBy ?? "none",
+			sortDirection: viewConfig.sortDirection ?? "asc",
 		}),
+		[viewConfig]
+	);
+
+	// Whether the view config (sort/grouping/mode/etc.) still matches the
+	// stock default — used below alongside activeFiltersCount so a
+	// sort-only or grouping-only change (no filters added) still surfaces
+	// Save. Comparing against activeFiltersCount alone predates sortBy
+	// being part of the saveable view config.
+	const isDefaultViewConfig = useMemo(
+		() =>
+			viewConfig.grouping === DEFAULT_TASK_VIEW_STATE.grouping &&
+			(viewConfig.subGrouping ?? "none") === DEFAULT_TASK_VIEW_STATE.subGrouping &&
+			viewConfig.showCompletedTasks === DEFAULT_TASK_VIEW_STATE.showCompletedTasks &&
+			viewConfig.viewMode === DEFAULT_TASK_VIEW_STATE.viewMode &&
+			(viewConfig.sortBy ?? "none") === DEFAULT_TASK_VIEW_STATE.sortBy &&
+			(viewConfig.sortDirection ?? "asc") === DEFAULT_TASK_VIEW_STATE.sortDirection,
 		[viewConfig]
 	);
 
 	const showNewViewPopover = useMemo(() => {
 		// Don't show if no org context (cross-org mode) or no setViews
 		if (!organizationId || !setViews || !views) return false;
+		// Don't show with no active filters AND nothing else changed from the
+		// stock default — the unfiltered, unmodified "All tasks" state never
+		// matches any saved view's filterParams (views always have at least
+		// one condition), so without this check Save showed constantly on the
+		// default view with nothing to save. Confirmed live + reported in
+		// https://platform.sayr.io/20. A sort/grouping-only change with zero
+		// filters still has something to save, so it isn't gated out here.
+		if (activeFiltersCount === 0 && isDefaultViewConfig) return false;
 		// Don't show if a view with these exact filters AND config already exists
 		const viewExists = views.some((view) => {
 			const filtersMatch = view.filterParams === currentFiltersString;
@@ -131,12 +158,22 @@ export function TaskFilterDropdown({
 				config.mode === currentViewConfig.mode &&
 				config.groupBy === currentViewConfig.groupBy &&
 				config.subGroupBy === currentViewConfig.subGroupBy &&
-				config.showCompletedTasks === currentViewConfig.showCompletedTasks;
+				config.showCompletedTasks === currentViewConfig.showCompletedTasks &&
+				(config.sortBy ?? "none") === currentViewConfig.sortBy &&
+				(config.sortDirection ?? "asc") === currentViewConfig.sortDirection;
 
 			return filtersMatch && configMatch;
 		});
 		return !viewExists;
-	}, [organizationId, setViews, views, currentFiltersString, currentViewConfig]);
+	}, [
+		organizationId,
+		setViews,
+		views,
+		activeFiltersCount,
+		isDefaultViewConfig,
+		currentFiltersString,
+		currentViewConfig,
+	]);
 
 	const handleFilterAdd = (field: string, operator: FilterOperator, value: string) => {
 		hookAddFilter({
@@ -217,25 +254,29 @@ export function TaskFilterDropdown({
 					className="gap-1 h-6 w-6 bg-accent border-transparent p-1 relative"
 				/>
 			)}
-		{showNewViewPopover && canCreateView && (
-			<NewViewPopover
-				organizationId={organizationId!}
-				setViews={setViews!}
-				currentFilters={currentFiltersString}
-				viewConfig={currentViewConfig}
-			/>
-		)}
-		{showNewViewPopover && !canCreateView && (
-			<Tooltip>
-				<TooltipTrigger asChild>
-					<Button variant="accent" className="gap-2 h-6 w-fit p-1 text-xs opacity-60 cursor-not-allowed" disabled>
-						<IconLock className="w-4 h-4" />
-						Save
-					</Button>
-				</TooltipTrigger>
-				<TooltipContent>{viewLimitMessage || "Upgrade your plan to save more views"}</TooltipContent>
-			</Tooltip>
-		)}
+			{showNewViewPopover && canCreateView && (
+				<NewViewPopover
+					organizationId={organizationId!}
+					setViews={setViews!}
+					currentFilters={currentFiltersString}
+					viewConfig={currentViewConfig}
+				/>
+			)}
+			{showNewViewPopover && !canCreateView && (
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<Button
+							variant="accent"
+							className="gap-2 h-6 w-fit p-1 text-xs opacity-60 cursor-not-allowed"
+							disabled
+						>
+							<IconLock className="w-4 h-4" />
+							Save
+						</Button>
+					</TooltipTrigger>
+					<TooltipContent>{viewLimitMessage || "Upgrade your plan to save more views"}</TooltipContent>
+				</Tooltip>
+			)}
 		</div>
 	);
 }

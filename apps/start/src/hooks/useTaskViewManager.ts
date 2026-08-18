@@ -64,7 +64,9 @@ function areViewConfigsEqual(a: TaskViewState, b: TaskViewState): boolean {
 		a.grouping === b.grouping &&
 		a.subGrouping === b.subGrouping &&
 		a.viewMode === b.viewMode &&
-		a.showCompletedTasks === b.showCompletedTasks
+		a.showCompletedTasks === b.showCompletedTasks &&
+		(a.sortBy ?? "none") === (b.sortBy ?? "none") &&
+		(a.sortDirection ?? "asc") === (b.sortDirection ?? "asc")
 	);
 }
 
@@ -84,6 +86,8 @@ function mapViewConfigToState(config: NonNullable<schema.savedViewType["viewConf
 		subGrouping: config.subGroupBy ?? "none",
 		showCompletedTasks: config.showCompletedTasks,
 		viewMode: config.mode,
+		sortBy: config.sortBy ?? "none",
+		sortDirection: config.sortDirection ?? "asc",
 	};
 }
 
@@ -135,6 +139,8 @@ export function useTaskViewManager(availableViews?: schema.savedViewType[]) {
 	const subGrouping = viewConfig.subGrouping ?? "none";
 	const viewMode = viewConfig.viewMode;
 	const showCompletedTasks = viewConfig.showCompletedTasks;
+	const sortBy = viewConfig.sortBy ?? "none";
+	const sortDirection = viewConfig.sortDirection ?? "asc";
 
 	/**
 	 * Internal helper to execute the actual state + URL update
@@ -407,6 +413,13 @@ export function useTaskViewManager(availableViews?: schema.savedViewType[]) {
 		[setViewConfig]
 	);
 
+	const setSortBy = useCallback((sortBy: TaskViewState["sortBy"]) => setViewConfig({ sortBy }), [setViewConfig]);
+
+	const setSortDirection = useCallback(
+		(sortDirection: TaskViewState["sortDirection"]) => setViewConfig({ sortDirection }),
+		[setViewConfig]
+	);
+
 	/**
 	 * Auto-load saved view from URL on mount
 	 * This syncs the view configuration when the page is loaded with ?view=<slug>
@@ -510,6 +523,8 @@ export function useTaskViewManager(availableViews?: schema.savedViewType[]) {
 		subGrouping,
 		viewMode,
 		showCompletedTasks,
+		sortBy,
+		sortDirection,
 
 		// View operations
 		selectView,
@@ -531,6 +546,8 @@ export function useTaskViewManager(availableViews?: schema.savedViewType[]) {
 		setSubGrouping,
 		setViewMode,
 		setShowCompletedTasks,
+		setSortBy,
+		setSortDirection,
 
 		// For checking if we're in the middle of an action (prevents duplicate updates)
 		isHandlingAction,
