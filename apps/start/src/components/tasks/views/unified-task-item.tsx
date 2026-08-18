@@ -482,7 +482,7 @@ export function UnifiedTaskItem({
     >
       <div
         className={cn(
-          "px-2 pr-4 group/list-block h-11 max-h-11 relative flex gap-3 bg-transparent hover:bg-accent py-3 text-sm transition-colors flex-row items-center data-[state=open]:bg-accent",
+          "px-2 pr-4 group/list-block relative flex gap-3 bg-transparent hover:bg-accent py-1 text-xs! transition-colors flex-row items-center data-[state=open]:bg-accent rounded-lg",
           isSelected && "bg-primary/10",
           hasOpenPopover && "bg-accent",
         )}

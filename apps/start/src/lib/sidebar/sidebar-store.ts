@@ -41,9 +41,19 @@ export interface SidebarState {
 
 	// Drawer/popover surface sizing — same fields, same meaning, on every
 	// breakpoint. `width` also doubles as an anchored panel's popover width.
+	// This is pure app config (see syncPanelConfig's doc comment) — the
+	// route's own default, resynced on every mount.
 	width?: string;
 	height?: string;
 	mobileZoom?: number;
+
+	// User-driven, sticky (like `open`) — set by dragging a panel's resize
+	// handle. In px, always overrides `width` when present. Deliberately
+	// separate from `width` instead of overwriting it: syncPanelConfig
+	// resyncs `width` from the route's config on every mount, and a resized
+	// panel must survive that resync instead of snapping back to the
+	// route's default the next time the page loads.
+	resizedWidth?: number;
 
 	activeTab?: string;
 	tabs?: PanelTabConfig[];
@@ -123,6 +133,7 @@ function persistState(state: SidebarStoreState) {
 						width: sidebar.width,
 						height: sidebar.height,
 						mobileZoom: sidebar.mobileZoom,
+						resizedWidth: sidebar.resizedWidth,
 						lastTriggerId: sidebar.lastTriggerId,
 						activeTab: sidebar.activeTab,
 					},
@@ -256,6 +267,23 @@ export const sidebarActions = {
 				sidebars: {
 					...state.sidebars,
 					[id]: { ...sidebar, ...config },
+				},
+				keyboardShortcuts: state.keyboardShortcuts,
+			});
+		});
+	},
+
+	// User-driven resize — see resizedWidth's doc comment on SidebarState for
+	// why this is separate from syncPanelConfig's `width`.
+	setResizedWidth: (id: string, widthPx: number) => {
+		sidebarStore.setState((state) => {
+			const sidebar = state.sidebars[id];
+			if (!sidebar) return state;
+
+			return createCompleteState({
+				sidebars: {
+					...state.sidebars,
+					[id]: { ...sidebar, resizedWidth: widthPx },
 				},
 				keyboardShortcuts: state.keyboardShortcuts,
 			});

@@ -45,6 +45,12 @@ export interface PanelConfig {
 	mobileZoom?: number;
 	/** Renders as a small popover pinned to its trigger element instead of a drawer. */
 	anchored?: boolean;
+	/** Desktop-only drag-to-resize on the panel's near edge. Ignored for anchored panels. @default true */
+	resizable?: boolean;
+	/** @default 280 */
+	minWidth?: number;
+	/** @default 720 */
+	maxWidth?: number;
 }
 
 export interface PageProps {
@@ -254,6 +260,15 @@ export function Page({ children, header, toolbar, panels, className }: PageProps
 	const leftLastTriggerId = leftPanelState?.lastTriggerId as string | undefined;
 	const rightLastTriggerId = rightPanelState?.lastTriggerId as string | undefined;
 
+	// A user's drag-resize (px, sticky across visits) always wins over the
+	// route's own configured default — see resizedWidth's doc comment in
+	// sidebar-store.ts. Fed to BOTH IndentDrawerRegion and IndentDrawerContent
+	// below so the push-margin and the drawer's own rendered width can never
+	// drift apart, regardless of whether the underlying value is a px number
+	// or the route's original width string (fixed px, %, whatever).
+	const leftWidth = leftPanelState?.resizedWidth ? `${leftPanelState.resizedWidth}px` : panels?.left?.width;
+	const rightWidth = rightPanelState?.resizedWidth ? `${rightPanelState.resizedWidth}px` : panels?.right?.width;
+
 	useEffect(() => {
 		setIsClient(true);
 	}, []);
@@ -363,7 +378,7 @@ export function Page({ children, header, toolbar, panels, className }: PageProps
 					<IndentDrawerIndentBackground />
 					<IndentDrawerRegion
 						side="right"
-						width={panels.right.width}
+						width={rightWidth}
 						height={panels.right.height}
 						mobileZoom={panels.right.mobileZoom}
 					>
@@ -378,8 +393,12 @@ export function Page({ children, header, toolbar, panels, className }: PageProps
 						<IndentDrawerContent
 							container={rightFloatContainer}
 							side="right"
-							width={panels.right.width}
+							width={rightWidth}
 							height={panels.right.height}
+							resizable={panels.right.resizable ?? true}
+							onResize={(px) => sidebarActions.setResizedWidth(panels.right!.id, px)}
+							minWidth={panels.right.minWidth}
+							maxWidth={panels.right.maxWidth}
 						>
 							<PanelContent
 								key={rightLastTriggerId}
@@ -401,7 +420,7 @@ export function Page({ children, header, toolbar, panels, className }: PageProps
 					<IndentDrawerIndentBackground />
 					<IndentDrawerRegion
 						side="left"
-						width={panels.left.width}
+						width={leftWidth}
 						height={panels.left.height}
 						mobileZoom={panels.left.mobileZoom}
 					>
@@ -416,8 +435,12 @@ export function Page({ children, header, toolbar, panels, className }: PageProps
 						<IndentDrawerContent
 							container={leftFloatContainer}
 							side="left"
-							width={panels.left.width}
+							width={leftWidth}
 							height={panels.left.height}
+							resizable={panels.left.resizable ?? true}
+							onResize={(px) => sidebarActions.setResizedWidth(panels.left!.id, px)}
+							minWidth={panels.left.minWidth}
+							maxWidth={panels.left.maxWidth}
 						>
 							<PanelContent
 								key={leftLastTriggerId}

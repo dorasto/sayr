@@ -105,7 +105,7 @@ export function IndentDrawerRegion({
 				// page that doesn't set it gets plain push with no shrink.
 				mobileZoom !== undefined && "max-md:data-active:zoom-(--indent-drawer-zoom)",
 				// desktop: push content away from whichever side the drawer opens
-				// on. +1.25rem, not +0.5rem: the Popup is positioned by
+				// on. +1.5rem, not +0.75rem: the Popup is positioned by
 				// `justify-end`/`justify-start` + IndentDrawerContent's Viewport
 				// `p-3` padding, which shifts the Popup's ENTIRE box (both edges
 				// together, not just the far one) by 0.75rem away from the
@@ -114,16 +114,19 @@ export function IndentDrawerRegion({
 				// MINUS that 0.75rem, i.e. the Popup actually overlaps the pushed
 				// content by 0.75rem instead of sitting flush against it. The
 				// first 0.75rem here cancels that back to flush; the remaining
-				// 0.5rem is the real, visible gap. Re-verify with
-				// getBoundingClientRect() on the real rendered boxes after any
-				// change here, not by eyeballing a screenshot; the two boxes are
-				// positioned by unrelated CSS mechanisms that happen to need to
-				// agree, and a route's own content padding can visually read as
-				// "the gap" even when this margin contributes nothing or is
-				// actually overlapping.
+				// 0.75rem is the real, visible gap — deliberately equal to the
+				// Viewport's own p-3 (the gap from the Popup's FAR edge to the
+				// screen/container edge), so the inset reads the same on both
+				// sides of the panel instead of a smaller gap on the content
+				// side. Re-verify with getBoundingClientRect() on the real
+				// rendered boxes after any change here, not by eyeballing a
+				// screenshot; the two boxes are positioned by unrelated CSS
+				// mechanisms that happen to need to agree, and a route's own
+				// content padding can visually read as "the gap" even when this
+				// margin contributes nothing or is actually overlapping.
 				side === "left"
-					? "md:data-active:ml-[calc(var(--indent-drawer-width)+1.25rem)]"
-					: "md:data-active:mr-[calc(var(--indent-drawer-width)+1.25rem)]",
+					? "md:data-active:ml-[calc(var(--indent-drawer-width)+1.5rem)]"
+					: "md:data-active:mr-[calc(var(--indent-drawer-width)+1.5rem)]",
 				className
 			)}
 			{...props}
@@ -164,6 +167,91 @@ export function IndentDrawer({
 export const IndentDrawerTrigger = DrawerPrimitive.Trigger;
 export const IndentDrawerClose = DrawerPrimitive.Close;
 
+// Desktop-only drag-to-resize handle, pinned to the Popup's near edge (the
+// one facing the pushed content). Deliberately has zero knowledge of any
+// state store — it just measures the Popup's own rendered width at drag
+// start and reports deltas via `onResize`; the caller (Page, in
+// apps/start) decides where that number lives. Reading the REAL rendered
+// width at drag start (instead of trusting the `width` prop) is what makes
+// this work regardless of whether `width` was ever a fixed px value or a
+// percentage — no need to parse or reconcile either.
+function IndentDrawerResizeHandle({
+	side,
+	onResize,
+	minWidth,
+	maxWidth,
+}: {
+	side: IndentDrawerSide;
+	onResize: (widthPx: number) => void;
+	minWidth: number;
+	maxWidth: number;
+}) {
+	const handleRef = React.useRef<HTMLDivElement>(null);
+
+	const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+		if (event.button !== 0) return;
+		const popup = handleRef.current?.closest<HTMLElement>('[data-slot="indent-drawer-popup"]');
+		if (!popup) return;
+		event.preventDefault();
+		// Popup also has its own swipe-to-dismiss pointer tracking (from
+		// `swipeDirection` on IndentDrawer's Root) — without stopping
+		// propagation here, a drag on this handle bubbles up and gets read by
+		// BOTH the resize logic below AND Base UI's own swipe gesture at the
+		// same time, compounding into a width that doesn't match the actual
+		// pointer movement (reproduced live: a 100px drag over-shot to
+		// +200px+). Capture phase on the move/up listeners below for the same
+		// reason — belt and suspenders against Base UI's own listeners
+		// (registered in bubble phase) seeing them first.
+		event.stopPropagation();
+
+		const startWidth = popup.getBoundingClientRect().width;
+		const startX = event.clientX;
+		const previousCursor = document.body.style.cursor;
+		const previousUserSelect = document.body.style.userSelect;
+		document.body.style.cursor = "col-resize";
+		document.body.style.userSelect = "none";
+
+		const handleMove = (moveEvent: PointerEvent) => {
+			moveEvent.stopPropagation();
+			const delta = moveEvent.clientX - startX;
+			// side="right": handle sits on the popup's LEFT edge, dragging left
+			// (negative delta) should grow the panel, so width = start - delta.
+			// side="left": mirrored.
+			const next = side === "right" ? startWidth - delta : startWidth + delta;
+			onResize(Math.round(Math.min(maxWidth, Math.max(minWidth, next))));
+		};
+		const handleUp = (upEvent: PointerEvent) => {
+			upEvent.stopPropagation();
+			document.removeEventListener("pointermove", handleMove, true);
+			document.removeEventListener("pointerup", handleUp, true);
+			document.body.style.cursor = previousCursor;
+			document.body.style.userSelect = previousUserSelect;
+		};
+		document.addEventListener("pointermove", handleMove, true);
+		document.addEventListener("pointerup", handleUp, { capture: true, once: true });
+	};
+
+	return (
+		// eslint-disable-next-line jsx-a11y/no-static-element-interactions -- drag handle, not a semantic control
+		<div
+			ref={handleRef}
+			onPointerDown={handlePointerDown}
+			data-slot="indent-drawer-resize-handle"
+			className={cn(
+				// Fully inside the Popup's own box (not straddling the edge via a
+				// negative translate) on purpose — the Popup has overflow-hidden
+				// for its rounded corners, which would silently clip any part of
+				// the handle that overflowed past the edge.
+				"absolute top-0 bottom-0 z-10 w-3 max-md:hidden",
+				"cursor-col-resize touch-none select-none",
+				"after:absolute after:inset-y-0 after:w-px after:bg-transparent after:transition-colors",
+				"hover:after:bg-primary/40 active:after:bg-primary/60",
+				side === "right" ? "left-0 after:left-0" : "right-0 after:right-0"
+			)}
+		/>
+	);
+}
+
 export function IndentDrawerContent({
 	container,
 	className,
@@ -171,11 +259,23 @@ export function IndentDrawerContent({
 	width = "380px",
 	height = "38dvh",
 	children,
+	resizable = false,
+	onResize,
+	minWidth = 280,
+	maxWidth = 720,
 }: {
 	container?: HTMLElement | null;
 	className?: string;
 	side?: IndentDrawerSide;
 	children: React.ReactNode;
+	/** Desktop-only drag-to-resize on the popup's near edge. Requires `onResize`. @default false */
+	resizable?: boolean;
+	/** Called with the new width in px while dragging. Required for `resizable`. */
+	onResize?: (widthPx: number) => void;
+	/** @default 280 */
+	minWidth?: number;
+	/** @default 720 */
+	maxWidth?: number;
 } & IndentDrawerSizeProps) {
 	const sizeVars = {
 		"--indent-drawer-width": width,
@@ -215,11 +315,12 @@ export function IndentDrawerContent({
 				)}
 			>
 				<DrawerPrimitive.Popup
+					data-slot="indent-drawer-popup"
 					className={cn(
 						// group/popup: lets nested content (via IndentDrawerContent
 						// rendered inside this one's children) dim/hide itself while
 						// this drawer sits behind a nested one.
-						"group/popup pointer-events-auto flex flex-col overflow-hidden border bg-popover text-popover-foreground shadow-lg outline-none",
+						"group/popup relative pointer-events-auto flex flex-col overflow-hidden border bg-popover text-popover-foreground shadow-lg outline-none",
 						"transition-[transform,opacity,zoom] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] will-change-transform",
 						// mobile: bottom sheet, flush to the screen edges
 						"max-md:max-h-(--indent-drawer-height) max-md:w-full max-md:rounded-t-xl",
@@ -246,6 +347,9 @@ export function IndentDrawerContent({
 						className
 					)}
 				>
+					{resizable && onResize && (
+						<IndentDrawerResizeHandle side={side} onResize={onResize} minWidth={minWidth} maxWidth={maxWidth} />
+					)}
 					<div
 						className="mx-auto mt-2 hidden h-1.5 w-10 shrink-0 rounded-full bg-muted max-md:block"
 						aria-hidden
