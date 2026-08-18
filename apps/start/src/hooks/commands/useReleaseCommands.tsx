@@ -119,7 +119,7 @@ export function useReleaseCommands(
 						]),
 			],
 		};
-	}, [release, tasks, addTasksViewId, onRemove]);
+	}, [release, tasks, addTasksViewId, onRemove, organization.shortId]);
 
 	useRegisterCommands(`release-commands-${release?.id ?? "none"}`, commands);
 }

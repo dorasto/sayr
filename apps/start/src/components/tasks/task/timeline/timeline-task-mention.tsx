@@ -31,7 +31,10 @@ export function TimelineTaskMentioned({
 }: TimelineItemProps & { showSeparator?: boolean }) {
 	const sourceTaskId = parseSourceTaskId(item.toValue);
 	const sourceTask = sourceTaskId ? tasks.find((t) => t.id === sourceTaskId) : null;
-	const orgShortId = organization?.shortId ?? sourceTask?.organization?.shortId;
+	// The Link below navigates using sourceTask.organizationId, so the
+	// displayed key has to agree with that — prefer the mentioned task's own
+	// org over the current timeline's org (they can differ cross-org).
+	const orgShortId = sourceTask?.organization?.shortId ?? organization?.shortId;
 
 	const statusKey = sourceTask?.status?.replace(/"/g, "") as keyof typeof statusConfig | undefined;
 	const statusCfg = statusKey ? statusConfig[statusKey] : undefined;

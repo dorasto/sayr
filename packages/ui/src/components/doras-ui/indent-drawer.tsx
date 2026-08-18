@@ -187,6 +187,13 @@ function IndentDrawerResizeHandle({
 	maxWidth: number;
 }) {
 	const handleRef = React.useRef<HTMLDivElement>(null);
+	// Tracks the active drag's teardown so unmounting mid-drag (e.g. the
+	// drawer closes while the user is still holding the handle) still
+	// removes the document listeners and restores body styles — otherwise
+	// they're stuck until another drag happens to clean up after itself.
+	const cleanupRef = React.useRef<(() => void) | null>(null);
+
+	React.useEffect(() => () => cleanupRef.current?.(), []);
 
 	const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
 		if (event.button !== 0) return;
@@ -220,15 +227,25 @@ function IndentDrawerResizeHandle({
 			const next = side === "right" ? startWidth - delta : startWidth + delta;
 			onResize(Math.round(Math.min(maxWidth, Math.max(minWidth, next))));
 		};
-		const handleUp = (upEvent: PointerEvent) => {
-			upEvent.stopPropagation();
+		// once:true on pointerup alone leaves this dangling if the browser
+		// fires pointercancel instead (e.g. the gesture gets taken over by
+		// scroll/back-navigation) — pointercancel gets the same cleanup.
+		const cleanup = () => {
 			document.removeEventListener("pointermove", handleMove, true);
 			document.removeEventListener("pointerup", handleUp, true);
+			document.removeEventListener("pointercancel", handleUp, true);
 			document.body.style.cursor = previousCursor;
 			document.body.style.userSelect = previousUserSelect;
+			cleanupRef.current = null;
 		};
+		const handleUp = (upEvent: PointerEvent) => {
+			upEvent.stopPropagation();
+			cleanup();
+		};
+		cleanupRef.current = cleanup;
 		document.addEventListener("pointermove", handleMove, true);
-		document.addEventListener("pointerup", handleUp, { capture: true, once: true });
+		document.addEventListener("pointerup", handleUp, true);
+		document.addEventListener("pointercancel", handleUp, true);
 	};
 
 	return (

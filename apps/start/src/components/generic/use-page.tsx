@@ -16,7 +16,10 @@ export function usePage() {
 	const openPanel = useCallback((panelId: string, content?: React.ReactNode, options?: PanelOptions) => {
 		sidebarActions.setOpen(panelId, true);
 		if (content) sidebarActions.setPanelContent(panelId, content);
-		sidebarActions.setPanelHeader(panelId, options?.header ?? {});
+		// Only write a header when one is actually given — storing `{}` reads
+		// as truthy in PanelContent's `header ? ... : fallbackHeader` check,
+		// which silently blanks out the route-configured fallback header.
+		if (options?.header) sidebarActions.setPanelHeader(panelId, options.header);
 		if (options?.defaultTab) sidebarActions.setActiveTab(panelId, options.defaultTab);
 		if (options?.tabs) sidebarActions.setTabs(panelId, options.tabs);
 	}, []);
@@ -44,7 +47,8 @@ export function usePage() {
 			sidebarActions.setOpen(panelId, true);
 			if (content) sidebarActions.setPanelContent(panelId, content, triggerId);
 			else if (triggerId) sidebarActions.setLastTriggerId(panelId, triggerId);
-			sidebarActions.setPanelHeader(panelId, options?.header ?? {});
+			// See openPanel above — don't overwrite fallbackHeader with `{}`.
+			if (options?.header) sidebarActions.setPanelHeader(panelId, options.header);
 			if (options?.defaultTab) sidebarActions.setActiveTab(panelId, options.defaultTab);
 			if (options?.tabs) sidebarActions.setTabs(panelId, options.tabs);
 		},
@@ -134,9 +138,7 @@ export function usePanelTrigger(panelId: string, triggerId: string) {
 			    only `@repo/ui` actually depends on Radix). Ours starts null
 			    before the trigger mounts, same as any DOM ref; the element it
 			    holds once attached satisfies the shape structurally. */}
-			<PopoverAnchor
-				virtualRef={triggerRef as unknown as RefObject<{ getBoundingClientRect(): DOMRect }>}
-			/>
+			<PopoverAnchor virtualRef={triggerRef as unknown as RefObject<{ getBoundingClientRect(): DOMRect }>} />
 			<PopoverContent
 				align="start"
 				sideOffset={8}

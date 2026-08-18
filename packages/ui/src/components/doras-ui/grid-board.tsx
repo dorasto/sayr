@@ -213,19 +213,15 @@ export function GridBoardProvider<
 
 		const { active, over } = event;
 		if (!over) {
-			console.log("[GridBoard] No drop target");
 			return;
 		}
 
 		const itemId = active.id as string;
 		const overId = over.id as string;
 
-		console.log("[GridBoard] handleDragEnd", { itemId, overId });
-
 		// Find the dragged item
 		const item = items.find((i) => i.id === itemId);
 		if (!item) {
-			console.log("[GridBoard] Item not found", { itemId });
 			return;
 		}
 
@@ -238,24 +234,17 @@ export function GridBoardProvider<
 		if (cellInfo) {
 			targetColumnId = cellInfo.columnId;
 			targetRowId = cellInfo.rowId;
-			console.log("[GridBoard] Dropped on cell", { cellInfo });
 		} else {
 			// Dropped on an item - find which cell that item belongs to
 			const overItem = items.find((i) => i.id === overId);
 			if (overItem) {
 				targetColumnId = overItem.columnId;
 				targetRowId = overItem.rowId;
-				console.log("[GridBoard] Dropped on item", {
-					overItemId: overItem.id,
-					targetColumnId,
-					targetRowId,
-				});
 			}
 		}
 
 		// If we couldn't determine target, abort
 		if (!targetColumnId) {
-			console.log("[GridBoard] Could not determine target column");
 			return;
 		}
 
@@ -263,16 +252,8 @@ export function GridBoardProvider<
 		const fromColumnId = item.columnId;
 		const fromRowId = item.rowId;
 		if (fromColumnId === targetColumnId && fromRowId === targetRowId) {
-			console.log("[GridBoard] No change - same cell");
 			return;
 		}
-
-		console.log("[GridBoard] Calling onDragEnd", {
-			fromColumnId,
-			fromRowId,
-			toColumnId: targetColumnId,
-			toRowId: targetRowId,
-		});
 
 		// Call the handler with rich event data
 		onDragEnd?.({

@@ -277,7 +277,7 @@ export function SidebarGroupLabel({ className, ...props }: React.HTMLAttributes<
 
 // Sidebar Menu
 export function SidebarMenu({ className, ...props }: React.HTMLAttributes<HTMLUListElement>) {
-	return <ul className={cn("flex flex-col 0.5", className)} {...props} />;
+	return <ul className={cn("flex flex-col gap-0.5", className)} {...props} />;
 }
 
 // Sidebar Menu Item

@@ -63,6 +63,11 @@ export default function OrganizationTaskIdPage() {
 					header: <TaskPanelHeader />,
 					defaultOpen: true,
 					width: "420px",
+					// Mobile force-closes this panel below (it renders inline
+					// instead) — don't let that close persist, or a user who's
+					// ever viewed this page on mobile finds it stuck closed on
+					// desktop too, silently overriding defaultOpen.
+					persistOpenState: false,
 				},
 			}}
 			header={

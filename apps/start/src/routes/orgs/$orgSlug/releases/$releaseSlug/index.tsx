@@ -208,7 +208,7 @@ function ReleaseDetailPage() {
 			}
 		});
 		return unsubscribe;
-	}, []);
+	}, [router]);
 
 	const taskStats = useMemo(() => {
 		const COMPLETED_STATUSES = ["done", "canceled"];
@@ -301,22 +301,13 @@ function ReleaseDetailPage() {
 		return Math.round((target.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 	}, [release?.targetDate]);
 
-	if (!release) {
-		return (
-			<SubWrapper backButton={`/orgs/${orgSlug}/releases`} backButtonText="Releases">
-				<p className="text-muted-foreground">Release not found.</p>
-			</SubWrapper>
-		);
-	}
-
-	const cfg = getReleaseStatusConfig(release.status);
-
-	// Group tasks by status
-	const grouped = TASK_STATUS_ORDER.map((status) => ({
-		status,
-		tasks: tasks.filter((t) => t.status === status),
-	})).filter((g) => g.tasks.length > 0);
-
+	// Panel header/body are release-guarded (`panelBody` is `null` without
+	// one) and registered via effect *before* the early return below — an
+	// effect declared after a conditional return changes hook count between
+	// renders. `release` can flip falsy on the same mounted instance (any of
+	// the SSE handlers above call `router.invalidate()`, and the loader
+	// returns a null release if it's deleted or the org disables its public
+	// page), which crashes React with "Rendered fewer hooks than expected."
 	const panelHeader = (
 		<div className="flex items-center gap-2 justify-between w-full">
 			<div className="flex items-center gap-2">
@@ -337,7 +328,7 @@ function ReleaseDetailPage() {
 		</div>
 	);
 
-	const panelBody = (
+	const panelBody = release ? (
 		<div className="flex flex-col gap-4">
 			{/* Progress chart */}
 			{tasks.length > 0 && (
@@ -411,7 +402,7 @@ function ReleaseDetailPage() {
 					organizationId={org?.id ?? ""}
 					orgSlug={orgSlug}
 					releaseSlug={params.releaseSlug}
-					releaseId={release?.id ?? ""}
+					releaseId={release.id}
 					refreshKey={statusUpdatesRefreshKey}
 				/>
 			</div>
@@ -422,7 +413,7 @@ function ReleaseDetailPage() {
 				editable={false}
 			/>
 		</div>
-	);
+	) : null;
 
 	// Panel body depends on live release/task/session state — real deps,
 	// not a set-once-on-mount effect. Still gated on isRegistered: Page
@@ -443,6 +434,22 @@ function ReleaseDetailPage() {
 		org,
 		organization.id,
 	]);
+
+	if (!release) {
+		return (
+			<SubWrapper backButton={`/orgs/${orgSlug}/releases`} backButtonText="Releases">
+				<p className="text-muted-foreground">Release not found.</p>
+			</SubWrapper>
+		);
+	}
+
+	const cfg = getReleaseStatusConfig(release.status);
+
+	// Group tasks by status
+	const grouped = TASK_STATUS_ORDER.map((status) => ({
+		status,
+		tasks: tasks.filter((t) => t.status === status),
+	})).filter((g) => g.tasks.length > 0);
 
 	return (
 		<div className="flex flex-col h-full">

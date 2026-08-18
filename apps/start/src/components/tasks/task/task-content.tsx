@@ -323,6 +323,7 @@ export function TaskContentMain({
 					categories={categories}
 					tasks={tasks}
 					releases={releases}
+					organization={organization}
 				/>
 			</SubWrapper>
 		</div>

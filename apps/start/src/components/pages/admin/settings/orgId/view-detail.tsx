@@ -4,7 +4,8 @@ import { useLayoutData } from "@/components/generic/Context";
 import IconPicker from "@/components/generic/icon-picker";
 import RenderIcon from "@/components/generic/RenderIcon";
 import { useServerEventsSubscription } from "@/hooks/useServerEventsSubscription";
-import { useWSMessageHandler, WSMessageHandler } from "@/hooks/useWSMessageHandler";
+import { useWSMessageHandler } from "@/hooks/useWSMessageHandler";
+import type { WSMessageHandler } from "@/hooks/useWSMessageHandler";
 import { deleteSavedViewAction, updateSavedViewAction } from "@/lib/fetches/organization";
 import type { ServerEventMessage } from "@/lib/serverEvents";
 import type { schema } from "@repo/database";
@@ -47,7 +48,8 @@ import {
 import { useRouter } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { ViewFilterEditor } from "./view-filter-editor";
-import { TASK_GROUPING_OPTIONS, TASK_GROUPINGS, TaskGroupingId } from "@/components/tasks";
+import { TASK_GROUPING_OPTIONS, TASK_GROUPINGS } from "@/components/tasks";
+import type { TaskGroupingId } from "@/components/tasks";
 import { TASK_SORT_FIELDS } from "@/components/tasks/filter/sort-config";
 import type { TaskSortField } from "@/components/tasks/filter/sort-config";
 import { useLayoutOrganization } from "@/contexts/ContextOrg";
@@ -464,6 +466,12 @@ export default function SettingsOrganizationViewDetailPage({
 							<Button
 								variant="outline"
 								size="icon"
+								aria-label={
+									viewConfig.sortDirection === "desc"
+										? "Sort direction: descending"
+										: "Sort direction: ascending"
+								}
+								title={viewConfig.sortDirection === "desc" ? "Descending" : "Ascending"}
 								onClick={() =>
 									setViewConfig((prev) => ({
 										...(prev ?? defaultConfig),

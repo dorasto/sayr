@@ -346,7 +346,9 @@ export function useTaskCommands() {
 							label: `Copy task ID (${formatTaskKey(organization.shortId, task.shortId)})`,
 							icon: <IconCopy size={16} className="opacity-60" aria-hidden="true" />,
 							action: () => {
-								navigator.clipboard.writeText(`${formatTaskKey(organization.shortId, task.shortId)}`);
+								void navigator.clipboard
+									.writeText(formatTaskKey(organization.shortId, task.shortId))
+									.catch(() => {});
 							},
 							closeOnSelect: true,
 							keywords: "identifier number",
@@ -379,6 +381,7 @@ export function useTaskCommands() {
 	}, [
 		navigate,
 		organization.id,
+		organization.shortId,
 		organization.members,
 		task,
 		tasks,

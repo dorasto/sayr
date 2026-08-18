@@ -24,6 +24,7 @@ export const getTaskByIdForInbox = createServerFn({ method: "GET" })
 					name: organization.name,
 					slug: organization.slug,
 					logo: organization.logo,
+					shortId: organization.shortId,
 				},
 			} as schema.TaskWithLabels,
 		};

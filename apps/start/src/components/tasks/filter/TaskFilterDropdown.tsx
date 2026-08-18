@@ -19,6 +19,7 @@ import { getFieldConfig, isMultiCondition } from "./multi-select";
 import { NewViewPopover } from "./NewView";
 import { getOperatorLabel } from "./operators"; // re-exported below
 import { serializeFilters } from "./serialization";
+import { DEFAULT_TASK_VIEW_STATE } from "./types";
 
 interface Props {
 	tasks: schema.TaskWithLabels[];
@@ -120,15 +121,33 @@ export function TaskFilterDropdown({
 		[viewConfig]
 	);
 
+	// Whether the view config (sort/grouping/mode/etc.) still matches the
+	// stock default — used below alongside activeFiltersCount so a
+	// sort-only or grouping-only change (no filters added) still surfaces
+	// Save. Comparing against activeFiltersCount alone predates sortBy
+	// being part of the saveable view config.
+	const isDefaultViewConfig = useMemo(
+		() =>
+			viewConfig.grouping === DEFAULT_TASK_VIEW_STATE.grouping &&
+			(viewConfig.subGrouping ?? "none") === DEFAULT_TASK_VIEW_STATE.subGrouping &&
+			viewConfig.showCompletedTasks === DEFAULT_TASK_VIEW_STATE.showCompletedTasks &&
+			viewConfig.viewMode === DEFAULT_TASK_VIEW_STATE.viewMode &&
+			(viewConfig.sortBy ?? "none") === DEFAULT_TASK_VIEW_STATE.sortBy &&
+			(viewConfig.sortDirection ?? "asc") === DEFAULT_TASK_VIEW_STATE.sortDirection,
+		[viewConfig]
+	);
+
 	const showNewViewPopover = useMemo(() => {
 		// Don't show if no org context (cross-org mode) or no setViews
 		if (!organizationId || !setViews || !views) return false;
-		// Don't show with no active filters — the unfiltered "All tasks" state
-		// never matches any saved view's filterParams (views always have at
-		// least one condition), so without this check Save showed constantly
-		// on the default view with nothing to save. Confirmed live + reported
-		// in https://platform.sayr.io/20.
-		if (activeFiltersCount === 0) return false;
+		// Don't show with no active filters AND nothing else changed from the
+		// stock default — the unfiltered, unmodified "All tasks" state never
+		// matches any saved view's filterParams (views always have at least
+		// one condition), so without this check Save showed constantly on the
+		// default view with nothing to save. Confirmed live + reported in
+		// https://platform.sayr.io/20. A sort/grouping-only change with zero
+		// filters still has something to save, so it isn't gated out here.
+		if (activeFiltersCount === 0 && isDefaultViewConfig) return false;
 		// Don't show if a view with these exact filters AND config already exists
 		const viewExists = views.some((view) => {
 			const filtersMatch = view.filterParams === currentFiltersString;
@@ -146,7 +165,15 @@ export function TaskFilterDropdown({
 			return filtersMatch && configMatch;
 		});
 		return !viewExists;
-	}, [organizationId, setViews, views, activeFiltersCount, currentFiltersString, currentViewConfig]);
+	}, [
+		organizationId,
+		setViews,
+		views,
+		activeFiltersCount,
+		isDefaultViewConfig,
+		currentFiltersString,
+		currentViewConfig,
+	]);
 
 	const handleFilterAdd = (field: string, operator: FilterOperator, value: string) => {
 		hookAddFilter({

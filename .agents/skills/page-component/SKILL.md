@@ -10,7 +10,7 @@ metadata:
 
 Every page that needs a floating side panel (task list "View" panel, task detail metadata panel, release detail panel, filter panels on public pages, etc.) goes through one shared system: `Page` + `IndentDrawer` + a global `sidebar-store`. This replaced an older `PanelWrapper` component (deleted) that used `react-resizable-panels` + a `vaul` mobile `Sheet` — if you see a reference to `PanelWrapper`, `panelDefaultSize`, `panelMinSize`, `isProjectPanelOpen`, or `setProjectPanelOpen` anywhere (comments, old skills, memory), it's describing the **retired** system. This skill documents what's actually there now.
 
-The whole point of this system: every panel on every breakpoint renders through the same non-modal, portalled `IndentDrawer` — a floating card that **pushes** (not covers) the page's main content when it opens, animates open/close, and (as of this session) supports drag-to-resize on desktop. Getting a panel "for free" on a new page means using `Page`'s `panels` prop, not hand-rolling a flex/grid split.
+The whole point of this system: standard panels render through the same non-modal, portalled `IndentDrawer` — a floating card that **pushes** (not covers) the page's main content when it opens, animates open/close, and (as of this session) supports drag-to-resize on desktop. Panels configured with `anchored: true` are the exception — they render through `Popover` instead, pinned to their trigger element (row-level quick actions), and bypass `IndentDrawer` entirely. Either way, getting a panel "for free" on a new page means using `Page`'s `panels` prop, not hand-rolling a flex/grid split.
 
 ## Key files
 

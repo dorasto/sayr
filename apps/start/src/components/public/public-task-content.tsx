@@ -167,7 +167,6 @@ export function PublicTaskContent({ task: initialTask, release }: PublicTaskCont
 			}
 		},
 		UPDATE_TASK_COMMENTS: (msg) => {
-			console.log("🚀 ~ PublicTaskContent ~ msg:", msg);
 			if (msg.scope === "PUBLIC" && msg.meta?.orgId === organization.id && msg.data.id === task.id) {
 				queryClient.invalidateQueries({
 					queryKey: ["public-comments", task.id, task.organizationId],
