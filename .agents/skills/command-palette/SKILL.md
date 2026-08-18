@@ -33,6 +33,7 @@ The command palette is built on `cmdk` and uses a **registration pattern** where
 | `apps/start/src/hooks/commands/useGlobalCommands.tsx` | Any admin page | Always (inside admin layout) |
 | `apps/start/src/hooks/commands/useOrgCommands.tsx` | Inside an org | `/$orgId/*` routes |
 | `apps/start/src/hooks/commands/useTasksCommands.tsx` | Tasks list page | `/$orgId/tasks` route |
+| `apps/start/src/hooks/commands/useReleaseCommands.tsx` | Single release page | Release detail route — includes `taskAssignmentContext` for the "add task to release" assignment sub-view |
 | `apps/start/src/hooks/commands/useTaskCommands.tsx` | Single task page | `/$orgId/tasks/$taskShortId` route |
 
 ### Registrar components (rendered in route layouts)
@@ -173,7 +174,7 @@ When the user selects the trigger item, the palette navigates to "my-sub-view" a
 
 ### Sub-view badge
 
-Badges only appear when a route explicitly sets `initialView` via `commandActions.setInitialView(viewId, label)`. Generic sub-views (like "Switch organization") do **not** get a badge — only sub-views tied to a specific route context (like a task page showing `OrgName/#5`) will display one.
+Badges only appear when a route explicitly sets `initialView` via `commandActions.setInitialView(viewId, label)`. Generic sub-views (like "Switch organization") do **not** get a badge — only sub-views tied to a specific route context (like a task page showing `OrgName/SAY-5`) will display one. Use `formatTaskKey(orgShortId, shortId)` from `@repo/util` for any task-identifier badge label — no `#` prefix, see the `page-header` skill.
 
 The badge renders as a small rounded label between the back arrow and the search input in the `CommandInput` component.
 
@@ -189,7 +190,7 @@ import { commandActions } from "@/lib/command-store";
 
 export function useMyCommands() {
   const subViewId = "my-context-view";
-  const badgeLabel = "Context/#123";  // Shown in the search bar badge
+  const badgeLabel = "Context/SAY-123";  // Shown in the search bar badge
 
   // Set initial view on mount, clear on unmount
   useEffect(() => {

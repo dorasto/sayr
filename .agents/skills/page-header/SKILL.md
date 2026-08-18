@@ -8,7 +8,7 @@ metadata:
 
 ## What I do
 
-I help you add, modify, or troubleshoot the `PageHeader` component used on every admin page. This includes setting up the identity zone (icon, title, breadcrumbs, actions), the toolbar zone (filters, view controls), and integrating with the task view system (`UnifiedTaskView`, `TaskFilterDropdown`, `TaskViewDropdown`).
+I help you add, modify, or troubleshoot the `PageHeader` component used on every admin page. This includes setting up the identity zone (icon, title, breadcrumbs, actions), the toolbar zone (filters, view controls), and integrating with the task view system (`UnifiedTaskView`, `TaskFilterDropdown`, `TaskViewDropdown`). For the side panel a page's toolbar toggle usually opens, see the `page-component` skill — panels are a separate system (`Page` + `sidebar-store`), not part of `PageHeader` itself.
 
 ## Architecture overview
 
@@ -143,50 +143,37 @@ Used by Home, Settings pages. Just identity zone.
 
 ### Pattern 2: Task list with toolbar (single org)
 
-Used by `orgid/tasks/index.tsx`. Full breadcrumb identity with category/view switcher dropdown, filter toolbar, view controls, and side panel toggle.
+Used by `orgid/tasks/index.tsx`. Full breadcrumb identity with category/view switcher dropdown, filter toolbar, view controls, and side panel toggle. The task list itself renders through `Page`'s `panels.right` — see the `page-component` skill for the panel toggle pattern (`sidebarActions.setOpen`/`.close`, not the retired `isProjectPanelOpen`).
 
 ```tsx
 // apps/start/src/components/pages/admin/orgid/tasks/index.tsx
-<PageHeader>
-  <PageHeader.Identity actions={<CreateIssueDialog ... />}>
-    <Link to="/$orgId/tasks" ...>
-      <Button ...><Avatar .../><span>{organization.name}</span></Button>
-    </Link>
-    <span className="text-muted-foreground text-xs">/</span>
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button ...>{CurrentViewIcon}<span>{currentViewName}</span><IconChevronDown /></Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent>
-        {/* All tasks, Your tasks, Categories, Custom Views */}
-      </DropdownMenuContent>
-    </DropdownMenu>
-  </PageHeader.Identity>
-  <PageHeader.Toolbar
-    left={
-      <TaskFilterDropdown
-        tasks={tasks} labels={labels} availableUsers={availableUsers}
-        organizationId={organization.id} views={views} setViews={setViews}
-        categories={categories} releases={releases}
-      />
-    }
-    right={
-      <>
-        <Separator orientation="vertical" className="h-5" />
-        <TaskViewDropdown />
-        <Button onClick={() => setProjectPanelOpen(!isProjectPanelOpen)}>
-          {isProjectPanelOpen ? <IconLayoutSidebarRightFilled /> : <IconLayoutSidebarRight />}
-        </Button>
-      </>
-    }
+const panel = usePanel(TASKS_LIST_PANEL_ID);
+
+<Page
+  header={header}
+  panels={{ right: { id: TASKS_LIST_PANEL_ID, header: <TasksPanelHeader />, defaultOpen: true, width: "420px" } }}
+>
+  {/* header, built above, includes: */}
+  {/* <PageHeader.Identity actions={<CreateIssueDialog ... />}>
+        <Link to="/$orgId/tasks" ...><Button ...><Avatar .../><span>{organization.name}</span></Button></Link>
+        <span className="text-muted-foreground text-xs">/</span>
+        <DropdownMenu>...All tasks, Your tasks, Categories, Custom Views...</DropdownMenu>
+      </PageHeader.Identity>
+      <PageHeader.Toolbar
+        left={<TaskFilterDropdown tasks={tasks} labels={labels} availableUsers={availableUsers}
+          organizationId={organization.id} views={views} setViews={setViews}
+          categories={categories} releases={releases} />}
+        right={<><Separator orientation="vertical" className="h-5" /><TaskViewDropdown /></>}
+      /> */}
+  <UnifiedTaskView
+    tasks={tasks} setTasks={setTasks} serverEvents={serverEvents}
+    availableUsers={availableUsers} organization={organization}
+    categories={categories} releases={releases} views={views}
   />
-</PageHeader>
-<UnifiedTaskView
-  tasks={tasks} setTasks={setTasks} ws={ws}
-  availableUsers={availableUsers} organization={organization}
-  categories={categories} releases={releases} views={views}
-/>
+</Page>
 ```
+
+The panel-open/close toggle button (top-right, next to "New task") calls `panel.isOpen ? closePanel(TASKS_LIST_PANEL_ID) : sidebarActions.setOpen(TASKS_LIST_PANEL_ID, true)` — see the `page-component` skill for the full toggle pattern.
 
 ### Pattern 3: Cross-org task list (My Tasks)
 
@@ -216,7 +203,7 @@ Used by `mine/index.tsx`. Simple identity, filter toolbar (no saved views), no s
   />
 </PageHeader>
 <UnifiedTaskView
-  tasks={tasks} setTasks={setTasks} ws={ws}
+  tasks={tasks} setTasks={setTasks} serverEvents={serverEvents}
   availableUsers={availableUsers} categories={categories}
   releases={releases} personal
   // No organization prop -- uses task.organizationId per-call
@@ -255,10 +242,12 @@ Used by `orgid/tasks/taskId.tsx`. Identity with breadcrumb children linking back
       <Button ...><Avatar .../><span>{organization.name}</span></Button>
     </Link>
     <span className="text-muted-foreground text-xs">/</span>
-    <span className="text-xs">#{task.shortId}</span>
+    <span className="text-xs">{formatTaskKey(organization.shortId, task.shortId)}</span>
   </PageHeader.Identity>
 </PageHeader>
 ```
+
+`formatTaskKey` (from `@repo/util`) renders the org-prefixed key (`SAY-123`, no `#`) — this is the display format everywhere a task identifier is shown (list rows, breadcrumbs, mentions, search, command palette, notifications). Don't render a bare `task.shortId` or a `#`-prefixed value anywhere new; use `formatTaskKey(orgShortId, taskShortId)`. The canonical single-source component for a clickable task identifier badge is `apps/start/src/components/tasks/shared/identifier.tsx` (`GlobalTaskIdentifier`) — prefer it over hand-rolling the breadcrumb span when the context allows a link.
 
 ## UnifiedTaskView integration
 
@@ -270,15 +259,20 @@ Used by `orgid/tasks/taskId.tsx`. Identity with breadcrumb children linking back
 |------|------|----------|-------------|
 | `tasks` | `TaskWithLabels[]` | Yes | Task data |
 | `setTasks` | `(tasks) => void` | Yes | State setter for optimistic updates |
-| `ws` | `WebSocket \| null` | Yes | WebSocket for real-time updates |
+| `serverEvents` | `ReturnType<typeof useServerEvents>` | Yes | SSE connection for real-time updates (not a raw WebSocket) |
 | `availableUsers` | `userType[]` | Yes | Users for assignee display/selection |
-| `organization` | `OrganizationWithMembers` | No | When set, uses `organization.id` for all API calls (single-org mode) |
+| `availableLabels` | `labelType[]` | No | Labels for label display/selection |
+| `organization` | `OrganizationWithMembers` | No | When set, uses `organization.id`/`organization.shortId` for all API calls and task-key formatting (single-org mode) |
 | `categories` | `categoryType[]` | Yes | Categories for grouping/filtering |
 | `releases` | `releaseType[]` | No | Releases for grouping/filtering |
 | `views` | `savedViewType[]` | No | Saved views for auto-loading view configs |
 | `compact` | `boolean` | No | Compact rendering (used in release pages) |
 | `forceShowCompleted` | `boolean` | No | Override showCompletedTasks toggle |
-| `personal` | `boolean` | No | When true, shows org badges on each task row |
+| `personal` | `boolean` | No | When true, shows org badges on each task row (cross-org mode) |
+| `onActiveDialogTaskChange` | `(taskId: string \| null) => void` | No | Fired when the task-detail dialog opens/closes, so the parent can switch its SSE channel |
+| `permissionsByOrg` | `Record<string, TeamPermissions>` | No | Per-org permissions map for cross-org views (e.g. `/mine`) — enables field-level gating when paired with `accountId` |
+| `accountId` | `string` | No | Current user id, required alongside `permissionsByOrg` for field-level gating |
+| `showGroupHeaders` | `boolean` | No, default `true` | Hides `TaskGroupSectionHeader` per group when `false` |
 
 ### Single-org vs cross-org mode
 
@@ -294,7 +288,7 @@ Used by `orgid/tasks/taskId.tsx`. Identity with breadcrumb children linking back
 - `applyNestedGrouping(grouping, subGrouping, ...)` -- groups filtered tasks into `NestedTaskGroup[]`
 - List view: `TaskGroupSectionHeader` + `UnifiedTaskItem` with collapsible sections
 - Kanban view: `GridBoardProvider` with drag-and-drop columns/rows
-- WebSocket handlers for `UPDATE_TASK` and `UPDATE_TASK_COMMENTS`
+- SSE (`serverEvents`) handlers for `UPDATE_TASK` and `UPDATE_TASK_COMMENTS`
 
 ## TaskFilterDropdown integration
 
