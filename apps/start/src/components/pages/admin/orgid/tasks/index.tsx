@@ -419,21 +419,38 @@ export default function OrganizationTasksHomePage() {
 				},
 			}}
 		>
-			<div className={cn("flex-1 overflow-y-auto h-full flex flex-col relative", viewMode === "kanban" && "px-0")}>
-				<UnifiedTaskView
-					tasks={tasks}
-					setTasks={setTasks}
-					serverEvents={serverEvents}
-					availableUsers={availableUsers}
-					availableLabels={labels}
-					organization={organization}
-					categories={categories}
-					releases={releases}
-					views={views}
-					onActiveDialogTaskChange={handleActiveDialogTaskChange}
-					permissionsByOrg={{ [organization.id]: permissions }}
-					accountId={account.id}
-				/>
+			{/* Outer div is the padded "gap" — plain flex sizing, no h-full/overflow of
+			    its own, so the inner card can't overflow it by its own border/margin
+			    (the classic m-3-on-an-h-full-element sizing bug). The inner div is
+			    exactly the old wrapper (same overflow-y-auto/relative, which the
+			    BulkActionBar inside UnifiedTaskView anchors its `absolute bottom-4`
+			    to) with a rounded/border outline layered on, so the list reads as a
+			    floating surface next to the panel instead of running flush to the
+			    page edges. No bg-card fill on purpose — the group headers (bg-muted)
+			    are the visual anchor, task rows stay transparent against the page
+			    background instead of sitting on a second solid surface. */}
+			<div className="flex-1 min-h-0 flex flex-col p-3">
+				<div
+					className={cn(
+						"flex-1 min-h-0 overflow-y-auto flex flex-col relative rounded-xl border",
+						viewMode === "kanban" && "px-0"
+					)}
+				>
+					<UnifiedTaskView
+						tasks={tasks}
+						setTasks={setTasks}
+						serverEvents={serverEvents}
+						availableUsers={availableUsers}
+						availableLabels={labels}
+						organization={organization}
+						categories={categories}
+						releases={releases}
+						views={views}
+						onActiveDialogTaskChange={handleActiveDialogTaskChange}
+						permissionsByOrg={{ [organization.id]: permissions }}
+						accountId={account.id}
+					/>
+				</div>
 			</div>
 		</Page>
 	);
