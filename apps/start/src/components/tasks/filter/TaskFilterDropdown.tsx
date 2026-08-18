@@ -114,6 +114,8 @@ export function TaskFilterDropdown({
 			groupBy: viewConfig.grouping,
 			subGroupBy: viewConfig.subGrouping === "none" ? undefined : viewConfig.subGrouping,
 			showCompletedTasks: viewConfig.showCompletedTasks,
+			sortBy: viewConfig.sortBy ?? "none",
+			sortDirection: viewConfig.sortDirection ?? "asc",
 		}),
 		[viewConfig]
 	);
@@ -137,7 +139,9 @@ export function TaskFilterDropdown({
 				config.mode === currentViewConfig.mode &&
 				config.groupBy === currentViewConfig.groupBy &&
 				config.subGroupBy === currentViewConfig.subGroupBy &&
-				config.showCompletedTasks === currentViewConfig.showCompletedTasks;
+				config.showCompletedTasks === currentViewConfig.showCompletedTasks &&
+				(config.sortBy ?? "none") === currentViewConfig.sortBy &&
+				(config.sortDirection ?? "asc") === currentViewConfig.sortDirection;
 
 			return filtersMatch && configMatch;
 		});
