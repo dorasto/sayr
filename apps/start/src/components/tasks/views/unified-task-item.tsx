@@ -400,7 +400,7 @@ export function UnifiedTaskItem({
 
 						<div className="shrink-0 max-w-16">
 							<div className="flex items-center space-x-2">
-								<span className="text-xs font-medium text-muted-foreground truncate">#{taskKey}</span>
+								<span className="text-xs font-medium text-muted-foreground truncate">{taskKey}</span>
 							</div>
 						</div>
 						{/* Title */}
@@ -516,7 +516,7 @@ export function UnifiedTaskItem({
 							{/* Task ID */}
 							<div className="shrink-0 min-w-16 w-16 max-w-16">
 								<div className="flex items-center space-x-2">
-									<span className="text-xs font-medium text-muted-foreground truncate">#{taskKey}</span>
+									<span className="text-xs font-medium text-muted-foreground truncate">{taskKey}</span>
 								</div>
 							</div>
 						</div>
@@ -637,7 +637,7 @@ export function UnifiedTaskItem({
 			onClick={handleLinkClick}
 		>
 			<div className="flex items-start gap-2 w-full">
-				<Label variant={"description"}>#{taskKey}</Label>
+				<Label variant={"description"}>{taskKey}</Label>
 				<div className="flex items-center ml-auto gap-1">
 					<GlobalTaskStatus
 						task={task}
@@ -753,7 +753,7 @@ export function UnifiedTaskItem({
 	const contextMenuContent = (
 		<ContextMenuContent className="w-56">
 			<ContextMenuLabel className="truncate">
-				#{taskKey} - {task.title}
+				{taskKey} - {task.title}
 			</ContextMenuLabel>
 			<ContextMenuSeparator />
 

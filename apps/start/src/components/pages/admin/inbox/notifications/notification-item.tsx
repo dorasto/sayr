@@ -93,7 +93,6 @@ export function NotificationItem({
 
 						{notification.task.shortId && (
 							<span className="text-xs text-muted-foreground">
-								#
 								{notification.organization
 									? formatTaskKey(notification.organization.shortId, notification.task.shortId)
 									: notification.task.shortId}

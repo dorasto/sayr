@@ -46,7 +46,7 @@ export function TaskMention({ task, categories, hide }: TaskMentionProps) {
 					{/* Title & Short ID */}
 					<InlineLabel
 						className="text-sm ps-5 align-bottom shrink-0 pr-1.5 rounded-lg bg-accent text-accent-foreground"
-						text={`#${displayKey} ${task.title}`}
+						text={`${displayKey} ${task.title}`}
 						textNode={
 							<>
 								<span className="text-sm!">{task.title ? ` ${task.title}` : ""}</span>
@@ -110,7 +110,7 @@ export function TaskMention({ task, categories, hide }: TaskMentionProps) {
 							{task.title}
 						</Label>
 						<Label variant={"subheading"} className="p-1 text-right ml-auto">
-							#{displayKey}
+							{displayKey}
 						</Label>
 					</div>
 					<Badge

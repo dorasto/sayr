@@ -61,7 +61,7 @@ export function TimelineTaskMentioned({
 				>
 					<InlineLabel
 						className="text-muted-foreground hover:text-foreground"
-						text={`#${orgShortId ? formatTaskKey(orgShortId, sourceTask.shortId) : sourceTask.shortId} ${sourceTask.title}`}
+						text={`${orgShortId ? formatTaskKey(orgShortId, sourceTask.shortId) : sourceTask.shortId} ${sourceTask.title}`}
 						icon={statusIcon ?? <IconAt size={12} />}
 					/>
 				</Link>

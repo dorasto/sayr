@@ -77,7 +77,7 @@ function RelationTaskRow({
 			>
 				<span className="truncate">{taskData.title}</span>
 				<span className="text-muted-foreground shrink-0">
-					#{orgShortId ? formatTaskKey(orgShortId, taskData.shortId) : taskData.shortId}
+					{orgShortId ? formatTaskKey(orgShortId, taskData.shortId) : taskData.shortId}
 				</span>
 			</Link>
 		</div>

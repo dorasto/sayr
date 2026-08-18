@@ -230,7 +230,7 @@ function PriorityTaskItem({ task }: PriorityTaskItemProps) {
 						/>
 					)}
 					<span className="text-xs text-muted-foreground">
-						#{task.organization ? formatTaskKey(task.organization.shortId, task.shortId) : task.shortId}
+						{task.organization ? formatTaskKey(task.organization.shortId, task.shortId) : task.shortId}
 					</span>
 
 					{/* Status & Priority icons */}

@@ -48,7 +48,6 @@ export function useCommandSearch(query: string, isOpen: boolean) {
 						)}
 						{result.shortId != null && (
 							<span className="text-xs text-muted-foreground font-mono">
-								#
 								{result.organizationShortId
 									? formatTaskKey(result.organizationShortId, result.shortId)
 									: result.shortId}

@@ -86,7 +86,7 @@ export default function OrganizationTaskIdPage() {
 						</Button>
 					</Link>
 					<span className="text-muted-foreground text-xs">/</span>
-					<span className="text-xs">#{formatTaskKey(organization.shortId, task.shortId)}</span>
+					<span className="text-xs">{formatTaskKey(organization.shortId, task.shortId)}</span>
 					<div className="ml-auto flex items-center gap-2">
 						{!panel.isOpen && (
 							<SimpleClipboard

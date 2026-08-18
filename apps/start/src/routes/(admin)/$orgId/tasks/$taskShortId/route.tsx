@@ -27,7 +27,7 @@ export const Route = createFileRoute("/(admin)/$orgId/tasks/$taskShortId")({
 			image: loaderData?.task
 				? getOgImageUrl({
 						title: loaderData.task.title || undefined,
-						subtitle: `#${loaderData.orgShortId ? formatTaskKey(loaderData.orgShortId, loaderData.task.shortId) : loaderData.task.shortId}`,
+						subtitle: `${loaderData.orgShortId ? formatTaskKey(loaderData.orgShortId, loaderData.task.shortId) : loaderData.task.shortId}`,
 						meta: loaderData.orgName || undefined,
 						logo: loaderData.orgLogo || undefined,
 					})

@@ -35,7 +35,7 @@ export function taskShortIdBadge(shortId: number | null | undefined, orgShortId?
 	if (shortId == null) return null;
 	return (
 		<span className="text-xs text-muted-foreground font-mono">
-			#{orgShortId ? formatTaskKey(orgShortId, shortId) : shortId}
+			{orgShortId ? formatTaskKey(orgShortId, shortId) : shortId}
 		</span>
 	);
 }

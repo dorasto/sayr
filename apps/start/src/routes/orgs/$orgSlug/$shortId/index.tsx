@@ -163,7 +163,7 @@ export const Route = createFileRoute("/orgs/$orgSlug/$shortId/")({
 		const taskKey = task ? (org?.shortId ? formatTaskKey(org.shortId, task.shortId) : task.shortId) : null;
 
 		const ogDescription = task
-			? descriptionText.trim().slice(0, 160) || `Task #${taskKey} in ${org?.name ?? "Sayr"}`
+			? descriptionText.trim().slice(0, 160) || `Task ${taskKey} in ${org?.name ?? "Sayr"}`
 			: undefined;
 
 		// Rich JSON-LD using schema.org Article type for better LLMO
@@ -171,7 +171,7 @@ export const Route = createFileRoute("/orgs/$orgSlug/$shortId/")({
 			? {
 					"@context": "https://schema.org",
 					"@type": "Article",
-					headline: `#${taskKey} - ${task.title}`,
+					headline: `${taskKey} - ${task.title}`,
 					name: task.title,
 					description: descriptionText.trim() || undefined,
 					url: `https://${org?.name?.toLowerCase().replace(/\s+/g, "-")}.sayr.io/${task.shortId}`,
@@ -205,12 +205,12 @@ export const Route = createFileRoute("/orgs/$orgSlug/$shortId/")({
 
 		return {
 			meta: seo({
-				title: task ? `#${taskKey} - ${task.title} | ${org?.name}` : "Task Not Available",
+				title: task ? `${taskKey} - ${task.title} | ${org?.name}` : "Task Not Available",
 				description: ogDescription,
 				image: task
 					? getOgImageUrl({
 							title: task.title || undefined,
-							subtitle: `#${taskKey}`,
+							subtitle: `${taskKey}`,
 							meta: org?.name || undefined,
 							logo: org?.logo || undefined,
 						})

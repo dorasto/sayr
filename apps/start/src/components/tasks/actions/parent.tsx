@@ -28,7 +28,7 @@ export function getParentOptions(
 		.filter((t) => t.id !== task.id && !t.parentId && (t.subtaskCount ?? 0) === 0)
 		.map((t) => ({
 			id: t.id,
-			label: `#${orgShortId ? formatTaskKey(orgShortId, t.shortId) : t.shortId} ${t.title}`,
+			label: `${orgShortId ? formatTaskKey(orgShortId, t.shortId) : t.shortId} ${t.title}`,
 			icon: <StatusIcon status={t.status} className="h-4 w-4" />,
 			value: t.id,
 			keywords: `parent ${t.title} ${t.shortId}`,
@@ -43,7 +43,7 @@ export function getParentOptions(
 export function getParentDisplay(task: schema.TaskWithLabels, orgShortId?: string): FieldDisplay {
 	return {
 		label: task.parent
-			? `#${orgShortId ? formatTaskKey(orgShortId, task.parent.shortId) : task.parent.shortId}`
+			? `${orgShortId ? formatTaskKey(orgShortId, task.parent.shortId) : task.parent.shortId}`
 			: "None",
 		icon: <IconGitBranch className="h-4 w-4 opacity-60" />,
 	};
@@ -94,7 +94,7 @@ export function getParentUpdatePayload(
 			success: {
 				title: "Parent set",
 				description: parentTask
-					? `Set to #${orgShortId ? formatTaskKey(orgShortId, parentTask.shortId) : parentTask.shortId}`
+					? `Set to ${orgShortId ? formatTaskKey(orgShortId, parentTask.shortId) : parentTask.shortId}`
 					: undefined,
 			},
 			error: { title: "Failed to set parent" },

@@ -50,7 +50,7 @@ function TaskLink({
 		>
 			<InlineLabel
 				className="text-muted-foreground hover:text-foreground"
-				text={`#${orgShortId ? formatTaskKey(orgShortId, task.shortId) : task.shortId} ${task.title}`}
+				text={`${orgShortId ? formatTaskKey(orgShortId, task.shortId) : task.shortId} ${task.title}`}
 				icon={taskStatusIcon(task, FallbackIcon)}
 			/>
 		</Link>

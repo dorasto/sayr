@@ -255,7 +255,7 @@ export function useTaskCommands() {
 		return {
 			root: [
 				{
-					heading: `Task #${formatTaskKey(organization.shortId, task.shortId)}`,
+					heading: `Task ${formatTaskKey(organization.shortId, task.shortId)}`,
 					priority: 1,
 					items: [
 						{
@@ -343,10 +343,10 @@ export function useTaskCommands() {
 						},
 						{
 							id: `task-copy-id-${task.id}`,
-							label: `Copy task ID (#${formatTaskKey(organization.shortId, task.shortId)})`,
+							label: `Copy task ID (${formatTaskKey(organization.shortId, task.shortId)})`,
 							icon: <IconCopy size={16} className="opacity-60" aria-hidden="true" />,
 							action: () => {
-								navigator.clipboard.writeText(`#${formatTaskKey(organization.shortId, task.shortId)}`);
+								navigator.clipboard.writeText(`${formatTaskKey(organization.shortId, task.shortId)}`);
 							},
 							closeOnSelect: true,
 							keywords: "identifier number",

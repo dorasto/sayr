@@ -182,7 +182,7 @@ export function PublicSearchDialog({ open, onOpenChange }: PublicSearchDialogPro
 									})()}
 									<span className="truncate">{task.title}</span>
 									<span className="ml-auto shrink-0 text-xs text-muted-foreground">
-										#{formatTaskKey(organization.shortId, task.shortId)}
+										{formatTaskKey(organization.shortId, task.shortId)}
 									</span>
 								</CommandItem>
 							))}

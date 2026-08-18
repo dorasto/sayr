@@ -1,7 +1,7 @@
 import type { schema } from "@repo/database";
 import { cn } from "@repo/ui/lib/utils";
 import { extractHslValues, extractTaskText, formatCount, formatDateCompact, formatTaskKey } from "@repo/util";
-import { IconCalendar, IconChevronUp, IconCircleFilled, IconHash, IconMessage } from "@tabler/icons-react";
+import { IconCalendar, IconChevronUp, IconCircleFilled, IconMessage } from "@tabler/icons-react";
 import { nanoid } from "nanoid";
 import { statusConfig } from "@/components/tasks/shared/config";
 import RenderIcon from "@/components/generic/RenderIcon";
@@ -147,8 +147,7 @@ export function PublicTaskItem({ task, categories = [], voted, onVote }: PublicT
 							)}
 							<InlineLabel
 								text={task.shortId != null ? formatTaskKey(organization.shortId, task.shortId) : ""}
-								icon={<IconHash className="size-3" />}
-								className=" ps-5 pe-1"
+								className="ps-1 pe-1"
 							/>
 						</div>
 					</TileHeader>

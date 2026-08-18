@@ -44,10 +44,10 @@ export default function GlobalTaskIdentifier({
 				</Avatar>
 				{!iconOnly &&
 					(compact ? (
-						<>#{formatTaskKey(organization.shortId, task.shortId)}</>
+						<>{formatTaskKey(organization.shortId, task.shortId)}</>
 					) : (
 						<>
-							{organization.slug}/#{formatTaskKey(organization.shortId, task.shortId)}
+							{organization.slug}/{formatTaskKey(organization.shortId, task.shortId)}
 						</>
 					))}
 			</Button>

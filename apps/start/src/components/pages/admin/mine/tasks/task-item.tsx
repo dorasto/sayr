@@ -44,7 +44,7 @@ export function TaskListItem({ task, isSelected, onClick }: TaskListItemProps) {
 					/>
 
 					<span className="text-xs text-muted-foreground">
-						#{formatTaskKey(task.organization.shortId, task.shortId)}
+						{formatTaskKey(task.organization.shortId, task.shortId)}
 					</span>
 					{/* meta */}
 					<div className="flex items-center gap-2 text-xs ml-auto shrink-0">

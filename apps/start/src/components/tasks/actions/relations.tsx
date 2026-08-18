@@ -49,7 +49,7 @@ export function getRelationTargetOptions(
 		.filter((t) => t.id !== task.id)
 		.map((t) => ({
 			id: t.id,
-			label: `#${orgShortId ? formatTaskKey(orgShortId, t.shortId) : t.shortId} ${t.title}`,
+			label: `${orgShortId ? formatTaskKey(orgShortId, t.shortId) : t.shortId} ${t.title}`,
 			icon: <StatusIcon status={t.status} className="h-4 w-4" />,
 			value: t.id,
 			keywords: `${t.title} ${t.shortId}`,
@@ -69,7 +69,7 @@ export function getRelationUpdatePayload(
 ): RelationFieldUpdatePayload {
 	const targetTask = tasks.find((t) => t.id === targetTaskId);
 	const shortIdLabel = targetTask
-		? `#${orgShortId ? formatTaskKey(orgShortId, targetTask.shortId) : targetTask.shortId}`
+		? `${orgShortId ? formatTaskKey(orgShortId, targetTask.shortId) : targetTask.shortId}`
 		: targetTaskId;
 
 	return {

@@ -206,7 +206,7 @@ export function TaskPickerItem({
 			<span className="truncate text-xs">{task.title ?? "Untitled"}</span>
 			{task.shortId != null && (
 				<span className="text-muted-foreground text-xs shrink-0">
-					#{orgShortId ? formatTaskKey(orgShortId, task.shortId) : task.shortId}
+					{orgShortId ? formatTaskKey(orgShortId, task.shortId) : task.shortId}
 				</span>
 			)}
 		</div>

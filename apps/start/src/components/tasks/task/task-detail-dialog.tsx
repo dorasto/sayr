@@ -102,7 +102,7 @@ export function TaskDetailDialog({
 				{/* Visually hidden but required for accessibility */}
 				<AdaptiveDialogTitle className="sr-only">{task.title}</AdaptiveDialogTitle>
 				<AdaptiveDialogDescription className="sr-only">
-					Task #{organization ? formatTaskKey(organization.shortId, task.shortId) : task.shortId} details
+					Task {organization ? formatTaskKey(organization.shortId, task.shortId) : task.shortId} details
 				</AdaptiveDialogDescription>
 
 				<motion.div

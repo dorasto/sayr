@@ -28,7 +28,7 @@ export function TaskPanelHeader() {
 				</AvatarFallback>
 			</Avatar>
 			<span className="text-xs font-medium truncate">
-				#{formatTaskKey(organization.shortId, task.shortId)} {task.title || "Untitled"}
+				{formatTaskKey(organization.shortId, task.shortId)} {task.title || "Untitled"}
 			</span>
 			<div className="flex items-center gap-2 ml-auto">
 				<SimpleClipboard
