@@ -58,3 +58,4 @@ pnpm-debug.log*
 *.code-workspace
 .vscode-test/
 .eslintcache
+.mcp.json

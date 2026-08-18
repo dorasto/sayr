@@ -1,0 +1,12 @@
+{
+  "hostname": "Sayr",
+  "mode": "local-stage",
+  "stageHostname": "backend",
+  "closeDeployMode": "unset",
+  "gitPushState": "unconfigured",
+  "buildIntegration": "none",
+  "bootstrapSession": "",
+  "bootstrappedAt": "2026-08-18",
+  "firstDeployedAt": "2026-08-18T10:01:38Z",
+  "primarySetupName": "backend"
+}
