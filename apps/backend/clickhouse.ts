@@ -36,7 +36,15 @@ export type PlatformEventType =
 	| "task.github_pr_merged"
 	| "task.github_commit_ref"
 	| "task.github_branch_linked"
-	| "ai.summary_requested";
+	| "ai.summary_requested"
+	/**
+	 * Generic event type for AI features added after task-summary. Carries a
+	 * `feature: string` field in `metadata` identifying which feature ran
+	 * (its `PromptConfig.id`, e.g. `"suggest-labels"`) rather than growing
+	 * this union by one literal per feature. `ai.summary_requested` is kept
+	 * as-is (legacy, no backfill) rather than migrated onto this.
+	 */
+	| "ai.request_completed";
 
 export interface PlatformEvent {
 	event_type: PlatformEventType;
@@ -131,15 +139,7 @@ export async function collectAndInsertSnapshots(dateOverride?: string): Promise<
 
 	const snapshotDate = dateOverride ?? new Date().toISOString().slice(0, 10);
 
-	const [
-		usersTotal,
-		orgsTotal,
-		orgsFree,
-		orgsPro,
-		membersTotal,
-		membersSeated,
-		tasksTotal,
-	] = await Promise.all([
+	const [usersTotal, orgsTotal, orgsFree, orgsPro, membersTotal, membersSeated, tasksTotal] = await Promise.all([
 		db.select({ count: sql<number>`count(*)` }).from(auth.user),
 		db
 			.select({ count: sql<number>`count(*)` })
@@ -154,10 +154,7 @@ export async function collectAndInsertSnapshots(dateOverride?: string): Promise<
 			.from(schema.organization)
 			.where(sql`${schema.organization.isSystemOrg} = false AND ${schema.organization.plan} = 'pro'`),
 		db.select({ count: sql<number>`count(*)` }).from(schema.member),
-		db
-			.select({ count: sql<number>`count(*)` })
-			.from(schema.member)
-			.where(eq(schema.member.seatAssigned, true)),
+		db.select({ count: sql<number>`count(*)` }).from(schema.member).where(eq(schema.member.seatAssigned, true)),
 		db.select({ count: sql<number>`count(*)` }).from(schema.task),
 	]);
 
@@ -212,7 +209,7 @@ export interface AiMonthlySummary {
  */
 export async function queryAiUsageByOrg(
 	orgId: string,
-	days: number,
+	days: number
 ): Promise<{ rows: AiUsageRow[]; monthlySummary: AiMonthlySummary[] } | null> {
 	const ch = getClient();
 	if (!ch) return null;
@@ -236,7 +233,7 @@ export async function queryAiUsageByOrg(
 					JSONExtractFloat(metadata, 'cost_cents')     AS cost_cents,
 					JSONExtractBool(metadata, 'success')         AS success
 				FROM platform_events
-				WHERE event_type = 'ai.summary_requested'
+				WHERE event_type IN ('ai.summary_requested', 'ai.request_completed')
 					AND org_id = '${orgId}'
 					AND created_at >= now() - INTERVAL ${safeDays} DAY
 				ORDER BY created_at DESC
@@ -254,7 +251,7 @@ export async function queryAiUsageByOrg(
 					sum(JSONExtractInt(metadata, 'total_tokens'))              AS total_tokens,
 					sum(JSONExtractFloat(metadata, 'cost_cents'))              AS cost_cents
 				FROM platform_events
-				WHERE event_type = 'ai.summary_requested'
+				WHERE event_type IN ('ai.summary_requested', 'ai.request_completed')
 					AND org_id = '${orgId}'
 					AND created_at >= now() - INTERVAL ${safeDays} DAY
 				GROUP BY month
@@ -290,9 +287,7 @@ export interface AiOrgSummary {
  * Includes total_cost_cents so callers can compute accurate costs without
  * needing to know the model mix.
  */
-export async function queryAiUsageSummaryAllOrgs(
-	days: number,
-): Promise<AiOrgSummary[] | null> {
+export async function queryAiUsageSummaryAllOrgs(days: number): Promise<AiOrgSummary[] | null> {
 	const ch = getClient();
 	if (!ch) return null;
 
@@ -308,7 +303,7 @@ export async function queryAiUsageSummaryAllOrgs(
 				sum(JSONExtractInt(metadata, 'total_tokens'))              AS total_tokens,
 				sum(JSONExtractFloat(metadata, 'cost_cents'))              AS total_cost_cents
 			FROM platform_events
-			WHERE event_type = 'ai.summary_requested'
+			WHERE event_type IN ('ai.summary_requested', 'ai.request_completed')
 				AND created_at >= now() - INTERVAL ${safeDays} DAY
 			GROUP BY org_id
 		`,

@@ -17,6 +17,7 @@ import { TaskEditableHeader } from "./editable-header";
 import { TaskParentSection, TaskSubtasksSection, TaskRelationsSection } from "./task-hierarchy-sections";
 import { TaskContextBanner } from "./task-context-banner";
 import { AiTaskSummary } from "./task-ai-summary";
+import { AiRecommendations } from "./task-ai-recommendations";
 import { useReadOnlyStateManagementKey } from "@repo/ui/hooks/useStateManagement.ts";
 import { InlineLabel } from "../shared";
 import { getMatchedIntegrations } from "../shared/integration-registry";
@@ -289,6 +290,7 @@ export function TaskContentMain({
 	const { permissions } = useLayoutOrganization();
 	const { account } = useLayoutData();
 	const fieldPerms = getTaskFieldPermissions(task, account?.id, permissions);
+	const isProjectAdmin = permissions?.admin?.administrator === true;
 
 	// Wrapper function to match setSelectedTask signature
 	const setSelectedTask = (t: schema.TaskWithLabels | null) => {
@@ -316,6 +318,15 @@ export function TaskContentMain({
 					organization={organization}
 				/>
 				<AiTaskSummary task={task} orgId={organization.id} />
+				<AiRecommendations
+					task={task}
+					orgId={organization.id}
+					availableLabels={labels}
+					tasks={tasks}
+					setTasks={setTasks}
+					setSelectedTask={setSelectedTask}
+					isProjectAdmin={isProjectAdmin}
+				/>
 				<GlobalTimeline
 					task={task}
 					labels={labels}

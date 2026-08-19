@@ -31,6 +31,10 @@ const CUSTOM_PROMPT_MAX_LENGTH = 500;
  * id here (and its own accordion section below) the same way.
  */
 const TASK_SUMMARY_FEATURE_ID = "task-summary";
+/** Feature id for the suggest-labels prompt — must match `suggestLabelsPrompt.id`. */
+const SUGGEST_LABELS_FEATURE_ID = "suggest-labels";
+/** Feature id for the release-notes prompt — must match `releaseNotesPrompt.id`. */
+const RELEASE_NOTES_FEATURE_ID = "release-notes";
 
 export default function AiSettingsPage({ locked }: { locked?: boolean }) {
 	const { value: sseClientId } = useStateManagement<string>("sse-clientId", "");
@@ -160,6 +164,18 @@ export default function AiSettingsPage({ locked }: { locked?: boolean }) {
 	const handleModelChange = useCallback(
 		(featureId: string, modelId: string) =>
 			updateAiSetting("selectedModels", { ...aiSettingsRef.current.selectedModels, [featureId]: modelId }),
+		[updateAiSetting]
+	);
+
+	/**
+	 * Generic per-feature enable toggle for AI features added after
+	 * task-summary — writes to `OrgAiSettings.featureToggles` (missing entry
+	 * = enabled). `task-summary` keeps using its own dedicated `taskSummary`
+	 * boolean via `handleToggle` above rather than this.
+	 */
+	const handleFeatureToggle = useCallback(
+		(featureId: string, checked: boolean) =>
+			updateAiSetting("featureToggles", { ...aiSettingsRef.current.featureToggles, [featureId]: checked }),
 		[updateAiSetting]
 	);
 
@@ -396,6 +412,173 @@ export default function AiSettingsPage({ locked }: { locked?: boolean }) {
 													</Button>
 												)}
 											</div>
+										</div>
+									</Tile>
+								</div>
+							</AccordionContent>
+						</AccordionItem>
+
+						<AccordionItem value="suggest-labels" className="border-none">
+							<AccordionTrigger
+								className="px-4 py-3 hover:no-underline hover:bg-accent rounded-lg transition-colors [&[data-state=open]]:rounded-b-none"
+								showChevron={true}
+							>
+								<div className="flex items-center gap-2 flex-1 text-left">
+									<span className="text-sm font-medium">Suggest labels</span>
+									<Badge
+										variant={
+											(aiSettings.featureToggles?.[SUGGEST_LABELS_FEATURE_ID] ?? true) &&
+											!aiSettings.disabled
+												? "default"
+												: "secondary"
+										}
+										className="text-xs"
+									>
+										{(aiSettings.featureToggles?.[SUGGEST_LABELS_FEATURE_ID] ?? true) && !aiSettings.disabled
+											? "Enabled"
+											: "Disabled"}
+									</Badge>
+								</div>
+							</AccordionTrigger>
+							<AccordionContent className="px-0 pb-0 pt-0">
+								<div className="flex flex-col">
+									<div className="border-t border-border mx-4" />
+									<Tile className="md:w-full" variant="transparent">
+										<TileHeader className="md:w-full">
+											<TileTitle className="text-sm">Enable suggest labels</TileTitle>
+											<TileDescription className="text-xs leading-normal!">
+												Show an AI suggestion button next to a task's labels. Suggests only from this
+												organization's existing label library — never creates new labels.
+											</TileDescription>
+										</TileHeader>
+										<div className="flex items-center justify-end pl-4">
+											<Switch
+												checked={aiSettings.featureToggles?.[SUGGEST_LABELS_FEATURE_ID] ?? true}
+												disabled={
+													!isAdmin || aiSettings.disabled || locked || savingKeys.has("featureToggles")
+												}
+												onCheckedChange={(checked) =>
+													handleFeatureToggle(SUGGEST_LABELS_FEATURE_ID, checked)
+												}
+											/>
+										</div>
+									</Tile>
+
+									<div className="border-t border-border mx-4" />
+									<Tile className="md:w-full" variant="transparent">
+										<TileHeader className="md:w-full">
+											<TileTitle className="text-sm">Model</TileTitle>
+											<TileDescription className="text-xs leading-normal!">
+												Choose which AI model suggests labels. Available on the Pro plan — other orgs use
+												the default model.
+											</TileDescription>
+										</TileHeader>
+										<div className="flex items-center justify-end pl-4">
+											<Select
+												value={aiSettings.selectedModels?.[SUGGEST_LABELS_FEATURE_ID] ?? DEFAULT_MODEL_ID}
+												disabled={
+													!isAdmin ||
+													aiSettings.disabled ||
+													!(aiSettings.featureToggles?.[SUGGEST_LABELS_FEATURE_ID] ?? true) ||
+													locked ||
+													savingKeys.has("selectedModels")
+												}
+												onValueChange={(modelId) => handleModelChange(SUGGEST_LABELS_FEATURE_ID, modelId)}
+											>
+												<SelectTrigger size="sm" className="w-48">
+													<SelectValue />
+												</SelectTrigger>
+												<SelectContent>
+													{REQUESTY_MODEL_CATALOG.map((model) => (
+														<SelectItem key={model.id} value={model.id}>
+															{model.label}
+														</SelectItem>
+													))}
+												</SelectContent>
+											</Select>
+										</div>
+									</Tile>
+								</div>
+							</AccordionContent>
+						</AccordionItem>
+
+						<AccordionItem value="release-notes" className="border-none">
+							<AccordionTrigger
+								className="px-4 py-3 hover:no-underline hover:bg-accent rounded-lg transition-colors [&[data-state=open]]:rounded-b-none"
+								showChevron={true}
+							>
+								<div className="flex items-center gap-2 flex-1 text-left">
+									<span className="text-sm font-medium">Release notes</span>
+									<Badge
+										variant={
+											(aiSettings.featureToggles?.[RELEASE_NOTES_FEATURE_ID] ?? true) && !aiSettings.disabled
+												? "default"
+												: "secondary"
+										}
+										className="text-xs"
+									>
+										{(aiSettings.featureToggles?.[RELEASE_NOTES_FEATURE_ID] ?? true) && !aiSettings.disabled
+											? "Enabled"
+											: "Disabled"}
+									</Badge>
+								</div>
+							</AccordionTrigger>
+							<AccordionContent className="px-0 pb-0 pt-0">
+								<div className="flex flex-col">
+									<div className="border-t border-border mx-4" />
+									<Tile className="md:w-full" variant="transparent">
+										<TileHeader className="md:w-full">
+											<TileTitle className="text-sm">Enable release notes</TileTitle>
+											<TileDescription className="text-xs leading-normal!">
+												Show a "Generate release notes with AI" action on release detail pages, drafted from
+												the release's linked tasks.
+											</TileDescription>
+										</TileHeader>
+										<div className="flex items-center justify-end pl-4">
+											<Switch
+												checked={aiSettings.featureToggles?.[RELEASE_NOTES_FEATURE_ID] ?? true}
+												disabled={
+													!isAdmin || aiSettings.disabled || locked || savingKeys.has("featureToggles")
+												}
+												onCheckedChange={(checked) =>
+													handleFeatureToggle(RELEASE_NOTES_FEATURE_ID, checked)
+												}
+											/>
+										</div>
+									</Tile>
+
+									<div className="border-t border-border mx-4" />
+									<Tile className="md:w-full" variant="transparent">
+										<TileHeader className="md:w-full">
+											<TileTitle className="text-sm">Model</TileTitle>
+											<TileDescription className="text-xs leading-normal!">
+												Choose which AI model drafts release notes. Available on the Pro plan — other orgs
+												use the default model.
+											</TileDescription>
+										</TileHeader>
+										<div className="flex items-center justify-end pl-4">
+											<Select
+												value={aiSettings.selectedModels?.[RELEASE_NOTES_FEATURE_ID] ?? DEFAULT_MODEL_ID}
+												disabled={
+													!isAdmin ||
+													aiSettings.disabled ||
+													!(aiSettings.featureToggles?.[RELEASE_NOTES_FEATURE_ID] ?? true) ||
+													locked ||
+													savingKeys.has("selectedModels")
+												}
+												onValueChange={(modelId) => handleModelChange(RELEASE_NOTES_FEATURE_ID, modelId)}
+											>
+												<SelectTrigger size="sm" className="w-48">
+													<SelectValue />
+												</SelectTrigger>
+												<SelectContent>
+													{REQUESTY_MODEL_CATALOG.map((model) => (
+														<SelectItem key={model.id} value={model.id}>
+															{model.label}
+														</SelectItem>
+													))}
+												</SelectContent>
+											</Select>
 										</div>
 									</Tile>
 								</div>

@@ -1,5 +1,11 @@
 export { BANNED_SLUGS, isSlugBanned } from "./bannedSlugs";
-export { type OrgAiRateLimit, type OrgAiSettings, defaultOrgAiSettings, resolveOrgAiStatus } from "./org-ai";
+export {
+	type OrgAiRateLimit,
+	type OrgAiSettings,
+	defaultOrgAiSettings,
+	resolveOrgAiStatus,
+	isAiFeatureEnabled,
+} from "./org-ai";
 
 /**
  * Extracts the private ID (orgKey) if present in a Sayr file URL.

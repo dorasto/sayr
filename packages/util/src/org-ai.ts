@@ -60,6 +60,16 @@ export interface OrgAiSettings {
 	 * never pass it to a provider call directly.
 	 */
 	selectedModels?: Record<string, string>;
+	/**
+	 * Per-feature enable toggles for AI features added after task-summary,
+	 * keyed by the feature's `PromptConfig.id` (`@repo/ai-prompts`, e.g.
+	 * `"suggest-labels"`). Missing entry = enabled (opt-out model, matching
+	 * `taskSummary`'s default-on behaviour). `taskSummary` itself keeps its
+	 * own dedicated `taskSummary` boolean above rather than moving onto this
+	 * map — this field is only for features built on top of it.
+	 * Checked via `isAiFeatureEnabled` below.
+	 */
+	featureToggles?: Record<string, boolean>;
 }
 
 export const defaultOrgAiSettings: OrgAiSettings = {
@@ -69,6 +79,7 @@ export const defaultOrgAiSettings: OrgAiSettings = {
 	taskSummaryCustomPrompt: null,
 	urlFetchEnabled: false,
 	selectedModels: {},
+	featureToggles: {},
 };
 
 /**
@@ -125,4 +136,24 @@ export function resolveOrgAiStatus(settings: { ai?: OrgAiSettings | null } | nul
 		taskSummaryEnabled: ai.taskSummary,
 		urlFetchEnabled: ai.urlFetchEnabled ?? false,
 	};
+}
+
+/**
+ * Whether a given AI feature (identified by its `PromptConfig.id`) is
+ * enabled for an organization, per `OrgAiSettings.featureToggles`.
+ *
+ * This only checks the per-feature toggle — callers must separately check
+ * `resolveOrgAiStatus(settings).aiDisabled`/`aiRateLimited` first (as
+ * `checkAiFeatureAccess` in `apps/backend/lib/ai/gate.ts` does) since those
+ * take precedence over any individual feature toggle.
+ *
+ * Not used for `taskSummary` — that feature keeps its own dedicated
+ * `taskSummaryEnabled` field on `resolveOrgAiStatus`'s return value.
+ */
+export function isAiFeatureEnabled(
+	settings: { ai?: OrgAiSettings | null } | null | undefined,
+	featureId: string
+): boolean {
+	const ai: OrgAiSettings = { ...defaultOrgAiSettings, ...(settings?.ai ?? {}) };
+	return ai.featureToggles?.[featureId] ?? true;
 }
