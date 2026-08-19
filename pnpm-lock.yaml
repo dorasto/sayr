@@ -480,6 +480,9 @@ importers:
       '@clickhouse/client':
         specifier: ^1.18.2
         version: 1.18.2
+      '@repo/ai':
+        specifier: workspace:*
+        version: link:../../packages/ai
       '@repo/database':
         specifier: workspace:*
         version: link:../../packages/database

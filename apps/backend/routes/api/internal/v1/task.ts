@@ -3,43 +3,51 @@ import {
 	addLabelToTask,
 	addLogEventTask,
 	createComment,
+	createNotification,
+	createNotifications,
 	createOrToggleCommentReaction,
 	createOrToggleTaskVote,
 	createTask,
-	createNotifications,
-	createNotification,
-	extractUserMentions,
+	createTaskRelation,
+	db,
 	extractTaskMentions,
-	getTaskAssigneeIds,
+	extractUserMentions,
+	getBlockedUserIds,
 	getCommentReplies,
 	getCommentReplyCountBatch,
-	getBlockedUserIds,
-	db,
-	getOrganizationMembers,
-	getTaskById,
 	getIssueTemplateById,
+	getOrganizationMembers,
+	getSubtasks,
+	getTaskAssigneeIds,
+	getTaskById,
+	getTaskRelations,
 	getTaskTimeline,
 	removeLabelFromTask,
-	schema,
-	userSummaryColumns,
-	setTaskParent,
 	removeTaskParent,
-	getSubtasks,
-	createTaskRelation,
 	removeTaskRelation,
-	getTaskRelations,
+	schema,
 	searchTasksByOrganization,
+	setTaskParent,
+	userSummaryColumns,
 } from "@repo/database";
+import { createTraceAsync } from "@repo/opentelemetry/trace";
+import { enqueue } from "@repo/queue";
 import { getInstallationToken } from "@repo/util/github/auth";
 import { and, desc, eq, ilike, isNull, notInArray, or, sql } from "drizzle-orm";
 import { Hono } from "hono";
+import { emitEvent, type PlatformEventType } from "@/clickhouse";
 import type { AppEnv } from "@/index";
-import { createTraceAsync } from "@repo/opentelemetry/trace";
+import {
+	findClientBysseId,
+	findSSEClientsByUserId,
+	sseBroadcastByUserId,
+	sseBroadcastIndividual,
+	sseBroadcastPublic,
+	sseBroadcastToRoom,
+} from "@/routes/events";
+import type { ServerEventBaseMessage } from "@/routes/events/types";
 import { getAnonHash, getClientIP, traceOrgPermissionCheck, tracePublicOrgAccessCheck } from "@/util";
 import { errorResponse, paginatedSuccessResponse } from "../../../../responses";
-import { findClientBysseId, sseBroadcastToRoom, sseBroadcastPublic, sseBroadcastIndividual, findSSEClientsByUserId, sseBroadcastByUserId } from "@/routes/events";
-import type { ServerEventBaseMessage } from "@/routes/events/types";
-import { emitEvent, type PlatformEventType } from "@/clickhouse";
 
 export const apiRouteAdminProjectTask = new Hono<AppEnv>();
 
@@ -151,10 +159,7 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 	if (!isAuthorized) {
 		return c.json({ success: false, error: "You don't have permission to create tasks." }, 401);
 	}
-	const isPublicAccess = await tracePublicOrgAccessCheck(
-		orgId,
-		"enablePublicPage"
-	);
+	const isPublicAccess = await tracePublicOrgAccessCheck(orgId, "enablePublicPage");
 
 	// If public page is OFF → force private
 	if (!isPublicAccess) {
@@ -165,7 +170,12 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 	}
 	const task = await traceAsync(
 		"task.create.insert",
-		() => createTask(orgId, { title, description, status, priority, category, releaseId, visible, parentId }, session?.userId),
+		() =>
+			createTask(
+				orgId,
+				{ title, description, status, priority, category, releaseId, visible, parentId },
+				session?.userId
+			),
 		{
 			description: "Creating task record",
 			data: { orgId, title, status, priority, category, releaseId, visible, parentId },
@@ -231,7 +241,7 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 					addLogEventTask(parentId, orgId, "subtask_added", null, task.id, session?.userId),
 				]);
 			},
-			{ description: "Logging parent/subtask timeline events", data: { taskId: task.id, parentId } },
+			{ description: "Logging parent/subtask timeline events", data: { taskId: task.id, parentId } }
 		);
 	}
 
@@ -258,9 +268,7 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 				const clients = findSSEClientsByUserId(member.userId);
 				clients.forEach(
 					(client) =>
-						client.id !== sseClientId &&
-						client.channel !== "tasks" &&
-						sseBroadcastIndividual(client, data, orgId)
+						client.id !== sseClientId && client.channel !== "tasks" && sseBroadcastIndividual(client, data, orgId)
 				);
 			});
 		},
@@ -279,7 +287,7 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 					sseBroadcastToRoom(orgId, `tasks;task:${parentId}`, parentUpdate, found?.id, true);
 				}
 			},
-			{ description: "Broadcasting parent task update for new subtask", data: { parentId } },
+			{ description: "Broadcasting parent task update for new subtask", data: { parentId } }
 		);
 	}
 
@@ -327,19 +335,13 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 			const owner = repoInfo.owner.login;
 			const repo = repoInfo.name;
 
-			const body =
-				`↪ From Sayr task ${sayrTaskUrl}\n\n` +
-				`<!-- sayr-task:${taskWithData.id} -->\n\n` +
-				`---\n\n`;
-			const { data: issue } = await octokit.request(
-				"POST /repos/{owner}/{repo}/issues",
-				{
-					owner,
-					repo,
-					title,
-					body,
-				}
-			);
+			const body = `↪ From Sayr task ${sayrTaskUrl}\n\n` + `<!-- sayr-task:${taskWithData.id} -->\n\n` + `---\n\n`;
+			const { data: issue } = await octokit.request("POST /repos/{owner}/{repo}/issues", {
+				owner,
+				repo,
+				title,
+				body,
+			});
 
 			await db.insert(schema.githubIssue).values({
 				repositoryId: foundLink.id,
@@ -367,6 +369,13 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 		metadata: { status, priority, source: "member" },
 	});
 
+	// Fire-and-forget: generates the task's semantic-search embedding in the
+	// background (apps/worker/main/embed-task.ts). A brand-new task always
+	// needs one — no diffing needed here, unlike /update below.
+	enqueue("main", { type: "embed_task", payload: { orgId, taskId: task.id } }).catch((err) => {
+		console.error("[task.create] Failed to enqueue embed_task job:", err);
+	});
+
 	return c.json({ success: true, data: taskWithData });
 });
 
@@ -376,16 +385,7 @@ apiRouteAdminProjectTask.post("/public-create", async (c) => {
 	const recordWideError = c.get("recordWideError");
 	const body = await c.req.json();
 
-	const {
-		org_id: orgId,
-		sseClientId,
-		title,
-		description,
-		priority,
-		labels,
-		category,
-		templateId,
-	} = body;
+	const { org_id: orgId, sseClientId, title, description, priority, labels, category, templateId } = body;
 
 	const session = c.get("session");
 
@@ -423,9 +423,9 @@ apiRouteAdminProjectTask.post("/public-create", async (c) => {
 	// (assignees, status, release, visibility, etc.) that the frontend never sends.
 	const template = templateId
 		? await traceAsync("task.public_create.load_template", () => getIssueTemplateById(templateId), {
-			description: "Loading issue template for public task creation",
-			data: { templateId },
-		})
+				description: "Loading issue template for public task creation",
+				data: { templateId },
+			})
 		: null;
 
 	// Validate the template belongs to this org
@@ -435,15 +435,16 @@ apiRouteAdminProjectTask.post("/public-create", async (c) => {
 
 	// Resolve fields: user-provided values take precedence, fall back to template,
 	// then to safe defaults. Field restrictions only apply to user-editable fields.
-	const resolvedPriority = publicTaskFields?.priority === false
-		? (template?.priority || "none")
-		: (priority || template?.priority || "none");
-	const resolvedLabels: string[] = publicTaskFields?.labels === false
-		? (template?.labels?.map((l) => l.id) || [])
-		: (labels?.length > 0 ? labels : template?.labels?.map((l) => l.id) || []);
-	const resolvedCategory = publicTaskFields?.category === false
-		? (template?.categoryId || null)
-		: (category || template?.categoryId || null);
+	const resolvedPriority =
+		publicTaskFields?.priority === false ? template?.priority || "none" : priority || template?.priority || "none";
+	const resolvedLabels: string[] =
+		publicTaskFields?.labels === false
+			? template?.labels?.map((l) => l.id) || []
+			: labels?.length > 0
+				? labels
+				: template?.labels?.map((l) => l.id) || [];
+	const resolvedCategory =
+		publicTaskFields?.category === false ? template?.categoryId || null : category || template?.categoryId || null;
 
 	// Template-only fields: these are never user-editable on the public form,
 	// so they always come from the template (or safe defaults).
@@ -456,16 +457,21 @@ apiRouteAdminProjectTask.post("/public-create", async (c) => {
 	// Public tasks are always visible=public unless the template sets private
 	const task = await traceAsync(
 		"task.public_create.insert",
-		() => createTask(orgId, {
-			title,
-			description: description || template?.description || undefined,
-			status: resolvedStatus,
-			priority: resolvedPriority,
-			category: resolvedCategory,
-			releaseId: resolvedReleaseId,
-			visible: resolvedVisible,
-			parentId: resolvedParentId,
-		}, session.userId),
+		() =>
+			createTask(
+				orgId,
+				{
+					title,
+					description: description || template?.description || undefined,
+					status: resolvedStatus,
+					priority: resolvedPriority,
+					category: resolvedCategory,
+					releaseId: resolvedReleaseId,
+					visible: resolvedVisible,
+					parentId: resolvedParentId,
+				},
+				session.userId
+			),
 		{
 			description: "Creating public task record",
 			data: { orgId, title, priority: resolvedPriority, category: resolvedCategory, templateId },
@@ -506,7 +512,13 @@ apiRouteAdminProjectTask.post("/public-create", async (c) => {
 				orgId,
 				"created",
 				null,
-				{ status: resolvedStatus, priority: resolvedPriority, title, labels: resolvedLabels, assignees: resolvedAssignees },
+				{
+					status: resolvedStatus,
+					priority: resolvedPriority,
+					title,
+					labels: resolvedLabels,
+					assignees: resolvedAssignees,
+				},
 				session.userId,
 				description || template?.description
 			);
@@ -538,9 +550,7 @@ apiRouteAdminProjectTask.post("/public-create", async (c) => {
 				const clients = findSSEClientsByUserId(member.userId);
 				clients.forEach(
 					(client) =>
-						client.id !== sseClientId &&
-						client.channel !== "tasks" &&
-						sseBroadcastIndividual(client, data, orgId)
+						client.id !== sseClientId && client.channel !== "tasks" && sseBroadcastIndividual(client, data, orgId)
 				);
 			});
 		},
@@ -581,7 +591,7 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 				where: (t) => and(eq(t.id, taskId), eq(t.organizationId, orgId)),
 				with: {
 					githubIssue: {},
-				}
+				},
 			}),
 		{ description: "Finding task to update", data: { orgId, taskId } }
 	);
@@ -614,7 +624,7 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 				const canChangePriority = await traceOrgPermissionCheck(
 					session?.userId || "",
 					orgId,
-					"tasks.changePriority",
+					"tasks.changePriority"
 				);
 				if (!canChangePriority) {
 					return c.json({ success: false, error: "You don't have permission to change task priority." }, 401);
@@ -681,8 +691,7 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 				if ((updates.status === "done" || updates.status === "in-progress") && existingTask?.githubIssue) {
 					// Derive the issue number from your stored field.
 					// Adjust this if your schema is different.
-					const issueNumber =
-						existingTask.githubIssue.issueNumber ?? existingTask.githubIssue;
+					const issueNumber = existingTask.githubIssue.issueNumber ?? existingTask.githubIssue;
 
 					if (!issueNumber) {
 						// No issue number to close; just skip quietly
@@ -707,25 +716,19 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 						const octokit = new Octokit({ auth: token });
 
 						// Resolve owner/repo from the repoId
-						const { data: repoInfo } = await octokit.request(
-							"GET /repositories/{repository_id}",
-							{
-								repository_id: foundLink.repoId,
-							}
-						);
+						const { data: repoInfo } = await octokit.request("GET /repositories/{repository_id}", {
+							repository_id: foundLink.repoId,
+						});
 
 						const owner = repoInfo.owner.login;
 						const repo = repoInfo.name;
 
-						await octokit.request(
-							"PATCH /repos/{owner}/{repo}/issues/{issue_number}",
-							{
-								owner,
-								repo,
-								issue_number: issueNumber,
-								state: updates.status === "in-progress" ? "open" : "closed",
-							}
-						);
+						await octokit.request("PATCH /repos/{owner}/{repo}/issues/{issue_number}", {
+							owner,
+							repo,
+							issue_number: issueNumber,
+							state: updates.status === "in-progress" ? "open" : "closed",
+						});
 					} catch (err) {
 						// Don't throw; just log so it doesn't affect the main task update flow
 						console.error("Failed to close GitHub issue", {
@@ -769,17 +772,16 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 					updates.description
 				);
 				// Check for new @mentions in the updated description
-				notifyMentions({ taskId, orgId, actorId: userId, content: updates.description, timelineEventId: event?.id });
-			}
-			if (updates.releaseId !== undefined && updates.releaseId !== existingTask.releaseId) {
-				await addLogEventTask(
+				notifyMentions({
 					taskId,
 					orgId,
-					"release_change",
-					existingTask.releaseId,
-					updates.releaseId,
-					userId
-				);
+					actorId: userId,
+					content: updates.description,
+					timelineEventId: event?.id,
+				});
+			}
+			if (updates.releaseId !== undefined && updates.releaseId !== existingTask.releaseId) {
+				await addLogEventTask(taskId, orgId, "release_change", existingTask.releaseId, updates.releaseId, userId);
 			}
 			if (updates.visible !== undefined && updates.visible !== existingTask.visible) {
 				await addLogEventTask(
@@ -867,6 +869,19 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 		});
 	}
 
+	// Fire-and-forget: only re-embed when the content that actually feeds the
+	// embedding (title/description) changed — same diffing already used for
+	// the task.updated ClickHouse events above, so an unrelated field change
+	// (status/priority/etc) doesn't trigger a wasted embedding call.
+	const titleChanged = updates.title && updates.title !== existingTask.title;
+	const descriptionChanged =
+		updates.description && JSON.stringify(updates.description) !== JSON.stringify(existingTask.description);
+	if (titleChanged || descriptionChanged) {
+		enqueue("main", { type: "embed_task", payload: { orgId, taskId } }).catch((err) => {
+			console.error("[task.update] Failed to enqueue embed_task job:", err);
+		});
+	}
+
 	const taskWithData = await traceAsync("task.update.refetch", () => getTaskById(orgId, taskId), {
 		description: "Refetching updated task data",
 	});
@@ -929,11 +944,10 @@ apiRouteAdminProjectTask.patch("/set-parent", async (c) => {
 	}
 
 	try {
-		const updated = await traceAsync(
-			"task.set_parent",
-			() => setTaskParent(orgId, taskId, parentId),
-			{ description: "Setting task parent", data: { orgId, taskId, parentId } },
-		);
+		const updated = await traceAsync("task.set_parent", () => setTaskParent(orgId, taskId, parentId), {
+			description: "Setting task parent",
+			data: { orgId, taskId, parentId },
+		});
 
 		// Log timeline events on both tasks
 		await Promise.all([
@@ -954,8 +968,20 @@ apiRouteAdminProjectTask.patch("/set-parent", async (c) => {
 		sseBroadcastToRoom(orgId, `tasks;task:${taskId}`, taskUpdate, found?.id, true);
 		sseBroadcastToRoom(orgId, `tasks;task:${parentId}`, parentUpdate, found?.id, true);
 
-		emitEvent({ event_type: "task.parent_set", actor_id: session?.userId ?? "", target_id: taskId, org_id: orgId, metadata: { parentId } });
-		emitEvent({ event_type: "task.subtask_added", actor_id: session?.userId ?? "", target_id: parentId, org_id: orgId, metadata: { subtaskId: taskId } });
+		emitEvent({
+			event_type: "task.parent_set",
+			actor_id: session?.userId ?? "",
+			target_id: taskId,
+			org_id: orgId,
+			metadata: { parentId },
+		});
+		emitEvent({
+			event_type: "task.subtask_added",
+			actor_id: session?.userId ?? "",
+			target_id: parentId,
+			org_id: orgId,
+			metadata: { subtaskId: taskId },
+		});
 
 		return c.json({ success: true, data: taskWithData });
 	} catch (err) {
@@ -966,10 +992,7 @@ apiRouteAdminProjectTask.patch("/set-parent", async (c) => {
 			message: err instanceof Error ? err.message : "Failed to set parent task",
 			contextData: { orgId, taskId, parentId },
 		});
-		return c.json(
-			{ success: false, error: err instanceof Error ? err.message : "Failed to set parent task" },
-			400,
-		);
+		return c.json({ success: false, error: err instanceof Error ? err.message : "Failed to set parent task" }, 400);
 	}
 });
 
@@ -995,20 +1018,15 @@ apiRouteAdminProjectTask.patch("/remove-parent", async (c) => {
 
 		const oldParentId = existingTask?.parentId;
 
-		const updated = await traceAsync(
-			"task.remove_parent",
-			() => removeTaskParent(orgId, taskId),
-			{ description: "Removing task parent", data: { orgId, taskId } },
-		);
+		const updated = await traceAsync("task.remove_parent", () => removeTaskParent(orgId, taskId), {
+			description: "Removing task parent",
+			data: { orgId, taskId },
+		});
 
 		// Log timeline events
-		const timelinePromises = [
-			addLogEventTask(taskId, orgId, "parent_removed", oldParentId, null, session?.userId),
-		];
+		const timelinePromises = [addLogEventTask(taskId, orgId, "parent_removed", oldParentId, null, session?.userId)];
 		if (oldParentId) {
-			timelinePromises.push(
-				addLogEventTask(oldParentId, orgId, "subtask_removed", taskId, null, session?.userId),
-			);
+			timelinePromises.push(addLogEventTask(oldParentId, orgId, "subtask_removed", taskId, null, session?.userId));
 		}
 		await Promise.all(timelinePromises);
 
@@ -1024,9 +1042,21 @@ apiRouteAdminProjectTask.patch("/remove-parent", async (c) => {
 			sseBroadcastToRoom(orgId, `tasks;task:${oldParentId}`, parentUpdate, found?.id, true);
 		}
 
-		emitEvent({ event_type: "task.parent_removed", actor_id: session?.userId ?? "", target_id: taskId, org_id: orgId, metadata: { oldParentId: oldParentId ?? null } });
+		emitEvent({
+			event_type: "task.parent_removed",
+			actor_id: session?.userId ?? "",
+			target_id: taskId,
+			org_id: orgId,
+			metadata: { oldParentId: oldParentId ?? null },
+		});
 		if (oldParentId) {
-			emitEvent({ event_type: "task.subtask_removed", actor_id: session?.userId ?? "", target_id: oldParentId, org_id: orgId, metadata: { subtaskId: taskId } });
+			emitEvent({
+				event_type: "task.subtask_removed",
+				actor_id: session?.userId ?? "",
+				target_id: oldParentId,
+				org_id: orgId,
+				metadata: { subtaskId: taskId },
+			});
 		}
 
 		return c.json({ success: true, data: taskWithData });
@@ -1061,11 +1091,10 @@ apiRouteAdminProjectTask.get("/subtasks", async (c) => {
 	}
 
 	try {
-		const subtasks = await traceAsync(
-			"task.get_subtasks",
-			() => getSubtasks(orgId, taskId),
-			{ description: "Fetching subtasks", data: { orgId, taskId } },
-		);
+		const subtasks = await traceAsync("task.get_subtasks", () => getSubtasks(orgId, taskId), {
+			description: "Fetching subtasks",
+			data: { orgId, taskId },
+		});
 
 		return c.json({ success: true, data: subtasks });
 	} catch (err) {
@@ -1107,7 +1136,7 @@ apiRouteAdminProjectTask.post("/create-relation", async (c) => {
 		const relation = await traceAsync(
 			"task.create_relation",
 			() => createTaskRelation(orgId, sourceTaskId, targetTaskId, type, session?.userId),
-			{ description: "Creating task relation", data: { orgId, sourceTaskId, targetTaskId, type } },
+			{ description: "Creating task relation", data: { orgId, sourceTaskId, targetTaskId, type } }
 		);
 
 		// Log timeline events on both tasks
@@ -1130,18 +1159,30 @@ apiRouteAdminProjectTask.post("/create-relation", async (c) => {
 			`tasks;task:${sourceTaskId}`,
 			{ type: "UPDATE_TASK" as ServerEventBaseMessage["type"], data: sourceWithData },
 			found?.id,
-			true,
+			true
 		);
 		sseBroadcastToRoom(
 			orgId,
 			`tasks;task:${targetTaskId}`,
 			{ type: "UPDATE_TASK" as ServerEventBaseMessage["type"], data: targetWithData },
 			found?.id,
-			true,
+			true
 		);
 
-		emitEvent({ event_type: "task.relation_added", actor_id: session?.userId ?? "", target_id: sourceTaskId, org_id: orgId, metadata: { relatedTaskId: targetTaskId, type } });
-		emitEvent({ event_type: "task.relation_added", actor_id: session?.userId ?? "", target_id: targetTaskId, org_id: orgId, metadata: { relatedTaskId: sourceTaskId, type } });
+		emitEvent({
+			event_type: "task.relation_added",
+			actor_id: session?.userId ?? "",
+			target_id: sourceTaskId,
+			org_id: orgId,
+			metadata: { relatedTaskId: targetTaskId, type },
+		});
+		emitEvent({
+			event_type: "task.relation_added",
+			actor_id: session?.userId ?? "",
+			target_id: targetTaskId,
+			org_id: orgId,
+			metadata: { relatedTaskId: sourceTaskId, type },
+		});
 
 		return c.json({ success: true, data: sourceWithData });
 	} catch (err) {
@@ -1152,10 +1193,7 @@ apiRouteAdminProjectTask.post("/create-relation", async (c) => {
 			message: err instanceof Error ? err.message : "Failed to create relation",
 			contextData: { orgId, sourceTaskId, targetTaskId, type },
 		});
-		return c.json(
-			{ success: false, error: err instanceof Error ? err.message : "Failed to create relation" },
-			400,
-		);
+		return c.json({ success: false, error: err instanceof Error ? err.message : "Failed to create relation" }, 400);
 	}
 });
 
@@ -1179,11 +1217,10 @@ apiRouteAdminProjectTask.delete("/remove-relation", async (c) => {
 	}
 
 	try {
-		await traceAsync(
-			"task.remove_relation",
-			() => removeTaskRelation(orgId, relationId),
-			{ description: "Removing task relation", data: { orgId, relationId } },
-		);
+		await traceAsync("task.remove_relation", () => removeTaskRelation(orgId, relationId), {
+			description: "Removing task relation",
+			data: { orgId, relationId },
+		});
 
 		// Log timeline events on both tasks if IDs were provided
 		if (sourceTaskId && targetTaskId) {
@@ -1203,7 +1240,7 @@ apiRouteAdminProjectTask.delete("/remove-relation", async (c) => {
 				`tasks;task:${sourceTaskId}`,
 				{ type: "UPDATE_TASK" as ServerEventBaseMessage["type"], data: sourceWithData },
 				found?.id,
-				true,
+				true
 			);
 		}
 		if (targetTaskId) {
@@ -1213,15 +1250,27 @@ apiRouteAdminProjectTask.delete("/remove-relation", async (c) => {
 				`tasks;task:${targetTaskId}`,
 				{ type: "UPDATE_TASK" as ServerEventBaseMessage["type"], data: targetWithData },
 				found?.id,
-				true,
+				true
 			);
 		}
 
 		if (sourceTaskId) {
-			emitEvent({ event_type: "task.relation_removed", actor_id: session?.userId ?? "", target_id: sourceTaskId, org_id: orgId, metadata: { relatedTaskId: targetTaskId ?? null, relationId } });
+			emitEvent({
+				event_type: "task.relation_removed",
+				actor_id: session?.userId ?? "",
+				target_id: sourceTaskId,
+				org_id: orgId,
+				metadata: { relatedTaskId: targetTaskId ?? null, relationId },
+			});
 		}
 		if (targetTaskId) {
-			emitEvent({ event_type: "task.relation_removed", actor_id: session?.userId ?? "", target_id: targetTaskId, org_id: orgId, metadata: { relatedTaskId: sourceTaskId ?? null, relationId } });
+			emitEvent({
+				event_type: "task.relation_removed",
+				actor_id: session?.userId ?? "",
+				target_id: targetTaskId,
+				org_id: orgId,
+				metadata: { relatedTaskId: sourceTaskId ?? null, relationId },
+			});
 		}
 
 		return c.json({ success: true, data: sourceWithData });
@@ -1256,11 +1305,10 @@ apiRouteAdminProjectTask.get("/relations", async (c) => {
 	}
 
 	try {
-		const relations = await traceAsync(
-			"task.get_relations",
-			() => getTaskRelations(orgId, taskId),
-			{ description: "Fetching task relations", data: { orgId, taskId } },
-		);
+		const relations = await traceAsync("task.get_relations", () => getTaskRelations(orgId, taskId), {
+			description: "Fetching task relations",
+			data: { orgId, taskId },
+		});
 
 		return c.json({ success: true, data: relations });
 	} catch (err) {
@@ -1309,7 +1357,7 @@ apiRouteAdminProjectTask.get("/search", async (c) => {
 					description: "Org task search completed",
 					data: { resultCount: result.length },
 				}),
-			},
+			}
 		);
 
 		return c.json({ success: true, data: results });
@@ -1525,8 +1573,7 @@ apiRouteAdminProjectTask.post("/activity", async (c) => {
 		"task.activity.task_lookup",
 		() =>
 			db.query.task.findFirst({
-				where: (t) =>
-					and(eq(t.id, taskId), eq(t.organizationId, orgId)),
+				where: (t) => and(eq(t.id, taskId), eq(t.organizationId, orgId)),
 			}),
 		{
 			description: "Finding task for activity",
@@ -1579,13 +1626,7 @@ apiRouteAdminProjectTask.post("/activity", async (c) => {
 				data: taskWithData,
 			};
 
-			sseBroadcastToRoom(
-				orgId,
-				`tasks;task:${taskId}`,
-				message,
-				undefined,
-				true
-			);
+			sseBroadcastToRoom(orgId, `tasks;task:${taskId}`, message, undefined, true);
 
 			if (taskWithData?.visible === "public") {
 				sseBroadcastPublic(orgId, { ...message });
@@ -1596,15 +1637,8 @@ apiRouteAdminProjectTask.post("/activity", async (c) => {
 				const clients = findSSEClientsByUserId(member.userId);
 				clients.forEach(
 					(client) =>
-						!(
-							client.channel === `task:${taskId}` ||
-							client.channel === "tasks"
-						) &&
-						sseBroadcastIndividual(
-							client,
-							message,
-							orgId
-						)
+						!(client.channel === `task:${taskId}` || client.channel === "tasks") &&
+						sseBroadcastIndividual(client, message, orgId)
 				);
 			});
 		},
@@ -1848,15 +1882,17 @@ apiRouteAdminProjectTask.post("/update-assignees", async (c) => {
 							taskId,
 							timelineEventId: event?.id,
 							type: "assignee_added",
-						}).then((notif) => {
-							if (notif && notif.userId !== session?.userId) {
-								sseBroadcastByUserId(notif.userId, "", orgId, {
-									type: "NEW_NOTIFICATION" as ServerEventBaseMessage["type"],
-									data: notif,
-									meta: { ts: Date.now() },
-								});
-							}
-						}).catch(() => { });
+						})
+							.then((notif) => {
+								if (notif && notif.userId !== session?.userId) {
+									sseBroadcastByUserId(notif.userId, "", orgId, {
+										type: "NEW_NOTIFICATION" as ServerEventBaseMessage["type"],
+										data: notif,
+										meta: { ts: Date.now() },
+									});
+								}
+							})
+							.catch(() => {});
 					}
 				}
 
@@ -1880,15 +1916,17 @@ apiRouteAdminProjectTask.post("/update-assignees", async (c) => {
 							taskId,
 							timelineEventId: event?.id,
 							type: "assignee_removed",
-						}).then((notif) => {
-							if (notif && notif.userId !== session?.userId) {
-								sseBroadcastByUserId(notif.userId, "", orgId, {
-									type: "NEW_NOTIFICATION" as ServerEventBaseMessage["type"],
-									data: notif,
-									meta: { ts: Date.now() },
-								});
-							}
-						}).catch(() => { });
+						})
+							.then((notif) => {
+								if (notif && notif.userId !== session?.userId) {
+									sseBroadcastByUserId(notif.userId, "", orgId, {
+										type: "NEW_NOTIFICATION" as ServerEventBaseMessage["type"],
+										data: notif,
+										meta: { ts: Date.now() },
+									});
+								}
+							})
+							.catch(() => {});
 					}
 				}
 			},
@@ -1986,7 +2024,21 @@ apiRouteAdminProjectTask.post("/update-assignees", async (c) => {
 apiRouteAdminProjectTask.post("/create-comment", async (c) => {
 	const traceAsync = createTraceAsync();
 
-	const { org_id: orgId, sseClientId, task_id: taskId, content, visibility, source, externalAuthorLogin, externalAuthorUrl, externalIssueNumber, externalCommentId, externalCommentUrl, createdBy: bodyCreatedBy, parentId } = await c.req.json();
+	const {
+		org_id: orgId,
+		sseClientId,
+		task_id: taskId,
+		content,
+		visibility,
+		source,
+		externalAuthorLogin,
+		externalAuthorUrl,
+		externalIssueNumber,
+		externalCommentId,
+		externalCommentUrl,
+		createdBy: bodyCreatedBy,
+		parentId,
+	} = await c.req.json();
 	const session = c.get("session");
 
 	const isOrgMember = await traceOrgPermissionCheck(session?.userId || "", orgId, "members");
@@ -2041,10 +2093,7 @@ apiRouteAdminProjectTask.post("/create-comment", async (c) => {
 		}
 	}
 	// Determine the actor attempting to create the comment
-	const commentActorIdCheck =
-		source === "github"
-			? bodyCreatedBy
-			: bodyCreatedBy ?? session?.userId;
+	const commentActorIdCheck = source === "github" ? bodyCreatedBy : (bodyCreatedBy ?? session?.userId);
 
 	// Blocked users cannot post at all
 	if (commentActorIdCheck) {
@@ -2071,7 +2120,10 @@ apiRouteAdminProjectTask.post("/create-comment", async (c) => {
 			return c.json({ success: false, error: "Parent comment not found." }, 404);
 		}
 		if (parentComment.parentId !== null) {
-			return c.json({ success: false, error: "Cannot reply to a reply. Only top-level comments can have replies." }, 400);
+			return c.json(
+				{ success: false, error: "Cannot reply to a reply. Only top-level comments can have replies." },
+				400
+			);
 		}
 		// Replies inherit parent visibility
 		resolvedVisibility = parentComment.visibility;
@@ -2083,7 +2135,20 @@ apiRouteAdminProjectTask.post("/create-comment", async (c) => {
 			// For GitHub-sourced comments, only set createdBy if explicitly provided (linked Sayr user).
 			// Otherwise leave it null so unlinked GitHub users show their GitHub identity, not the system account.
 			const effectiveCreatedBy = source === "github" ? bodyCreatedBy : (bodyCreatedBy ?? session?.userId);
-			return createComment(orgId, taskId, content, resolvedVisibility, effectiveCreatedBy, source, externalAuthorLogin, externalAuthorUrl, externalIssueNumber, externalCommentId, externalCommentUrl, parentId ?? null);
+			return createComment(
+				orgId,
+				taskId,
+				content,
+				resolvedVisibility,
+				effectiveCreatedBy,
+				source,
+				externalAuthorLogin,
+				externalAuthorUrl,
+				externalIssueNumber,
+				externalCommentId,
+				externalCommentUrl,
+				parentId ?? null
+			);
 		},
 		{
 			description: "Creating task comment",
@@ -2140,8 +2205,15 @@ apiRouteAdminProjectTask.post("/create-comment", async (c) => {
 			mentionedTaskIds
 				.filter((id) => id !== taskId) // skip self-mentions
 				.map((mentionedTaskId) =>
-					addLogEventTask(mentionedTaskId, orgId, "task_mentioned", null, { sourceTaskId: taskId }, commentActorId ?? undefined).catch(
-						() => { } // never let timeline failures break comment creation
+					addLogEventTask(
+						mentionedTaskId,
+						orgId,
+						"task_mentioned",
+						null,
+						{ sourceTaskId: taskId },
+						commentActorId ?? undefined
+					).catch(
+						() => {} // never let timeline failures break comment creation
 					)
 				)
 		);
@@ -2150,12 +2222,12 @@ apiRouteAdminProjectTask.post("/create-comment", async (c) => {
 	await traceAsync(
 		"task.comment.create.broadcast",
 		async () => {
-			const seeFound = findClientBysseId(sseClientId)
+			const seeFound = findClientBysseId(sseClientId);
 			const data = {
 				type: "UPDATE_TASK_COMMENTS" as ServerEventBaseMessage["type"],
 				data: { id: taskId },
 			};
-			sseBroadcastToRoom(orgId, `task:${taskId}`, data, seeFound?.id)
+			sseBroadcastToRoom(orgId, `task:${taskId}`, data, seeFound?.id);
 			if (visibility === "public") {
 				sseBroadcastPublic(orgId, { ...data }, seeFound?.id);
 			}
@@ -2218,9 +2290,9 @@ apiRouteAdminProjectTask.put("/edit-comment", async (c) => {
 		// Verify the task is public
 		const task = comment.taskId
 			? await db.query.task.findFirst({
-				where: (t) => and(eq(t.id, comment.taskId!), eq(t.organizationId, orgId), eq(t.visible, "public")),
-				columns: { id: true },
-			})
+					where: (t) => and(eq(t.id, comment.taskId!), eq(t.organizationId, orgId), eq(t.visible, "public")),
+					columns: { id: true },
+				})
 			: null;
 
 		if (!task) {
@@ -2330,17 +2402,10 @@ apiRouteAdminProjectTask.delete("/delete-comment", async (c) => {
 	if (isMember) {
 		// Org members: author, admin, or mod can delete
 		const hasAdminPermission = await traceOrgPermissionCheck(session?.userId || "", orgId, "admin.administrator");
-		const hasModPermission = await traceOrgPermissionCheck(
-			session?.userId || "",
-			orgId,
-			"moderation.manageComments",
-		);
+		const hasModPermission = await traceOrgPermissionCheck(session?.userId || "", orgId, "moderation.manageComments");
 
 		if (!isAuthor && !hasAdminPermission && !hasModPermission) {
-			return c.json(
-				{ success: false, error: "You don't have permission to delete this comment." },
-				403,
-			);
+			return c.json({ success: false, error: "You don't have permission to delete this comment." }, 403);
 		}
 	} else {
 		// Non-members: must be signed in and can only delete their own comments on public tasks
@@ -2355,9 +2420,9 @@ apiRouteAdminProjectTask.delete("/delete-comment", async (c) => {
 		// Verify the task is public
 		const task = taskId
 			? await db.query.task.findFirst({
-				where: (t) => and(eq(t.id, taskId), eq(t.organizationId, orgId), eq(t.visible, "public")),
-				columns: { id: true },
-			})
+					where: (t) => and(eq(t.id, taskId), eq(t.organizationId, orgId), eq(t.visible, "public")),
+					columns: { id: true },
+				})
 			: null;
 
 		if (!task) {
@@ -2371,19 +2436,13 @@ apiRouteAdminProjectTask.delete("/delete-comment", async (c) => {
 		() =>
 			db.transaction(async (tx) => {
 				// Delete comment history first (foreign key constraint)
-				await tx
-					.delete(schema.taskCommentHistory)
-					.where(eq(schema.taskCommentHistory.commentId, commentId));
+				await tx.delete(schema.taskCommentHistory).where(eq(schema.taskCommentHistory.commentId, commentId));
 
 				// Delete reactions
-				await tx
-					.delete(schema.taskCommentReaction)
-					.where(eq(schema.taskCommentReaction.commentId, commentId));
+				await tx.delete(schema.taskCommentReaction).where(eq(schema.taskCommentReaction.commentId, commentId));
 
 				// Delete the comment
-				await tx
-					.delete(schema.taskComment)
-					.where(eq(schema.taskComment.id, commentId));
+				await tx.delete(schema.taskComment).where(eq(schema.taskComment.id, commentId));
 			}),
 		{
 			description: "Deleting comment and related data",
@@ -2467,10 +2526,7 @@ apiRouteAdminProjectTask.patch("/update-comment-visibility", async (c) => {
 	const hasModPermission = await traceOrgPermissionCheck(session?.userId || "", orgId, "moderation.manageComments");
 
 	if (!isAuthor && !hasAdminPermission && !hasModPermission) {
-		return c.json(
-			{ success: false, error: "You don't have permission to change this comment's visibility." },
-			403
-		);
+		return c.json({ success: false, error: "You don't have permission to change this comment's visibility." }, 403);
 	}
 
 	// Update the comment visibility
@@ -2736,7 +2792,7 @@ apiRouteAdminProjectTask.get("/timeline/comments", async (c) => {
 			eq(schema.taskComment.taskId, taskId),
 			isNull(schema.taskComment.parentId),
 			isPublic ? eq(schema.taskComment.visibility, "public") : undefined,
-			blockedIds.length > 0 ? notInArray(schema.taskComment.createdBy, blockedIds) : undefined,
+			blockedIds.length > 0 ? notInArray(schema.taskComment.createdBy, blockedIds) : undefined
 		);
 
 		// 🧮 Count total
@@ -2885,7 +2941,7 @@ apiRouteAdminProjectTask.get("/timeline/comments/count", async (c) => {
 				eq(schema.taskComment.taskId, taskId),
 				isNull(schema.taskComment.parentId),
 				isPublic ? eq(schema.taskComment.visibility, "public") : undefined,
-				blockedIds.length > 0 ? notInArray(schema.taskComment.createdBy, blockedIds) : undefined,
+				blockedIds.length > 0 ? notInArray(schema.taskComment.createdBy, blockedIds) : undefined
 			);
 			const [result] = await db.select({ count: sql<number>`count(*)` }).from(schema.taskComment).where(conditions);
 			const total = Number(result?.count ?? 0);
@@ -2939,7 +2995,7 @@ apiRouteAdminProjectTask.get("/timeline/comments/replies", async (c) => {
 					eq(schema.taskComment.organizationId, orgId),
 					eq(schema.taskComment.parentId, commentId),
 					isPublic ? eq(schema.taskComment.visibility, "public") : undefined,
-					blockedIds.length > 0 ? notInArray(schema.taskComment.createdBy, blockedIds) : undefined,
+					blockedIds.length > 0 ? notInArray(schema.taskComment.createdBy, blockedIds) : undefined
 				);
 
 				const rows = await db.query.taskComment.findMany({
@@ -3134,13 +3190,25 @@ apiRouteAdminProjectTask.get("/voted", async (c) => {
 	});
 });
 
-function baseTaskWhere(orgId: string, categoryId?: string, search?: string, includeClosed?: boolean, isPublic?: boolean) {
+function baseTaskWhere(
+	orgId: string,
+	categoryId?: string,
+	search?: string,
+	includeClosed?: boolean,
+	isPublic?: boolean
+) {
 	const conditions = [
 		eq(schema.task.organizationId, orgId),
 		...(includeClosed
 			? []
-			: [or(eq(schema.task.status, "todo"), eq(schema.task.status, "in-progress"), eq(schema.task.status, "backlog"))]),
-		...(isPublic === false ? [] : [eq(schema.task.visible, "public")])
+			: [
+					or(
+						eq(schema.task.status, "todo"),
+						eq(schema.task.status, "in-progress"),
+						eq(schema.task.status, "backlog")
+					),
+				]),
+		...(isPublic === false ? [] : [eq(schema.task.visible, "public")]),
 	];
 
 	if (categoryId) {
@@ -3236,13 +3304,13 @@ apiRouteAdminProjectTask.get("/tasks", async (c) => {
 					orderBy: isTrending
 						? undefined
 						: (t, { desc }) => {
-							if (sortBy === "newest") {
-								return [desc(t.createdAt)];
-							}
+								if (sortBy === "newest") {
+									return [desc(t.createdAt)];
+								}
 
-							// mostPopular
-							return [desc(t.voteCount), desc(t.createdAt)];
-						},
+								// mostPopular
+								return [desc(t.voteCount), desc(t.createdAt)];
+							},
 
 					limit: isTrending ? limit * 5 : limit,
 					offset: isTrending ? 0 : offset,
@@ -3303,8 +3371,8 @@ apiRouteAdminProjectTask.get("/tasks", async (c) => {
 					const aActivity = (a.voteCount ?? 0) + (a.comments?.length ?? 0);
 					const bActivity = (b.voteCount ?? 0) + (b.comments?.length ?? 0);
 
-					const aScore = aActivity / Math.pow(aHours + 2, 1.5);
-					const bScore = bActivity / Math.pow(bHours + 2, 1.5);
+					const aScore = aActivity / (aHours + 2) ** 1.5;
+					const bScore = bActivity / (bHours + 2) ** 1.5;
 
 					if (bScore !== aScore) {
 						return bScore - aScore;
@@ -3361,18 +3429,11 @@ apiRouteAdminProjectTask.get("/tasks/counts", async (c) => {
 		const baseWhere = and(
 			eq(schema.task.organizationId, orgId),
 			eq(schema.task.visible, "public"),
-			or(
-				eq(schema.task.status, "todo"),
-				eq(schema.task.status, "in-progress"),
-				eq(schema.task.status, "backlog"),
-			),
+			or(eq(schema.task.status, "todo"), eq(schema.task.status, "in-progress"), eq(schema.task.status, "backlog"))
 		);
 
 		// Total open count
-		const [openResult] = await db
-			.select({ count: sql<number>`count(*)` })
-			.from(schema.task)
-			.where(baseWhere);
+		const [openResult] = await db.select({ count: sql<number>`count(*)` }).from(schema.task).where(baseWhere);
 
 		// Per-category counts
 		const categoryRows = await db
@@ -3405,4 +3466,3 @@ apiRouteAdminProjectTask.get("/tasks/counts", async (c) => {
 		return c.json(errorResponse("Database error", "Unexpected error"), 500);
 	}
 });
-

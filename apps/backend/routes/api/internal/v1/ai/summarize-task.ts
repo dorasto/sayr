@@ -1,28 +1,28 @@
+import { createHash } from "node:crypto";
+import { type RequestyMetadata, resolveModelId, streamText } from "@repo/ai";
+import { taskSummaryPrompt } from "@repo/ai-prompts";
+import { polarClient } from "@repo/auth";
 import {
-	getTaskById,
 	getMergedTaskActivity,
 	getOrganization,
+	getTaskById,
 	getUserById,
+	type OrganizationSettings,
 	resolveOrgAiStatus,
 	updateTaskAiSummaryMeta,
-	type OrganizationSettings,
 } from "@repo/database";
-import { streamText, resolveModelId, type RequestyMetadata } from "@repo/ai";
-import { taskSummaryPrompt } from "@repo/ai-prompts";
-import { isAiEnabled, isAiAllowedForOrg } from "@repo/edition";
-import { polarClient } from "@repo/auth";
-import { getRedis } from "@repo/queue";
+import { isAiAllowedForOrg, isAiEnabled } from "@repo/edition";
 import { createTraceAsync, getTraceContext } from "@repo/opentelemetry/trace";
+import { getRedis } from "@repo/queue";
+import { extractPlainText } from "@repo/util";
 import { Hono } from "hono";
 import { z } from "zod";
-import { createHash } from "node:crypto";
 import type { AppEnv } from "@/index";
 import { traceOrgPermissionCheck } from "@/util";
-import { errorResponse } from "../../../../../responses";
-import { extractPlainText } from "../../../../../lib/ai/extract-plain-text";
-import { buildTimelineLine } from "../../../../../lib/ai/format-timeline";
-import { fetchUrlAsText } from "../../../../../lib/ai/fetch-url-text";
 import { emitEvent } from "../../../../../clickhouse";
+import { fetchUrlAsText } from "../../../../../lib/ai/fetch-url-text";
+import { buildTimelineLine } from "../../../../../lib/ai/format-timeline";
+import { errorResponse } from "../../../../../responses";
 
 export const summarizeTaskRoute = new Hono<AppEnv>();
 

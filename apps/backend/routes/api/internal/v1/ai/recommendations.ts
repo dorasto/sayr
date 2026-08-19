@@ -1,13 +1,21 @@
 import { createHash } from "node:crypto";
 import type { RequestyModelId } from "@repo/ai";
 import { recommendationsPrompt } from "@repo/ai-prompts";
-import { db, getLabels, getReleases, getTaskById, type schema, searchTasksByOrganization } from "@repo/database";
-import { isAiFeatureEnabled } from "@repo/util";
+import {
+	db,
+	findSimilarTasks,
+	getLabels,
+	getReleases,
+	getTaskById,
+	getTaskLabelCategorySummaries,
+	type schema,
+	searchTasksByOrganization,
+} from "@repo/database";
+import { extractPlainText, isAiFeatureEnabled } from "@repo/util";
 import { eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { z } from "zod";
 import type { AppEnv } from "@/index";
-import { extractPlainText } from "../../../../../lib/ai/extract-plain-text";
 import { checkAiFeatureAccess } from "../../../../../lib/ai/gate";
 import { runAiStructuredFeature } from "../../../../../lib/ai/structured-runner";
 import { errorResponse } from "../../../../../responses";
@@ -23,10 +31,18 @@ export const recommendationsRoute = new Hono<AppEnv>();
  */
 const RECOMMENDATIONS_MODEL: RequestyModelId = "mistral/mistral-small-latest";
 const CACHE_TTL_SECONDS = 60 * 60 * 24;
-/** How many recent org tasks to pull before local prefiltering. */
+/**
+ * How many nearest-neighbor tasks to consider — both as relation
+ * (duplicate/blocking/related) candidates and as the evidence base for
+ * label/category suggestions ("N of these used label X"). Ranked by real
+ * semantic similarity (task.embedding, pgvector) when the current task has
+ * one; falls back to a local word-overlap prefilter over a recent-tasks
+ * window when it doesn't (not yet processed by the embed_task background
+ * job, or self-hosted without the pgvector extension available).
+ */
+const NEIGHBOR_COUNT = 12;
+/** How many recent org tasks to pull for the word-overlap fallback path. */
 const RELATION_CANDIDATE_POOL_SIZE = 50;
-/** How many prefiltered candidates actually get sent to the model. */
-const RELATION_CANDIDATE_SHORTLIST_SIZE = 12;
 
 const RELATION_TYPES = ["related", "blocking", "duplicate"] as const;
 
@@ -102,6 +118,34 @@ function scoreOverlap(sourceWords: Set<string>, candidateTitle: string): number 
 	return overlap / Math.sqrt(sourceWords.size * candidateWords.size);
 }
 
+type Neighbor = { id: string; title: string; shortId: number | null; labelIds: string[]; categoryId: string | null };
+
+/**
+ * Turns nearest-neighbor co-occurrence into explicit facts for the prompt —
+ * "N of the M most similar tasks used X" — instead of asking the model to
+ * infer relevance from raw text alone. This is what grounds label/category
+ * suggestions in actual historical data (the user's own example: "9 other
+ * tasks that were semi related to this task used this label").
+ */
+function buildFrequencyEvidence<T extends { id: string; name: string }>(
+	neighbors: Neighbor[],
+	getIds: (n: Neighbor) => string[],
+	candidates: T[]
+): string | null {
+	if (neighbors.length === 0) return null;
+	const freq = new Map<string, number>();
+	for (const n of neighbors) {
+		for (const id of getIds(n)) freq.set(id, (freq.get(id) ?? 0) + 1);
+	}
+	const lines = candidates
+		.map((c) => ({ c, count: freq.get(c.id) ?? 0 }))
+		.filter((e) => e.count > 0)
+		.sort((a, b) => b.count - a.count)
+		.map((e) => `- "${e.c.name}" appears on ${e.count}/${neighbors.length} similar tasks`);
+	if (lines.length === 0) return null;
+	return `Evidence from the ${neighbors.length} most similar tasks in this organisation:\n${lines.join("\n")}`;
+}
+
 recommendationsRoute.post("/", async (c) => {
 	const session = c.get("session");
 	const recordWideError = c.get("recordWideError");
@@ -156,6 +200,60 @@ recommendationsRoute.post("/", async (c) => {
 
 	const descriptionText = task.description ? extractPlainText(task.description) : "No description provided.";
 
+	// ---- Nearest-neighbor tasks: relation candidates + label/category evidence ----
+	// Computed once, up front — both the relations kind and the evidence lines
+	// appended to the labels/category sections below read from this same set.
+	let neighbors: Neighbor[] = [];
+	if (enabled.relations || enabled.labels || enabled.category) {
+		const alreadyRelatedIds = new Set((task.relations ?? []).map((r) => r.task?.id).filter(Boolean));
+		let candidates: { id: string; title: string; shortId: number | null }[] = [];
+
+		if (task.embedding) {
+			// Real semantic nearest-neighbors across every task in the org, via
+			// pgvector — pull a few extra to absorb any that turn out to already
+			// be related, then trim back down to NEIGHBOR_COUNT.
+			const similar = await findSimilarTasks(orgId, task.embedding, {
+				excludeTaskId: taskId,
+				limit: NEIGHBOR_COUNT + alreadyRelatedIds.size,
+			});
+			candidates = similar
+				.filter((t) => !alreadyRelatedIds.has(t.id))
+				.slice(0, NEIGHBOR_COUNT)
+				.map((t) => ({ id: t.id, title: t.title ?? "", shortId: t.shortId }));
+		} else {
+			// Fallback: this task has no embedding yet (not yet processed by the
+			// embed_task background job, or self-hosted without pgvector) — cheap
+			// local word-overlap prefilter over a recent-tasks window instead of
+			// going silent.
+			const pool = await searchTasksByOrganization(orgId, undefined, RELATION_CANDIDATE_POOL_SIZE);
+			const sourceWords = tokenize(`${task.title ?? ""} ${descriptionText}`);
+			candidates = pool
+				.filter((t) => t.id !== taskId && t.title && !alreadyRelatedIds.has(t.id))
+				.map((t) => ({
+					id: t.id,
+					title: t.title ?? "",
+					shortId: t.shortId,
+					score: scoreOverlap(sourceWords, t.title ?? ""),
+				}))
+				.filter((t) => t.score > 0)
+				.sort((a, b) => b.score - a.score)
+				.slice(0, NEIGHBOR_COUNT)
+				.map(({ id, title, shortId }) => ({ id, title, shortId }));
+		}
+
+		if (candidates.length > 0) {
+			const meta = await getTaskLabelCategorySummaries(
+				orgId,
+				candidates.map((t) => t.id)
+			);
+			neighbors = candidates.map((t) => ({
+				...t,
+				labelIds: meta.get(t.id)?.labelIds ?? [],
+				categoryId: meta.get(t.id)?.categoryId ?? null,
+			}));
+		}
+	}
+
 	// ---- Assemble candidate data + prompt sections, only for enabled kinds ----
 	const sections: string[] = [`Title: ${task.title}`, `Description:\n${descriptionText}`];
 	const shape: Record<string, z.ZodTypeAny> = {};
@@ -167,9 +265,14 @@ recommendationsRoute.post("/", async (c) => {
 		const existingIds = new Set((task.labels ?? []).map((l) => l.id));
 		candidateLabels = allLabels.filter((l) => !existingIds.has(l.id));
 		if (candidateLabels.length > 0) {
-			sections.push(
-				`Available labels (pick zero or more):\n${candidateLabels.map((l, i) => `${i + 1}. id="${l.id}" name="${l.name}"`).join("\n")}`
+			let labelSection = `Available labels (pick zero or more):\n${candidateLabels.map((l, i) => `${i + 1}. id="${l.id}" name="${l.name}"`).join("\n")}`;
+			const evidence = buildFrequencyEvidence(
+				neighbors,
+				(n) => n.labelIds,
+				candidateLabels.map((l) => ({ id: l.id, name: l.name }))
 			);
+			if (evidence) labelSection += `\n\n${evidence}`;
+			sections.push(labelSection);
 			shape.labelIds = z.array(z.string()).default([]);
 			hintParts.push('"labelIds": string[]');
 		}
@@ -200,9 +303,14 @@ recommendationsRoute.post("/", async (c) => {
 	if (enabled.category) {
 		candidateCategories = await db.query.category.findMany({ where: (cat) => eq(cat.organizationId, orgId) });
 		if (candidateCategories.length > 0) {
-			sections.push(
-				`Current category: ${task.category ?? "none"}\nAvailable categories:\n${candidateCategories.map((cat, i) => `${i + 1}. id="${cat.id}" name="${cat.name}"`).join("\n")}`
+			let categorySection = `Current category: ${task.category ?? "none"}\nAvailable categories:\n${candidateCategories.map((cat, i) => `${i + 1}. id="${cat.id}" name="${cat.name}"`).join("\n")}`;
+			const evidence = buildFrequencyEvidence(
+				neighbors,
+				(n) => (n.categoryId ? [n.categoryId] : []),
+				candidateCategories.map((cat) => ({ id: cat.id, name: cat.name }))
 			);
+			if (evidence) categorySection += `\n\n${evidence}`;
+			sections.push(categorySection);
 			shape.categoryId = z.string().nullable().default(null);
 			hintParts.push('"categoryId": string|null');
 		}
@@ -222,22 +330,9 @@ recommendationsRoute.post("/", async (c) => {
 
 	let candidateRelationTasks: { id: string; title: string; shortId: number | null }[] = [];
 	if (enabled.relations) {
-		const pool = await searchTasksByOrganization(orgId, undefined, RELATION_CANDIDATE_POOL_SIZE);
-		const alreadyRelatedIds = new Set((task.relations ?? []).map((r) => r.task?.id).filter(Boolean));
-		const sourceWords = tokenize(`${task.title ?? ""} ${descriptionText}`);
-
-		candidateRelationTasks = pool
-			.filter((t) => t.id !== taskId && t.title && !alreadyRelatedIds.has(t.id))
-			.map((t) => ({
-				id: t.id,
-				title: t.title ?? "",
-				shortId: t.shortId,
-				score: scoreOverlap(sourceWords, t.title ?? ""),
-			}))
-			.filter((t) => t.score > 0)
-			.sort((a, b) => b.score - a.score)
-			.slice(0, RELATION_CANDIDATE_SHORTLIST_SIZE)
-			.map(({ id, title, shortId }) => ({ id, title, shortId }));
+		// Already computed above — real semantic nearest-neighbors when this
+		// task has an embedding, word-overlap fallback otherwise.
+		candidateRelationTasks = neighbors.map((n) => ({ id: n.id, title: n.title, shortId: n.shortId }));
 
 		if (candidateRelationTasks.length > 0) {
 			sections.push(

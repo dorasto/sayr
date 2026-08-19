@@ -1,11 +1,12 @@
 export { BANNED_SLUGS, isSlugBanned } from "./bannedSlugs";
 export {
+	defaultOrgAiSettings,
+	isAiFeatureEnabled,
 	type OrgAiRateLimit,
 	type OrgAiSettings,
-	defaultOrgAiSettings,
 	resolveOrgAiStatus,
-	isAiFeatureEnabled,
 } from "./org-ai";
+export { extractPlainText, type PlainTextNode } from "./prosekit-text";
 
 /**
  * Extracts the private ID (orgKey) if present in a Sayr file URL.
@@ -512,4 +513,4 @@ export class PermissionError extends Error {
 }
 
 export { sendEmail } from "./email";
-export { parseGithubPrUrl, type ParsedGithubPrUrl } from "./github/parse-pr-url";
+export { type ParsedGithubPrUrl, parseGithubPrUrl } from "./github/parse-pr-url";
