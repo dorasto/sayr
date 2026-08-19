@@ -100,14 +100,16 @@ export interface ParentFieldUpdatePayload {
 }
 
 /**
- * Payload for relation creation (no optimistic update on the task itself).
+ * Payload for relation creation (no optimistic update on the task itself —
+ * the source task is reconciled from the API response once it resolves,
+ * same as `single`/`multi`/`parent`).
  */
 export interface RelationFieldUpdatePayload {
 	kind: "relation";
 	/** Unique toast action ID. */
 	actionId: string;
 	/** The API call to execute. */
-	apiFn: () => Promise<{ success: boolean; data?: unknown; error?: string }>;
+	apiFn: () => Promise<{ success: boolean; data?: schema.TaskWithLabels; error?: string }>;
 	/** Toast messages. */
 	toastMessages: ToastMessages;
 }
