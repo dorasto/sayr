@@ -1,16 +1,19 @@
 export { getRequestyAdapter } from "./client.js";
+export { embedText, embedTexts } from "./embed.js";
 export {
-	REQUESTY_MODEL_CATALOG,
 	DEFAULT_MODEL_ID,
-	resolveModelId,
+	EMBEDDING_DIMENSIONS,
+	EMBEDDING_MODEL_ID,
+	REQUESTY_MODEL_CATALOG,
+	type RequestyMetadata,
 	type RequestyModelId,
 	type RequestyModelInfo,
-	type RequestyMetadata,
+	resolveModelId,
 } from "./models.js";
 export {
-	generateText,
-	streamText,
 	type GenerateTextOptions,
+	generateText,
 	type StreamChunk,
 	type StreamTokenUsage,
+	streamText,
 } from "./text.js";

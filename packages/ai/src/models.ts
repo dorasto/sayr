@@ -108,6 +108,20 @@ export function resolveModelId(
 	return match ? match.id : DEFAULT_MODEL_ID;
 }
 
+/**
+ * The embedding model used for semantic search (task similarity, duplicate
+ * detection) — see `embed.ts`. Unlike `MODEL_ROSTER`, this isn't routed
+ * through Requesty: Requesty's routing policy for this account doesn't
+ * currently offer an embedding model, so embeddings go direct to Mistral via
+ * `@tanstack/ai-mistral`'s official adapter (still fully TanStack-AI-native,
+ * just a second provider adapter alongside the Requesty one in client.ts).
+ * Both id and dimension count confirmed live against the real API — Mistral
+ * pins `mistral-embed` to a fixed 1024-dimension output (it rejects a
+ * `dimensions` override, unlike `codestral-embed`).
+ */
+export const EMBEDDING_MODEL_ID = "mistral-embed";
+export const EMBEDDING_DIMENSIONS = 1024;
+
 /** Estimated USD cost for a completion — see the `pricing` doc comment above. */
 export function estimateCostUsd(
 	modelId: RequestyModelId,
