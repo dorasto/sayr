@@ -1,4 +1,4 @@
-import { streamText, type RequestyMetadata, type RequestyModelId } from "@repo/ai";
+import { type RequestyMetadata, type RequestyModelId, streamText } from "@repo/ai";
 import type { PromptConfig } from "@repo/ai-prompts";
 import { createTraceAsync, getTraceContext } from "@repo/opentelemetry/trace";
 import { getRedis } from "@repo/queue";

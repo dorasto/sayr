@@ -1,6 +1,6 @@
-import { createClient, type ClickHouseClient } from "@clickhouse/client";
+import { type ClickHouseClient, createClient } from "@clickhouse/client";
+import { auth, db, schema } from "@repo/database";
 import { getEditionCapabilities } from "@repo/edition";
-import { db, schema, auth } from "@repo/database";
 import { eq, sql } from "drizzle-orm";
 
 // ---------------------------------------------------------------------------

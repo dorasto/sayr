@@ -1,24 +1,24 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Button } from "@repo/ui/components/button";
-import { Label } from "@repo/ui/components/label";
-import { Switch } from "@repo/ui/components/switch";
-import { Textarea } from "@repo/ui/components/textarea";
-import { headlessToast } from "@repo/ui/components/headless-toast";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@repo/ui/components/accordion";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@repo/ui/components/select";
-import { Tile, TileHeader, TileTitle, TileDescription } from "@repo/ui/components/doras-ui/tile";
-import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
-import { IconDeviceFloppy, IconLock, IconSparkles } from "@tabler/icons-react";
-import { Badge } from "@repo/ui/components/badge";
-import { Link } from "@tanstack/react-router";
-import type { OrganizationSettings } from "@repo/database";
-import { type OrgAiSettings, defaultOrgAiSettings } from "@repo/util";
 // Import the models submodule directly (not the package root) so this
 // client bundle never pulls in the server-only Requesty client (client.ts
 // reads process.env.REQUESTY_API_KEY and depends on @tanstack/ai-openrouter).
 import { DEFAULT_MODEL_ID, REQUESTY_MODEL_CATALOG } from "@repo/ai/models";
-import { useLayoutOrganizationSettings } from "@/contexts/ContextOrgSettings";
+import type { OrganizationSettings } from "@repo/database";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@repo/ui/components/accordion";
+import { Badge } from "@repo/ui/components/badge";
+import { Button } from "@repo/ui/components/button";
+import { Tile, TileDescription, TileHeader, TileTitle } from "@repo/ui/components/doras-ui/tile";
+import { headlessToast } from "@repo/ui/components/headless-toast";
+import { Label } from "@repo/ui/components/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@repo/ui/components/select";
+import { Switch } from "@repo/ui/components/switch";
+import { Textarea } from "@repo/ui/components/textarea";
+import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
+import { defaultOrgAiSettings, type OrgAiSettings } from "@repo/util";
+import { IconDeviceFloppy, IconLock, IconSparkles } from "@tabler/icons-react";
+import { Link } from "@tanstack/react-router";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLayoutData } from "@/components/generic/Context";
+import { useLayoutOrganizationSettings } from "@/contexts/ContextOrgSettings";
 import { updateOrganizationAction } from "@/lib/fetches/organization";
 
 const CUSTOM_PROMPT_MAX_LENGTH = 500;
@@ -31,10 +31,49 @@ const CUSTOM_PROMPT_MAX_LENGTH = 500;
  * id here (and its own accordion section below) the same way.
  */
 const TASK_SUMMARY_FEATURE_ID = "task-summary";
-/** Feature id for the suggest-labels prompt — must match `suggestLabelsPrompt.id`. */
-const SUGGEST_LABELS_FEATURE_ID = "suggest-labels";
 /** Feature id for the release-notes prompt — must match `releaseNotesPrompt.id`. */
 const RELEASE_NOTES_FEATURE_ID = "release-notes";
+
+/**
+ * Per-kind toggles for the "Recommendations" feature — each is an
+ * independent `featureToggles` key (missing = enabled), checked server-side
+ * in `apps/backend/routes/api/internal/v1/ai/recommendations.ts`. Unlike
+ * task-summary/release-notes, this feature has no model picker: it always
+ * runs on a small, fixed model (never generates prose, just classifies
+ * against closed candidate lists), so there's nothing for an org to choose.
+ */
+const RECOMMENDATION_KINDS: { id: string; label: string; description: string }[] = [
+	{
+		id: "recommend-labels",
+		label: "Labels",
+		description: "Suggest relevant labels from this organization's existing label library.",
+	},
+	{
+		id: "recommend-assignees",
+		label: "Assignees",
+		description: "Suggest an assignee when a task's content gives a specific, concrete signal.",
+	},
+	{
+		id: "recommend-priority",
+		label: "Priority",
+		description: "Suggest a priority change when a task's content signals real urgency or impact.",
+	},
+	{
+		id: "recommend-category",
+		label: "Category",
+		description: "Suggest the best-matching category for a task.",
+	},
+	{
+		id: "recommend-release",
+		label: "Release",
+		description: "Suggest a release when a task's content clearly ties it to that release's scope.",
+	},
+	{
+		id: "recommend-relations",
+		label: "Relations",
+		description: "Flag likely duplicate, blocking, or related tasks from this organization's recent tasks.",
+	},
+];
 
 export default function AiSettingsPage({ locked }: { locked?: boolean }) {
 	const { value: sseClientId } = useStateManagement<string>("sse-clientId", "");
@@ -418,23 +457,24 @@ export default function AiSettingsPage({ locked }: { locked?: boolean }) {
 							</AccordionContent>
 						</AccordionItem>
 
-						<AccordionItem value="suggest-labels" className="border-none">
+						<AccordionItem value="recommendations" className="border-none">
 							<AccordionTrigger
 								className="px-4 py-3 hover:no-underline hover:bg-accent rounded-lg transition-colors [&[data-state=open]]:rounded-b-none"
 								showChevron={true}
 							>
 								<div className="flex items-center gap-2 flex-1 text-left">
-									<span className="text-sm font-medium">Suggest labels</span>
+									<span className="text-sm font-medium">Recommendations</span>
 									<Badge
 										variant={
-											(aiSettings.featureToggles?.[SUGGEST_LABELS_FEATURE_ID] ?? true) &&
-											!aiSettings.disabled
+											!aiSettings.disabled &&
+											RECOMMENDATION_KINDS.some((k) => aiSettings.featureToggles?.[k.id] ?? true)
 												? "default"
 												: "secondary"
 										}
 										className="text-xs"
 									>
-										{(aiSettings.featureToggles?.[SUGGEST_LABELS_FEATURE_ID] ?? true) && !aiSettings.disabled
+										{!aiSettings.disabled &&
+										RECOMMENDATION_KINDS.some((k) => aiSettings.featureToggles?.[k.id] ?? true)
 											? "Enabled"
 											: "Disabled"}
 									</Badge>
@@ -442,62 +482,38 @@ export default function AiSettingsPage({ locked }: { locked?: boolean }) {
 							</AccordionTrigger>
 							<AccordionContent className="px-0 pb-0 pt-0">
 								<div className="flex flex-col">
-									<div className="border-t border-border mx-4" />
-									<Tile className="md:w-full" variant="transparent">
-										<TileHeader className="md:w-full">
-											<TileTitle className="text-sm">Enable suggest labels</TileTitle>
-											<TileDescription className="text-xs leading-normal!">
-												Show an AI suggestion button next to a task's labels. Suggests only from this
-												organization's existing label library — never creates new labels.
-											</TileDescription>
-										</TileHeader>
-										<div className="flex items-center justify-end pl-4">
-											<Switch
-												checked={aiSettings.featureToggles?.[SUGGEST_LABELS_FEATURE_ID] ?? true}
-												disabled={
-													!isAdmin || aiSettings.disabled || locked || savingKeys.has("featureToggles")
-												}
-												onCheckedChange={(checked) =>
-													handleFeatureToggle(SUGGEST_LABELS_FEATURE_ID, checked)
-												}
-											/>
+									<div className="px-4 pt-3 pb-1">
+										<p className="text-xs text-muted-foreground leading-normal">
+											Shown as a "Recommendations" section on task detail pages, generated automatically and
+											cached — not button-triggered. Always uses a small, fixed model, since it only
+											classifies against this organization's existing data rather than generating text.
+										</p>
+									</div>
+									{RECOMMENDATION_KINDS.map((kind) => (
+										<div key={kind.id} className="contents">
+											<div className="border-t border-border mx-4" />
+											<Tile className="md:w-full" variant="transparent">
+												<TileHeader className="md:w-full">
+													<TileTitle className="text-sm">{kind.label}</TileTitle>
+													<TileDescription className="text-xs leading-normal!">
+														{kind.description}
+													</TileDescription>
+												</TileHeader>
+												<div className="flex items-center justify-end pl-4">
+													<Switch
+														checked={aiSettings.featureToggles?.[kind.id] ?? true}
+														disabled={
+															!isAdmin ||
+															aiSettings.disabled ||
+															locked ||
+															savingKeys.has("featureToggles")
+														}
+														onCheckedChange={(checked) => handleFeatureToggle(kind.id, checked)}
+													/>
+												</div>
+											</Tile>
 										</div>
-									</Tile>
-
-									<div className="border-t border-border mx-4" />
-									<Tile className="md:w-full" variant="transparent">
-										<TileHeader className="md:w-full">
-											<TileTitle className="text-sm">Model</TileTitle>
-											<TileDescription className="text-xs leading-normal!">
-												Choose which AI model suggests labels. Available on the Pro plan — other orgs use
-												the default model.
-											</TileDescription>
-										</TileHeader>
-										<div className="flex items-center justify-end pl-4">
-											<Select
-												value={aiSettings.selectedModels?.[SUGGEST_LABELS_FEATURE_ID] ?? DEFAULT_MODEL_ID}
-												disabled={
-													!isAdmin ||
-													aiSettings.disabled ||
-													!(aiSettings.featureToggles?.[SUGGEST_LABELS_FEATURE_ID] ?? true) ||
-													locked ||
-													savingKeys.has("selectedModels")
-												}
-												onValueChange={(modelId) => handleModelChange(SUGGEST_LABELS_FEATURE_ID, modelId)}
-											>
-												<SelectTrigger size="sm" className="w-48">
-													<SelectValue />
-												</SelectTrigger>
-												<SelectContent>
-													{REQUESTY_MODEL_CATALOG.map((model) => (
-														<SelectItem key={model.id} value={model.id}>
-															{model.label}
-														</SelectItem>
-													))}
-												</SelectContent>
-											</Select>
-										</div>
-									</Tile>
+									))}
 								</div>
 							</AccordionContent>
 						</AccordionItem>

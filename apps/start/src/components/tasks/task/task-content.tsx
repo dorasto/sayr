@@ -1,27 +1,26 @@
 import type { schema } from "@repo/database";
 import { Tile, TileAction, TileHeader, TileTitle } from "@repo/ui/components/doras-ui/tile";
 import { Label } from "@repo/ui/components/label";
+import { Separator } from "@repo/ui/components/separator";
 import SimpleClipboard from "@repo/ui/components/tomui/simple-clipboard";
+import { useReadOnlyStateManagementKey } from "@repo/ui/hooks/useStateManagement.ts";
 import { IconExternalLink, IconLink, IconPlug } from "@tabler/icons-react";
-import { SubWrapper } from "@/components/generic/wrapper";
 import { useLayoutData } from "@/components/generic/Context";
+import { SubWrapper } from "@/components/generic/wrapper";
 import { useLayoutOrganization } from "@/contexts/ContextOrg";
 import type { useToastAction } from "@/lib/util";
+import { cn } from "@/lib/utils";
+import { InlineLabel } from "../shared";
 import GlobalTaskAssignees from "../shared/assignee";
 import GlobalTaskGithubIssue from "../shared/github-issue";
+import { getMatchedIntegrations } from "../shared/integration-registry";
 import GlobalTaskLabels from "../shared/label";
 import TaskFieldToolbar, { getTaskFieldPermissions } from "../shared/task-field-toolbar";
-import GlobalTimeline from "./timeline/root";
-import { Separator } from "@repo/ui/components/separator";
 import { TaskEditableHeader } from "./editable-header";
-import { TaskParentSection, TaskSubtasksSection, TaskRelationsSection } from "./task-hierarchy-sections";
+import { AiInsights } from "./task-ai-insights";
 import { TaskContextBanner } from "./task-context-banner";
-import { AiTaskSummary } from "./task-ai-summary";
-import { AiRecommendations } from "./task-ai-recommendations";
-import { useReadOnlyStateManagementKey } from "@repo/ui/hooks/useStateManagement.ts";
-import { InlineLabel } from "../shared";
-import { getMatchedIntegrations } from "../shared/integration-registry";
-import { cn } from "@/lib/utils";
+import { TaskParentSection, TaskRelationsSection, TaskSubtasksSection } from "./task-hierarchy-sections";
+import GlobalTimeline from "./timeline/root";
 
 interface TaskContentSideContentProps {
 	task: schema.TaskWithLabels;
@@ -317,11 +316,13 @@ export function TaskContentMain({
 					setSelectedTask={setSelectedTask}
 					organization={organization}
 				/>
-				<AiTaskSummary task={task} orgId={organization.id} />
-				<AiRecommendations
+				<AiInsights
 					task={task}
 					orgId={organization.id}
 					availableLabels={labels}
+					availableUsers={availableUsers}
+					categories={categories}
+					releases={releases}
 					tasks={tasks}
 					setTasks={setTasks}
 					setSelectedTask={setSelectedTask}

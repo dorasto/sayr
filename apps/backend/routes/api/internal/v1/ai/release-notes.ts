@@ -1,13 +1,13 @@
-import { getReleaseWithTasks } from "@repo/database";
 import { releaseNotesPrompt } from "@repo/ai-prompts";
+import { getReleaseWithTasks } from "@repo/database";
 import { Hono } from "hono";
 import { z } from "zod";
 import type { AppEnv } from "@/index";
-import { errorResponse } from "../../../../../responses";
+import { markdownToProsekitJSON } from "@/prosekit/parser";
 import { checkAiFeatureAccess } from "../../../../../lib/ai/gate";
 import { resolveActiveModel } from "../../../../../lib/ai/model";
 import { runAiSseFeature } from "../../../../../lib/ai/sse-runner";
-import { markdownToProsekitJSON } from "@/prosekit/parser";
+import { errorResponse } from "../../../../../responses";
 
 export const releaseNotesRoute = new Hono<AppEnv>();
 

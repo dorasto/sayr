@@ -1,4 +1,4 @@
-import { resolveModelId, type RequestyModelId } from "@repo/ai";
+import { type RequestyModelId, resolveModelId } from "@repo/ai";
 import type { PromptConfig } from "@repo/ai-prompts";
 import type { schema } from "@repo/database";
 

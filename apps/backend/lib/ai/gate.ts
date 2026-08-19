@@ -1,7 +1,7 @@
-import { getOrganization, resolveOrgAiStatus, schema } from "@repo/database";
-import { isAiEnabled, isAiAllowedForOrg } from "@repo/edition";
-import { isAiFeatureEnabled } from "@repo/util";
 import type { PromptConfig } from "@repo/ai-prompts";
+import { getOrganization, resolveOrgAiStatus, type schema } from "@repo/database";
+import { isAiAllowedForOrg, isAiEnabled } from "@repo/edition";
+import { isAiFeatureEnabled } from "@repo/util";
 import type { Context } from "hono";
 import type { AppEnv } from "@/index";
 import { traceOrgPermissionCheck } from "@/util";

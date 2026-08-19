@@ -1,60 +1,124 @@
-import { useEffect, useRef, useState } from "react";
 import type { schema } from "@repo/database";
-import { isAiFeatureEnabled, resolveOrgAiStatus } from "@repo/util";
+import { Badge } from "@repo/ui/components/badge";
 import { Button } from "@repo/ui/components/button";
-import { Spinner } from "@repo/ui/components/spinner";
-import { headlessToast } from "@repo/ui/components/headless-toast";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@repo/ui/components/collapsible";
-import { IconSparkles, IconRefresh, IconChevronRight } from "@tabler/icons-react";
+import { headlessToast } from "@repo/ui/components/headless-toast";
+import { Spinner } from "@repo/ui/components/spinner";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
-import { suggestTaskLabels } from "@/lib/fetches/ai";
-import { getLabelBulkUpdatePayload } from "@/components/tasks/actions/labels";
-import { useTaskFieldAction } from "@/components/tasks/actions/use-task-field-action";
+import { formatTaskKey, resolveOrgAiStatus } from "@repo/util";
+import {
+	IconAlertSquareFilled,
+	IconArrowUpRight,
+	IconCategory,
+	IconChevronRight,
+	IconCopy,
+	IconLink,
+	IconRefresh,
+	IconRocket,
+	IconSparkles,
+	IconUser,
+	IconX,
+} from "@tabler/icons-react";
+import { useEffect, useRef, useState } from "react";
 import { useLayoutData } from "@/components/generic/Context";
+import { getAssigneeBulkUpdatePayload } from "@/components/tasks/actions/assignees";
+import { getCategoryUpdatePayload } from "@/components/tasks/actions/category";
+import { getLabelBulkUpdatePayload } from "@/components/tasks/actions/labels";
+import { getPriorityUpdatePayload } from "@/components/tasks/actions/priority";
+import { getReleaseUpdatePayload } from "@/components/tasks/actions/release";
+import { useTaskFieldAction } from "@/components/tasks/actions/use-task-field-action";
+import { getTaskRecommendations, type RecommendationsResult, type RecommendedRelation } from "@/lib/fetches/ai";
+import { createTaskRelationAction } from "@/lib/fetches/task";
 import { RenderLabel } from "../shared/label";
 
-const SUGGEST_LABELS_FEATURE_ID = "suggest-labels";
+const RELATION_ICONS: Record<RecommendedRelation["type"], React.ReactNode> = {
+	blocking: <IconArrowUpRight className="size-3.5 text-destructive" />,
+	related: <IconLink className="size-3.5 text-muted-foreground" />,
+	duplicate: <IconCopy className="size-3.5 text-muted-foreground" />,
+};
 
-interface AiRecommendationsProps {
+const RELATION_LABELS: Record<RecommendedRelation["type"], string> = {
+	blocking: "Blocking",
+	related: "Related to",
+	duplicate: "Duplicate of",
+};
+
+interface SuggestionChipProps {
+	icon?: React.ReactNode;
+	label: string;
+	onApply: () => void;
+	onDismiss: () => void;
+}
+
+/** One reusable clickable chip shared by every recommendation kind — click the body to apply, the "x" to dismiss without applying. */
+function SuggestionChip({ icon, label, onApply, onDismiss }: SuggestionChipProps) {
+	return (
+		<Badge
+			variant="secondary"
+			className="flex items-center gap-1.5 bg-accent text-xs h-auto border border-dashed border-border rounded-2xl cursor-pointer pl-2 pr-1 py-1 max-w-full"
+			onClick={onApply}
+		>
+			{icon}
+			<span className="truncate">{label}</span>
+			<button
+				type="button"
+				onClick={(e) => {
+					e.stopPropagation();
+					onDismiss();
+				}}
+				className="rounded-sm hover:bg-muted p-0.5 shrink-0"
+				aria-label="Dismiss suggestion"
+			>
+				<IconX size={12} />
+			</button>
+		</Badge>
+	);
+}
+
+interface UseAiRecommendationsProps {
 	task: schema.TaskWithLabels;
 	orgId: string;
 	availableLabels: schema.labelType[];
+	availableUsers: schema.userType[];
+	categories: schema.categoryType[];
+	releases: schema.releaseType[];
 	tasks: schema.TaskWithLabels[];
 	setTasks: (newValue: schema.TaskWithLabels[]) => void;
 	setSelectedTask: (newValue: schema.TaskWithLabels | null) => void;
-	/** Org admins/owners get a "Regenerate" action and a "View prompt" debug panel; everyone else only ever sees a passive, cached result. */
-	isProjectAdmin: boolean;
 }
 
 /**
- * "Recommendations" — a container for AI-suggested actions on a task,
- * auto-generated on load (like `AiTaskSummary`) rather than button-triggered,
- * with results cached server-side (see `suggest-labels.ts`'s Redis cache) so
- * repeat views are cheap and don't spam the model. Currently hosts one
- * recommendation kind (suggested labels); built so more kinds — related or
- * duplicate tasks, etc. — can be added as sibling blocks below without
- * restructuring this container.
+ * Drives the "Recommendations" feature across every kind it can surface —
+ * labels, assignees, priority, category, release, and task relations.
+ * Applying any suggestion goes through the same mutations the manual
+ * pickers use (`getLabelBulkUpdatePayload`, `getPriorityUpdatePayload`,
+ * etc., or `createTaskRelationAction` for relations) via the shared
+ * `useTaskFieldAction` executor, then removes it from the local suggestion
+ * list — no automatic refetch, matching how the labels-only version worked.
  *
- * Regular members only ever see the passive, cached result — no controls,
- * and the whole section hides itself when there's nothing to show. Project
- * admins/owners additionally always see the section shell with a
- * "Regenerate" action (bypasses cache) and a "View prompt" debug panel,
- * mirroring `AiTaskSummary`'s own admin-only troubleshooting affordances.
+ * Which kinds actually come back is entirely server-decided (per-kind
+ * `OrgAiSettings.featureToggles`, checked in `recommendations.ts` — a
+ * disabled kind just never appears in the response, same shape as "AI
+ * legitimately found nothing"), so this hook doesn't duplicate that gating;
+ * it only checks the shared org-level gates (AI enabled, plan, disabled,
+ * rate-limited) to decide whether to call the endpoint at all.
  */
-export function AiRecommendations({
+export function useAiRecommendations({
 	task,
 	orgId,
 	availableLabels,
+	availableUsers,
+	categories,
+	releases,
 	tasks,
 	setTasks,
 	setSelectedTask,
-	isProjectAdmin,
-}: AiRecommendationsProps) {
+}: UseAiRecommendationsProps) {
 	const { aiEnabled, organizations } = useLayoutData();
 	const { value: sseClientId } = useStateManagement<string>("sse-clientId", "");
 	const { execute } = useTaskFieldAction(task, tasks, setSelectedTask, setTasks, sseClientId);
 
-	const [suggestedLabels, setSuggestedLabels] = useState<schema.labelType[]>([]);
+	const [result, setResult] = useState<RecommendationsResult | null>(null);
 	const [loading, setLoading] = useState(false);
 	const [promptDebug, setPromptDebug] = useState<{ systemPrompt: string; userPrompt: string } | null>(null);
 	const requestIdRef = useRef(0);
@@ -64,87 +128,180 @@ export function AiRecommendations({
 	const isOrgOnCloud = editionRaw === "cloud";
 	const isOrgPro = org?.plan === "pro";
 	const { aiDisabled, aiRateLimited } = resolveOrgAiStatus(org?.settings);
-	const labelsFeatureAvailable =
-		aiEnabled &&
-		!(isOrgOnCloud && !isOrgPro) &&
-		!aiDisabled &&
-		!aiRateLimited &&
-		isAiFeatureEnabled(org?.settings, SUGGEST_LABELS_FEATURE_ID) &&
-		availableLabels.length > 0;
+	const recommendationsAvailable = aiEnabled && !(isOrgOnCloud && !isOrgPro) && !aiDisabled && !aiRateLimited;
 
-	const fetchLabelSuggestions = (forceRefresh: boolean) => {
+	const fetchRecommendations = (forceRefresh: boolean) => {
 		const myRequestId = ++requestIdRef.current;
 		setLoading(true);
 		if (forceRefresh) setPromptDebug(null);
 
-		suggestTaskLabels(task.id, orgId, forceRefresh).then((result) => {
+		getTaskRecommendations(task.id, orgId, forceRefresh).then((res) => {
 			if (requestIdRef.current !== myRequestId) return;
 			setLoading(false);
 
-			if (!result.success) {
-				// Only surface a toast for the explicit admin regenerate — the
-				// passive auto-load failing silently just means the section stays
-				// hidden, which is preferable to an error toast on every page view.
+			if (!res.success) {
 				if (forceRefresh) {
-					headlessToast.error({ title: "Couldn't suggest labels", description: result.error });
+					headlessToast.error({ title: "Couldn't generate recommendations", description: res.error });
 				}
 				return;
 			}
 
-			const currentLabelIds = new Set((task.labels ?? []).map((l) => l.id));
-			const matched = availableLabels.filter(
-				(l) => result.data.labelIds.includes(l.id) && !currentLabelIds.has(l.id)
-			);
-			setSuggestedLabels(matched);
-			if (result.data.systemPrompt && result.data.userPrompt) {
-				setPromptDebug({ systemPrompt: result.data.systemPrompt, userPrompt: result.data.userPrompt });
+			setResult(res.data);
+			if (res.data.systemPrompt && res.data.userPrompt) {
+				setPromptDebug({ systemPrompt: res.data.systemPrompt, userPrompt: res.data.userPrompt });
 			}
 
-			// Same reasoning as above — only tell the admin explicitly that
-			// nothing came back when they deliberately asked for a fresh check.
-			if (forceRefresh && matched.length === 0) {
+			const hasAny =
+				res.data.labelIds.length > 0 ||
+				res.data.assigneeIds.length > 0 ||
+				res.data.priority ||
+				res.data.categoryId ||
+				res.data.releaseId ||
+				res.data.relations.length > 0;
+
+			if (forceRefresh && !hasAny) {
 				headlessToast.info({
-					title: "No labels suggested",
-					description: result.data.reasoning || "AI didn't find any labels that clearly apply to this task.",
+					title: "No recommendations",
+					description: res.data.reasoning || "AI didn't find anything to suggest for this task.",
 				});
 			}
 		});
 	};
 
-	// Auto-load on mount / task change — cache-aware server-side, so this is
-	// cheap on repeat views and only actually regenerates when the task's
-	// content (or its candidate labels) has changed since the last check.
+	// Auto-load on mount / task change — see recommendations.ts's Redis cache
+	// for why this is cheap on repeat views. Deliberately re-runs only on
+	// task/org identity change, not on every render `fetchRecommendations` is
+	// recreated — including it would re-trigger on every keystroke elsewhere
+	// in the task, defeating the "auto-load once" point of this effect.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: intentionally scoped to task/org identity, not fetchRecommendations — see comment above.
 	useEffect(() => {
-		setSuggestedLabels([]);
+		setResult(null);
 		setPromptDebug(null);
-		if (labelsFeatureAvailable) {
-			fetchLabelSuggestions(false);
+		if (recommendationsAvailable) {
+			fetchRecommendations(false);
 		}
-		// fetchLabelSuggestions intentionally omitted — it closes over `task`/`availableLabels`,
-		// which already drive this effect's own deps indirectly via task.id/orgId/labelsFeatureAvailable.
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [task.id, orgId, labelsFeatureAvailable]);
+	}, [task.id, orgId, recommendationsAvailable]);
 
 	const applyLabel = (labelId: string) => {
-		const currentLabelIds = (task.labels ?? []).map((l) => l.id);
-		execute(getLabelBulkUpdatePayload(task, [...currentLabelIds, labelId], availableLabels, sseClientId));
-		setSuggestedLabels((prev) => prev.filter((l) => l.id !== labelId));
+		const currentIds = (task.labels ?? []).map((l) => l.id);
+		execute(getLabelBulkUpdatePayload(task, [...currentIds, labelId], availableLabels, sseClientId));
+		setResult((prev) => prev && { ...prev, labelIds: prev.labelIds.filter((id) => id !== labelId) });
 	};
+	const dismissLabel = (labelId: string) =>
+		setResult((prev) => prev && { ...prev, labelIds: prev.labelIds.filter((id) => id !== labelId) });
 
-	const dismissLabel = (labelId: string) => {
-		setSuggestedLabels((prev) => prev.filter((l) => l.id !== labelId));
+	const applyAssignee = (userId: string) => {
+		const currentIds = (task.assignees ?? []).map((a) => a.id);
+		execute(getAssigneeBulkUpdatePayload(task, [...currentIds, userId], availableUsers, sseClientId));
+		setResult((prev) => prev && { ...prev, assigneeIds: prev.assigneeIds.filter((id) => id !== userId) });
 	};
+	const dismissAssignee = (userId: string) =>
+		setResult((prev) => prev && { ...prev, assigneeIds: prev.assigneeIds.filter((id) => id !== userId) });
 
-	const hasContent = suggestedLabels.length > 0;
+	const applyPriority = () => {
+		if (!result?.priority) return;
+		execute(getPriorityUpdatePayload(task, result.priority));
+		setResult((prev) => prev && { ...prev, priority: null });
+	};
+	const dismissPriority = () => setResult((prev) => prev && { ...prev, priority: null });
 
-	if (!labelsFeatureAvailable) return null;
-	// Non-admins get a fully silent feature — no shell, no loading flash, only
-	// ever appears once there's something to show. Admins always keep the
-	// shell so the Regenerate/View-prompt controls stay reachable.
-	if (!isProjectAdmin && !hasContent) return null;
+	const applyCategory = () => {
+		if (!result?.categoryId) return;
+		execute(getCategoryUpdatePayload(task, result.categoryId, categories));
+		setResult((prev) => prev && { ...prev, categoryId: null });
+	};
+	const dismissCategory = () => setResult((prev) => prev && { ...prev, categoryId: null });
+
+	const applyRelease = () => {
+		if (!result?.releaseId) return;
+		execute(getReleaseUpdatePayload(task, result.releaseId, releases));
+		setResult((prev) => prev && { ...prev, releaseId: null });
+	};
+	const dismissRelease = () => setResult((prev) => prev && { ...prev, releaseId: null });
+
+	const applyRelation = (relation: RecommendedRelation) => {
+		execute({
+			kind: "relation",
+			actionId: `add-relation-${relation.taskId}`,
+			apiFn: () =>
+				createTaskRelationAction(task.organizationId, task.id, relation.taskId, relation.type, sseClientId),
+			toastMessages: {
+				loading: { title: "Adding relation..." },
+				success: {
+					title: "Relation added",
+					description: `${RELATION_LABELS[relation.type]} ${relation.shortId ? formatTaskKey(org?.shortId ?? "", relation.shortId) : relation.title}`,
+				},
+				error: { title: "Failed to add relation" },
+			},
+		});
+		setResult((prev) => prev && { ...prev, relations: prev.relations.filter((r) => r.taskId !== relation.taskId) });
+	};
+	const dismissRelation = (taskId: string) =>
+		setResult((prev) => prev && { ...prev, relations: prev.relations.filter((r) => r.taskId !== taskId) });
+
+	return {
+		recommendationsAvailable,
+		result,
+		loading,
+		promptDebug,
+		fetchRecommendations,
+		applyLabel,
+		dismissLabel,
+		applyAssignee,
+		dismissAssignee,
+		applyPriority,
+		dismissPriority,
+		applyCategory,
+		dismissCategory,
+		applyRelease,
+		dismissRelease,
+		applyRelation,
+		dismissRelation,
+	};
+}
+
+export type UseAiRecommendationsReturn = ReturnType<typeof useAiRecommendations>;
+
+interface AiRecommendationsContentProps {
+	recommendations: UseAiRecommendationsReturn;
+	availableLabels: schema.labelType[];
+	availableUsers: schema.userType[];
+	categories: schema.categoryType[];
+	releases: schema.releaseType[];
+	isProjectAdmin: boolean;
+}
+
+const priorityLabels: Record<string, string> = { low: "Low", medium: "Medium", high: "High", urgent: "Urgent" };
+
+/** Renders just the recommendations content (header + suggestion chips), no outer card — used both standalone and embedded in the merged AI Insights card. */
+function AiRecommendationsContent({
+	recommendations: r,
+	availableLabels,
+	availableUsers,
+	categories,
+	releases,
+	isProjectAdmin,
+}: AiRecommendationsContentProps) {
+	const suggestedLabels = (r.result?.labelIds ?? [])
+		.map((id) => availableLabels.find((l) => l.id === id))
+		.filter((l): l is schema.labelType => Boolean(l));
+	const suggestedAssignees = (r.result?.assigneeIds ?? [])
+		.map((id) => availableUsers.find((u) => u.id === id))
+		.filter((u): u is schema.userType => Boolean(u));
+	const suggestedCategory = r.result?.categoryId ? categories.find((c) => c.id === r.result?.categoryId) : null;
+	const suggestedRelease = r.result?.releaseId ? releases.find((rel) => rel.id === r.result?.releaseId) : null;
+	const suggestedRelations = r.result?.relations ?? [];
+
+	const hasContent =
+		suggestedLabels.length > 0 ||
+		suggestedAssignees.length > 0 ||
+		Boolean(r.result?.priority) ||
+		Boolean(suggestedCategory) ||
+		Boolean(suggestedRelease) ||
+		suggestedRelations.length > 0;
 
 	return (
-		<div className="rounded-xl border border-dashed border-border bg-card p-3 flex flex-col gap-2">
+		<div className="flex flex-col gap-2">
 			<div className="flex items-center justify-between gap-2">
 				<div className="flex items-center gap-1.5 text-xs font-medium text-foreground">
 					<IconSparkles className="size-3.5" />
@@ -155,10 +312,10 @@ export function AiRecommendations({
 						variant="ghost"
 						size="sm"
 						className="h-6 px-2 text-xs"
-						onClick={() => fetchLabelSuggestions(true)}
-						disabled={loading}
+						onClick={() => r.fetchRecommendations(true)}
+						disabled={r.loading}
 					>
-						{loading ? (
+						{r.loading ? (
 							<Spinner className="size-3" />
 						) : (
 							<>
@@ -170,7 +327,7 @@ export function AiRecommendations({
 				)}
 			</div>
 
-			{isProjectAdmin && promptDebug && (
+			{isProjectAdmin && r.promptDebug && (
 				<Collapsible className="bg-accent p-3 rounded-lg max-w-prose w-fit">
 					<CollapsibleTrigger asChild>
 						<div className="flex items-center gap-1 group cursor-pointer w-fit">
@@ -184,10 +341,10 @@ export function AiRecommendations({
 					<CollapsibleContent>
 						<div className="flex flex-col gap-2 mt-1.5 max-h-48 overflow-y-auto">
 							<pre className="text-xs text-muted-foreground whitespace-pre-wrap font-mono rounded-md px-3 py-2 leading-relaxed">
-								{promptDebug.systemPrompt}
+								{r.promptDebug.systemPrompt}
 							</pre>
 							<pre className="text-xs text-muted-foreground whitespace-pre-wrap font-mono rounded-md px-3 py-2 leading-relaxed">
-								{promptDebug.userPrompt}
+								{r.promptDebug.userPrompt}
 							</pre>
 						</div>
 					</CollapsibleContent>
@@ -195,23 +352,157 @@ export function AiRecommendations({
 			)}
 
 			{hasContent ? (
-				<div className="flex flex-col gap-1.5">
-					<span className="text-xs text-muted-foreground">Suggested labels</span>
-					<div className="flex flex-wrap gap-2">
-						{suggestedLabels.map((label) => (
-							<RenderLabel
-								key={label.id}
-								label={label}
-								showRemove
-								onClick={(_, labelId) => applyLabel(labelId)}
-								onRemove={dismissLabel}
-							/>
-						))}
-					</div>
+				<div className="flex flex-col gap-2">
+					{suggestedLabels.length > 0 && (
+						<div className="flex flex-col gap-1.5">
+							<span className="text-xs text-muted-foreground">Labels</span>
+							<div className="flex flex-wrap gap-2">
+								{suggestedLabels.map((label) => (
+									<RenderLabel
+										key={label.id}
+										label={label}
+										showRemove
+										onClick={(_, labelId) => r.applyLabel(labelId)}
+										onRemove={r.dismissLabel}
+									/>
+								))}
+							</div>
+						</div>
+					)}
+
+					{suggestedAssignees.length > 0 && (
+						<div className="flex flex-col gap-1.5">
+							<span className="text-xs text-muted-foreground">Assignees</span>
+							<div className="flex flex-wrap gap-2">
+								{suggestedAssignees.map((user) => (
+									<SuggestionChip
+										key={user.id}
+										icon={<IconUser className="size-3.5 text-muted-foreground" />}
+										label={user.displayName || user.name || user.email || "Unknown"}
+										onApply={() => r.applyAssignee(user.id)}
+										onDismiss={() => r.dismissAssignee(user.id)}
+									/>
+								))}
+							</div>
+						</div>
+					)}
+
+					{r.result?.priority && (
+						<div className="flex flex-col gap-1.5">
+							<span className="text-xs text-muted-foreground">Priority</span>
+							<div className="flex flex-wrap gap-2">
+								<SuggestionChip
+									icon={<IconAlertSquareFilled className="size-3.5 text-destructive" />}
+									label={priorityLabels[r.result.priority] ?? r.result.priority}
+									onApply={r.applyPriority}
+									onDismiss={r.dismissPriority}
+								/>
+							</div>
+						</div>
+					)}
+
+					{suggestedCategory && (
+						<div className="flex flex-col gap-1.5">
+							<span className="text-xs text-muted-foreground">Category</span>
+							<div className="flex flex-wrap gap-2">
+								<SuggestionChip
+									icon={<IconCategory className="size-3.5 text-muted-foreground" />}
+									label={suggestedCategory.name}
+									onApply={r.applyCategory}
+									onDismiss={r.dismissCategory}
+								/>
+							</div>
+						</div>
+					)}
+
+					{suggestedRelease && (
+						<div className="flex flex-col gap-1.5">
+							<span className="text-xs text-muted-foreground">Release</span>
+							<div className="flex flex-wrap gap-2">
+								<SuggestionChip
+									icon={<IconRocket className="size-3.5 text-muted-foreground" />}
+									label={suggestedRelease.name}
+									onApply={r.applyRelease}
+									onDismiss={r.dismissRelease}
+								/>
+							</div>
+						</div>
+					)}
+
+					{suggestedRelations.length > 0 && (
+						<div className="flex flex-col gap-1.5">
+							<span className="text-xs text-muted-foreground">Relations</span>
+							<div className="flex flex-wrap gap-2">
+								{suggestedRelations.map((relation) => (
+									<SuggestionChip
+										key={relation.taskId}
+										icon={RELATION_ICONS[relation.type]}
+										label={`${RELATION_LABELS[relation.type]}: ${relation.title}`}
+										onApply={() => r.applyRelation(relation)}
+										onDismiss={() => r.dismissRelation(relation.taskId)}
+									/>
+								))}
+							</div>
+						</div>
+					)}
 				</div>
 			) : (
-				isProjectAdmin && !loading && <p className="text-xs text-muted-foreground">No recommendations right now.</p>
+				isProjectAdmin &&
+				!r.loading && <p className="text-xs text-muted-foreground">No recommendations right now.</p>
 			)}
 		</div>
 	);
+}
+
+interface AiRecommendationsProps extends UseAiRecommendationsProps {
+	isProjectAdmin: boolean;
+	/** When true, renders content only (no outer card) — used inside the merged AI Insights card. */
+	embedded?: boolean;
+}
+
+/** Whether a fetched result has anything worth showing at all — cheap check on the raw ids/fields, no need to resolve them to display objects first. */
+function hasAnyRecommendation(result: RecommendationsResult | null): boolean {
+	if (!result) return false;
+	return (
+		result.labelIds.length > 0 ||
+		result.assigneeIds.length > 0 ||
+		Boolean(result.priority) ||
+		Boolean(result.categoryId) ||
+		Boolean(result.releaseId) ||
+		result.relations.length > 0
+	);
+}
+
+/**
+ * Standalone "Recommendations" card. Wraps `AiRecommendationsContent` with
+ * its own dashed-border card when used on its own (e.g. when task summaries
+ * are disabled for the org, so there's nothing to merge it into) — pass
+ * `embedded` to render just the content when composing it inside
+ * `AiInsights` instead.
+ *
+ * Non-admins get a fully silent feature — the whole card (embedded or not)
+ * only ever renders once there's something to show. Admins always keep it
+ * reachable, so the Regenerate/View-prompt controls stay available.
+ */
+export function AiRecommendations({ isProjectAdmin, embedded, ...hookProps }: AiRecommendationsProps) {
+	const recommendations = useAiRecommendations(hookProps);
+	const shouldRender =
+		recommendations.recommendationsAvailable && (isProjectAdmin || hasAnyRecommendation(recommendations.result));
+
+	if (!shouldRender) return null;
+
+	const content = (
+		<AiRecommendationsContent
+			recommendations={recommendations}
+			availableLabels={hookProps.availableLabels}
+			availableUsers={hookProps.availableUsers}
+			categories={hookProps.categories}
+			releases={hookProps.releases}
+			isProjectAdmin={isProjectAdmin}
+		/>
+	);
+
+	if (embedded) return content;
+
+	return <div className="rounded-xl border border-dashed border-border bg-card p-3">{content}</div>;
 }

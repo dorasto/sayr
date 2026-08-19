@@ -197,34 +197,48 @@ export async function streamSummarizeTask(
 	);
 }
 
-export interface SuggestLabelsResult {
+export interface RecommendedRelation {
+	taskId: string;
+	type: "related" | "blocking" | "duplicate";
+	title: string;
+	shortId: number | null;
+}
+
+export interface RecommendationsResult {
 	labelIds: string[];
+	assigneeIds: string[];
+	priority: "low" | "medium" | "high" | "urgent" | null;
+	categoryId: string | null;
+	releaseId: string | null;
+	relations: RecommendedRelation[];
 	reasoning?: string;
-	/** Echoed back for the admin-only "View prompt" debug affordance — omitted when no AI call was made (e.g. no candidate labels). */
+	/** Echoed back for the admin-only "View prompt" debug affordance — omitted when no AI call was made (e.g. every enabled kind had nothing to offer). */
 	systemPrompt?: string;
 	userPrompt?: string;
 }
 
 /**
- * Requests AI-suggested labels for a task, from the organisation's existing
- * label library only (the model never invents new labels). Results are
- * cached server-side (Redis, content-keyed) so calling this on every task
- * view is cheap — pass `forceRefresh` only for an explicit admin regenerate.
+ * Requests AI recommendations for a task — labels, assignees, priority,
+ * category, release, and task relations, each only ever drawn from this
+ * organisation's existing data (the model never invents new labels/etc.),
+ * and each independently toggleable in org settings. Results are cached
+ * server-side (Redis, content-keyed) so calling this on every task view is
+ * cheap — pass `forceRefresh` only for an explicit admin regenerate.
  */
-export async function suggestTaskLabels(
+export async function getTaskRecommendations(
 	taskId: string,
 	orgId: string,
 	forceRefresh = false
-): Promise<{ success: true; data: SuggestLabelsResult } | { success: false; error: string }> {
+): Promise<{ success: true; data: RecommendationsResult } | { success: false; error: string }> {
 	try {
-		const res = await fetch(`${API_URL}/v1/ai/suggest-labels`, {
+		const res = await fetch(`${API_URL}/v1/ai/recommendations`, {
 			method: "POST",
 			body: JSON.stringify({ taskId, orgId, forceRefresh }),
 			headers: { "Content-Type": "application/json" },
 			credentials: "include",
 		});
 		const json = (await res.json()) as
-			| { success: true; data: SuggestLabelsResult }
+			| { success: true; data: RecommendationsResult }
 			| { success: false; error: string };
 		if (!res.ok || !json.success) {
 			return { success: false, error: "error" in json ? json.error : "Request failed." };
