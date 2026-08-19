@@ -12,7 +12,7 @@
 		"format": "biome format --write ."
 	},
 	"dependencies": {
-		"@repo/ai-mistral": "workspace:*"
+		"@repo/ai": "workspace:*"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.1.1",

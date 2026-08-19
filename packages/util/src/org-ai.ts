@@ -37,13 +37,29 @@ export interface OrgAiSettings {
 	 */
 	taskSummaryCustomPrompt?: string | null;
 	/**
-	 * When true, AI features that support URL fetching will embed external URLs
-	 * found in task content as document chunks in the prompt, so the model can
-	 * read the actual page content. Only takes effect for prompt configs where
-	 * `capabilities.urlFetch` is true.
+	 * When true, AI features that support URL fetching will fetch external URLs
+	 * found in task content server-side and fold their text content into the
+	 * prompt. Only takes effect for prompt configs where `capabilities.urlFetch`
+	 * is true.
 	 * Defaults to false — opt-in, as it incurs higher cost and latency.
 	 */
 	urlFetchEnabled?: boolean;
+	/**
+	 * Pro-plan orgs may pick a specific model per AI feature (a Requesty model
+	 * id, see `@repo/ai`'s `REQUESTY_MODEL_CATALOG`) to use instead of that
+	 * feature's prompt default — keyed by the feature's `PromptConfig.id`
+	 * (`@repo/ai-prompts`, e.g. `"task-summary"`), one entry per feature.
+	 * Free-plan orgs never reach this — `isAiAllowedForOrg` gates AI access
+	 * before this field is ever read.
+	 *
+	 * IMPORTANT: this is written through a generic, unvalidated
+	 * `organization/update` endpoint (no server-side schema check on
+	 * `settings.ai` — see apps/backend/routes/api/internal/v1/organization.ts),
+	 * so a stored value here is untrusted input. Always resolve it through
+	 * `@repo/ai`'s `resolveModelId()` before using it to make a request —
+	 * never pass it to a provider call directly.
+	 */
+	selectedModels?: Record<string, string>;
 }
 
 export const defaultOrgAiSettings: OrgAiSettings = {
@@ -52,6 +68,7 @@ export const defaultOrgAiSettings: OrgAiSettings = {
 	taskSummary: true,
 	taskSummaryCustomPrompt: null,
 	urlFetchEnabled: false,
+	selectedModels: {},
 };
 
 /**
@@ -79,13 +96,25 @@ export function resolveOrgAiStatus(settings: { ai?: OrgAiSettings | null } | nul
 	const ai: OrgAiSettings = { ...defaultOrgAiSettings, ...(settings?.ai ?? {}) };
 
 	if (ai.disabled) {
-		return { aiDisabled: true, aiRateLimited: false, rateLimitUntil: null, taskSummaryEnabled: false, urlFetchEnabled: false };
+		return {
+			aiDisabled: true,
+			aiRateLimited: false,
+			rateLimitUntil: null,
+			taskSummaryEnabled: false,
+			urlFetchEnabled: false,
+		};
 	}
 
 	if (ai.rateLimited) {
 		const until = new Date(ai.rateLimited.until);
 		if (until > new Date()) {
-			return { aiDisabled: false, aiRateLimited: true, rateLimitUntil: until, taskSummaryEnabled: ai.taskSummary, urlFetchEnabled: ai.urlFetchEnabled ?? false };
+			return {
+				aiDisabled: false,
+				aiRateLimited: true,
+				rateLimitUntil: until,
+				taskSummaryEnabled: ai.taskSummary,
+				urlFetchEnabled: ai.urlFetchEnabled ?? false,
+			};
 		}
 	}
 

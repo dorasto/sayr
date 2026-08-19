@@ -1,4 +1,4 @@
-import { MISTRAL_MODELS } from "@repo/ai-mistral";
+import { DEFAULT_MODEL_ID } from "@repo/ai";
 import type { PromptConfig } from "../types.js";
 
 /**
@@ -12,8 +12,9 @@ import type { PromptConfig } from "../types.js";
  */
 export const suggestLabelsPrompt: PromptConfig = {
 	id: "suggest-labels",
-	description: "Suggests relevant labels for a task based on its content and the organisation's label library.",
-	model: MISTRAL_MODELS.SMALL,
+	description:
+		"Suggests relevant labels for a task based on its content and the organisation's label library.",
+	model: DEFAULT_MODEL_ID,
 	// TODO: Implement system prompt when the suggest-labels route is built.
 	systemPrompt: "",
 	maxTimelineItems: 0,

@@ -1,4 +1,4 @@
-import { MISTRAL_MODELS } from "@repo/ai-mistral";
+import { DEFAULT_MODEL_ID } from "@repo/ai";
 import type { PromptConfig } from "../types.js";
 
 /**
@@ -12,8 +12,9 @@ import type { PromptConfig } from "../types.js";
  */
 export const releaseNotesPrompt: PromptConfig = {
 	id: "release-notes",
-	description: "Generates structured release notes from a milestone's completed tasks.",
-	model: MISTRAL_MODELS.SMALL,
+	description:
+		"Generates structured release notes from a milestone's completed tasks.",
+	model: DEFAULT_MODEL_ID,
 	// TODO: Implement system prompt when the release-notes route is built.
 	systemPrompt: "",
 	maxTimelineItems: 0,

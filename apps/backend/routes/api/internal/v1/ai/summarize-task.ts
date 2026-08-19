@@ -1,9 +1,18 @@
-import { getTaskById, getMergedTaskActivity, getOrganization, getUserById, resolveOrgAiStatus, updateTaskAiSummaryMeta, type OrganizationSettings } from "@repo/database";
-import { streamText, MISTRAL_MODEL_PRICING } from "@repo/ai-mistral";
+import {
+	getTaskById,
+	getMergedTaskActivity,
+	getOrganization,
+	getUserById,
+	resolveOrgAiStatus,
+	updateTaskAiSummaryMeta,
+	type OrganizationSettings,
+} from "@repo/database";
+import { streamText, resolveModelId, type RequestyMetadata } from "@repo/ai";
 import { taskSummaryPrompt } from "@repo/ai-prompts";
 import { isAiEnabled, isAiAllowedForOrg } from "@repo/edition";
 import { polarClient } from "@repo/auth";
 import { getRedis } from "@repo/queue";
+import { createTraceAsync, getTraceContext } from "@repo/opentelemetry/trace";
 import { Hono } from "hono";
 import { z } from "zod";
 import { createHash } from "node:crypto";
@@ -12,6 +21,7 @@ import { traceOrgPermissionCheck } from "@/util";
 import { errorResponse } from "../../../../../responses";
 import { extractPlainText } from "../../../../../lib/ai/extract-plain-text";
 import { buildTimelineLine } from "../../../../../lib/ai/format-timeline";
+import { fetchUrlAsText } from "../../../../../lib/ai/fetch-url-text";
 import { emitEvent } from "../../../../../clickhouse";
 
 export const summarizeTaskRoute = new Hono<AppEnv>();
@@ -91,7 +101,7 @@ function extractGithubEventUrls(activity: Awaited<ReturnType<typeof getMergedTas
 }
 
 /**
- * Selects the best URLs to embed as DocumentURLChunks for the AI summary.
+ * Selects the best URLs to fetch and fold into the AI summary prompt.
  *
  * Priority order:
  *   1. URLs found in the task description (in order of appearance — most
@@ -107,7 +117,7 @@ function extractGithubEventUrls(activity: Awaited<ReturnType<typeof getMergedTas
 function selectUrlsForFetch(
 	descriptionText: string,
 	activity: Awaited<ReturnType<typeof getMergedTaskActivity>>,
-	maxCount: number,
+	maxCount: number
 ): string[] {
 	const seen = new Set<string>();
 	const selected: string[] = [];
@@ -158,12 +168,15 @@ summarizeTaskRoute.post("/", async (c) => {
 
 	if (!isAiEnabled()) {
 		return c.json(
-			errorResponse("AI features are not available on this instance. Set MISTRAL_API_KEY to enable AI on self-hosted editions."),
-			403,
+			errorResponse(
+				"AI features are not available on this instance. Set REQUESTY_API_KEY to enable AI on self-hosted editions."
+			),
+			403
 		);
 	}
 
 	const recordWideError = c.get("recordWideError");
+	const traceAsync = createTraceAsync();
 
 	let body: z.infer<typeof requestSchema>;
 	try {
@@ -175,11 +188,7 @@ summarizeTaskRoute.post("/", async (c) => {
 
 	const { taskId, orgId, forceRefresh } = body;
 
-	const isAuthorized = await traceOrgPermissionCheck(
-		session.userId,
-		orgId,
-		"members",
-	);
+	const isAuthorized = await traceOrgPermissionCheck(session.userId, orgId, "members");
 	if (!isAuthorized) {
 		return c.json(errorResponse("Permission denied"), 403);
 	}
@@ -221,12 +230,17 @@ summarizeTaskRoute.post("/", async (c) => {
 		return c.json(errorResponse("Task not found"), 404);
 	}
 
+	// Shared with both the Requesty request metadata and the Polar billing
+	// event below so a support engineer can jump straight from either one to
+	// the task.
+	const taskUrl = `https://${orgSlug}.${process.env.VITE_ROOT_DOMAIN}/${task.shortId}`;
+
 	// On cloud, AI is a Pro plan feature. Self-hosted instances are unrestricted
-	// (availability is already controlled by MISTRAL_API_KEY via isAiEnabled()).
+	// (availability is already controlled by REQUESTY_API_KEY via isAiEnabled()).
 	if (!isAiAllowedForOrg(orgPlan)) {
 		return c.json(
 			errorResponse("AI features are only available on the Pro plan. Please upgrade to access this feature."),
-			403,
+			403
 		);
 	}
 
@@ -237,27 +251,24 @@ summarizeTaskRoute.post("/", async (c) => {
 	}
 	if (aiStatus.aiRateLimited) {
 		return c.json(
-			{ success: false, error: "AI features are temporarily rate limited for this organization", until: aiStatus.rateLimitUntil?.toISOString() },
-			429,
+			{
+				success: false,
+				error: "AI features are temporarily rate limited for this organization",
+				until: aiStatus.rateLimitUntil?.toISOString(),
+			},
+			429
 		);
 	}
 	if (!aiStatus.taskSummaryEnabled) {
 		return c.json(errorResponse("AI task summary is disabled for this organization"), 403);
 	}
 
-	const descriptionText = task.description
-		? extractPlainText(task.description)
-		: "No description provided.";
+	const descriptionText = task.description ? extractPlainText(task.description) : "No description provided.";
 
 	// Build lookup maps from data already on the task — no extra DB queries.
-	const labelMap = new Map<string, string>(
-		(task.labels ?? []).map((l) => [l.id, l.name]),
-	);
+	const labelMap = new Map<string, string>((task.labels ?? []).map((l) => [l.id, l.name]));
 	const assigneeMap = new Map<string, string>(
-		(task.assignees ?? []).map((a) => [
-			a.id,
-			a.displayName ?? a.name ?? "Unknown",
-		]),
+		(task.assignees ?? []).map((a) => [a.id, a.displayName ?? a.name ?? "Unknown"])
 	);
 
 	const timelineText =
@@ -277,7 +288,7 @@ summarizeTaskRoute.post("/", async (c) => {
 	// ---------------------------------------------------------------------------
 	const customInstructions = sanitizeCustomPrompt(
 		orgSettings?.ai?.taskSummaryCustomPrompt,
-		taskSummaryPrompt.maxCustomPromptLength,
+		taskSummaryPrompt.maxCustomPromptLength
 	);
 	const effectiveSystemPrompt = customInstructions
 		? `${taskSummaryPrompt.systemPrompt}\n\n---\nAdditional tone instructions from organization settings:\n${customInstructions}`
@@ -291,14 +302,10 @@ summarizeTaskRoute.post("/", async (c) => {
 	// capped at maxUrlFetchCount. Structured GitHub timeline events are excluded
 	// since they are already represented as formatted text in the timeline.
 	// ---------------------------------------------------------------------------
-	const useUrlFetch =
-		taskSummaryPrompt.capabilities.urlFetch &&
-		aiStatus.urlFetchEnabled;
+	const useUrlFetch = taskSummaryPrompt.capabilities.urlFetch && aiStatus.urlFetchEnabled;
 
 	const maxUrlFetchCount = taskSummaryPrompt.maxUrlFetchCount ?? 3;
-	const urls: string[] = useUrlFetch
-		? selectUrlsForFetch(descriptionText, activity ?? [], maxUrlFetchCount)
-		: [];
+	const urls: string[] = useUrlFetch ? selectUrlsForFetch(descriptionText, activity ?? [], maxUrlFetchCount) : [];
 
 	const totalUrlsFound = useUrlFetch
 		? (() => {
@@ -313,19 +320,36 @@ summarizeTaskRoute.post("/", async (c) => {
 		: 0;
 
 	console.log(
-		`[ai:summarize-task] taskId=${taskId} orgId=${orgId} model=${taskSummaryPrompt.model} urlFetch=${useUrlFetch} (orgEnabled=${aiStatus.urlFetchEnabled}) urlsFound=${totalUrlsFound} urlsSelected=${urls.length}/${maxUrlFetchCount}`,
+		`[ai:summarize-task] taskId=${taskId} orgId=${orgId} model=${taskSummaryPrompt.model} urlFetch=${useUrlFetch} (orgEnabled=${aiStatus.urlFetchEnabled}) urlsFound=${totalUrlsFound} urlsSelected=${urls.length}/${maxUrlFetchCount}`
 	);
 
 	// Only upgrade to the URL-fetch model when there are actually URLs to embed.
 	// useUrlFetch may be true even when extractUrls returns nothing, so base the
 	// model choice on urls.length to avoid paying for an alternate model
 	// on plain-text prompts.
-	const activeModel = (useUrlFetch && urls.length > 0)
-		? (taskSummaryPrompt.urlFetchModel ?? taskSummaryPrompt.model)
-		: taskSummaryPrompt.model;
+	const promptDefaultModel =
+		useUrlFetch && urls.length > 0
+			? (taskSummaryPrompt.urlFetchModel ?? taskSummaryPrompt.model)
+			: taskSummaryPrompt.model;
+
+	// Orgs that made it this far already passed isAiAllowedForOrg() above —
+	// cloud free-plan orgs were rejected before this point, so no separate
+	// plan check is needed here (mirrors the settings page's own `locked`
+	// gate, which only locks cloud+free, never self-hosted or cloud+pro).
+	// Org settings are written through a generic, unvalidated
+	// `organization/update` endpoint (see
+	// apps/start/src/components/pages/admin/settings/orgId/ai.tsx), so
+	// resolveModelId is the point where a stored value actually gets checked
+	// against the real curated catalog before it's ever used to make a
+	// (billed) request — never trust it blindly. Keyed per-feature so each
+	// prompt (task-summary today, more later) can have its own model choice.
+	const orgSelectedModel = orgSettings?.ai?.selectedModels?.[taskSummaryPrompt.id];
+	const activeModel = orgSelectedModel ? resolveModelId(orgSelectedModel) : promptDefaultModel;
 
 	if (useUrlFetch && urls.length > 0) {
-		console.log(`[ai:summarize-task] url-fetch path — model=${activeModel} embedding ${urls.length}/${maxUrlFetchCount} url(s): ${urls.join(", ")}`);
+		console.log(
+			`[ai:summarize-task] url-fetch path — model=${activeModel} embedding ${urls.length}/${maxUrlFetchCount} url(s): ${urls.join(", ")}`
+		);
 	}
 
 	// ---------------------------------------------------------------------------
@@ -345,7 +369,7 @@ summarizeTaskRoute.post("/", async (c) => {
 		if (cached) {
 			console.log(`[ai:summarize-task] cache hit for taskId=${taskId} (forceRefresh=${forceRefresh})`);
 			// Stream the cached text back in chunks so the client behaves identically
-			// to a live generation. No Mistral call, no Polar billing event.
+			// to a live generation. No Requesty call, no Polar billing event.
 			const CHUNK_SIZE = 80;
 			const cacheStream = new ReadableStream({
 				async start(controller) {
@@ -353,14 +377,12 @@ summarizeTaskRoute.post("/", async (c) => {
 					// Emit a sentinel prompt event (empty) so the client parser doesn't choke.
 					controller.enqueue(
 						encoder.encode(
-							`data: ${JSON.stringify({ type: "prompt", systemPrompt: effectiveSystemPrompt, userPrompt, cached: true })}\n\n`,
-						),
+							`data: ${JSON.stringify({ type: "prompt", systemPrompt: effectiveSystemPrompt, userPrompt, cached: true })}\n\n`
+						)
 					);
 					for (let i = 0; i < cached.length; i += CHUNK_SIZE) {
 						controller.enqueue(
-							encoder.encode(
-								`data: ${JSON.stringify({ chunk: cached.slice(i, i + CHUNK_SIZE) })}\n\n`,
-							),
+							encoder.encode(`data: ${JSON.stringify({ chunk: cached.slice(i, i + CHUNK_SIZE) })}\n\n`)
 						);
 					}
 					controller.enqueue(encoder.encode("data: [DONE]\n\n"));
@@ -390,18 +412,30 @@ summarizeTaskRoute.post("/", async (c) => {
 			});
 		}
 	} catch {
-		// Redis unavailable — fall through to Mistral as normal.
-		console.warn(`[ai:summarize-task] Redis unavailable for taskId=${taskId} — falling through to Mistral`);
+		// Redis unavailable — fall through to Requesty as normal.
+		console.warn(`[ai:summarize-task] Redis unavailable for taskId=${taskId} — falling through to Requesty`);
 	}
 
-	console.log(`[ai:summarize-task] starting Mistral call — path=${useUrlFetch && urls.length > 0 ? "streamText (chat + DocumentURLChunks)" : "streamText (chat)"} taskId=${taskId}`);
+	// Fetch each selected URL server-side and fold its text content into the
+	// prompt — replaces the old Mistral-only document_url chunk approach so
+	// this works identically regardless of which model/provider is active.
+	// Fetches run in parallel; failures are silently skipped (fetchUrlAsText
+	// returns null rather than throwing) so one bad URL can't fail the whole
+	// summary.
+	let extraContext: string | undefined;
+	if (useUrlFetch && urls.length > 0) {
+		const fetched = await Promise.all(urls.map((url) => fetchUrlAsText(url)));
+		const sections = fetched
+			.map((text, i) => (text ? `[${urls[i]}]\n${text}` : null))
+			.filter((s): s is string => s !== null);
+		if (sections.length > 0) {
+			extraContext = sections.join("\n\n");
+		}
+	}
 
-	const tokenStream = streamText({
-		model: activeModel,
-		systemPrompt: effectiveSystemPrompt,
-		userPrompt,
-		urls: useUrlFetch ? urls : undefined,
-	});
+	console.log(
+		`[ai:summarize-task] starting Requesty call — path=${extraContext ? "streamText (chat + url context)" : "streamText (chat)"} taskId=${taskId} model=${activeModel}`
+	);
 
 	const responseBody = new ReadableStream({
 		async start(controller) {
@@ -411,29 +445,70 @@ summarizeTaskRoute.post("/", async (c) => {
 			let promptTokens = 0;
 			let completionTokens = 0;
 			let totalTokens = 0;
-			let urlFetchUsed = false;
+			let costUsd = 0;
+			const urlFetchUsed = Boolean(extraContext);
 			try {
 				// Emit the exact prompts first so clients can display/debug what was sent.
 				controller.enqueue(
 					encoder.encode(
-						`data: ${JSON.stringify({ type: "prompt", systemPrompt: effectiveSystemPrompt, userPrompt, urlFetchEnabled: useUrlFetch, urlCount: urls.length })}\n\n`,
-					),
+						`data: ${JSON.stringify({ type: "prompt", systemPrompt: effectiveSystemPrompt, userPrompt, urlFetchEnabled: useUrlFetch, urlCount: urls.length })}\n\n`
+					)
 				);
 
-				for await (const item of tokenStream) {
-					if (item.type === "chunk") {
-						outputText += item.text;
-						controller.enqueue(
-							encoder.encode(`data: ${JSON.stringify({ chunk: item.text })}\n\n`),
-						);
-					} else if (item.type === "done") {
-						promptTokens = item.usage.promptTokens;
-						completionTokens = item.usage.completionTokens;
-						totalTokens = item.usage.totalTokens;
-						urlFetchUsed = item.urlFetchUsed;
-						console.log(`[ai:summarize-task] stream done — tokens=${totalTokens} (${promptTokens}in/${completionTokens}out) urlFetchUsed=${urlFetchUsed}`);
+				// Wrapped in its own span so this shows up as a distinct operation in
+				// Sayr's own tracing (Axiom on cloud, console locally) — separate from
+				// the surrounding DB/permission work above. getTraceContext() here
+				// reads this span's own trace id (must be called *inside* traceAsync's
+				// callback, where it's the active context) and forwards it to Requesty
+				// as request metadata, so a support engineer can jump from a Sayr trace
+				// straight to the matching request in Requesty's dashboard, or vice
+				// versa. See https://docs.requesty.ai/features/request-metadata.
+				await traceAsync(
+					"ai.summarize-task.generate",
+					async () => {
+						const requestyMetadata: RequestyMetadata = {
+							tags: ["task-summary"],
+							user_id: session.userId,
+							trace_id: getTraceContext()?.traceId,
+							extra: {
+								org_id: orgId,
+								task_id: taskId,
+								task_url: taskUrl,
+								triggered_by: triggeredBy,
+							},
+						};
+
+						const tokenStream = streamText({
+							model: activeModel,
+							systemPrompt: effectiveSystemPrompt,
+							userPrompt,
+							extraContext,
+							requestyMetadata,
+						});
+
+						for await (const item of tokenStream) {
+							if (item.type === "chunk") {
+								outputText += item.text;
+								controller.enqueue(encoder.encode(`data: ${JSON.stringify({ chunk: item.text })}\n\n`));
+							} else if (item.type === "done") {
+								promptTokens = item.usage.promptTokens;
+								completionTokens = item.usage.completionTokens;
+								totalTokens = item.usage.totalTokens;
+								costUsd = item.usage.cost ?? 0;
+								console.log(
+									`[ai:summarize-task] stream done — tokens=${totalTokens} (${promptTokens}in/${completionTokens}out) cost=$${costUsd.toFixed(5)} urlFetchUsed=${urlFetchUsed}`
+								);
+							}
+						}
+					},
+					{
+						description: "Stream an AI task summary from Requesty",
+						data: { orgId, taskId, model: activeModel, urlFetchUsed },
+						onSuccess: () => ({
+							data: { totalTokens, costUsd },
+						}),
 					}
-				}
+				);
 
 				controller.enqueue(encoder.encode("data: [DONE]\n\n"));
 			} catch (err) {
@@ -445,11 +520,7 @@ summarizeTaskRoute.post("/", async (c) => {
 					message: "Error during AI summary stream",
 					contextData: { taskId, orgId },
 				});
-				controller.enqueue(
-					encoder.encode(
-						`data: ${JSON.stringify({ error: "Stream failed" })}\n\n`,
-					),
-				);
+				controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: "Stream failed" })}\n\n`));
 			} finally {
 				// Write to Redis cache and persist metadata on successful generation.
 				if (!streamError && outputText) {
@@ -462,11 +533,12 @@ summarizeTaskRoute.post("/", async (c) => {
 					}
 				}
 
-				// Calculate cost in USD cents using per-model pricing constants.
-				const pricing = MISTRAL_MODEL_PRICING[activeModel];
-				const costCents =
-					promptTokens * pricing.inputCentsPerToken +
-					completionTokens * pricing.outputCentsPerToken;
+				// costUsd is an estimate from @repo/ai's per-model pricing table (not
+				// read from Requesty's response — see estimateCostUsd's doc comment
+				// in packages/ai/src/models.ts for why). Converted to cents to match
+				// the existing _cost.amount/cost_cents convention below.
+				const costCents = costUsd * 100;
+				const vendor = activeModel.split("/")[0] || "requesty";
 
 				// Emit cost event to Polar for paid orgs that have a Polar customer.
 				// Free orgs (no polarCustomerId) are silently skipped — they still appear in ClickHouse.
@@ -480,7 +552,7 @@ summarizeTaskRoute.post("/", async (c) => {
 									metadata: {
 										_cost: { amount: costCents, currency: "usd" },
 										_llm: {
-											vendor: "mistral",
+											vendor,
 											model: activeModel,
 											inputTokens: promptTokens,
 											outputTokens: completionTokens,
@@ -488,7 +560,7 @@ summarizeTaskRoute.post("/", async (c) => {
 										},
 										org_id: orgId,
 										task_id: taskId,
-										task_url: `https://${orgSlug}.${process.env.VITE_ROOT_DOMAIN}/${task.shortId}`,
+										task_url: taskUrl,
 										triggered_by: triggeredBy,
 										timeline_items: activity?.length ?? 0,
 									},
@@ -508,19 +580,19 @@ summarizeTaskRoute.post("/", async (c) => {
 							actor_id: session.userId,
 							target_id: taskId,
 							org_id: orgId,
-					metadata: {
-							model: activeModel,
-							input_tokens: promptTokens,
-							output_tokens: completionTokens,
-							total_tokens: totalTokens,
-							cost_cents: costCents,
-							timeline_items: activity?.length ?? 0,
-							cache_hit: false,
-							output_text_length: outputText?.length ?? 0,
-							success: !streamError,
-							url_fetch_used: urlFetchUsed,
-							url_count: urls.length,
-						},
+							metadata: {
+								model: activeModel,
+								input_tokens: promptTokens,
+								output_tokens: completionTokens,
+								total_tokens: totalTokens,
+								cost_cents: costCents,
+								timeline_items: activity?.length ?? 0,
+								cache_hit: false,
+								output_text_length: outputText?.length ?? 0,
+								success: !streamError,
+								url_fetch_used: urlFetchUsed,
+								url_count: urls.length,
+							},
 						});
 					} catch {
 						// Never block the stream for analytics failures.
@@ -545,7 +617,7 @@ summarizeTaskRoute.post("/", async (c) => {
 function buildUserPrompt(
 	task: NonNullable<Awaited<ReturnType<typeof getTaskById>>>,
 	descriptionText: string,
-	timelineText: string,
+	timelineText: string
 ): string {
 	const lines = [
 		`Title: ${task.title}`,

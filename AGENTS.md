@@ -98,8 +98,8 @@ Turborepo monorepo for Sayr.io, a transparent, collaborative project management 
 | `@repo/util` | Shared utilities (date formatting, slugs, CDN URLs, `formatTaskKey`) |
 | `@repo/queue` | Job queue abstraction (Redis or file-based) |
 | `@repo/opentelemetry` | Tracing and observability utilities |
-| `@repo/ai-mistral` | Mistral AI client (task summaries, etc.) |
-| `@repo/ai-prompts` | Shared prompt definitions consumed by `@repo/ai-mistral` callers |
+| `@repo/ai` | Requesty (OpenAI-compatible gateway) client built on TanStack AI — text generation, curated model catalog (task summaries, etc.) |
+| `@repo/ai-prompts` | Shared prompt definitions consumed by `@repo/ai` callers |
 | `@repo/integrations` | Third-party integration registry — manifests gated by `INTEGRATION_<ID>_ENABLED` env flags |
 | `@repo/create-integration` | Scaffolding CLI for new integrations (`pnpm create-integration`) |
 | `@repo/typescript-config` | Shared `tsconfig.json` bases |
