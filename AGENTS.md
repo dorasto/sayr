@@ -311,6 +311,22 @@ Before adding a new type, function, component, or utility anywhere in this repo:
 | `update-pr/` | Generating a PR title/description from the diff |
 | `agent-docs-maintenance/` | Checking `AGENTS.md`/skills for staleness, writing a new skill, updating an existing one |
 
+## Agent skills
+
+Configuration for the [mattpocock/skills](https://github.com/mattpocock/skills) engineering skills.
+
+### Issue tracker
+
+Tasks live on Sayr itself — the `platform` org at <https://platform.sayr.io>. **Read-only for agents**: a human gives you a task URL, you read it via `https://api.sayr.io/v1/organization/platform/tasks/<shortId>`. Never create or edit tasks, and never write to the GitHub mirror. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+The five canonical triage roles. Agents *recommend* a role in their output; they can't apply labels. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: one `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/agents/domain.md`.
+
 ## Agent Constraints
 
 1. **Before commits**: Always ask user for confirmation, unless the user has explicitly granted standing permission to commit/push in the current conversation.
