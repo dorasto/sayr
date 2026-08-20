@@ -22,6 +22,7 @@ import { traceOrgPermissionCheck } from "@/util";
 import { emitEvent } from "../../../../../clickhouse";
 import { fetchUrlAsText } from "../../../../../lib/ai/fetch-url-text";
 import { buildTimelineLine } from "../../../../../lib/ai/format-timeline";
+import { sanitizeCustomPrompt } from "../../../../../lib/ai/model";
 import { errorResponse } from "../../../../../responses";
 
 export const summarizeTaskRoute = new Hono<AppEnv>();
@@ -31,24 +32,6 @@ const requestSchema = z.object({
 	orgId: z.string().min(1),
 	forceRefresh: z.boolean().optional(),
 });
-
-/**
- * Sanitises org-supplied custom prompt instructions before appending them to
- * the base system prompt.
- *
- * - Strips null bytes and ASCII control characters (preserves \n, \r, \t)
- * - Trims surrounding whitespace
- * - Enforces the per-prompt character cap defined in the prompt config
- * - Returns null for empty or whitespace-only input
- */
-function sanitizeCustomPrompt(input: string | null | undefined, maxLength: number): string | null {
-	if (!input) return null;
-	// Strip null bytes and control chars except newline (\x0A), carriage return (\x0D), tab (\x09)
-	// biome-ignore lint/suspicious/noControlCharactersInRegex: intentional — stripping control chars for prompt safety
-	const stripped = input.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "").trim();
-	if (!stripped) return null;
-	return stripped.slice(0, maxLength);
-}
 
 /**
  * Extracts unique http/https URLs from a block of plain text.

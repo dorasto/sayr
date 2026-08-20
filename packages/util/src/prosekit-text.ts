@@ -18,6 +18,11 @@ const BLOCK_NODE_NAMES = new Set([
 	"paragraph",
 	"heading",
 	"blockquote",
+	// The real editor schema (prosemirror-flat-list) uses a single flat
+	// "list" node — bulletList/orderedList/listItem never actually appear
+	// in live content, but are kept here too in case any already-stored
+	// content predates that model.
+	"list",
 	"bulletList",
 	"orderedList",
 	"listItem",

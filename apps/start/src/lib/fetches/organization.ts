@@ -1,4 +1,4 @@
-import type { schema, TeamPermissions, OrganizationSettings } from "@repo/database";
+import type { OrgAiSettings, OrganizationSettings, schema, TeamPermissions } from "@repo/database";
 
 const API_URL = import.meta.env.VITE_APP_ENV === "development" ? "/backend-api/internal" : "/api/internal";
 
@@ -78,7 +78,18 @@ export interface UpdateOrganizationData {
 	logo?: string;
 	bannerImg?: string;
 	description?: string;
-	settings?: OrganizationSettings;
+	/**
+	 * A partial patch, not a full snapshot — the backend deep-merges this
+	 * onto the organization's current settings (see `deepMergeSettings` in
+	 * `apps/backend/routes/api/internal/v1/organization.ts`) rather than
+	 * replacing the column wholesale. Callers should only ever include the
+	 * key(s) they actually intend to change (down to individual `ai.*` map
+	 * entries, e.g. `{ai: {templates: {"release-notes": "..."}}}`) — never
+	 * spread in a locally-cached copy of sibling fields, or a concurrent
+	 * save from another tab touching a different field can be clobbered by
+	 * this request's stale copy of it.
+	 */
+	settings?: Partial<Omit<OrganizationSettings, "ai">> & { ai?: Partial<OrgAiSettings> };
 }
 
 /**
@@ -348,7 +359,7 @@ export async function deleteOrganizationMemberAction(
 
 export async function assignOrganizationMemberSeatAction(
 	organizationId: string,
-	userId: string,
+	userId: string
 ): Promise<{
 	success: boolean;
 	member?: schema.OrganizationMemberType;
@@ -359,30 +370,24 @@ export async function assignOrganizationMemberSeatAction(
 		userId,
 	});
 
-	const result = await fetch(
-		`${API_URL}/v1/admin/organization/member-seat-assign`,
-		{
-			method: "PATCH",
-			body: JSON.stringify({
-				org_id: organizationId,
-				user_id: userId,
-			}),
-			headers: {
-				"Content-Type": "application/json",
-			},
-			credentials: "include",
+	const result = await fetch(`${API_URL}/v1/admin/organization/member-seat-assign`, {
+		method: "PATCH",
+		body: JSON.stringify({
+			org_id: organizationId,
+			user_id: userId,
+		}),
+		headers: {
+			"Content-Type": "application/json",
 		},
-	).then(async (res) => res.json());
+		credentials: "include",
+	}).then(async (res) => res.json());
 
 	if (!result.success) {
-		console.error(
-			"Failed to assign seat to organization member",
-			{
-				error: result.error,
-				organizationId,
-				userId,
-			},
-		);
+		console.error("Failed to assign seat to organization member", {
+			error: result.error,
+			organizationId,
+			userId,
+		});
 	}
 
 	return result;
@@ -390,42 +395,32 @@ export async function assignOrganizationMemberSeatAction(
 
 export async function unassignOrganizationMemberSeatAction(
 	organizationId: string,
-	userId: string,
+	userId: string
 ): Promise<{
 	success: boolean;
 	member?: schema.OrganizationMemberType;
 	error?: string;
 }> {
-	console.info(
-		"Removing seat from organization member",
-		{ organizationId, userId },
-	);
+	console.info("Removing seat from organization member", { organizationId, userId });
 
-	const result = await fetch(
-		`${API_URL}/v1/admin/organization/member-seat-unassign`,
-		{
-			method: "PATCH",
-			body: JSON.stringify({
-				org_id: organizationId,
-				user_id: userId,
-			}),
-			headers: {
-				"Content-Type":
-					"application/json",
-			},
-			credentials: "include",
+	const result = await fetch(`${API_URL}/v1/admin/organization/member-seat-unassign`, {
+		method: "PATCH",
+		body: JSON.stringify({
+			org_id: organizationId,
+			user_id: userId,
+		}),
+		headers: {
+			"Content-Type": "application/json",
 		},
-	).then(async (res) => res.json());
+		credentials: "include",
+	}).then(async (res) => res.json());
 
 	if (!result.success) {
-		console.error(
-			"Failed to remove seat from member",
-			{
-				error: result.error,
-				organizationId,
-				userId,
-			},
-		);
+		console.error("Failed to remove seat from member", {
+			error: result.error,
+			organizationId,
+			userId,
+		});
 	}
 
 	return result;
@@ -880,23 +875,17 @@ export async function updateGithubSyncConnectionAction(
 		category_id: data.categoryId,
 	};
 
-	const result = await fetch(
-		`${API_URL}/v1/admin/organization/connections/github/sync-repo`,
-		{
-			method: "PATCH",
-			body: JSON.stringify(payload),
-			headers: {
-				"Content-Type": "application/json",
-			},
-			credentials: "include",
-		}
-	).then(async (res) => {
+	const result = await fetch(`${API_URL}/v1/admin/organization/connections/github/sync-repo`, {
+		method: "PATCH",
+		body: JSON.stringify(payload),
+		headers: {
+			"Content-Type": "application/json",
+		},
+		credentials: "include",
+	}).then(async (res) => {
 		const json = await res.json();
 		if (!res.ok) {
-			throw new Error(
-				json?.error ||
-				"Failed to update sync repo"
-			);
+			throw new Error(json?.error || "Failed to update sync repo");
 		}
 		return json;
 	});
@@ -923,26 +912,18 @@ export async function deleteGithubSyncConnectionAction(
 		sync_id: syncId,
 	};
 
-	const result = await fetch(
-		`${API_URL}/v1/admin/organization/connections/github/sync-repo`,
-		{
-			method: "DELETE",
-			body: JSON.stringify(payload),
-			headers: {
-				"Content-Type":
-					"application/json",
-			},
-			credentials: "include",
-		}
-	).then(async (res) => {
-		const json =
-			await res.json();
+	const result = await fetch(`${API_URL}/v1/admin/organization/connections/github/sync-repo`, {
+		method: "DELETE",
+		body: JSON.stringify(payload),
+		headers: {
+			"Content-Type": "application/json",
+		},
+		credentials: "include",
+	}).then(async (res) => {
+		const json = await res.json();
 
 		if (!res.ok) {
-			throw new Error(
-				json?.error ||
-				"Failed to delete sync connection"
-			);
+			throw new Error(json?.error || "Failed to delete sync connection");
 		}
 
 		return json;
@@ -961,9 +942,7 @@ export async function deleteGithubSyncConnectionAction(
  * @param organizationId - The ID of the organization.
  * @returns Array of blocked user records with user + blockedBy summaries.
  */
-export async function getBlockedUsersAction(
-	organizationId: string,
-): Promise<schema.BlockedUserWithDetails[]> {
+export async function getBlockedUsersAction(organizationId: string): Promise<schema.BlockedUserWithDetails[]> {
 	const res = await fetch(`${API_URL}/v1/admin/organization/${organizationId}/blocked-users`, {
 		credentials: "include",
 	});
@@ -1009,7 +988,7 @@ export async function getBlockedUserIdsAction(organizationId: string): Promise<s
 export async function searchOrgInteractorsAction(
 	organizationId: string,
 	query?: string,
-	limit?: number,
+	limit?: number
 ): Promise<schema.UserSummary[]> {
 	const params = new URLSearchParams();
 	if (query) params.set("query", query);
@@ -1041,7 +1020,7 @@ export async function searchOrgInteractorsAction(
 export async function blockUserAction(
 	organizationId: string,
 	userId: string,
-	reason?: string,
+	reason?: string
 ): Promise<{ success: boolean; data?: schema.BlockedUserWithDetails; error?: string }> {
 	const result = await fetch(`${API_URL}/v1/admin/organization/${organizationId}/blocked-users`, {
 		method: "POST",
@@ -1064,7 +1043,7 @@ export async function blockUserAction(
  */
 export async function unblockUserAction(
 	organizationId: string,
-	userId: string,
+	userId: string
 ): Promise<{ success: boolean; error?: string }> {
 	const result = await fetch(`${API_URL}/v1/admin/organization/${organizationId}/blocked-users`, {
 		method: "DELETE",
@@ -1087,34 +1066,21 @@ export async function unblockUserAction(
  *
  * @returns A promise resolving to the API response.
  */
-export async function toggleGithubSyncConnectionAction(
-	organizationId: string,
-	syncId: string,
-	enabled: boolean
-) {
-	return fetch(
-		`${API_URL}/v1/admin/organization/connections/github/sync-repo/toggle`,
-		{
-			method: "PATCH",
-			headers: {
-				"Content-Type":
-					"application/json",
-			},
-			credentials: "include",
-			body: JSON.stringify({
-				org_id: organizationId,
-				sync_id: syncId,
-				enabled,
-			}),
-		}
-	).then(async (res) => {
-		const json =
-			await res.json();
-		if (!res.ok)
-			throw new Error(
-				json?.error ||
-				"Failed to toggle sync"
-			);
+export async function toggleGithubSyncConnectionAction(organizationId: string, syncId: string, enabled: boolean) {
+	return fetch(`${API_URL}/v1/admin/organization/connections/github/sync-repo/toggle`, {
+		method: "PATCH",
+		headers: {
+			"Content-Type": "application/json",
+		},
+		credentials: "include",
+		body: JSON.stringify({
+			org_id: organizationId,
+			sync_id: syncId,
+			enabled,
+		}),
+	}).then(async (res) => {
+		const json = await res.json();
+		if (!res.ok) throw new Error(json?.error || "Failed to toggle sync");
 		return json;
 	});
 }
@@ -1126,29 +1092,20 @@ export async function toggleGithubSyncConnectionAction(
  * @param organizationId - The organization ID
  * @param installationId - The GitHub installation ID
  */
-export async function unlinkGithubInstallationAction(
-	organizationId: string,
-	installationId: number
-) {
-	return fetch(
-		`${API_URL}/v1/admin/organization/${organizationId}/github/unlink`,
-		{
-			method: "POST",
-			headers: {
-				"Content-Type": "application/json",
-			},
-			credentials: "include",
-			body: JSON.stringify({
-				installationId,
-			}),
-		}
-	).then(async (res) => {
+export async function unlinkGithubInstallationAction(organizationId: string, installationId: number) {
+	return fetch(`${API_URL}/v1/admin/organization/${organizationId}/github/unlink`, {
+		method: "POST",
+		headers: {
+			"Content-Type": "application/json",
+		},
+		credentials: "include",
+		body: JSON.stringify({
+			installationId,
+		}),
+	}).then(async (res) => {
 		const json = await res.json();
 
-		if (!res.ok)
-			throw new Error(
-				json?.error || "Failed to unlink GitHub installation"
-			);
+		if (!res.ok) throw new Error(json?.error || "Failed to unlink GitHub installation");
 
 		return json;
 	});
@@ -1526,7 +1483,7 @@ export async function deleteIssueTemplateAction(
  */
 export async function updateSubscriptionSeats(
 	organizationId: string,
-	seats: number,
+	seats: number
 ): Promise<{ success: boolean; data?: { seats: number }; error?: string }> {
 	const res = await fetch(`${API_URL}/v1/polar/subscription/seats`, {
 		method: "PATCH",
@@ -1551,7 +1508,7 @@ export async function updateSubscriptionSeats(
  * @returns Subscription details or null if no subscription exists.
  */
 export async function getSubscriptionDetails(
-	organizationId: string,
+	organizationId: string
 ): Promise<{ success: boolean; data?: SubscriptionDetails; error?: string }> {
 	const res = await fetch(`${API_URL}/v1/polar/subscription?orgId=${organizationId}`, {
 		credentials: "include",
@@ -1570,7 +1527,7 @@ export async function getSubscriptionDetails(
 export async function getOrderHistory(
 	organizationId: string,
 	page = 1,
-	limit = 10,
+	limit = 10
 ): Promise<{ success: boolean; data?: OrdersResponse; error?: string }> {
 	const params = new URLSearchParams({
 		orgId: organizationId,
@@ -1594,12 +1551,11 @@ export async function getOrderHistory(
  */
 export async function getOrderInvoice(
 	organizationId: string,
-	orderId: string,
+	orderId: string
 ): Promise<{ success: boolean; data?: { url: string }; error?: string }> {
-	const res = await fetch(
-		`${API_URL}/v1/polar/orders/${orderId}/invoice?orgId=${organizationId}`,
-		{ credentials: "include" },
-	);
+	const res = await fetch(`${API_URL}/v1/polar/orders/${orderId}/invoice?orgId=${organizationId}`, {
+		credentials: "include",
+	});
 
 	return res.json();
 }
@@ -1615,40 +1571,32 @@ export async function transferOrganizationByUserId(
 	organizationId: string,
 	newOwnerId: string
 ): Promise<{ success: boolean; error?: string }> {
-	const res = await fetch(
-		`${API_URL}/v1/admin/organization/transfer-ownership`,
-		{
-			method: "POST",
-			credentials: "include",
-			headers: {
-				"Content-Type": "application/json",
-			},
-			body: JSON.stringify({
-				org_id: organizationId,
-				newOwnerId,
-			}),
-		}
-	);
+	const res = await fetch(`${API_URL}/v1/admin/organization/transfer-ownership`, {
+		method: "POST",
+		credentials: "include",
+		headers: {
+			"Content-Type": "application/json",
+		},
+		body: JSON.stringify({
+			org_id: organizationId,
+			newOwnerId,
+		}),
+	});
 
 	return res.json();
 }
 
-export async function deleteOrganizationAction(
-	organizationId: string
-): Promise<{ success: boolean; error?: string }> {
-	const res = await fetch(
-		`${API_URL}/v1/admin/organization/delete`,
-		{
-			method: "DELETE",
-			credentials: "include",
-			headers: {
-				"Content-Type": "application/json",
-			},
-			body: JSON.stringify({
-				org_id: organizationId,
-			}),
-		}
-	);
+export async function deleteOrganizationAction(organizationId: string): Promise<{ success: boolean; error?: string }> {
+	const res = await fetch(`${API_URL}/v1/admin/organization/delete`, {
+		method: "DELETE",
+		credentials: "include",
+		headers: {
+			"Content-Type": "application/json",
+		},
+		body: JSON.stringify({
+			org_id: organizationId,
+		}),
+	});
 	return res.json();
 }
 
@@ -1667,8 +1615,7 @@ export async function getGithubPRsAction(
 	}
 
 	const url =
-		`${API_URL}/v1/admin/organization/${orgId}/github_prs` +
-		(params.toString() ? `?${params.toString()}` : "");
+		`${API_URL}/v1/admin/organization/${orgId}/github_prs` + (params.toString() ? `?${params.toString()}` : "");
 
 	return fetch(url, {
 		credentials: "include",

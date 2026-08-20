@@ -70,6 +70,25 @@ export interface OrgAiSettings {
 	 * Checked via `isAiFeatureEnabled` below.
 	 */
 	featureToggles?: Record<string, boolean>;
+	/**
+	 * Per-feature custom instructions (tone/style/behaviour guidance), keyed
+	 * by the feature's `PromptConfig.id`. Generalises `taskSummaryCustomPrompt`
+	 * for features built after task-summary — task-summary keeps its own
+	 * dedicated field rather than migrating onto this map, same reasoning as
+	 * `featureToggles` above. Sanitised and length-capped server-side
+	 * (`PromptConfig.maxCustomPromptLength`) before use — cannot override the
+	 * base system prompt or inject into the feature's user prompt.
+	 */
+	customPrompts?: Record<string, string>;
+	/**
+	 * Per-feature output-structure templates (e.g. desired section headings/
+	 * order), keyed by the feature's `PromptConfig.id`. Only meaningful for
+	 * features whose `PromptConfig` declares `maxTemplateLength > 0`
+	 * (`@repo/ai-prompts`) — features that don't declare it never read this.
+	 * Sanitised and length-capped server-side before use, same as
+	 * `customPrompts`.
+	 */
+	templates?: Record<string, string>;
 }
 
 export const defaultOrgAiSettings: OrgAiSettings = {
@@ -80,6 +99,8 @@ export const defaultOrgAiSettings: OrgAiSettings = {
 	urlFetchEnabled: false,
 	selectedModels: {},
 	featureToggles: {},
+	customPrompts: {},
+	templates: {},
 };
 
 /**

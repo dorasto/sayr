@@ -22,6 +22,9 @@ import { useLayoutOrganizationSettings } from "@/contexts/ContextOrgSettings";
 import { updateOrganizationAction } from "@/lib/fetches/organization";
 
 const CUSTOM_PROMPT_MAX_LENGTH = 500;
+/** Must match `releaseNotesPrompt.maxCustomPromptLength`/`maxTemplateLength` in `@repo/ai-prompts`. */
+const RELEASE_NOTES_CUSTOM_PROMPT_MAX_LENGTH = 500;
+const RELEASE_NOTES_TEMPLATE_MAX_LENGTH = 1000;
 
 /**
  * Feature id for the task-summary prompt — must match `taskSummaryPrompt.id`
@@ -135,8 +138,48 @@ export default function AiSettingsPage({ locked }: { locked?: boolean }) {
 	const customPromptDirty = customPromptDraft.trim() !== (aiSettings.taskSummaryCustomPrompt ?? "").trim();
 
 	// ---------------------------------------------------------------------------
+	// Release notes template + custom instructions — same drafted-textarea
+	// pattern as task-summary's custom prompt above, but backed by the generic
+	// per-feature `templates`/`customPrompts` maps (OrgAiSettings) rather than
+	// a dedicated field, since these are the first features to use that map.
+	// ---------------------------------------------------------------------------
+	const [releaseNotesTemplateDraft, setReleaseNotesTemplateDraft] = useState(
+		aiSettings.templates?.[RELEASE_NOTES_FEATURE_ID] ?? ""
+	);
+	const [releaseNotesCustomPromptDraft, setReleaseNotesCustomPromptDraft] = useState(
+		aiSettings.customPrompts?.[RELEASE_NOTES_FEATURE_ID] ?? ""
+	);
+
+	useEffect(() => {
+		setReleaseNotesTemplateDraft(aiSettings.templates?.[RELEASE_NOTES_FEATURE_ID] ?? "");
+	}, [aiSettings.templates]);
+	useEffect(() => {
+		setReleaseNotesCustomPromptDraft(aiSettings.customPrompts?.[RELEASE_NOTES_FEATURE_ID] ?? "");
+	}, [aiSettings.customPrompts]);
+
+	const releaseNotesTemplateDirty =
+		releaseNotesTemplateDraft.trim() !== (aiSettings.templates?.[RELEASE_NOTES_FEATURE_ID] ?? "").trim();
+	const releaseNotesCustomPromptDirty =
+		releaseNotesCustomPromptDraft.trim() !== (aiSettings.customPrompts?.[RELEASE_NOTES_FEATURE_ID] ?? "").trim();
+
+	// ---------------------------------------------------------------------------
 	// Handlers
 	// ---------------------------------------------------------------------------
+	/**
+	 * Updates a single top-level `OrgAiSettings` scalar/object key.
+	 *
+	 * Sends `{ai: {[key]: value}}` as the network patch — never a spread of
+	 * sibling keys — because `organization/update` now deep-merges whatever
+	 * it's sent onto the row's *current* settings rather than replacing the
+	 * column wholesale (see `deepMergeSettings` server-side). If this
+	 * request instead sent `{...currentAi, [key]: value}`, a concurrent save
+	 * from another tab touching a *different* key could be silently undone:
+	 * this request's local copy of that other key might already be stale,
+	 * and the server can't distinguish "the user meant to change this" from
+	 * "this tab just hadn't refreshed yet." The optimistic local update
+	 * below still merges into the full local copy, purely for immediate UI
+	 * feedback — that's unrelated to what's sent over the wire.
+	 */
 	const updateAiSetting = useCallback(
 		async <K extends keyof OrgAiSettings>(key: K, value: OrgAiSettings[K]) => {
 			// Prevent concurrent saves for the same key
@@ -147,14 +190,10 @@ export default function AiSettingsPage({ locked }: { locked?: boolean }) {
 			const currentOrgSettings = orgSettingsRef.current;
 			const currentOrg = organizationRef.current;
 
-			const updatedAi: OrgAiSettings = { ...currentAi, [key]: value };
-			const updatedSettings: OrganizationSettings = {
-				...currentOrgSettings,
-				ai: updatedAi,
-			};
-
-			// Optimistic update
-			setOrganization({ ...currentOrg, settings: updatedSettings });
+			// Optimistic local update — full merge, just for immediate UI feedback.
+			const optimisticAi: OrgAiSettings = { ...currentAi, [key]: value };
+			const optimisticSettings: OrganizationSettings = { ...currentOrgSettings, ai: optimisticAi };
+			setOrganization({ ...currentOrg, settings: optimisticSettings });
 			setSavingKeys((prev) => new Set(prev).add(key));
 
 			try {
@@ -167,7 +206,8 @@ export default function AiSettingsPage({ locked }: { locked?: boolean }) {
 						logo: currentOrg.logo || undefined,
 						bannerImg: currentOrg.bannerImg || undefined,
 						description: currentOrg.description || undefined,
-						settings: updatedSettings,
+						// Scoped patch — only this one key, see doc comment above.
+						settings: { ai: { [key]: value } },
 					},
 					sseClientId
 				);
@@ -195,15 +235,82 @@ export default function AiSettingsPage({ locked }: { locked?: boolean }) {
 		[savingKeys, sseClientId, setOrganization]
 	);
 
+	/**
+	 * Updates a single entry within one of `OrgAiSettings`' per-feature maps
+	 * (`selectedModels`/`featureToggles`/`customPrompts`/`templates`), keyed
+	 * by feature id — the map-valued counterpart to `updateAiSetting` above,
+	 * same reasoning: sends only `{ai: {[mapKey]: {[featureId]: value}}}`,
+	 * never a spread of the map's other entries, so a concurrent save
+	 * touching a *different* feature's entry in the same map can't be
+	 * clobbered by this tab's possibly-stale copy of it. The optimistic
+	 * local update still merges into the full local map for correct
+	 * immediate UI feedback across every feature's entry, not just this one.
+	 */
+	const updateAiMapEntry = useCallback(
+		async <K extends "selectedModels" | "featureToggles" | "customPrompts" | "templates">(
+			mapKey: K,
+			featureId: string,
+			value: string | boolean
+		) => {
+			if (savingKeys.has(mapKey)) return;
+
+			const currentAi = aiSettingsRef.current;
+			const currentOrgSettings = orgSettingsRef.current;
+			const currentOrg = organizationRef.current;
+
+			const optimisticMap = { ...currentAi[mapKey], [featureId]: value };
+			const optimisticAi: OrgAiSettings = { ...currentAi, [mapKey]: optimisticMap };
+			const optimisticSettings: OrganizationSettings = { ...currentOrgSettings, ai: optimisticAi };
+			setOrganization({ ...currentOrg, settings: optimisticSettings });
+			setSavingKeys((prev) => new Set(prev).add(mapKey));
+
+			try {
+				const result = await updateOrganizationAction(
+					currentOrg.id,
+					{
+						name: currentOrg.name,
+						slug: currentOrg.slug,
+						shortId: currentOrg.shortId,
+						logo: currentOrg.logo || undefined,
+						bannerImg: currentOrg.bannerImg || undefined,
+						description: currentOrg.description || undefined,
+						// Scoped patch — only this one map entry, see doc comment above.
+						settings: { ai: { [mapKey]: { [featureId]: value } } },
+					},
+					sseClientId
+				);
+
+				if (result.success) {
+					setOrganization({ ...result.data, members: currentOrg.members });
+					headlessToast.success({ title: "Setting updated" });
+				} else {
+					setOrganization({ ...currentOrg, settings: currentOrgSettings });
+					headlessToast.error({
+						title: result.error || "Failed to update setting",
+					});
+				}
+			} catch {
+				setOrganization({ ...currentOrg, settings: currentOrgSettings });
+				headlessToast.error({ title: "Failed to update setting" });
+			} finally {
+				setSavingKeys((prev) => {
+					const next = new Set(prev);
+					next.delete(mapKey);
+					return next;
+				});
+			}
+		},
+		[savingKeys, sseClientId, setOrganization]
+	);
+
 	const handleToggle = useCallback(
 		(key: keyof OrgAiSettings, checked: boolean) => updateAiSetting(key, checked),
 		[updateAiSetting]
 	);
 
 	const handleModelChange = useCallback(
-		(featureId: string, modelId: string) =>
-			updateAiSetting("selectedModels", { ...aiSettingsRef.current.selectedModels, [featureId]: modelId }),
-		[updateAiSetting]
+		(featureId: string, modelId: string) => updateAiMapEntry("selectedModels", featureId, modelId),
+		[updateAiMapEntry]
 	);
 
 	/**
@@ -213,21 +320,32 @@ export default function AiSettingsPage({ locked }: { locked?: boolean }) {
 	 * boolean via `handleToggle` above rather than this.
 	 */
 	const handleFeatureToggle = useCallback(
-		(featureId: string, checked: boolean) =>
-			updateAiSetting("featureToggles", { ...aiSettingsRef.current.featureToggles, [featureId]: checked }),
-		[updateAiSetting]
+		(featureId: string, checked: boolean) => updateAiMapEntry("featureToggles", featureId, checked),
+		[updateAiMapEntry]
+	);
+
+	const handleSaveReleaseNotesTemplate = useCallback(
+		() =>
+			updateAiMapEntry(
+				"templates",
+				RELEASE_NOTES_FEATURE_ID,
+				releaseNotesTemplateDraft.trim().slice(0, RELEASE_NOTES_TEMPLATE_MAX_LENGTH)
+			),
+		[updateAiMapEntry, releaseNotesTemplateDraft]
+	);
+
+	const handleSaveReleaseNotesCustomPrompt = useCallback(
+		() =>
+			updateAiMapEntry(
+				"customPrompts",
+				RELEASE_NOTES_FEATURE_ID,
+				releaseNotesCustomPromptDraft.trim().slice(0, RELEASE_NOTES_CUSTOM_PROMPT_MAX_LENGTH)
+			),
+		[updateAiMapEntry, releaseNotesCustomPromptDraft]
 	);
 
 	const handleSaveCustomPrompt = useCallback(async () => {
 		const trimmed = customPromptDraft.trim().slice(0, CUSTOM_PROMPT_MAX_LENGTH) || null;
-		const updatedAi: OrgAiSettings = {
-			...aiSettings,
-			taskSummaryCustomPrompt: trimmed,
-		};
-		const updatedSettings: OrganizationSettings = {
-			...orgSettings,
-			ai: updatedAi,
-		};
 
 		setCustomPromptSaving(true);
 		try {
@@ -240,7 +358,8 @@ export default function AiSettingsPage({ locked }: { locked?: boolean }) {
 					logo: organization.logo || undefined,
 					bannerImg: organization.bannerImg || undefined,
 					description: organization.description || undefined,
-					settings: updatedSettings,
+					// Scoped patch — same reasoning as updateAiSetting above.
+					settings: { ai: { taskSummaryCustomPrompt: trimmed } },
 				},
 				sseClientId
 			);
@@ -258,7 +377,7 @@ export default function AiSettingsPage({ locked }: { locked?: boolean }) {
 		} finally {
 			setCustomPromptSaving(false);
 		}
-	}, [customPromptDraft, aiSettings, orgSettings, organization, sseClientId, setOrganization]);
+	}, [customPromptDraft, organization, sseClientId, setOrganization]);
 
 	return (
 		<div className="flex flex-col gap-6">
@@ -595,6 +714,108 @@ export default function AiSettingsPage({ locked }: { locked?: boolean }) {
 													))}
 												</SelectContent>
 											</Select>
+										</div>
+									</Tile>
+
+									{/* Template — desired output structure/sections */}
+									<div className="border-t border-border mx-4" />
+									<Tile className="md:w-full flex-col! gap-4" variant="transparent">
+										<div className="flex w-full items-start justify-between gap-4">
+											<TileHeader className="md:w-full">
+												<TileTitle className="text-sm">Template</TileTitle>
+												<TileDescription className="text-xs leading-normal!">
+													Describe the structure you want release notes to follow (e.g. section headings
+													like "## New Features" / "## Fixes" / "## Improvements"). Applied before custom
+													instructions below.
+												</TileDescription>
+											</TileHeader>
+										</div>
+										<div className="flex w-full flex-col gap-2 pt-1">
+											<Textarea
+												placeholder={'e.g. "## New Features\\n## Improvements\\n## Bug Fixes"'}
+												value={releaseNotesTemplateDraft}
+												onChange={(e) =>
+													setReleaseNotesTemplateDraft(
+														e.target.value.slice(0, RELEASE_NOTES_TEMPLATE_MAX_LENGTH)
+													)
+												}
+												rows={3}
+												disabled={
+													!isAdmin ||
+													aiSettings.disabled ||
+													!(aiSettings.featureToggles?.[RELEASE_NOTES_FEATURE_ID] ?? true) ||
+													locked
+												}
+												className="resize-none text-sm bg-accent rounded-lg"
+											/>
+											<div className="flex items-center justify-between gap-2">
+												<span className="text-xs text-muted-foreground">
+													{releaseNotesTemplateDraft.length}/{RELEASE_NOTES_TEMPLATE_MAX_LENGTH}
+												</span>
+												{releaseNotesTemplateDirty && (
+													<Button
+														size="sm"
+														variant="primary"
+														className="h-7 px-2.5 text-xs"
+														onClick={handleSaveReleaseNotesTemplate}
+														disabled={savingKeys.has("templates") || !isAdmin || locked}
+													>
+														<IconDeviceFloppy className="size-3.5" />
+														Save
+													</Button>
+												)}
+											</div>
+										</div>
+									</Tile>
+
+									{/* Custom instructions — tone/style guidance */}
+									<div className="border-t border-border mx-4" />
+									<Tile className="md:w-full flex-col! gap-4" variant="transparent">
+										<div className="flex w-full items-start justify-between gap-4">
+											<TileHeader className="md:w-full">
+												<TileTitle className="text-sm">Custom instructions</TileTitle>
+												<TileDescription className="text-xs leading-normal!">
+													Provide tone and style guidance for AI-generated release notes (e.g. "Use a
+													casual tone." or "Skip internal/technical changes."). Appended after the template
+													above and cannot override the core prompt.
+												</TileDescription>
+											</TileHeader>
+										</div>
+										<div className="flex w-full flex-col gap-2 pt-1">
+											<Textarea
+												placeholder="e.g. Use a casual, friendly tone. Skip purely internal changes."
+												value={releaseNotesCustomPromptDraft}
+												onChange={(e) =>
+													setReleaseNotesCustomPromptDraft(
+														e.target.value.slice(0, RELEASE_NOTES_CUSTOM_PROMPT_MAX_LENGTH)
+													)
+												}
+												rows={3}
+												disabled={
+													!isAdmin ||
+													aiSettings.disabled ||
+													!(aiSettings.featureToggles?.[RELEASE_NOTES_FEATURE_ID] ?? true) ||
+													locked
+												}
+												className="resize-none text-sm bg-accent rounded-lg"
+											/>
+											<div className="flex items-center justify-between gap-2">
+												<span className="text-xs text-muted-foreground">
+													{releaseNotesCustomPromptDraft.length}/{RELEASE_NOTES_CUSTOM_PROMPT_MAX_LENGTH}
+												</span>
+												{releaseNotesCustomPromptDirty && (
+													<Button
+														size="sm"
+														variant="primary"
+														className="h-7 px-2.5 text-xs"
+														onClick={handleSaveReleaseNotesCustomPrompt}
+														disabled={savingKeys.has("customPrompts") || !isAdmin || locked}
+													>
+														<IconDeviceFloppy className="size-3.5" />
+														Save
+													</Button>
+												)}
+											</div>
 										</div>
 									</Tile>
 								</div>

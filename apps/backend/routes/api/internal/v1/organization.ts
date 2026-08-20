@@ -1,38 +1,77 @@
 import { randomBytes, randomUUID } from "node:crypto";
+import { Octokit } from "@octokit/rest";
+import { polarClient } from "@repo/auth";
 import {
+	auth,
+	blockUser,
 	bootstrapOrganizationAdminTeam,
 	db,
+	defaultOrganizationSettings,
 	defaultTeamPermissions,
+	getBlockedUserIds,
+	getBlockedUsers,
 	getIssueTemplates,
 	getLabels,
 	getOrganizationMembers,
-	searchOrgMembers,
-	searchOrgInteractors,
-	getBlockedUsers,
-	getBlockedUserIds,
-	blockUser,
-	unblockUser,
+	type OrganizationSettings,
 	schema,
-	type TeamPermissions, auth
+	searchOrgInteractors,
+	searchOrgMembers,
+	type TeamPermissions,
+	unblockUser,
 } from "@repo/database";
-
-import { removeObject, uploadObject, deleteFolder } from "@repo/storage";
+import { canCreateResource, getEditionCapabilities, getEffectiveLimits, getLimitReachedMessage } from "@repo/edition";
+import { createTraceAsync } from "@repo/opentelemetry/trace";
+import { deleteFolder, removeObject, uploadObject } from "@repo/storage";
 import { ensureCdnUrl, getFileNameFromUrl, isSlugBanned } from "@repo/util";
-import { getInstallationDetailsWithRepos, createAppJWT, getInstallationToken } from "@repo/util/github/auth";
+import { type SendEmailOptions, sendEmailBatch } from "@repo/util/email";
+import { createAppJWT, getInstallationDetailsWithRepos, getInstallationToken } from "@repo/util/github/auth";
 import { and, count, eq, ilike, isNull, ne, or } from "drizzle-orm";
 import { Hono } from "hono";
-import type { AppEnv } from "@/index";
-import { apiRouteAdminProjectTask } from "./task";
-import { createTraceAsync } from "@repo/opentelemetry/trace";
-import { enforceLimit, refreshGitHubTokenIfNeeded, traceOrgPermissionCheck, tracePublicOrgAccessCheck } from "@/util";
-import { Octokit } from "@octokit/rest";
-import { polarClient } from "@repo/auth";
-import { canCreateResource, getEditionCapabilities, getEffectiveLimits, getLimitReachedMessage } from "@repo/edition";
 import { emitEvent } from "@/clickhouse";
+import type { AppEnv } from "@/index";
 import { findClientBysseId, sseBroadcastByUserId, sseBroadcastPublic, sseBroadcastToRoom } from "@/routes/events";
-import { ServerEventBaseMessage } from "@/routes/events/types";
-import { sendEmailBatch, type SendEmailOptions } from "@repo/util/email";
+import type { ServerEventBaseMessage } from "@/routes/events/types";
+import { enforceLimit, refreshGitHubTokenIfNeeded, traceOrgPermissionCheck, tracePublicOrgAccessCheck } from "@/util";
+import { apiRouteAdminProjectTask } from "./task";
 export const apiRouteAdminOrganization = new Hono<AppEnv>();
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+	return typeof value === "object" && value !== null && !Array.isArray(value) && value.constructor === Object;
+}
+
+/**
+ * Recursively merges `incoming` onto `current`, key by key, descending into
+ * nested plain objects rather than replacing them wholesale. Arrays and
+ * non-object values (including `null`, used to explicitly clear a field
+ * like `ai.rateLimited`) always overwrite rather than merge.
+ *
+ * `organization.settings` is a single JSON column shared by many independent
+ * concerns (public-page toggles, AI settings, and — within AI settings —
+ * several further per-feature maps like `selectedModels`/`customPrompts`).
+ * The `/update` route below only ever receives a client's *last known full
+ * snapshot* of `settings`, not a scoped patch, so two saves racing (two
+ * tabs, or just fast successive edits to two different fields) can silently
+ * clobber each other under a blind overwrite — whichever transaction
+ * commits last wins in full, discarding the other's change even if it
+ * touched a completely unrelated key. Deep-merging against the row's
+ * current value (read inside the same row-locked transaction) instead
+ * means each request only ever changes the keys it actually intended to.
+ */
+function deepMergeSettings<T extends object>(current: T, incoming: Partial<T>): T {
+	const currentRecord = current as Record<string, unknown>;
+	const incomingRecord = incoming as Record<string, unknown>;
+	const result: Record<string, unknown> = { ...currentRecord };
+	for (const key of Object.keys(incomingRecord)) {
+		const incomingValue = incomingRecord[key];
+		const currentValue = currentRecord[key];
+		result[key] =
+			isPlainObject(incomingValue) && isPlainObject(currentValue)
+				? deepMergeSettings(currentValue, incomingValue)
+				: incomingValue;
+	}
+	return result as T;
+}
 
 // Create a new organization
 apiRouteAdminOrganization.post("/create", async (c) => {
@@ -57,9 +96,7 @@ apiRouteAdminOrganization.post("/create", async (c) => {
 		const totalOrgCount = await traceAsync(
 			"organization.count_all",
 			async () => {
-				const result = await db
-					.select({ count: count() })
-					.from(schema.organization);
+				const result = await db.select({ count: count() }).from(schema.organization);
 
 				return result[0]?.count ?? 0;
 			},
@@ -76,10 +113,13 @@ apiRouteAdminOrganization.post("/create", async (c) => {
 				message: `User has reached the maximum of ${capabilities.maxOrganizations} organization(s) for this edition`,
 				contextData: { currentCount: totalOrgCount, limit: capabilities.maxOrganizations },
 			});
-			return c.json({
-				success: false,
-				error: `You've reached the maximum of ${capabilities.maxOrganizations} organization(s). Upgrade to an enterprise license to create more.`,
-			}, 403);
+			return c.json(
+				{
+					success: false,
+					error: `You've reached the maximum of ${capabilities.maxOrganizations} organization(s). Upgrade to an enterprise license to create more.`,
+				},
+				403
+			);
 		}
 	}
 
@@ -143,13 +183,14 @@ apiRouteAdminOrganization.post("/create", async (c) => {
 			return org;
 		},
 		{
-			description: "Creating organization", data: {
+			description: "Creating organization",
+			data: {
 				organization: {
 					id: orgId,
 					name: name,
 					slug: slug,
-				}
-			}
+				},
+			},
 		}
 	);
 
@@ -236,17 +277,10 @@ apiRouteAdminOrganization.post("/update", async (c) => {
 
 	const { org_id: orgId, sseClientId, data } = await c.req.json();
 
-	const isAuthorized = await traceOrgPermissionCheck(
-		session?.userId ?? "",
-		orgId,
-		"admin.administrator"
-	);
+	const isAuthorized = await traceOrgPermissionCheck(session?.userId ?? "", orgId, "admin.administrator");
 
 	if (!isAuthorized) {
-		return c.json(
-			{ success: false, error: "You don't have permission to do that." },
-			401
-		);
+		return c.json({ success: false, error: "You don't have permission to do that." }, 401);
 	}
 
 	// -------------------------------------------------------------------------
@@ -261,6 +295,7 @@ apiRouteAdminOrganization.post("/update", async (c) => {
 					.select({
 						id: schema.organization.id,
 						slug: schema.organization.slug,
+						settings: schema.organization.settings,
 					})
 					.from(schema.organization)
 					.where(eq(schema.organization.id, orgId))
@@ -271,11 +306,20 @@ apiRouteAdminOrganization.post("/update", async (c) => {
 					return null;
 				}
 
+				// Deep-merge incoming settings onto the row's current value
+				// (read under the row lock above) rather than blindly
+				// overwriting — see deepMergeSettings' doc comment for why:
+				// two saves racing on different settings.* keys must not
+				// clobber each other.
+				const mergedSettings: OrganizationSettings | undefined = data.settings
+					? deepMergeSettings(
+							(currentOrg.settings as OrganizationSettings | null) ?? defaultOrganizationSettings,
+							data.settings as Partial<OrganizationSettings>
+						)
+					: undefined;
+
 				// 2️⃣ Slug uniqueness + banned check (only if changed)
-				if (
-					data.slug &&
-					data.slug !== currentOrg.slug
-				) {
+				if (data.slug && data.slug !== currentOrg.slug) {
 					if (isSlugBanned(data.slug)) {
 						throw new Error("SLUG_BANNED");
 					}
@@ -298,16 +342,9 @@ apiRouteAdminOrganization.post("/update", async (c) => {
 					.update(schema.organization)
 					.set({
 						...data,
-						logo:
-							data.logo &&
-							`organization/${orgId}/${getFileNameFromUrl(
-								data.logo
-							)}`,
-						bannerImg:
-							data.bannerImg &&
-							`organization/${orgId}/${getFileNameFromUrl(
-								data.bannerImg
-							)}`,
+						...(mergedSettings ? { settings: mergedSettings } : {}),
+						logo: data.logo && `organization/${orgId}/${getFileNameFromUrl(data.logo)}`,
+						bannerImg: data.bannerImg && `organization/${orgId}/${getFileNameFromUrl(data.bannerImg)}`,
 						updatedAt: new Date(),
 					})
 					.where(eq(schema.organization.id, orgId))
@@ -317,8 +354,7 @@ apiRouteAdminOrganization.post("/update", async (c) => {
 			});
 		},
 		{
-			description:
-				"Updating organization (transactional)",
+			description: "Updating organization (transactional)",
 			data: {
 				organization: { id: orgId },
 			},
@@ -344,8 +380,7 @@ apiRouteAdminOrganization.post("/update", async (c) => {
 				name: "organization.update.slug_taken",
 				error: err,
 				code: "SLUG_TAKEN",
-				message:
-					"Slug already in use by another organization",
+				message: "Slug already in use by another organization",
 				contextData: {
 					organization: { id: orgId },
 					slug: data.slug,
@@ -372,8 +407,7 @@ apiRouteAdminOrganization.post("/update", async (c) => {
 		return c.json(
 			{
 				success: false,
-				error:
-					"Slug already in use by another organization.",
+				error: "Slug already in use by another organization.",
 			},
 			400
 		);
@@ -388,12 +422,8 @@ apiRouteAdminOrganization.post("/update", async (c) => {
 				type: "UPDATE_ORG" as ServerEventBaseMessage["type"],
 				data: {
 					...result,
-					logo: result.logo
-						? ensureCdnUrl(result.logo)
-						: null,
-					bannerImg: result.bannerImg
-						? ensureCdnUrl(result.bannerImg)
-						: null,
+					logo: result.logo ? ensureCdnUrl(result.logo) : null,
+					bannerImg: result.bannerImg ? ensureCdnUrl(result.bannerImg) : null,
 				},
 			};
 
@@ -406,17 +436,10 @@ apiRouteAdminOrganization.post("/update", async (c) => {
 				},
 			});
 
-			const members =
-				await getOrganizationMembers(orgId);
+			const members = await getOrganizationMembers(orgId);
 
 			members.forEach((member) => {
-				sseBroadcastByUserId(
-					member.userId,
-					"",
-					orgId,
-					dataMsg,
-					""
-				);
+				sseBroadcastByUserId(member.userId, "", orgId, dataMsg, "");
 			});
 		},
 		{ description: "Broadcasting organization update" }
@@ -435,9 +458,7 @@ apiRouteAdminOrganization.post("/update", async (c) => {
 		data: {
 			...result,
 			logo: result.logo ? ensureCdnUrl(result.logo) : null,
-			bannerImg: result.bannerImg
-				? ensureCdnUrl(result.bannerImg)
-				: null,
+			bannerImg: result.bannerImg ? ensureCdnUrl(result.bannerImg) : null,
 		},
 	});
 });
@@ -479,10 +500,11 @@ apiRouteAdminOrganization.put("/:orgId/logo", async (c) => {
 			"organization.logo.remove_old",
 			() => removeObject(`organization/${orgId}/${getFileNameFromUrl(oldLogo)}`),
 			{
-				description: "Removing old logo", data: {
+				description: "Removing old logo",
+				data: {
 					organization: { id: orgId },
-					logo: oldLogo
-				}
+					logo: oldLogo,
+				},
 			}
 		);
 	}
@@ -593,10 +615,7 @@ apiRouteAdminOrganization.post("/create-label", async (c) => {
 	if (!isAuthorized) {
 		return c.json({ success: false, error: "You don't have permission to do that." }, 401);
 	}
-	const isPublicAccess = await tracePublicOrgAccessCheck(
-		orgId,
-		"enablePublicPage"
-	);
+	const isPublicAccess = await tracePublicOrgAccessCheck(orgId, "enablePublicPage");
 	// If public page is OFF → force private
 	if (!isPublicAccess) {
 		visible = "private";
@@ -643,9 +662,7 @@ apiRouteAdminOrganization.post("/create-label", async (c) => {
 		async () => {
 			const found = findClientBysseId(sseClientId);
 
-			const publicVisibleLabels = labels.filter(
-				(label) => label.visible === "public"
-			);
+			const publicVisibleLabels = labels.filter((label) => label.visible === "public");
 
 			const data = {
 				type: "UPDATE_LABELS" as ServerEventBaseMessage["type"],
@@ -728,9 +745,7 @@ apiRouteAdminOrganization.patch("/edit-label", async (c) => {
 		"label.edit.broadcast",
 		async () => {
 			const found = findClientBysseId(sseClientId);
-			const publicVisibleLabels = labels.filter(
-				(label) => label.visible === "public"
-			);
+			const publicVisibleLabels = labels.filter((label) => label.visible === "public");
 			const data = {
 				type: "UPDATE_LABELS" as ServerEventBaseMessage["type"],
 				data: labels,
@@ -803,9 +818,7 @@ apiRouteAdminOrganization.delete("/delete-label", async (c) => {
 		"label.delete.broadcast",
 		async () => {
 			const found = findClientBysseId(sseClientId);
-			const publicVisibleLabels = labels.filter(
-				(label) => label.visible === "public"
-			);
+			const publicVisibleLabels = labels.filter((label) => label.visible === "public");
 			const data = {
 				type: "UPDATE_LABELS" as ServerEventBaseMessage["type"],
 				data: labels,
@@ -1097,7 +1110,7 @@ apiRouteAdminOrganization.post("/create-issue-template", async (c) => {
 		traceName: "issue_template.count_all",
 		entityName: "issue template",
 		traceAsync,
-		recordWideError
+		recordWideError,
 	});
 	if (issueTemplateLimitRes) return issueTemplateLimitRes;
 
@@ -1250,7 +1263,10 @@ apiRouteAdminOrganization.patch("/edit-issue-template", async (c) => {
 		.from(schema.issueTemplate)
 		.where(eq(schema.issueTemplate.organizationId, orgId));
 	const templateLimits = getEffectiveLimits(templateOrg?.plan);
-	if (templateLimits.issueTemplates !== null && (existingTemplateCount[0]?.count ?? 0) > templateLimits.issueTemplates) {
+	if (
+		templateLimits.issueTemplates !== null &&
+		(existingTemplateCount[0]?.count ?? 0) > templateLimits.issueTemplates
+	) {
 		return c.json(
 			{
 				success: false,
@@ -1450,7 +1466,7 @@ apiRouteAdminOrganization.post("/create-view", async (c) => {
 		traceName: "saved_view.count_all",
 		entityName: "saved view",
 		traceAsync,
-		recordWideError
+		recordWideError,
 	});
 	if (savedViewLimitRes) return savedViewLimitRes;
 
@@ -1800,271 +1816,187 @@ apiRouteAdminOrganization.post("/connections/github/sync-repo", async (c) => {
 		data: result,
 	});
 });
-apiRouteAdminOrganization.patch(
-	"/connections/github/sync-repo",
-	async (c) => {
-		const traceAsync = createTraceAsync();
-		const recordWideError =
-			c.get("recordWideError");
-		const session = c.get("session");
+apiRouteAdminOrganization.patch("/connections/github/sync-repo", async (c) => {
+	const traceAsync = createTraceAsync();
+	const recordWideError = c.get("recordWideError");
+	const session = c.get("session");
 
-		const {
-			org_id: orgId,
-			sync_id: syncId,
-			repo_id: repoId,
-			repo_name: repoName,
-			installation_id: installationId,
-			category_id: categoryId,
-		} = await c.req.json();
+	const {
+		org_id: orgId,
+		sync_id: syncId,
+		repo_id: repoId,
+		repo_name: repoName,
+		installation_id: installationId,
+		category_id: categoryId,
+	} = await c.req.json();
 
-		const isAuthorized =
-			await traceOrgPermissionCheck(
-				session?.userId || "",
+	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "admin.administrator");
+
+	if (!isAuthorized) {
+		return c.json(
+			{
+				success: false,
+				error: "You don't have permission to update sync repositories.",
+			},
+			401
+		);
+	}
+
+	/* ================= CHECK EXISTS ================= */
+
+	const existingSync = await db.query.githubRepository.findFirst({
+		where: eq(schema.githubRepository.id, syncId),
+	});
+
+	if (!existingSync) {
+		return c.json(
+			{
+				success: false,
+				error: "Sync connection not found.",
+			},
+			404
+		);
+	}
+
+	/* ================= PREVENT DUPLICATES ================= */
+
+	const duplicate = await db.query.githubRepository.findFirst({
+		where: and(
+			eq(schema.githubRepository.organizationId, orgId),
+			eq(schema.githubRepository.installationId, installationId),
+			eq(schema.githubRepository.repoId, repoId),
+			eq(schema.githubRepository.categoryId, categoryId),
+			// not itself
+			ne(schema.githubRepository.id, syncId)
+		),
+	});
+
+	if (duplicate) {
+		await recordWideError({
+			name: "github.syncRepo.duplicate_update",
+			error: new Error("Duplicate sync update"),
+			code: "SYNC_DUPLICATE",
+			message: "Another sync with these values already exists",
+			contextData: {
 				orgId,
-				"admin.administrator"
-			);
+				repoId,
+				installationId,
+				categoryId,
+			},
+		});
 
-		if (!isAuthorized) {
-			return c.json(
-				{
-					success: false,
-					error:
-						"You don't have permission to update sync repositories.",
-				},
-				401
-			);
-		}
+		return c.json(
+			{
+				success: false,
+				error: "A sync with these values already exists.",
+			},
+			400
+		);
+	}
 
-		/* ================= CHECK EXISTS ================= */
+	/* ================= UPDATE ================= */
 
-		const existingSync =
-			await db.query.githubRepository.findFirst(
-				{
-					where: eq(
-						schema.githubRepository.id,
-						syncId
-					),
-				}
-			);
-
-		if (!existingSync) {
-			return c.json(
-				{
-					success: false,
-					error:
-						"Sync connection not found.",
-				},
-				404
-			);
-		}
-
-		/* ================= PREVENT DUPLICATES ================= */
-
-		const duplicate =
-			await db.query.githubRepository.findFirst(
-				{
-					where: and(
-						eq(
-							schema.githubRepository
-								.organizationId,
-							orgId
-						),
-						eq(
-							schema.githubRepository
-								.installationId,
-							installationId
-						),
-						eq(
-							schema.githubRepository
-								.repoId,
-							repoId
-						),
-						eq(
-							schema.githubRepository
-								.categoryId,
-							categoryId
-						),
-						// not itself
-						ne(
-							schema.githubRepository.id,
-							syncId
-						)
-					),
-				}
-			);
-
-		if (duplicate) {
-			await recordWideError({
-				name:
-					"github.syncRepo.duplicate_update",
-				error: new Error(
-					"Duplicate sync update"
-				),
-				code: "SYNC_DUPLICATE",
-				message:
-					"Another sync with these values already exists",
-				contextData: {
-					orgId,
-					repoId,
+	const result = await traceAsync(
+		"github.syncRepo.update",
+		() =>
+			db
+				.update(schema.githubRepository)
+				.set({
 					installationId,
+					repoId,
+					repoName,
 					categoryId,
-				},
-			});
-
-			return c.json(
-				{
-					success: false,
-					error:
-						"A sync with these values already exists.",
-				},
-				400
-			);
-		}
-
-		/* ================= UPDATE ================= */
-
-		const result = await traceAsync(
-			"github.syncRepo.update",
-			() =>
-				db
-					.update(
-						schema.githubRepository
-					)
-					.set({
-						installationId,
-						repoId,
-						repoName,
-						categoryId,
-					})
-					.where(
-						eq(
-							schema.githubRepository.id,
-							syncId
-						)
-					),
-			{
-				description:
-					"Updating GitHub sync repository",
-				data: {
-					orgId,
-					syncId,
-				},
-			}
-		);
-
-		return c.json({
-			success: true,
-			data: result,
-		});
-	}
-);
-apiRouteAdminOrganization.patch(
-	"/connections/github/sync-repo/toggle",
-	async (c) => {
-		const traceAsync = createTraceAsync();
-		const session = c.get("session");
-
-		const {
-			org_id: orgId,
-			sync_id: syncId,
-			enabled,
-		} = await c.req.json();
-
-		/* ================= AUTH CHECK ================= */
-
-		const isAuthorized =
-			await traceOrgPermissionCheck(
-				session?.userId || "",
+				})
+				.where(eq(schema.githubRepository.id, syncId)),
+		{
+			description: "Updating GitHub sync repository",
+			data: {
 				orgId,
-				"admin.administrator"
-			);
-
-		if (!isAuthorized) {
-			return c.json(
-				{
-					success: false,
-					error:
-						"You don't have permission to modify sync repositories.",
-				},
-				401
-			);
+				syncId,
+			},
 		}
+	);
 
-		/* ================= VALIDATE INPUT ================= */
+	return c.json({
+		success: true,
+		data: result,
+	});
+});
+apiRouteAdminOrganization.patch("/connections/github/sync-repo/toggle", async (c) => {
+	const traceAsync = createTraceAsync();
+	const session = c.get("session");
 
-		if (typeof enabled !== "boolean") {
-			return c.json(
-				{
-					success: false,
-					error:
-						"`enabled` must be true or false.",
-				},
-				400
-			);
-		}
+	const { org_id: orgId, sync_id: syncId, enabled } = await c.req.json();
 
-		/* ================= CHECK EXISTS ================= */
+	/* ================= AUTH CHECK ================= */
 
-		const existing =
-			await db.query.githubRepository.findFirst(
-				{
-					where: eq(
-						schema.githubRepository.id,
-						syncId
-					),
-				}
-			);
+	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "admin.administrator");
 
-		if (!existing) {
-			return c.json(
-				{
-					success: false,
-					error:
-						"Sync connection not found.",
-				},
-				404
-			);
-		}
-
-		/* ================= UPDATE ENABLE STATE ================= */
-
-		const result = await traceAsync(
-			"github.syncRepo.toggle_enabled",
-			() =>
-				db
-					.update(
-						schema.githubRepository
-					)
-					.set({
-						enabled,
-						updatedAt:
-							new Date(),
-					})
-					.where(
-						eq(
-							schema.githubRepository.id,
-							syncId
-						)
-					),
+	if (!isAuthorized) {
+		return c.json(
 			{
-				description:
-					enabled
-						? "Enabling GitHub sync repository"
-						: "Disabling GitHub sync repository",
-				data: {
-					orgId,
-					syncId,
-					enabled,
-				},
-			}
+				success: false,
+				error: "You don't have permission to modify sync repositories.",
+			},
+			401
 		);
-
-		return c.json({
-			success: true,
-			data: result,
-		});
 	}
-);
+
+	/* ================= VALIDATE INPUT ================= */
+
+	if (typeof enabled !== "boolean") {
+		return c.json(
+			{
+				success: false,
+				error: "`enabled` must be true or false.",
+			},
+			400
+		);
+	}
+
+	/* ================= CHECK EXISTS ================= */
+
+	const existing = await db.query.githubRepository.findFirst({
+		where: eq(schema.githubRepository.id, syncId),
+	});
+
+	if (!existing) {
+		return c.json(
+			{
+				success: false,
+				error: "Sync connection not found.",
+			},
+			404
+		);
+	}
+
+	/* ================= UPDATE ENABLE STATE ================= */
+
+	const result = await traceAsync(
+		"github.syncRepo.toggle_enabled",
+		() =>
+			db
+				.update(schema.githubRepository)
+				.set({
+					enabled,
+					updatedAt: new Date(),
+				})
+				.where(eq(schema.githubRepository.id, syncId)),
+		{
+			description: enabled ? "Enabling GitHub sync repository" : "Disabling GitHub sync repository",
+			data: {
+				orgId,
+				syncId,
+				enabled,
+			},
+		}
+	);
+
+	return c.json({
+		success: true,
+		data: result,
+	});
+});
 apiRouteAdminOrganization.post("/transfer-ownership", async (c) => {
 	const traceAsync = createTraceAsync();
 	const recordWideError = c.get("recordWideError");
@@ -2073,37 +2005,26 @@ apiRouteAdminOrganization.post("/transfer-ownership", async (c) => {
 	return traceAsync(
 		"organization.transferOwnership",
 		async () => {
-			const { org_id: orgId, newOwnerId }: { org_id: string; newOwnerId: string } =
-				await c.req.json();
+			const { org_id: orgId, newOwnerId }: { org_id: string; newOwnerId: string } = await c.req.json();
 
 			const [orgOwner] = await db
 				.select({ createdBy: schema.organization.createdBy })
 				.from(schema.organization)
-				.where(
-					and(
-						eq(schema.organization.id, orgId),
-						eq(schema.organization.createdBy, session?.userId || "")
-					)
-				)
+				.where(and(eq(schema.organization.id, orgId), eq(schema.organization.createdBy, session?.userId || "")))
 				.limit(1);
 
 			if (!orgOwner) {
-				return c.json(
-					{ success: false, error: "You don't have permission to transfer ownership." },
-					401
-				);
+				return c.json({ success: false, error: "You don't have permission to transfer ownership." }, 401);
 			}
 
 			// Find the Admin team - first try by name (case-insensitive), fallback to isSystem
 			let adminTeam = await db.query.team.findFirst({
-				where: (t) =>
-					and(eq(t.organizationId, orgId), ilike(t.name, "%admin%")),
+				where: (t) => and(eq(t.organizationId, orgId), ilike(t.name, "%admin%")),
 			});
 
 			if (!adminTeam) {
 				adminTeam = await db.query.team.findFirst({
-					where: (t) =>
-						and(eq(t.organizationId, orgId), eq(t.isSystem, true)),
+					where: (t) => and(eq(t.organizationId, orgId), eq(t.isSystem, true)),
 				});
 			}
 
@@ -2140,10 +2061,9 @@ apiRouteAdminOrganization.post("/transfer-ownership", async (c) => {
 			if (currentOwnerMember) {
 				await db
 					.delete(schema.memberTeam)
-					.where(and(
-						eq(schema.memberTeam.teamId, adminTeam.id),
-						eq(schema.memberTeam.memberId, currentOwnerMember.id)
-					));
+					.where(
+						and(eq(schema.memberTeam.teamId, adminTeam.id), eq(schema.memberTeam.memberId, currentOwnerMember.id))
+					);
 			}
 
 			// Add new owner to the admin team
@@ -2171,10 +2091,7 @@ apiRouteAdminOrganization.post("/transfer-ownership", async (c) => {
 			await db
 				.update(schema.organization)
 				.set({ createdBy: newOwnerId, updatedAt: new Date() })
-				.where(and(
-					eq(schema.organization.id, orgId),
-					eq(schema.organization.createdBy, session?.userId || "")
-				));
+				.where(and(eq(schema.organization.id, orgId), eq(schema.organization.createdBy, session?.userId || "")));
 
 			return c.json({ success: true });
 		},
@@ -2201,19 +2118,11 @@ apiRouteAdminOrganization.delete("/delete", async (c) => {
 			const [org] = await db
 				.select()
 				.from(schema.organization)
-				.where(
-					and(
-						eq(schema.organization.id, orgId),
-						eq(schema.organization.createdBy, session?.userId || "")
-					)
-				)
+				.where(and(eq(schema.organization.id, orgId), eq(schema.organization.createdBy, session?.userId || "")))
 				.limit(1);
 
 			if (!org) {
-				return c.json(
-					{ success: false, error: "You don't have permission to delete this organization." },
-					401
-				);
+				return c.json({ success: false, error: "You don't have permission to delete this organization." }, 401);
 			}
 
 			if (org.plan && org.plan !== "free") {
@@ -2225,9 +2134,10 @@ apiRouteAdminOrganization.delete("/delete", async (c) => {
 					400
 				);
 			}
-			polarClient && await polarClient.customers.deleteExternal({
-				externalId: org.id,
-			});
+			polarClient &&
+				(await polarClient.customers.deleteExternal({
+					externalId: org.id,
+				}));
 
 			await traceAsync(
 				"organization.delete.s3_files",
@@ -2279,12 +2189,9 @@ apiRouteAdminOrganization.delete("/delete", async (c) => {
 
 							if (otherOrgsUsingInstallation.length === 0) {
 								try {
-									await appOctokit.request(
-										"DELETE /app/installations/{installation_id}",
-										{
-											installation_id: installation.installationId,
-										}
-									);
+									await appOctokit.request("DELETE /app/installations/{installation_id}", {
+										installation_id: installation.installationId,
+									});
 								} catch (err) {
 									console.error(
 										`Failed to uninstall GitHub app installation ${installation.installationId}:`,
@@ -2294,9 +2201,7 @@ apiRouteAdminOrganization.delete("/delete", async (c) => {
 							}
 						}
 
-						await db
-							.delete(schema.githubRepository)
-							.where(eq(schema.githubRepository.organizationId, orgId));
+						await db.delete(schema.githubRepository).where(eq(schema.githubRepository.organizationId, orgId));
 
 						await db
 							.delete(schema.githubInstallationOrg)
@@ -2307,15 +2212,12 @@ apiRouteAdminOrganization.delete("/delete", async (c) => {
 				},
 				{ description: "Unlinking GitHub installations", data: { orgId } }
 			);
-			await traceAsync("organization.delete.delete_integrations",
+			await traceAsync(
+				"organization.delete.delete_integrations",
 				async () => {
 					try {
-						await db
-							.delete(schema.integrationConfig)
-							.where(eq(schema.integrationConfig.organizationId, orgId));
-						await db
-							.delete(schema.integrationStorage)
-							.where(eq(schema.integrationStorage.organizationId, orgId));
+						await db.delete(schema.integrationConfig).where(eq(schema.integrationConfig.organizationId, orgId));
+						await db.delete(schema.integrationStorage).where(eq(schema.integrationStorage.organizationId, orgId));
 					} catch (err) {
 						console.error("Failed to delete organization integrations:", err);
 					}
@@ -2323,9 +2225,7 @@ apiRouteAdminOrganization.delete("/delete", async (c) => {
 				{ description: "Deleting organization integrations", data: { orgId } }
 			);
 
-			await db
-				.delete(schema.organization)
-				.where(eq(schema.organization.id, orgId));
+			await db.delete(schema.organization).where(eq(schema.organization.id, orgId));
 
 			return c.json({ success: true });
 		},
@@ -2384,12 +2284,16 @@ apiRouteAdminOrganization.post("/member", async (c) => {
 	const seatLimit = limits.members ?? org?.seatCount ?? 0;
 	if (effectiveUsed + emails.length > seatLimit) {
 		const available = Math.max(0, seatLimit - effectiveUsed);
-		return c.json({
-			success: false,
-			error: available === 0
-				? "Seat limit reached. Upgrade your plan or free up seats before inviting new members."
-				: `You can only invite ${available} more member${available === 1 ? "" : "s"} within your current seat limit.`,
-		}, 403);
+		return c.json(
+			{
+				success: false,
+				error:
+					available === 0
+						? "Seat limit reached. Upgrade your plan or free up seats before inviting new members."
+						: `You can only invite ${available} more member${available === 1 ? "" : "s"} within your current seat limit.`,
+			},
+			403
+		);
 	}
 
 	const { invites, failedEmails } = await traceAsync(
@@ -2409,8 +2313,8 @@ apiRouteAdminOrganization.post("/member", async (c) => {
 
 					const existingMember = user
 						? await db.query.member.findFirst({
-							where: and(eq(schema.member.organizationId, orgId), eq(schema.member.userId, user.id)),
-						})
+								where: and(eq(schema.member.organizationId, orgId), eq(schema.member.userId, user.id)),
+							})
 						: null;
 
 					if (existingMember) continue;
@@ -2473,8 +2377,8 @@ apiRouteAdminOrganization.post("/member", async (c) => {
 					variables: {
 						orgName: invite?.organization?.name || "",
 						displayName: invite?.user?.displayName || "",
-						inviteUrl: `${process.env.VITE_URL_ROOT}/invite/${invite.organizationId}?code=${invite.inviteCode}`
-					}
+						inviteUrl: `${process.env.VITE_URL_ROOT}/invite/${invite.organizationId}?code=${invite.inviteCode}`,
+					},
 				};
 				return payload;
 			})
@@ -2509,7 +2413,7 @@ apiRouteAdminOrganization.patch("/member-seat-assign", async (c) => {
 	if (!isAuthorized) {
 		return c.json({ success: false, error: "You don't have permission to modify member seat assignments." }, 401);
 	}
-	const { polarBillingEnabled } = getEditionCapabilities()
+	const { polarBillingEnabled } = getEditionCapabilities();
 	if (!polarBillingEnabled) {
 		return c.json({ success: false, error: "You don't have permission to modify member seat assignments." }, 401);
 	}
@@ -2535,7 +2439,10 @@ apiRouteAdminOrganization.patch("/member-seat-assign", async (c) => {
 		columns: { id: true },
 	});
 	if (assignedMembers.length >= (org?.seatCount ?? 0)) {
-		return c.json({ success: false, error: "Seat limit reached. Upgrade your plan or remove seats from other members." }, 403);
+		return c.json(
+			{ success: false, error: "Seat limit reached. Upgrade your plan or remove seats from other members." },
+			403
+		);
 	}
 
 	// Pro plan with active subscription: go through Polar
@@ -2551,7 +2458,7 @@ apiRouteAdminOrganization.patch("/member-seat-assign", async (c) => {
 						userId: member.userId,
 						organizationId: orgId,
 						action: "seat_assign",
-					}
+					},
 				});
 				return seat?.id;
 			},
@@ -2608,178 +2515,127 @@ apiRouteAdminOrganization.patch("/member-seat-assign", async (c) => {
 	return c.json({ success: true, member: updatedMember });
 });
 
-apiRouteAdminOrganization.patch(
-	"/member-seat-unassign",
-	async (c) => {
-		const traceAsync = createTraceAsync();
-		const recordWideError =
-			c.get("recordWideError");
-		const session = c.get("session");
+apiRouteAdminOrganization.patch("/member-seat-unassign", async (c) => {
+	const traceAsync = createTraceAsync();
+	const recordWideError = c.get("recordWideError");
+	const session = c.get("session");
 
-		const {
-			org_id: orgId,
-			user_id: userId,
-		} = await c.req.json();
+	const { org_id: orgId, user_id: userId } = await c.req.json();
 
-		const isAuthorized =
-			await traceOrgPermissionCheck(
-				session?.userId || "",
-				orgId,
-				"admin.billing",
-			);
+	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "admin.billing");
 
-		if (!isAuthorized) {
-			return c.json(
-				{
-					success: false,
-					error:
-						"You don't have permission to modify member seat assignments.",
-				},
-				401,
-			);
-		}
-		const { polarBillingEnabled } = getEditionCapabilities()
-		if (!polarBillingEnabled) {
-			return c.json({ success: false, error: "You don't have permission to modify member seat assignments." }, 401);
-		}
+	if (!isAuthorized) {
+		return c.json(
+			{
+				success: false,
+				error: "You don't have permission to modify member seat assignments.",
+			},
+			401
+		);
+	}
+	const { polarBillingEnabled } = getEditionCapabilities();
+	if (!polarBillingEnabled) {
+		return c.json({ success: false, error: "You don't have permission to modify member seat assignments." }, 401);
+	}
 
-		const member =
-			await db.query.member.findFirst({
-				where: and(
-					eq(
-						schema.member.organizationId,
-						orgId,
-					),
-					eq(
-						schema.member.userId,
-						userId,
-					),
-				),
-			});
+	const member = await db.query.member.findFirst({
+		where: and(eq(schema.member.organizationId, orgId), eq(schema.member.userId, userId)),
+	});
 
-		if (!member) {
-			return c.json(
-				{
-					success: false,
-					error: "Member not found.",
-				},
-				404,
-			);
-		}
+	if (!member) {
+		return c.json(
+			{
+				success: false,
+				error: "Member not found.",
+			},
+			404
+		);
+	}
 
-		if (!member.seatAssigned) {
-			return c.json(
-				{
-					success: false,
-					error:
-						"Member does not have a seat assigned.",
-				},
-				400,
-			);
-		}
+	if (!member.seatAssigned) {
+		return c.json(
+			{
+				success: false,
+				error: "Member does not have a seat assigned.",
+			},
+			400
+		);
+	}
 
-		const org = await db.query.organization.findFirst({
-			where: eq(schema.organization.id, orgId),
-			columns: { polarSubscriptionId: true, plan: true },
-		});
+	const org = await db.query.organization.findFirst({
+		where: eq(schema.organization.id, orgId),
+		columns: { polarSubscriptionId: true, plan: true },
+	});
 
-		// Pro plan with active subscription and a Polar seat ID: revoke via Polar
-		if (org?.plan === "pro" && org?.polarSubscriptionId && member.seatAssignedId) {
-			await traceAsync(
-				"member.seatUnassign.unassign",
-				async () => {
-					await polarClient?.customerSeats.revokeSeat(
-						{
-							seatId:
-								member.seatAssignedId || "",
-						},
-					);
-				},
-				{
-					description:
-						"Unassigning seat from member via Polar",
-					data: {
-						orgId,
-						userId,
-						seatId:
-							member.seatAssignedId,
-					},
-				},
-			);
-		}
-
-		// Update member record (works for both Pro and Free)
-		const updatedMember =
-			await traceAsync(
-				"member.seatUnassign.update_member",
-				async () => {
-					const [updated] =
-						await db
-							.update(
-								schema.member,
-							)
-							.set({
-								seatAssignedId:
-									null,
-								seatAssigned:
-									false,
-							})
-							.where(
-								and(
-									eq(
-										schema.member.organizationId,
-										orgId,
-									),
-									eq(
-										schema.member.userId,
-										userId,
-									),
-								),
-							)
-							.returning();
-					return updated;
-				},
-				{
-					description:
-						"Updating member after seat removal",
-					data: {
-						orgId,
-						userId,
-					},
-				},
-			);
-
-		if (!updatedMember) {
-			await recordWideError({
-				name: "member.seatUnassign.update_member_failed",
-				error: new Error(
-					"Failed to update member after seat removal",
-				),
-				code: "MEMBER_SEAT_UNASSIGNMENT_FAILED",
-				message:
-					"Failed to remove seat from member.",
-				contextData: {
+	// Pro plan with active subscription and a Polar seat ID: revoke via Polar
+	if (org?.plan === "pro" && org?.polarSubscriptionId && member.seatAssignedId) {
+		await traceAsync(
+			"member.seatUnassign.unassign",
+			async () => {
+				await polarClient?.customerSeats.revokeSeat({
+					seatId: member.seatAssignedId || "",
+				});
+			},
+			{
+				description: "Unassigning seat from member via Polar",
+				data: {
 					orgId,
 					userId,
+					seatId: member.seatAssignedId,
 				},
-			});
+			}
+		);
+	}
 
-			return c.json(
-				{
-					success: false,
-					error:
-						"Failed to remove seat from member.",
-				},
-				500,
-			);
+	// Update member record (works for both Pro and Free)
+	const updatedMember = await traceAsync(
+		"member.seatUnassign.update_member",
+		async () => {
+			const [updated] = await db
+				.update(schema.member)
+				.set({
+					seatAssignedId: null,
+					seatAssigned: false,
+				})
+				.where(and(eq(schema.member.organizationId, orgId), eq(schema.member.userId, userId)))
+				.returning();
+			return updated;
+		},
+		{
+			description: "Updating member after seat removal",
+			data: {
+				orgId,
+				userId,
+			},
 		}
+	);
 
-		return c.json({
-			success: true,
-			member: updatedMember,
+	if (!updatedMember) {
+		await recordWideError({
+			name: "member.seatUnassign.update_member_failed",
+			error: new Error("Failed to update member after seat removal"),
+			code: "MEMBER_SEAT_UNASSIGNMENT_FAILED",
+			message: "Failed to remove seat from member.",
+			contextData: {
+				orgId,
+				userId,
+			},
 		});
-	},
-);
+
+		return c.json(
+			{
+				success: false,
+				error: "Failed to remove seat from member.",
+			},
+			500
+		);
+	}
+
+	return c.json({
+		success: true,
+		member: updatedMember,
+	});
+});
 
 apiRouteAdminOrganization.delete("/member", async (c) => {
 	const traceAsync = createTraceAsync();
@@ -2819,7 +2675,7 @@ apiRouteAdminOrganization.delete("/member", async (c) => {
 		});
 		return c.json({ success: false, error: "Failed to remove member." }, 500);
 	}
-	const { polarBillingEnabled } = getEditionCapabilities()
+	const { polarBillingEnabled } = getEditionCapabilities();
 	if (member?.seatAssignedId && polarBillingEnabled) {
 		await polarClient?.customerSeats.revokeSeat({
 			seatId: member?.seatAssignedId,
@@ -2845,10 +2701,17 @@ apiRouteAdminOrganization.delete("/member", async (c) => {
 	);
 
 	const user = await db.query.user.findFirst({
-		where: eq(auth.user.id, userId)
-	})
+		where: eq(auth.user.id, userId),
+	});
 	if (user) {
-		await db.delete(schema.invite).where(and(or(eq(schema.invite.userId, user.id), eq(schema.invite.email, user.email)), eq(schema.invite.organizationId, orgId)))
+		await db
+			.delete(schema.invite)
+			.where(
+				and(
+					or(eq(schema.invite.userId, user.id), eq(schema.invite.email, user.email)),
+					eq(schema.invite.organizationId, orgId)
+				)
+			);
 	}
 
 	return c.json({
@@ -2857,534 +2720,407 @@ apiRouteAdminOrganization.delete("/member", async (c) => {
 });
 
 // Get GitHub connection details
-apiRouteAdminOrganization.get(
-	"/:orgId/connections/github",
-	async (c) => {
-		const session = c.get("session");
-		const orgId = c.req.param("orgId");
+apiRouteAdminOrganization.get("/:orgId/connections/github", async (c) => {
+	const session = c.get("session");
+	const orgId = c.req.param("orgId");
 
-		const isAuthorized = await traceOrgPermissionCheck(
-			session?.userId || "",
-			orgId,
-			"admin.administrator"
+	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "admin.administrator");
+
+	if (!isAuthorized) {
+		return c.json(
+			{
+				success: false,
+				error: "You don't have permission to fetch connections.",
+			},
+			401
 		);
+	}
 
-		if (!isAuthorized) {
-			return c.json(
-				{
-					success: false,
-					error:
-						"You don't have permission to fetch connections.",
-				},
-				401
-			);
-		}
+	/* ================= INSTALLATIONS ================= */
 
-		/* ================= INSTALLATIONS ================= */
+	const installationLinks = await db.query.githubInstallationOrg.findMany({
+		where: eq(schema.githubInstallationOrg.organizationId, orgId),
+		with: {
+			installation: {
+				with: { user: true },
+			},
+		},
+	});
 
-		const installationLinks =
-			await db.query.githubInstallationOrg.findMany({
-				where: eq(
-					schema.githubInstallationOrg.organizationId,
-					orgId
-				),
-				with: {
-					installation: {
-						with: { user: true },
-					},
-				},
+	/* ================= FETCH GITHUB DETAILS ================= */
+
+	const githubConnections = await Promise.all(
+		installationLinks.map(async (link) => {
+			// ✅ Fetch repos ONLY for this install
+			const syncedRepos = await db.query.githubRepository.findMany({
+				where: eq(schema.githubRepository.installationId, link.installationId),
 			});
 
-		/* ================= FETCH GITHUB DETAILS ================= */
+			const githubInfo = await getInstallationDetailsWithRepos(link.installation, link.organizationId, syncedRepos);
 
-		const githubConnections = await Promise.all(
-			installationLinks.map(async (link) => {
-				// ✅ Fetch repos ONLY for this install
-				const syncedRepos =
-					await db.query.githubRepository.findMany({
-						where: eq(
-							schema.githubRepository.installationId,
-							link.installationId
-						),
-					});
+			return {
+				installation: link.installation,
+				githubInfo,
+			};
+		})
+	);
+	/* ================= ALL SYNCED REPOS ================= */
 
-				const githubInfo =
-					await getInstallationDetailsWithRepos(
-						link.installation,
-						link.organizationId,
-						syncedRepos
-					);
+	const repositories = await db.query.githubRepository.findMany({
+		where: eq(schema.githubRepository.organizationId, orgId),
+	});
+	return c.json({
+		success: true,
+		data: {
+			githubConnections,
+			repositories,
+		},
+	});
+});
 
-				return {
-					installation: link.installation,
-					githubInfo,
-				};
-			})
-		);
-		/* ================= ALL SYNCED REPOS ================= */
+apiRouteAdminOrganization.delete("/connections/github/sync-repo", async (c) => {
+	const traceAsync = createTraceAsync();
+	const session = c.get("session");
 
-		const repositories =
-			await db.query.githubRepository.findMany(
-				{
-					where: eq(
-						schema.githubRepository
-							.organizationId,
-						orgId
-					),
-				}
-			);
-		return c.json({
-			success: true,
-			data: {
-				githubConnections,
-				repositories
-			},
-		});
-	}
-);
+	const { org_id: orgId, sync_id: syncId } = await c.req.json();
 
+	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "admin.administrator");
 
-apiRouteAdminOrganization.delete(
-	"/connections/github/sync-repo",
-	async (c) => {
-		const traceAsync = createTraceAsync();
-		const session = c.get("session");
-
-		const {
-			org_id: orgId,
-			sync_id: syncId,
-		} = await c.req.json();
-
-		const isAuthorized =
-			await traceOrgPermissionCheck(
-				session?.userId || "",
-				orgId,
-				"admin.administrator"
-			);
-
-		if (!isAuthorized) {
-			return c.json(
-				{
-					success: false,
-					error:
-						"You don't have permission to delete sync repositories.",
-				},
-				401
-			);
-		}
-
-		/* ================= CHECK EXISTS ================= */
-
-		const existing =
-			await db.query.githubRepository.findFirst(
-				{
-					where: eq(
-						schema.githubRepository.id,
-						syncId
-					),
-				}
-			);
-
-		if (!existing) {
-			return c.json(
-				{
-					success: false,
-					error:
-						"Sync connection not found.",
-				},
-				404
-			);
-		}
-
-		/* ================= DELETE ================= */
-
-		const result = await traceAsync(
-			"github.syncRepo.delete",
-			() =>
-				db
-					.delete(
-						schema.githubRepository
-					)
-					.where(
-						eq(
-							schema.githubRepository.id,
-							syncId
-						)
-					),
+	if (!isAuthorized) {
+		return c.json(
 			{
-				description:
-					"Deleting GitHub sync repository",
-				data: {
-					orgId,
-					syncId,
-				},
-			}
+				success: false,
+				error: "You don't have permission to delete sync repositories.",
+			},
+			401
 		);
+	}
+
+	/* ================= CHECK EXISTS ================= */
+
+	const existing = await db.query.githubRepository.findFirst({
+		where: eq(schema.githubRepository.id, syncId),
+	});
+
+	if (!existing) {
+		return c.json(
+			{
+				success: false,
+				error: "Sync connection not found.",
+			},
+			404
+		);
+	}
+
+	/* ================= DELETE ================= */
+
+	const result = await traceAsync(
+		"github.syncRepo.delete",
+		() => db.delete(schema.githubRepository).where(eq(schema.githubRepository.id, syncId)),
+		{
+			description: "Deleting GitHub sync repository",
+			data: {
+				orgId,
+				syncId,
+			},
+		}
+	);
+
+	return c.json({
+		success: true,
+		data: result,
+	});
+});
+apiRouteAdminOrganization.get("/:orgId/github/installations", async (c) => {
+	const session = c.get("session");
+	const orgId = c.req.param("orgId");
+
+	if (!session?.userId) {
+		return c.json({ success: false, error: "Unauthorized." }, 401);
+	}
+
+	const isAuthorized = await traceOrgPermissionCheck(session.userId, orgId, "admin.administrator");
+
+	if (!isAuthorized) {
+		return c.json(
+			{
+				success: false,
+				error: "You don't have permission to view installations.",
+			},
+			401
+		);
+	}
+
+	/* ================= GET GITHUB ACCOUNT ================= */
+
+	let githubAccount = await db.query.account.findFirst({
+		where: and(eq(auth.account.userId, session.userId), eq(auth.account.providerId, "github")),
+	});
+
+	if (!githubAccount?.accessToken) {
+		return c.json(
+			{
+				success: false,
+				error: "GitHub account not connected. Please sign in with GitHub.",
+			},
+			400
+		);
+	}
+
+	/* ================= REFRESH TOKEN IF NEEDED ================= */
+
+	githubAccount = await refreshGitHubTokenIfNeeded(githubAccount);
+
+	/* ================= CALL GITHUB API ================= */
+
+	try {
+		const octokit = new Octokit({
+			auth: githubAccount.accessToken!,
+		});
+
+		const response = await octokit.request("GET /user/installations");
+
+		const appId = Number(process.env.GITHUB_APP_ID);
+
+		const filteredInstallations = response.data.installations.filter((install) => install.app_id === appId);
 
 		return c.json({
 			success: true,
-			data: result,
+			data: filteredInstallations,
 		});
-	}
-);
-apiRouteAdminOrganization.get(
-	"/:orgId/github/installations",
-	async (c) => {
-		const session = c.get("session");
-		const orgId = c.req.param("orgId");
+	} catch (error: any) {
+		/* ⭐ Important fallback:
+			   If GitHub says token invalid → force refresh once */
+		if (error?.status === 401 && githubAccount.refreshToken) {
+			const refreshed = await refreshGitHubTokenIfNeeded({
+				...githubAccount,
+				accessTokenExpiresAt: new Date(0),
+			});
 
-		if (!session?.userId) {
-			return c.json(
-				{ success: false, error: "Unauthorized." },
-				401
-			);
-		}
-
-		const isAuthorized =
-			await traceOrgPermissionCheck(
-				session.userId,
-				orgId,
-				"admin.administrator"
-			);
-
-		if (!isAuthorized) {
-			return c.json(
-				{
-					success: false,
-					error:
-						"You don't have permission to view installations.",
-				},
-				401
-			);
-		}
-
-		/* ================= GET GITHUB ACCOUNT ================= */
-
-
-		let githubAccount = await db.query.account.findFirst({
-			where: and(
-				eq(auth.account.userId, session.userId),
-				eq(auth.account.providerId, "github")
-			),
-		});
-
-		if (!githubAccount?.accessToken) {
-			return c.json(
-				{
-					success: false,
-					error:
-						"GitHub account not connected. Please sign in with GitHub.",
-				},
-				400
-			);
-		}
-
-		/* ================= REFRESH TOKEN IF NEEDED ================= */
-
-		githubAccount = await refreshGitHubTokenIfNeeded(githubAccount);
-
-		/* ================= CALL GITHUB API ================= */
-
-		try {
 			const octokit = new Octokit({
-				auth: githubAccount.accessToken!,
+				auth: refreshed.accessToken!,
 			});
 
 			const response = await octokit.request("GET /user/installations");
 
 			const appId = Number(process.env.GITHUB_APP_ID);
 
-			const filteredInstallations =
-				response.data.installations.filter(
-					(install) => install.app_id === appId
-				);
+			const filteredInstallations = response.data.installations.filter((install) => install.app_id === appId);
 
 			return c.json({
 				success: true,
 				data: filteredInstallations,
 			});
-		} catch (error: any) {
-			/* ⭐ Important fallback:
-			   If GitHub says token invalid → force refresh once */
-			if (error?.status === 401 && githubAccount.refreshToken) {
-				const refreshed = await refreshGitHubTokenIfNeeded({
-					...githubAccount,
-					accessTokenExpiresAt: new Date(0),
-				});
-
-				const octokit = new Octokit({
-					auth: refreshed.accessToken!,
-				});
-
-				const response = await octokit.request("GET /user/installations");
-
-				const appId = Number(process.env.GITHUB_APP_ID);
-
-				const filteredInstallations =
-					response.data.installations.filter(
-						(install) => install.app_id === appId
-					);
-
-				return c.json({
-					success: true,
-					data: filteredInstallations,
-				});
-			}
-
-			console.error("Failed to fetch GitHub installations:", error);
-
-			return c.json(
-				{
-					success: false,
-					error: "Failed to fetch GitHub installations.",
-				},
-				500
-			);
 		}
+
+		console.error("Failed to fetch GitHub installations:", error);
+
+		return c.json(
+			{
+				success: false,
+				error: "Failed to fetch GitHub installations.",
+			},
+			500
+		);
 	}
-);
+});
 
-apiRouteAdminOrganization.post(
-	"/:orgId/github/link",
-	async (c) => {
-		const session = c.get("session");
-		const orgId = c.req.param("orgId");
+apiRouteAdminOrganization.post("/:orgId/github/link", async (c) => {
+	const session = c.get("session");
+	const orgId = c.req.param("orgId");
 
-		if (!session?.userId) {
-			return c.json(
-				{ success: false, error: "Unauthorized." },
-				401
-			);
-		}
+	if (!session?.userId) {
+		return c.json({ success: false, error: "Unauthorized." }, 401);
+	}
 
-		const isAuthorized = await traceOrgPermissionCheck(
-			session.userId,
-			orgId,
-			"admin.administrator"
+	const isAuthorized = await traceOrgPermissionCheck(session.userId, orgId, "admin.administrator");
+
+	if (!isAuthorized) {
+		return c.json(
+			{
+				success: false,
+				error: "You don't have permission to link installations.",
+			},
+			401
+		);
+	}
+
+	/* ================= VALIDATE BODY ================= */
+
+	const body = await c.req.json().catch(() => null);
+
+	const installationId = Number(body?.installationId);
+
+	if (!installationId || Number.isNaN(installationId)) {
+		return c.json(
+			{
+				success: false,
+				error: "Invalid installationId.",
+			},
+			400
+		);
+	}
+
+	/* ================= GET GITHUB ACCOUNT ================= */
+
+	let githubAccount = await db.query.account.findFirst({
+		where: and(eq(auth.account.userId, session.userId), eq(auth.account.providerId, "github")),
+	});
+
+	if (!githubAccount?.accessToken) {
+		return c.json(
+			{
+				success: false,
+				error: "GitHub account not connected. Please sign in with GitHub.",
+			},
+			400
+		);
+	}
+
+	/* ================= REFRESH TOKEN IF NEEDED ================= */
+
+	githubAccount = await refreshGitHubTokenIfNeeded(githubAccount);
+
+	/* ================= VERIFY INSTALLATION WITH GITHUB ================= */
+
+	try {
+		const octokit = new Octokit({
+			auth: githubAccount.accessToken!,
+		});
+
+		// Fetch specific installation
+		const installation = await octokit.request("GET /user/installations");
+
+		const appId = Number(process.env.GITHUB_APP_ID);
+
+		const validInstallation = installation.data.installations.find(
+			(i) => i.id === installationId && i.app_id === appId
 		);
 
-		if (!isAuthorized) {
+		if (!validInstallation) {
 			return c.json(
 				{
 					success: false,
-					error: "You don't have permission to link installations.",
-				},
-				401
-			);
-		}
-
-		/* ================= VALIDATE BODY ================= */
-
-		const body = await c.req.json().catch(() => null);
-
-		const installationId = Number(body?.installationId);
-
-		if (!installationId || Number.isNaN(installationId)) {
-			return c.json(
-				{
-					success: false,
-					error: "Invalid installationId.",
+					error: "Installation not found or does not belong to this app.",
 				},
 				400
 			);
 		}
 
-		/* ================= GET GITHUB ACCOUNT ================= */
+		/* ================= PREVENT DUPLICATE LINK ================= */
 
-		let githubAccount = await db.query.account.findFirst({
+		const existing = await db.query.githubInstallationOrg.findFirst({
 			where: and(
-				eq(auth.account.userId, session.userId),
-				eq(auth.account.providerId, "github")
+				eq(schema.githubInstallationOrg.installationId, installationId),
+				eq(schema.githubInstallationOrg.organizationId, orgId)
 			),
 		});
 
-		if (!githubAccount?.accessToken) {
-			return c.json(
-				{
-					success: false,
-					error:
-						"GitHub account not connected. Please sign in with GitHub.",
-				},
-				400
-			);
-		}
-
-		/* ================= REFRESH TOKEN IF NEEDED ================= */
-
-		githubAccount = await refreshGitHubTokenIfNeeded(githubAccount);
-
-		/* ================= VERIFY INSTALLATION WITH GITHUB ================= */
-
-		try {
-			const octokit = new Octokit({
-				auth: githubAccount.accessToken!,
-			});
-
-			// Fetch specific installation
-			const installation = await octokit.request(
-				"GET /user/installations"
-			);
-
-			const appId = Number(process.env.GITHUB_APP_ID);
-
-			const validInstallation =
-				installation.data.installations.find(
-					(i) =>
-						i.id === installationId &&
-						i.app_id === appId
-				);
-
-			if (!validInstallation) {
-				return c.json(
-					{
-						success: false,
-						error:
-							"Installation not found or does not belong to this app.",
-					},
-					400
-				);
-			}
-
-			/* ================= PREVENT DUPLICATE LINK ================= */
-
-			const existing =
-				await db.query.githubInstallationOrg.findFirst({
-					where: and(
-						eq(
-							schema.githubInstallationOrg.installationId,
-							installationId
-						),
-						eq(
-							schema.githubInstallationOrg.organizationId,
-							orgId
-						)
-					),
-				});
-
-			if (existing) {
-				return c.json({
-					success: true,
-					message: "Installation already linked.",
-				});
-			}
-
-			/* ================= INSERT JUNCTION ROW ================= */
-
-			await db.insert(schema.githubInstallationOrg).values({
-				id: crypto.randomUUID(),
-				installationId,
-				organizationId: orgId,
-				userId: session.userId,
-				createdAt: new Date(),
-			});
-
+		if (existing) {
 			return c.json({
 				success: true,
+				message: "Installation already linked.",
 			});
-		} catch (error: any) {
-			console.error("Failed to link GitHub installation:", error);
+		}
 
-			if (error?.status === 401) {
-				return c.json(
-					{
-						success: false,
-						error:
-							"GitHub authentication expired. Please reconnect your account.",
-					},
-					401
-				);
-			}
+		/* ================= INSERT JUNCTION ROW ================= */
 
+		await db.insert(schema.githubInstallationOrg).values({
+			id: crypto.randomUUID(),
+			installationId,
+			organizationId: orgId,
+			userId: session.userId,
+			createdAt: new Date(),
+		});
+
+		return c.json({
+			success: true,
+		});
+	} catch (error: any) {
+		console.error("Failed to link GitHub installation:", error);
+
+		if (error?.status === 401) {
 			return c.json(
 				{
 					success: false,
-					error: "Failed to link installation.",
-				},
-				500
-			);
-		}
-	}
-);
-apiRouteAdminOrganization.post(
-	"/:orgId/github/unlink",
-	async (c) => {
-		const session = c.get("session");
-		const orgId = c.req.param("orgId");
-
-		if (!session?.userId) {
-			return c.json({ success: false, error: "Unauthorized." }, 401);
-		}
-
-		const isAuthorized = await traceOrgPermissionCheck(
-			session.userId,
-			orgId,
-			"admin.administrator"
-		);
-
-		if (!isAuthorized) {
-			return c.json(
-				{
-					success: false,
-					error:
-						"You don't have permission to unlink installations."
+					error: "GitHub authentication expired. Please reconnect your account.",
 				},
 				401
 			);
 		}
 
-		const body = await c.req.json().catch(() => null);
-		const installationId = Number(body?.installationId);
-
-		if (!installationId || Number.isNaN(installationId)) {
-			return c.json(
-				{ success: false, error: "Invalid installationId." },
-				400
-			);
-		}
-
-		try {
-			/* ================= DELETE REPOSITORIES ================= */
-			await db
-				.delete(schema.githubRepository)
-				.where(
-					and(
-						eq(schema.githubRepository.installationId, installationId),
-						eq(schema.githubRepository.organizationId, orgId)
-					)
-				);
-
-			/* ================= DELETE JUNCTION ================= */
-			await db
-				.delete(schema.githubInstallationOrg)
-				.where(
-					and(
-						eq(
-							schema.githubInstallationOrg.installationId,
-							installationId
-						),
-						eq(
-							schema.githubInstallationOrg.organizationId,
-							orgId
-						)
-					)
-				);
-
-			return c.json({
-				success: true,
-			});
-		} catch (error) {
-			console.error("Failed to unlink installation:", error);
-
-			return c.json(
-				{
-					success: false,
-					error: "Failed to unlink installation."
-				},
-				500
-			);
-		}
+		return c.json(
+			{
+				success: false,
+				error: "Failed to link installation.",
+			},
+			500
+		);
 	}
-);
+});
+apiRouteAdminOrganization.post("/:orgId/github/unlink", async (c) => {
+	const session = c.get("session");
+	const orgId = c.req.param("orgId");
+
+	if (!session?.userId) {
+		return c.json({ success: false, error: "Unauthorized." }, 401);
+	}
+
+	const isAuthorized = await traceOrgPermissionCheck(session.userId, orgId, "admin.administrator");
+
+	if (!isAuthorized) {
+		return c.json(
+			{
+				success: false,
+				error: "You don't have permission to unlink installations.",
+			},
+			401
+		);
+	}
+
+	const body = await c.req.json().catch(() => null);
+	const installationId = Number(body?.installationId);
+
+	if (!installationId || Number.isNaN(installationId)) {
+		return c.json({ success: false, error: "Invalid installationId." }, 400);
+	}
+
+	try {
+		/* ================= DELETE REPOSITORIES ================= */
+		await db
+			.delete(schema.githubRepository)
+			.where(
+				and(
+					eq(schema.githubRepository.installationId, installationId),
+					eq(schema.githubRepository.organizationId, orgId)
+				)
+			);
+
+		/* ================= DELETE JUNCTION ================= */
+		await db
+			.delete(schema.githubInstallationOrg)
+			.where(
+				and(
+					eq(schema.githubInstallationOrg.installationId, installationId),
+					eq(schema.githubInstallationOrg.organizationId, orgId)
+				)
+			);
+
+		return c.json({
+			success: true,
+		});
+	} catch (error) {
+		console.error("Failed to unlink installation:", error);
+
+		return c.json(
+			{
+				success: false,
+				error: "Failed to unlink installation.",
+			},
+			500
+		);
+	}
+});
 
 // Teams
 apiRouteAdminOrganization.post("/team", async (c) => {
@@ -3407,7 +3143,7 @@ apiRouteAdminOrganization.post("/team", async (c) => {
 		traceName: "team.count_all",
 		entityName: "team",
 		traceAsync,
-		recordWideError
+		recordWideError,
 	});
 	if (teamLimitRes) return teamLimitRes;
 
@@ -3426,14 +3162,14 @@ apiRouteAdminOrganization.post("/team", async (c) => {
 
 	const teamPermissions: TeamPermissions = permissions
 		? {
-			admin: { ...defaultTeamPermissions.admin, ...permissions.admin },
-			content: { ...defaultTeamPermissions.content, ...permissions.content },
-			tasks: { ...defaultTeamPermissions.tasks, ...permissions.tasks },
-			moderation: {
-				...defaultTeamPermissions.moderation,
-				...permissions.moderation,
-			},
-		}
+				admin: { ...defaultTeamPermissions.admin, ...permissions.admin },
+				content: { ...defaultTeamPermissions.content, ...permissions.content },
+				tasks: { ...defaultTeamPermissions.tasks, ...permissions.tasks },
+				moderation: {
+					...defaultTeamPermissions.moderation,
+					...permissions.moderation,
+				},
+			}
 		: defaultTeamPermissions;
 
 	const team = await traceAsync(
@@ -3487,14 +3223,14 @@ apiRouteAdminOrganization.patch("/team", async (c) => {
 
 	const teamPermissions: TeamPermissions = permissions
 		? {
-			admin: { ...defaultTeamPermissions.admin, ...permissions.admin },
-			content: { ...defaultTeamPermissions.content, ...permissions.content },
-			tasks: { ...defaultTeamPermissions.tasks, ...permissions.tasks },
-			moderation: {
-				...defaultTeamPermissions.moderation,
-				...permissions.moderation,
-			},
-		}
+				admin: { ...defaultTeamPermissions.admin, ...permissions.admin },
+				content: { ...defaultTeamPermissions.content, ...permissions.content },
+				tasks: { ...defaultTeamPermissions.tasks, ...permissions.tasks },
+				moderation: {
+					...defaultTeamPermissions.moderation,
+					...permissions.moderation,
+				},
+			}
 		: defaultTeamPermissions;
 
 	const team = await traceAsync(
@@ -3546,23 +3282,16 @@ apiRouteAdminOrganization.delete("/team", async (c) => {
 	}
 
 	const existingTeam = await db.query.team.findFirst({
-		where: (m) =>
-			and(eq(m.organizationId, orgId), eq(m.id, teamId)),
+		where: (m) => and(eq(m.organizationId, orgId), eq(m.id, teamId)),
 	});
 
 	if (!existingTeam) {
-		return c.json(
-			{ success: false, error: "Team not found." },
-			404
-		);
+		return c.json({ success: false, error: "Team not found." }, 404);
 	}
 
 	// ✅ Prevent deletion of system teams
 	if (existingTeam.isSystem) {
-		return c.json(
-			{ success: false, error: "System teams cannot be deleted." },
-			403
-		);
+		return c.json({ success: false, error: "System teams cannot be deleted." }, 403);
 	}
 
 	const removed = await traceAsync(
@@ -3698,127 +3427,104 @@ apiRouteAdminOrganization.delete("/team-member", async (c) => {
 });
 
 // Bootstrap default Administrators team for an existing organization
-apiRouteAdminOrganization.post(
-	"/bootstrap-admin-team",
-	async (c) => {
-		const traceAsync = createTraceAsync();
-		const recordWideError = c.get("recordWideError");
+apiRouteAdminOrganization.post("/bootstrap-admin-team", async (c) => {
+	const traceAsync = createTraceAsync();
+	const recordWideError = c.get("recordWideError");
 
-		const session = c.get("session");
-		if (!session?.userId) {
-			return c.json(
-				{ success: false, error: "UNAUTHORIZED" },
-				401
-			);
-		}
-
-		const body = await c.req.json().catch(() => null);
-		const { org_id: orgId }: { org_id?: string } = body ?? {};
-
-		if (!orgId) {
-			return c.json(
-				{ success: false, error: "Invalid organization" },
-				400
-			);
-		}
-
-		const membership = await traceAsync(
-			"team.bootstrap.membership_check",
-			() =>
-				db.query.member.findFirst({
-					where: and(
-						eq(schema.member.organizationId, orgId),
-						eq(schema.member.userId, session.userId)
-					),
-				}),
-			{
-				description: "Checking user membership",
-				data: {
-					user: { id: session.userId },
-					organization: { id: orgId },
-				},
-			}
-		);
-
-		if (!membership) {
-			await recordWideError({
-				name: "team.bootstrap.auth",
-				error: new Error("Unauthorized"),
-				code: "UNAUTHORIZED",
-				message:
-					"User is not a member of this organization",
-				contextData: {
-					user: { id: session.userId },
-					organization: { id: orgId },
-				},
-			});
-
-			return c.json(
-				{
-					success: false,
-					error:
-						"You must be a member of this organization.",
-				},
-				401
-			);
-		}
-
-		const adminTeam = await traceAsync(
-			"team.bootstrap.create",
-			() => bootstrapOrganizationAdminTeam(orgId),
-			{
-				description: "Bootstrapping admin team",
-				data: {
-					user: { id: session.userId },
-					organization: { id: orgId },
-				},
-				onSuccess: (team) => ({
-					outcome: "Admin team bootstrapped",
-					data: {
-						team: { id: team.id },
-					},
-				}),
-			}
-		);
-
-		if (!adminTeam) {
-			await recordWideError({
-				name: "team.bootstrap.failed",
-				error: new Error("Bootstrap failed"),
-				code: "BOOTSTRAP_FAILED",
-				message: "Failed to create admin team",
-				contextData: {
-					organization: { id: orgId },
-				},
-			});
-
-			return c.json(
-				{
-					success: false,
-					error: "Failed to create admin team.",
-				},
-				500
-			);
-		}
-
-		// ✅ Success “event” captured as a traced span
-		await traceAsync(
-			"team.bootstrap.success",
-			async () => { },
-			{
-				description:
-					"Admin team bootstrapped successfully",
-				data: {
-					user: { id: session.userId },
-					organization: { id: orgId },
-					team: { id: adminTeam.id },
-				},
-			}
-		);
-
-		return c.json({ success: true, data: adminTeam });
+	const session = c.get("session");
+	if (!session?.userId) {
+		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
 	}
-);
+
+	const body = await c.req.json().catch(() => null);
+	const { org_id: orgId }: { org_id?: string } = body ?? {};
+
+	if (!orgId) {
+		return c.json({ success: false, error: "Invalid organization" }, 400);
+	}
+
+	const membership = await traceAsync(
+		"team.bootstrap.membership_check",
+		() =>
+			db.query.member.findFirst({
+				where: and(eq(schema.member.organizationId, orgId), eq(schema.member.userId, session.userId)),
+			}),
+		{
+			description: "Checking user membership",
+			data: {
+				user: { id: session.userId },
+				organization: { id: orgId },
+			},
+		}
+	);
+
+	if (!membership) {
+		await recordWideError({
+			name: "team.bootstrap.auth",
+			error: new Error("Unauthorized"),
+			code: "UNAUTHORIZED",
+			message: "User is not a member of this organization",
+			contextData: {
+				user: { id: session.userId },
+				organization: { id: orgId },
+			},
+		});
+
+		return c.json(
+			{
+				success: false,
+				error: "You must be a member of this organization.",
+			},
+			401
+		);
+	}
+
+	const adminTeam = await traceAsync("team.bootstrap.create", () => bootstrapOrganizationAdminTeam(orgId), {
+		description: "Bootstrapping admin team",
+		data: {
+			user: { id: session.userId },
+			organization: { id: orgId },
+		},
+		onSuccess: (team) => ({
+			outcome: "Admin team bootstrapped",
+			data: {
+				team: { id: team.id },
+			},
+		}),
+	});
+
+	if (!adminTeam) {
+		await recordWideError({
+			name: "team.bootstrap.failed",
+			error: new Error("Bootstrap failed"),
+			code: "BOOTSTRAP_FAILED",
+			message: "Failed to create admin team",
+			contextData: {
+				organization: { id: orgId },
+			},
+		});
+
+		return c.json(
+			{
+				success: false,
+				error: "Failed to create admin team.",
+			},
+			500
+		);
+	}
+
+	// ✅ Success “event” captured as a traced span
+	await traceAsync("team.bootstrap.success", async () => {}, {
+		description: "Admin team bootstrapped successfully",
+		data: {
+			user: { id: session.userId },
+			organization: { id: orgId },
+			team: { id: adminTeam.id },
+		},
+	});
+
+	return c.json({ success: true, data: adminTeam });
+});
 
 // Search organization members (for @mention autocomplete)
 apiRouteAdminOrganization.get("/:orgId/members/search", async (c) => {
@@ -3839,10 +3545,7 @@ apiRouteAdminOrganization.get("/:orgId/members/search", async (c) => {
 		"members.search.check_membership",
 		() =>
 			db.query.member.findFirst({
-				where: and(
-					eq(schema.member.organizationId, orgId),
-					eq(schema.member.userId, session.userId),
-				),
+				where: and(eq(schema.member.organizationId, orgId), eq(schema.member.userId, session.userId)),
 			}),
 		{ description: "Checking membership for member search", data: { orgId, userId: session.userId } }
 	);
@@ -3884,11 +3587,10 @@ apiRouteAdminOrganization.get("/:orgId/blocked-users", async (c) => {
 	}
 
 	try {
-		const blocked = await traceAsync(
-			"blockedUsers.list",
-			() => getBlockedUsers(orgId),
-			{ description: "Listing blocked users", data: { orgId } },
-		);
+		const blocked = await traceAsync("blockedUsers.list", () => getBlockedUsers(orgId), {
+			description: "Listing blocked users",
+			data: { orgId },
+		});
 
 		return c.json({ success: true, data: blocked });
 	} catch (err) {
@@ -3926,7 +3628,7 @@ apiRouteAdminOrganization.get("/:orgId/blocked-users/search", async (c) => {
 		const users = await traceAsync(
 			"blockedUsers.search",
 			() => searchOrgInteractors(orgId, { query: query || undefined, limit }),
-			{ description: "Searching org interactors for block", data: { orgId, query, limit } },
+			{ description: "Searching org interactors for block", data: { orgId, query, limit } }
 		);
 
 		return c.json({ success: true, data: users });
@@ -3969,12 +3671,9 @@ apiRouteAdminOrganization.post("/:orgId/blocked-users", async (c) => {
 		"blockedUsers.block.checkMembership",
 		() =>
 			db.query.member.findFirst({
-				where: and(
-					eq(schema.member.organizationId, orgId),
-					eq(schema.member.userId, userId),
-				),
+				where: and(eq(schema.member.organizationId, orgId), eq(schema.member.userId, userId)),
 			}),
-		{ description: "Checking if target user is an org member", data: { orgId, userId } },
+		{ description: "Checking if target user is an org member", data: { orgId, userId } }
 	);
 
 	if (isMember) {
@@ -3982,11 +3681,10 @@ apiRouteAdminOrganization.post("/:orgId/blocked-users", async (c) => {
 	}
 
 	try {
-		const blocked = await traceAsync(
-			"blockedUsers.block",
-			() => blockUser(orgId, userId, session.userId, reason),
-			{ description: "Blocking user from org", data: { orgId, userId, blockedBy: session.userId } },
-		);
+		const blocked = await traceAsync("blockedUsers.block", () => blockUser(orgId, userId, session.userId, reason), {
+			description: "Blocking user from org",
+			data: { orgId, userId, blockedBy: session.userId },
+		});
 
 		if (!blocked) {
 			return c.json({ success: false, error: "User is already blocked" }, 409);
@@ -4028,11 +3726,10 @@ apiRouteAdminOrganization.delete("/:orgId/blocked-users", async (c) => {
 	}
 
 	try {
-		const removed = await traceAsync(
-			"blockedUsers.unblock",
-			() => unblockUser(orgId, userId),
-			{ description: "Unblocking user from org", data: { orgId, userId } },
-		);
+		const removed = await traceAsync("blockedUsers.unblock", () => unblockUser(orgId, userId), {
+			description: "Unblocking user from org",
+			data: { orgId, userId },
+		});
 
 		if (!removed) {
 			return c.json({ success: false, error: "User was not blocked" }, 404);
@@ -4068,11 +3765,10 @@ apiRouteAdminOrganization.get("/:orgId/blocked-user-ids", async (c) => {
 	}
 
 	try {
-		const blockedIds = await traceAsync(
-			"blockedUsers.listIds",
-			() => getBlockedUserIds(orgId),
-			{ description: "Listing blocked user IDs for comment filtering", data: { orgId } },
-		);
+		const blockedIds = await traceAsync("blockedUsers.listIds", () => getBlockedUserIds(orgId), {
+			description: "Listing blocked user IDs for comment filtering",
+			data: { orgId },
+		});
 
 		return c.json({ success: true, data: blockedIds });
 	} catch (err) {
@@ -4109,38 +3805,32 @@ apiRouteAdminOrganization.get("/:orgId/github_prs", async (c) => {
 				const token = await getInstallationToken(repo.installationId);
 				if (!token) return [];
 				// Fetch repos accessible to this installation
-				const installationRepos = await fetch(
-					`https://api.github.com/installation/repositories`,
-					{
-						headers: {
-							Authorization: `Bearer ${token}`,
-							Accept: "application/vnd.github.v3+json",
-						},
-					}
-				).then((res) => {
+				const installationRepos = await fetch(`https://api.github.com/installation/repositories`, {
+					headers: {
+						Authorization: `Bearer ${token}`,
+						Accept: "application/vnd.github.v3+json",
+					},
+				}).then((res) => {
 					if (!res.ok) throw new Error(`GitHub API error: ${res.status}`);
 					return res.json();
 				});
 
 				// Find the repo by name (e.g., "sayr-io-test")
-				const repoInfo = installationRepos.repositories.find(
-					(r: any) => r.name === repo.repoName
-				);
+				const repoInfo = installationRepos.repositories.find((r: any) => r.name === repo.repoName);
 				if (!repoInfo) return [];
 
 				const orgName = repoInfo.owner.login;
 				const repoName = repoInfo.name;
 
 				// Fetch all open PRs for this repo
-				const prs = await fetch(
-					`https://api.github.com/repos/${orgName}/${repoName}/pulls?state=all`,
-					{
-						headers: {
-							Authorization: `Bearer ${token}`,
-							Accept: "application/vnd.github.v3+json",
-						},
-					}
-				).then((res) => res.json()).catch(() => []);
+				const prs = await fetch(`https://api.github.com/repos/${orgName}/${repoName}/pulls?state=all`, {
+					headers: {
+						Authorization: `Bearer ${token}`,
+						Accept: "application/vnd.github.v3+json",
+					},
+				})
+					.then((res) => res.json())
+					.catch(() => []);
 				return prs;
 			} catch (error) {
 				console.error(`Failed to fetch PRs for repo ${repo.repoName}:`, error);
@@ -4152,10 +3842,7 @@ apiRouteAdminOrganization.get("/:orgId/github_prs", async (c) => {
 		const prs = await db.query.githubPullRequest.findMany({
 			where: and(
 				eq(schema.githubPullRequest.organizationId, orgId),
-				or(
-					isNull(schema.githubPullRequest.releaseId),
-					eq(schema.githubPullRequest.releaseId, release_id)
-				)
+				or(isNull(schema.githubPullRequest.releaseId), eq(schema.githubPullRequest.releaseId, release_id))
 			),
 		});
 

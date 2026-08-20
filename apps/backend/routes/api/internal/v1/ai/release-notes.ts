@@ -5,7 +5,7 @@ import { z } from "zod";
 import type { AppEnv } from "@/index";
 import { markdownToProsekitJSON } from "@/prosekit/parser";
 import { checkAiFeatureAccess } from "../../../../../lib/ai/gate";
-import { resolveActiveModel } from "../../../../../lib/ai/model";
+import { buildEffectiveSystemPrompt, resolveActiveModel } from "../../../../../lib/ai/model";
 import { runAiSseFeature } from "../../../../../lib/ai/sse-runner";
 import { errorResponse } from "../../../../../responses";
 
@@ -63,10 +63,11 @@ releaseNotesRoute.post("/", async (c) => {
 
 	const userPrompt = buildUserPrompt(release);
 	const model = resolveActiveModel(releaseNotesPrompt, access.org.settings);
+	const systemPrompt = buildEffectiveSystemPrompt(releaseNotesPrompt, access.org.settings);
 
 	return runAiSseFeature({
 		promptConfig: releaseNotesPrompt,
-		systemPrompt: releaseNotesPrompt.systemPrompt,
+		systemPrompt,
 		userPrompt,
 		model,
 		session: { userId: session.userId },

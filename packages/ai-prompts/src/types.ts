@@ -58,6 +58,12 @@ export interface PromptConfig {
 	 * Enforced server-side via sanitisation before appending to the system prompt.
 	 */
 	maxCustomPromptLength: number;
+	/**
+	 * Maximum character length allowed for an org-supplied output template
+	 * (desired structure/sections, appended before custom instructions).
+	 * Omitted or 0 means this feature doesn't support templates.
+	 */
+	maxTemplateLength?: number;
 	/** Capability flags that determine which execution path is used. */
 	capabilities: PromptCapabilities;
 }

@@ -28,6 +28,7 @@ Rules:
 - Write in a neutral, professional tone`,
 	maxTimelineItems: 0,
 	maxCustomPromptLength: 500,
+	maxTemplateLength: 1000,
 	capabilities: {
 		urlFetch: false,
 	},
