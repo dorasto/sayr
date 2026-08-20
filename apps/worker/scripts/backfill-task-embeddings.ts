@@ -15,10 +15,16 @@
  * concurrency handling.
  */
 import { db, schema } from "@repo/database";
+import { getEditionCapabilities } from "@repo/edition";
 import { enqueue } from "@repo/queue";
 import { isNull } from "drizzle-orm";
 
 async function main() {
+	if (!getEditionCapabilities().semanticSearchEnabled) {
+		console.log("Semantic search isn't enabled on this edition — nothing to backfill.");
+		process.exit(0);
+	}
+
 	const tasks = await db
 		.select({ id: schema.task.id, organizationId: schema.task.organizationId })
 		.from(schema.task)

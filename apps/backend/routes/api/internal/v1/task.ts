@@ -30,6 +30,7 @@ import {
 	setTaskParent,
 	userSummaryColumns,
 } from "@repo/database";
+import { getEditionCapabilities } from "@repo/edition";
 import { createTraceAsync } from "@repo/opentelemetry/trace";
 import { enqueue } from "@repo/queue";
 import { getInstallationToken } from "@repo/util/github/auth";
@@ -371,10 +372,14 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 
 	// Fire-and-forget: generates the task's semantic-search embedding in the
 	// background (apps/worker/main/embed-task.ts). A brand-new task always
-	// needs one — no diffing needed here, unlike /update below.
-	enqueue("main", { type: "embed_task", payload: { orgId, taskId: task.id } }).catch((err) => {
-		console.error("[task.create] Failed to enqueue embed_task job:", err);
-	});
+	// needs one — no diffing needed here, unlike /update below. Cloud-only —
+	// self-hosted editions never populate task.embedding, so recommendations
+	// fall back to the local word-overlap heuristic there instead.
+	if (getEditionCapabilities().semanticSearchEnabled) {
+		enqueue("main", { type: "embed_task", payload: { orgId, taskId: task.id } }).catch((err) => {
+			console.error("[task.create] Failed to enqueue embed_task job:", err);
+		});
+	}
 
 	return c.json({ success: true, data: taskWithData });
 });
@@ -872,11 +877,12 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 	// Fire-and-forget: only re-embed when the content that actually feeds the
 	// embedding (title/description) changed — same diffing already used for
 	// the task.updated ClickHouse events above, so an unrelated field change
-	// (status/priority/etc) doesn't trigger a wasted embedding call.
+	// (status/priority/etc) doesn't trigger a wasted embedding call. Cloud-only,
+	// same as the /create enqueue above.
 	const titleChanged = updates.title && updates.title !== existingTask.title;
 	const descriptionChanged =
 		updates.description && JSON.stringify(updates.description) !== JSON.stringify(existingTask.description);
-	if (titleChanged || descriptionChanged) {
+	if ((titleChanged || descriptionChanged) && getEditionCapabilities().semanticSearchEnabled) {
 		enqueue("main", { type: "embed_task", payload: { orgId, taskId } }).catch((err) => {
 			console.error("[task.update] Failed to enqueue embed_task job:", err);
 		});

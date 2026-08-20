@@ -14,6 +14,7 @@ const EDITION_CAPABILITIES: Record<Edition, EditionCapabilities> = {
 		marketingSiteEnabled: true,
 		multiTenantEnabled: true,
 		clickhouseEnabled: true,
+		semanticSearchEnabled: true,
 	},
 	community: {
 		maxOrganizations: 1,
@@ -23,6 +24,7 @@ const EDITION_CAPABILITIES: Record<Edition, EditionCapabilities> = {
 		marketingSiteEnabled: false,
 		multiTenantEnabled: false,
 		clickhouseEnabled: false,
+		semanticSearchEnabled: false,
 	},
 	enterprise: {
 		// Enterprise defaults -- will be configurable via license key metadata
@@ -33,6 +35,7 @@ const EDITION_CAPABILITIES: Record<Edition, EditionCapabilities> = {
 		marketingSiteEnabled: false,
 		multiTenantEnabled: false,
 		clickhouseEnabled: false,
+		semanticSearchEnabled: false,
 	},
 };
 

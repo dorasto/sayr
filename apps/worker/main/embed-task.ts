@@ -1,5 +1,6 @@
 import { embedText } from "@repo/ai";
 import { getTaskById, updateTaskEmbedding } from "@repo/database";
+import { getEditionCapabilities } from "@repo/edition";
 import { createTraceAsync } from "@repo/opentelemetry/trace";
 import type { JobGroups } from "@repo/queue";
 import { extractPlainText } from "@repo/util";
@@ -11,9 +12,14 @@ import { extractPlainText } from "@repo/util";
  * already used there for the ClickHouse task.updated event.
  *
  * No-ops quietly if the task no longer exists (e.g. deleted between enqueue
- * and processing) or has no meaningful text to embed.
+ * and processing), has no meaningful text to embed, or if this edition
+ * doesn't have semantic search enabled (defense-in-depth — the enqueue call
+ * sites already gate on this; this covers stale queued jobs left over from
+ * before an edition change, or a future enqueue site that forgets to check).
  */
 export async function embedTaskWorker(job: JobGroups["main"] & { type: "embed_task" }) {
+	if (!getEditionCapabilities().semanticSearchEnabled) return;
+
 	const { orgId, taskId } = job.payload;
 	const traceAsync = createTraceAsync();
 
