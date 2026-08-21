@@ -1,11 +1,11 @@
 import { Button } from "@repo/ui/components/button";
 import {
 	IndentDrawer,
+	type IndentDrawerActions,
 	IndentDrawerContent,
 	IndentDrawerIndentBackground,
 	IndentDrawerProvider,
 	IndentDrawerRegion,
-	type IndentDrawerActions,
 } from "@repo/ui/components/doras-ui/indent-drawer";
 import { SidebarContext } from "@repo/ui/components/doras-ui/sidebar";
 import { cn } from "@repo/ui/lib/utils";
@@ -13,8 +13,8 @@ import { IconLoader2, IconX } from "@tabler/icons-react";
 import { useStore } from "@tanstack/react-store";
 import { isValidElement, useCallback, useEffect, useRef, useState } from "react";
 import { PageHeader } from "@/components/generic/PageHeader";
-import { sidebarActions, sidebarStore } from "@/lib/sidebar/sidebar-store";
 import type { PanelHeaderConfig, PanelTabConfig } from "@/lib/sidebar/sidebar-store";
+import { sidebarActions, sidebarStore } from "@/lib/sidebar/sidebar-store";
 
 // Helper to check if a header is a PanelHeaderConfig object rather than a
 // plain React node. Panel state headers are always PanelHeaderConfig, so
@@ -43,6 +43,13 @@ export interface PanelConfig {
 	height?: string;
 	/** Mobile only, opt-in: also shrink the pushed content by this factor (e.g. 0.85) while open. */
 	mobileZoom?: number;
+	/**
+	 * Renders with a dimming backdrop, focus trap, and blocked background
+	 * interaction (Base UI's own `modal` handling), instead of the default
+	 * non-modal push-content behavior. Backdrop clicks dismiss the panel
+	 * unless overridden. @default false
+	 */
+	modal?: boolean;
 	/** Renders as a small popover pinned to its trigger element instead of a drawer. */
 	anchored?: boolean;
 	/** Desktop-only drag-to-resize on the panel's near edge. Ignored for anchored panels. @default true */
@@ -231,6 +238,10 @@ function PageLoader() {
 
 export function Page({ children, header, toolbar, panels, className }: PageProps) {
 	const [isClient, setIsClient] = useState(false);
+	// Where a `modal` panel's backdrop portals to, so it covers the whole
+	// page (including the sticky header below) instead of just the drawer's
+	// own confined push-region — see IndentDrawerContent's backdropContainer.
+	const [pageRootContainer, setPageRootContainer] = useState<HTMLDivElement | null>(null);
 	const [leftFloatContainer, setLeftFloatContainer] = useState<HTMLDivElement | null>(null);
 	const [rightFloatContainer, setRightFloatContainer] = useState<HTMLDivElement | null>(null);
 
@@ -387,14 +398,17 @@ export function Page({ children, header, toolbar, panels, className }: PageProps
 					<IndentDrawer
 						side="right"
 						open={isRightOpen}
+						modal={panels.right.modal}
 						actionsRef={rightDrawerActionsRef}
 						onOpenChange={(open: boolean) => sidebarActions.setOpen(panels.right!.id, open)}
 					>
 						<IndentDrawerContent
 							container={rightFloatContainer}
+							backdropContainer={pageRootContainer}
 							side="right"
 							width={rightWidth}
 							height={panels.right.height}
+							modal={panels.right.modal}
 							resizable={panels.right.resizable ?? true}
 							onResize={(px) => sidebarActions.setResizedWidth(panels.right!.id, px)}
 							minWidth={panels.right.minWidth}
@@ -429,14 +443,17 @@ export function Page({ children, header, toolbar, panels, className }: PageProps
 					<IndentDrawer
 						side="left"
 						open={isLeftOpen}
+						modal={panels.left.modal}
 						actionsRef={leftDrawerActionsRef}
 						onOpenChange={(open: boolean) => sidebarActions.setOpen(panels.left!.id, open)}
 					>
 						<IndentDrawerContent
 							container={leftFloatContainer}
+							backdropContainer={pageRootContainer}
 							side="left"
 							width={leftWidth}
 							height={panels.left.height}
+							modal={panels.left.modal}
 							resizable={panels.left.resizable ?? true}
 							onResize={(px) => sidebarActions.setResizedWidth(panels.left!.id, px)}
 							minWidth={panels.left.minWidth}
@@ -456,7 +473,7 @@ export function Page({ children, header, toolbar, panels, className }: PageProps
 	}
 
 	return (
-		<div className={cn("flex h-full w-full flex-col overflow-hidden", className)}>
+		<div ref={setPageRootContainer} className={cn("relative flex h-full w-full flex-col overflow-hidden", className)}>
 			{header && <PageHeader>{header}</PageHeader>}
 			{toolbar && (
 				<div className="flex h-11 shrink-0 items-center gap-1 border-b px-2 md:gap-2 md:px-3">{toolbar}</div>

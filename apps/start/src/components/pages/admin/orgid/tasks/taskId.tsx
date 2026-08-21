@@ -55,6 +55,11 @@ export default function OrganizationTaskIdPage() {
 					header: <TaskPanelHeader />,
 					defaultOpen: true,
 					width: "420px",
+					// Modal on mobile only - the bottom sheet should block/dim the
+					// task content behind it there. Desktop keeps the existing
+					// non-modal push-content behavior (Page reads this fresh every
+					// render, so it tracks the breakpoint live).
+					modal: useMobile,
 				},
 			}}
 			header={

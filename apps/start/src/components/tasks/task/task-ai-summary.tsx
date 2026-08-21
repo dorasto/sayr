@@ -303,7 +303,7 @@ export function AiTaskSummary({ task, orgId, embedded }: AiTaskSummaryProps) {
   const content = (
     <ContextSection
       label="AI Summary"
-      leadingClassName="bg-primary/20"
+      leadingClassName="bg-primary/10"
       labelClassName="text-foreground"
       icon={<IconSparkles className="h-3 w-3 text-primary" />}
       trailing={regenerateButton}
