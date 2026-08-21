@@ -1,24 +1,23 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
+import { Button } from "@repo/ui/components/button";
+import SimpleClipboard from "@repo/ui/components/tomui/simple-clipboard";
 import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { cn } from "@repo/ui/lib/utils";
 import { ensureCdnUrl, formatTaskKey } from "@repo/util";
-import { Outlet } from "@tanstack/react-router";
-import { Link } from "@tanstack/react-router";
+import { IconLayoutSidebarRight, IconLayoutSidebarRightFilled, IconLink, IconUsers } from "@tabler/icons-react";
+import { Link, Outlet } from "@tanstack/react-router";
 import { useEffect } from "react";
-import type { MentionContext } from "@/hooks/useMentionUsers";
-import { TaskContentMobileContent } from "@/components/tasks/task/task-content";
-import { Page } from "@/components/generic/page";
+import { TaskPanelContent, TaskPanelHeader } from "@/components/admin/panels/task";
 import { PageHeader } from "@/components/generic/PageHeader";
+import { Page } from "@/components/generic/page";
 import { usePage, usePanel } from "@/components/generic/use-page";
-import { TaskPanelHeader, TaskPanelContent } from "@/components/admin/panels/task";
+import { TaskContentMobileContent } from "@/components/tasks/task/task-content";
 import { useLayoutOrganization } from "@/contexts/ContextOrg";
 import { useLayoutTask } from "@/contexts/ContextOrgTask";
 import { useLayoutTasks } from "@/contexts/ContextOrgTasks";
+import type { MentionContext } from "@/hooks/useMentionUsers";
 import { sidebarActions } from "@/lib/sidebar/sidebar-store";
-import { Button } from "@repo/ui/components/button";
-import { IconLayoutSidebarRight, IconLayoutSidebarRightFilled, IconLink, IconUsers } from "@tabler/icons-react";
-import SimpleClipboard from "@repo/ui/components/tomui/simple-clipboard";
 
 const TASK_PANEL_ID = "task-detail-panel";
 
@@ -48,13 +47,6 @@ export default function OrganizationTaskIdPage() {
 		setPanelContent(TASK_PANEL_ID, <TaskPanelContent />);
 	}, [panel.isRegistered, setPanelContent]);
 
-	// Mobile renders the task content inline (below) instead of through the
-	// side panel — mirror the old PanelWrapper behavior of always closing the
-	// panel on mobile so the two don't both try to show it at once.
-	useEffect(() => {
-		if (useMobile && panel.isOpen) closePanel(TASK_PANEL_ID);
-	}, [useMobile, panel.isOpen, closePanel]);
-
 	return (
 		<Page
 			panels={{
@@ -63,11 +55,6 @@ export default function OrganizationTaskIdPage() {
 					header: <TaskPanelHeader />,
 					defaultOpen: true,
 					width: "420px",
-					// Mobile force-closes this panel below (it renders inline
-					// instead) — don't let that close persist, or a user who's
-					// ever viewed this page on mobile finds it stuck closed on
-					// desktop too, silently overriding defaultOpen.
-					persistOpenState: false,
 				},
 			}}
 			header={
