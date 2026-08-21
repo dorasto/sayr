@@ -139,12 +139,11 @@ export const VARIANT_STYLES = {
 		useCustomTrigger: true,
 	},
 	compact: {
-		container: "flex items-center flex-wrap gap-1 w-full",
+		container: "flex items-center gap-1 shrink-0",
 		showLabel: false,
 		showChevron: false,
 		compact: true,
-		className:
-			"bg-accent p-1 h-auto w-fit shrink-0 border-transparent hover:bg-secondary",
+		className: "bg-accent p-1 h-auto w-fit shrink-0 border-transparent hover:bg-secondary",
 		useCustomTrigger: false,
 	},
 	sidebar: {
@@ -169,7 +168,7 @@ export const VARIANT_STYLES = {
 export function getTaskFieldPermissions(
 	task: schema.TaskWithLabels,
 	userId: string | undefined,
-	permissions: schema.TeamPermissions | null | undefined,
+	permissions: schema.TeamPermissions | null | undefined
 ): FieldPermissions {
 	if (!userId || !permissions) return {};
 
