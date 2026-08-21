@@ -8,7 +8,7 @@ import { IconArrowUpRight, IconChevronRight, IconCopy, IconExternalLink, IconLin
 import { Link } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { statusConfig } from "../shared/config";
-import { getMatchedIntegrations } from "../shared/integration-registry";
+import { getMatchedIntegrations } from "../shared";
 import GlobalTaskStatus from "../shared/status";
 import { SubtaskProgressBadge } from "../shared/subtask-progress";
 import type { TaskDetailOrganization } from "../types";

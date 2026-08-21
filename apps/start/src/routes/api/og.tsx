@@ -2,15 +2,14 @@ import { createFileRoute } from "@tanstack/react-router";
 import satori from "satori";
 import React from "react";
 import sharp from "sharp";
+import { statusConfig } from "@/components/tasks/shared/config";
 
 // Module-level font cache — only fetched once per process lifetime
 let fontCache: ArrayBuffer | null = null;
 
 async function getFont(): Promise<ArrayBuffer> {
 	if (fontCache) return fontCache;
-	const res = await fetch(
-		"https://cdn.jsdelivr.net/fontsource/fonts/inter@latest/latin-400-normal.ttf",
-	);
+	const res = await fetch("https://cdn.jsdelivr.net/fontsource/fonts/inter@latest/latin-400-normal.ttf");
 	if (!res.ok) throw new Error(`Font fetch failed: ${res.status}`);
 	fontCache = await res.arrayBuffer();
 	return fontCache;
@@ -50,24 +49,18 @@ const FG = "#ebebeb";
 const MUTED = "#a1a1aa";
 const BORDER = "#3f3f46";
 
-// Status colours — must stay in sync with statusConfig in config.tsx
-const STATUS_COLORS: Record<string, string> = {
-	backlog: "#6B7280",
-	todo: "#3B82F6",
-	"in-progress": "#F59E0B",
-	done: "#10B981",
-	canceled: "#EF4444",
-};
+// Status colours/labels/order — derived from statusConfig (config.tsx) so this
+// route can't drift out of sync with it. Only the plain-string .color/.label
+// fields are needed here; satori never renders the .icon() JSX function.
+const STATUS_COLORS: Record<string, string> = Object.fromEntries(
+	Object.entries(statusConfig).map(([key, value]) => [key, value.color])
+);
 
-const STATUS_LABELS: Record<string, string> = {
-	backlog: "Backlog",
-	todo: "Todo",
-	"in-progress": "In Progress",
-	done: "Done",
-	canceled: "Canceled",
-};
+const STATUS_LABELS: Record<string, string> = Object.fromEntries(
+	Object.entries(statusConfig).map(([key, value]) => [key, value.label])
+);
 
-const STATUS_ORDER = ["backlog", "todo", "in-progress", "done", "canceled"];
+const STATUS_ORDER: string[] = Object.keys(statusConfig);
 
 export type OgStatItem = { status: string; count: number };
 
@@ -80,7 +73,7 @@ export type OgStatItem = { status: string; count: number };
 function statsRow(stats: OgStatItem[]) {
 	// Only show statuses with count > 0, in canonical order
 	const visible = STATUS_ORDER.map((s) => stats.find((item) => item.status === s)).filter(
-		(item): item is OgStatItem => !!item && item.count > 0,
+		(item): item is OgStatItem => !!item && item.count > 0
 	);
 	if (visible.length === 0) return null;
 
@@ -104,9 +97,7 @@ function statsRow(stats: OgStatItem[]) {
 	});
 
 	// Render bar as a data URI SVG embedded in an <img> (satori handles this reliably)
-	const svgParts: string[] = [
-		`<svg xmlns="http://www.w3.org/2000/svg" width="${BAR_WIDTH}" height="${BAR_HEIGHT}">`,
-	];
+	const svgParts: string[] = [`<svg xmlns="http://www.w3.org/2000/svg" width="${BAR_WIDTH}" height="${BAR_HEIGHT}">`];
 	segments.forEach(({ x, w, color }, i) => {
 		const isFirst = i === 0;
 		const isLast = i === segments.length - 1;
@@ -117,12 +108,12 @@ function statsRow(stats: OgStatItem[]) {
 		} else if (isFirst) {
 			// Left side rounded only
 			svgParts.push(
-				`<path d="M${x + rx},0 h${w - rx} v${BAR_HEIGHT} h${-(w - rx)} a${rx},${rx} 0 0 1 -${rx},-${rx} v${-(BAR_HEIGHT - rx * 2)} a${rx},${rx} 0 0 1 ${rx},-${rx} z" fill="${color}"/>`,
+				`<path d="M${x + rx},0 h${w - rx} v${BAR_HEIGHT} h${-(w - rx)} a${rx},${rx} 0 0 1 -${rx},-${rx} v${-(BAR_HEIGHT - rx * 2)} a${rx},${rx} 0 0 1 ${rx},-${rx} z" fill="${color}"/>`
 			);
 		} else if (isLast) {
 			// Right side rounded only
 			svgParts.push(
-				`<path d="M${x},0 h${w - rx} a${rx},${rx} 0 0 1 ${rx},${rx} v${BAR_HEIGHT - rx * 2} a${rx},${rx} 0 0 1 -${rx},${rx} h${-(w - rx)} v${-BAR_HEIGHT} z" fill="${color}"/>`,
+				`<path d="M${x},0 h${w - rx} a${rx},${rx} 0 0 1 ${rx},${rx} v${BAR_HEIGHT - rx * 2} a${rx},${rx} 0 0 1 -${rx},${rx} h${-(w - rx)} v${-BAR_HEIGHT} z" fill="${color}"/>`
 			);
 		} else {
 			svgParts.push(`<rect x="${x}" y="0" width="${w}" height="${BAR_HEIGHT}" fill="${color}"/>`);
@@ -154,8 +145,8 @@ function statsRow(stats: OgStatItem[]) {
 			React.createElement(
 				"span",
 				{ style: { fontSize: 20, color: MUTED, fontWeight: 400 } },
-				`${item.count} ${label}`,
-			),
+				`${item.count} ${label}`
+			)
 		);
 	});
 
@@ -181,8 +172,8 @@ function statsRow(stats: OgStatItem[]) {
 		React.createElement(
 			"div",
 			{ style: { display: "flex", flexDirection: "row", flexWrap: "wrap", gap: 16 } },
-			...legendItems,
-		),
+			...legendItems
+		)
 	);
 }
 
@@ -219,12 +210,8 @@ function footerPill() {
 					display: "flex",
 				},
 			}),
-			React.createElement(
-				"span",
-				{ style: { fontSize: 18, color: MUTED, fontWeight: 400 } },
-				"sayr.io",
-			),
-		),
+			React.createElement("span", { style: { fontSize: 18, color: MUTED, fontWeight: 400 } }, "sayr.io")
+		)
 	);
 }
 
@@ -291,7 +278,7 @@ function detailedLayout(params: {
 						display: "flex",
 					},
 				},
-				truncate(meta, 50),
+				truncate(meta, 50)
 			),
 		// Title
 		React.createElement(
@@ -308,7 +295,7 @@ function detailedLayout(params: {
 					flexWrap: "wrap",
 				},
 			},
-			truncate(title, logoDataUri ? 35 : 60),
+			truncate(title, logoDataUri ? 35 : 60)
 		),
 		// Subtitle
 		subtitle &&
@@ -324,10 +311,10 @@ function detailedLayout(params: {
 						display: "flex",
 					},
 				},
-				truncate(subtitle, 60),
+				truncate(subtitle, 60)
 			),
 		// Stats row (optional)
-		stats && statsRow(stats),
+		stats && statsRow(stats)
 	);
 
 	return React.createElement(
@@ -382,12 +369,12 @@ function detailedLayout(params: {
 						height: 200,
 						alt: "",
 						style: { objectFit: "cover", width: "100%", height: "100%" },
-					}),
+					})
 				),
 			// Right (or full-width): text
-			textBlock,
+			textBlock
 		),
-		footerPill(),
+		footerPill()
 	);
 }
 
@@ -462,7 +449,7 @@ function simpleLayout(params: { title: string; subtitle: string | null; logoData
 						height: 200,
 						alt: "",
 						style: { objectFit: "cover", width: "100%", height: "100%" },
-					}),
+					})
 				),
 			// Right: title + subtitle
 			React.createElement(
@@ -489,7 +476,7 @@ function simpleLayout(params: { title: string; subtitle: string | null; logoData
 							flexWrap: "wrap",
 						},
 					},
-					truncate(title, logoDataUri ? 35 : 50),
+					truncate(title, logoDataUri ? 35 : 50)
 				),
 				subtitle &&
 					React.createElement(
@@ -504,11 +491,11 @@ function simpleLayout(params: { title: string; subtitle: string | null; logoData
 								display: "flex",
 							},
 						},
-						truncate(subtitle, 60),
-					),
-			),
+						truncate(subtitle, 60)
+					)
+			)
 		),
-		footerPill(),
+		footerPill()
 	);
 }
 
@@ -522,10 +509,7 @@ async function generateOgImage(params: {
 }): Promise<Response> {
 	const { type, title, subtitle, meta, logoUrl, stats } = params;
 
-	const [fontData, logoDataUri] = await Promise.all([
-		getFont(),
-		logoUrl ? toDataUri(logoUrl) : Promise.resolve(null),
-	]);
+	const [fontData, logoDataUri] = await Promise.all([getFont(), logoUrl ? toDataUri(logoUrl) : Promise.resolve(null)]);
 
 	const element =
 		type === "simple"

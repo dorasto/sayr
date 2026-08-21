@@ -14,10 +14,7 @@ export const TASK_SORT_FIELDS: Array<{ id: TaskSortField; label: string }> = [
 	{ id: "status", label: "Status" },
 ];
 
-// Lower number = earlier in an ascending sort. Mirrors the ordering already
-// used for "mine" task list sorting (components/pages/admin/mine/tasks/task-sort-config.ts) —
-// kept as a separate copy since that file is scoped to that page, but the
-// values are intentionally identical for consistency.
+// Lower number = earlier in an ascending sort.
 export const PRIORITY_ORDER: Record<string, number> = {
 	urgent: 0,
 	high: 1,

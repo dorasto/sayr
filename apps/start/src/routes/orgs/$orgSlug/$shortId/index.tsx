@@ -45,7 +45,12 @@ const fetchPublicTask = createServerFn({ method: "GET" })
 			return {
 				task: null,
 				release: null,
-				org: { name: organization.name, logo: organization.logo, shortId: organization.shortId },
+				org: {
+					name: organization.name,
+					slug: organization.slug,
+					logo: organization.logo,
+					shortId: organization.shortId,
+				},
 				descriptionHtml: "",
 				descriptionText: "",
 				commentsHtml: [],
@@ -129,7 +134,12 @@ const fetchPublicTask = createServerFn({ method: "GET" })
 		return {
 			task,
 			release,
-			org: { name: organization.name, logo: organization.logo, shortId: organization.shortId },
+			org: {
+				name: organization.name,
+				slug: organization.slug,
+				logo: organization.logo,
+				shortId: organization.shortId,
+			},
 			descriptionHtml,
 			descriptionText,
 			commentsHtml: commentsWithReplies,
@@ -174,7 +184,7 @@ export const Route = createFileRoute("/orgs/$orgSlug/$shortId/")({
 					headline: `${taskKey} - ${task.title}`,
 					name: task.title,
 					description: descriptionText.trim() || undefined,
-					url: `https://${org?.name?.toLowerCase().replace(/\s+/g, "-")}.sayr.io/${task.shortId}`,
+					url: `https://${org?.slug}.${import.meta.env.VITE_ROOT_DOMAIN}/${task.shortId}`,
 					datePublished: task.createdAt,
 					dateModified: task.updatedAt || task.createdAt,
 					keywords: [
@@ -188,7 +198,7 @@ export const Route = createFileRoute("/orgs/$orgSlug/$shortId/")({
 					publisher: {
 						"@type": "Organization",
 						name: org?.name ?? "Sayr",
-						url: `https://${org?.name?.toLowerCase().replace(/\s+/g, "-")}.sayr.io`,
+						url: `https://${org?.slug}.${import.meta.env.VITE_ROOT_DOMAIN}`,
 					},
 					...(commentsText.length > 0
 						? {
@@ -278,7 +288,7 @@ function RouteComponent() {
 				descriptionHtml={descriptionHtml}
 				comments={commentsHtml}
 				orgName={org?.name ?? undefined}
-				url={`https://${org?.name?.toLowerCase().replace(/\s+/g, "-")}.sayr.io/${task.shortId}`}
+				url={`https://${org?.slug}.${import.meta.env.VITE_ROOT_DOMAIN}/${task.shortId}`}
 			/>
 
 			{/* Top bar */}

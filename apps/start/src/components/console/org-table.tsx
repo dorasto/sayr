@@ -57,6 +57,7 @@ import {
 	getConsoleOrgsAiSummary,
 	getConsoleOrgsMrrSummary,
 } from "@/lib/fetches/console";
+import { formatTokenCount } from "./format-token-count";
 
 type OrgTableProps = {
 	initialData: {
@@ -73,12 +74,6 @@ function computeOrgUsdCost(summary: ConsoleOrgAiSummary): number {
 	// Persisted cost_cents from ClickHouse — real per-request cost reported by
 	// Requesty (USD) at generation time, not recomputed from a pricing table.
 	return Number(summary.total_cost_cents) / 100;
-}
-
-function formatTokenCount(n: number): string {
-	if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(2)}M`;
-	if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
-	return String(n);
 }
 
 // ──────────────────────────────────────────────

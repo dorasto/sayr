@@ -55,7 +55,12 @@ export default function CreateOrganizationDialog({ onSuccess, trigger }: Props) 
 
 	const handleSlugChange = (value: string) => {
 		setSlugManuallyEdited(true);
-		// Only allow lowercase letters, numbers, and hyphens
+		// Only allow lowercase letters, numbers, and hyphens.
+		// Intentionally NOT generateSlug() here: it strips trailing hyphens, which
+		// would fight the user mid-keystroke on this manually-edited field (typing a
+		// "-" to start the next word would be immediately stripped back off). The
+		// auto-generate-from-name effect above uses generateSlug() since it derives
+		// from a different field and isn't affected by this.
 		setSlug(value.toLowerCase().replace(/[^a-z0-9-]/g, ""));
 	};
 

@@ -127,6 +127,10 @@ export default function CreateRelease({
 					className={cn("w-40", settingsUI && "hover:bg-accent focus-within:bg-accent h-8")}
 					placeholder="Slug"
 					value={slug}
+					// Intentionally NOT generateSlug() here: this is a directly-typed field, and
+					// generateSlug() strips trailing hyphens and collapses "." / "_" into "-", which
+					// would fight the user mid-keystroke (typing "-" is immediately stripped) and
+					// mangle version-style slugs like "v1.0.0".
 					onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-_.]/g, ""))}
 				/>
 

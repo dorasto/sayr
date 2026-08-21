@@ -215,6 +215,13 @@ export default function OrganizationTasksHomePage() {
 				sendWindowMessage(window, { type: "timeline-update-comment", payload: msg.data.id }, "*");
 			}
 		},
+		// This page's "tasks" room now also receives vote broadcasts (previously
+		// only the task-specific room did, so votes never live-updated here — see
+		// apps/backend/routes/api/internal/v1/task.ts's vote broadcast).
+		UPDATE_TASK_VOTE: (msg) => {
+			const { id, voteCount } = msg.data;
+			setTasks(tasks.map((task) => (task.id === id ? { ...task, voteCount } : task)));
+		},
 		UPDATE_LABELS: (msg) => {
 			if (msg.scope === "INDIVIDUAL" && msg.meta?.orgId === organization.id) {
 				setLabels(msg.data);

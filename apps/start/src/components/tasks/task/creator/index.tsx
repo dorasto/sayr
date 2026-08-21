@@ -48,7 +48,7 @@ import type { MentionContext } from "@/hooks/useMentionUsers";
 import type { OrgTaskSearchResult } from "@/lib/fetches/searchTasks";
 import { createTaskAction } from "@/lib/fetches/task";
 import { useToastAction } from "@/lib/util";
-import TaskFieldToolbar from "../../shared/task-field-toolbar";
+import { TaskFieldToolbar } from "../../shared";
 
 interface Props {
 	organization: schema.OrganizationWithMembers;

@@ -280,7 +280,24 @@ function ReleaseDetailPageContent() {
 			panels={{
 				right: {
 					id: RELEASE_CHARTS_PANEL_ID,
-					header: <Label>Information</Label>,
+					header: (
+						<div className="flex items-center gap-2 w-full flex-1 min-w-0">
+							<div
+								className="flex items-center justify-center size-4 shrink-0 rounded-md"
+								style={{
+									background: release.color ? `hsla(${extractHslValues(release.color)}, 0.1)` : undefined,
+								}}
+							>
+								<RenderIcon
+									iconName={release.icon || "IconRocket"}
+									size={12}
+									color={release.color || undefined}
+									raw
+								/>
+							</div>
+							<span className="text-xs font-medium truncate">{release.name}</span>
+						</div>
+					),
 					defaultOpen: true,
 					width: "380px",
 				},

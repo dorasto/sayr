@@ -11,11 +11,15 @@ export const Route = createFileRoute("/(admin)/$orgId/tasks/$taskShortId")({
 		if (!context.account) {
 			throw redirect({ to: "/auth/login" });
 		}
+		const taskShortId = parseInt(params.taskShortId);
+		if (Number.isNaN(taskShortId)) {
+			throw redirect({ to: "/$orgId/tasks", params: { orgId: params.orgId } });
+		}
 		return await getAdminOrganizationTask({
 			data: {
 				account: context.account,
 				orgId: params.orgId,
-				taskShortId: parseInt(params.taskShortId),
+				taskShortId,
 			},
 		});
 	},

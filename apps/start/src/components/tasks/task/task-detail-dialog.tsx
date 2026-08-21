@@ -14,7 +14,7 @@ import { IconArrowsDiagonal, IconArrowsDiagonalMinimize2 } from "@tabler/icons-r
 import { motion } from "motion/react";
 import { useCallback, useState } from "react";
 import type { TaskDetailOrganization } from "../types";
-import type { FieldPermissions } from "../shared/task-field-toolbar-types";
+import type { FieldPermissions } from "../shared";
 import { TaskDetailCompact } from "./task-detail-compact";
 
 // Collapsed matches the creator dialog's expanded size.

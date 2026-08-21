@@ -10,7 +10,7 @@ import { useLayoutData } from "@/components/admin/shell/context";
 import { PageHeader } from "@/components/generic/PageHeader";
 import { Page } from "@/components/generic/page";
 import { usePage, usePanel } from "@/components/generic/use-page";
-import { getTaskFieldPermissions } from "@/components/tasks/shared/task-field-toolbar-types";
+import { getTaskFieldPermissions } from "@/components/tasks/shared";
 import { TaskDetailCompact } from "@/components/tasks/task/task-detail-compact";
 import { useInbox } from "@/contexts/ContextInbox";
 import { useServerEventsSubscription } from "@/hooks/useServerEventsSubscription";
