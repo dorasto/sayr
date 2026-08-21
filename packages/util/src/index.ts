@@ -107,6 +107,35 @@ export function getActorDisplayName(
 }
 
 /**
+ * Derives 1-2 uppercase initials from a user's name or email, for avatar fallbacks.
+ *
+ * Splits on whitespace and takes the first character of up to the first two
+ * words (e.g. "John Doe" -> "JD"). Falls back to the first two characters of
+ * a single-word name/email local-part, and to "?" when nothing is available.
+ *
+ * @param source - A display name or email address. `null`/`undefined`/empty falls back to "?".
+ * @returns 1-2 uppercase characters.
+ *
+ * @example
+ * ```ts
+ * getInitials("John Doe");   // "JD"
+ * getInitials("johndoe");    // "JO"
+ * getInitials(undefined);    // "?"
+ * ```
+ */
+export function getInitials(source: string | null | undefined): string {
+	if (!source) return "?";
+	const initials = source
+		.split(" ")
+		.filter(Boolean)
+		.map((part) => part[0])
+		.join("")
+		.slice(0, 2)
+		.toUpperCase();
+	return initials || "?";
+}
+
+/**
  * Extracts the file name (last path segment) from a given URL or path.
  *
  * @param url - A full URL or path string.

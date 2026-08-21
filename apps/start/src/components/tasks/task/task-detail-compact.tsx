@@ -1,13 +1,12 @@
 import type { schema } from "@repo/database";
 import { Button } from "@repo/ui/components/button";
-import { Separator } from "@repo/ui/components/separator";
 import SimpleClipboard from "@repo/ui/components/tomui/simple-clipboard";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { IconExternalLink, IconLink } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
-import { useLayoutData } from "@/components/generic/Context";
+import { useLayoutData } from "@/components/admin/shell/context";
 import type { MentionContext } from "@/hooks/useMentionUsers";
 import { getTaskRelationsAction } from "@/lib/fetches/task";
 import TaskFieldToolbar from "../shared/task-field-toolbar";
@@ -62,12 +61,16 @@ export function TaskDetailCompact({
 	const { setValue: setMentionContext } = useStateManagement<MentionContext | null>("mentionContext", null);
 	const { account } = useLayoutData();
 
+	// Resolve the organization to use for display / clipboard / mention context.
+	// Prefer the explicit prop; fall back to the minimal shape on `task.organization`.
+	const resolvedOrg = organization ?? task.organization;
+
 	// Set mentionContext so the Editor's useMentionUsers hook can fetch org members and task participants
 	useEffect(() => {
 		if (task.organizationId) {
-			setMentionContext({ orgId: task.organizationId, taskId: task.id });
+			setMentionContext({ orgId: task.organizationId, orgShortId: resolvedOrg?.shortId, taskId: task.id });
 		}
-	}, [task.organizationId, task.id, setMentionContext]);
+	}, [task.organizationId, resolvedOrg?.shortId, task.id, setMentionContext]);
 
 	// List-sourced tasks (the `tasks` array backing UnifiedTaskView / inbox) never
 	// carry `relations` — only the main task page's single-task fetch does. Fetch
@@ -102,10 +105,6 @@ export function TaskDetailCompact({
 	const orgLabels = labels.filter((l) => l.organizationId === task.organizationId);
 	const orgCategories = categories.filter((c) => c.organizationId === task.organizationId);
 	const orgReleases = releases.filter((r) => r.organizationId === task.organizationId);
-
-	// Resolve the organization to use for display / clipboard.
-	// Prefer the explicit prop; fall back to the minimal shape on `task.organization`.
-	const resolvedOrg = organization ?? task.organization;
 
 	// Derive available users: full member list when OrganizationWithMembers is
 	// provided, otherwise fall back to the task's existing assignees.

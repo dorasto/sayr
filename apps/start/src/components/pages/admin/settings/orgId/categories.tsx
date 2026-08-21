@@ -1,6 +1,6 @@
 "use client";
 
-import { useLayoutData } from "@/components/generic/Context";
+import { useLayoutData } from "@/components/admin/shell/context";
 import CreateCategory from "@/components/organization/create-category";
 import { useLayoutOrganizationSettings } from "@/contexts/ContextOrgSettings";
 import { useServerEventsSubscription } from "@/hooks/useServerEventsSubscription";
@@ -32,8 +32,7 @@ export default function SettingsOrganizationCategoriesPage() {
 			}
 		},
 	};
-	const handleMessage = useWSMessageHandler<ServerEventMessage>(handlers, {
-	});
+	const handleMessage = useWSMessageHandler<ServerEventMessage>(handlers, {});
 	useEffect(() => {
 		if (!serverEvents.event) return;
 		serverEvents.event.addEventListener("message", handleMessage);

@@ -18,7 +18,9 @@ import { Popover, PopoverContent, PopoverTrigger } from "@repo/ui/components/pop
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@repo/ui/components/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@repo/ui/components/table";
 import { cn } from "@repo/ui/lib/utils";
+import { getInitials } from "@repo/util";
 import { IconBuilding, IconSettings } from "@tabler/icons-react";
+import { Link } from "@tanstack/react-router";
 import {
 	type ColumnDef,
 	flexRender,
@@ -46,16 +48,15 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import {
-	getConsoleOrgs,
-	getConsoleOrgsAiSummary,
-	getConsoleOrgsMrrSummary,
 	type ConsoleOrg,
 	type ConsoleOrgAiSummary,
 	type ConsoleOrgMrrSummary,
-	type ConsolePaginationMeta,
 	type ConsoleOrgsParams,
+	type ConsolePaginationMeta,
+	getConsoleOrgs,
+	getConsoleOrgsAiSummary,
+	getConsoleOrgsMrrSummary,
 } from "@/lib/fetches/console";
-import { Link } from "@tanstack/react-router";
 
 type OrgTableProps = {
 	initialData: {
@@ -107,7 +108,7 @@ function buildColumns(
 					{row.original.logo ? (
 						<Avatar className="h-8 w-8 rounded-lg">
 							<AvatarImage src={row.original.logo} alt={row.original.name} />
-							<AvatarFallback className="rounded-lg uppercase">{row.original.name.slice(0, 2)}</AvatarFallback>
+							<AvatarFallback className="rounded-lg uppercase">{getInitials(row.original.name)}</AvatarFallback>
 						</Avatar>
 					) : (
 						<div className="flex size-8 items-center justify-center rounded-lg bg-muted">

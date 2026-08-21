@@ -163,14 +163,14 @@ export default function Editor({
 						const node = videoType.create({ src: blobUrl });
 						const tr = state.tr.replaceSelectionWith(node).scrollIntoView();
 						view.dispatch(tr);
-					} catch (err) {
+					} catch (_err) {
 						// console.error("❌ Video insert error:", err);
 					}
 				} else {
 					try {
 						// @ts-expect-error ProseKit typing gap
 						editor.commands?.insertImage?.({ src: blobUrl });
-					} catch (err) {
+					} catch (_err) {
 						// console.error("❌ Image insert error:", err);
 					}
 				}
@@ -267,6 +267,7 @@ export default function Editor({
 								loading={mentionTasks.loading}
 								onQueryChange={mentionTasks.setSearchQuery}
 								onOpenChange={(open) => handleMenuOpenChange("task", open)}
+								orgShortId={mentionTasks.orgShortId}
 							/>
 						</>
 					)}

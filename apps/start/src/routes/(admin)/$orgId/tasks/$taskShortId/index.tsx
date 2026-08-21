@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { TaskContentMain } from "@/components/tasks/task/task-content";
 import { useLayoutOrganization } from "@/contexts/ContextOrg";
 import { useLayoutTask } from "@/contexts/ContextOrgTask";
-import { useLayoutData } from "@/components/generic/Context";
+import { useLayoutData } from "@/components/admin/shell/context";
 import { useWSMessageHandler, type WSMessageHandler } from "@/hooks/useWSMessageHandler";
 import { useLayoutTasks } from "@/contexts/ContextOrgTasks";
 import { sendWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";

@@ -1,12 +1,13 @@
+import { db, getOrganizationPublicById, type schema } from "@repo/database";
 import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
+import { getInitials } from "@repo/util";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
-import { db, getOrganizationPublicById, type schema } from "@repo/database";
-import { getAccess } from "@/getAccess";
-import { InvitationActions } from "@/components/invitation";
-import { SubWrapper } from "@/components/generic/wrapper";
 import { and, gt, or } from "drizzle-orm";
-import { seo, getOgImageUrl } from "@/seo";
+import { SubWrapper } from "@/components/generic/wrapper";
+import { InvitationActions } from "@/components/invitation";
+import { getAccess } from "@/getAccess";
+import { getOgImageUrl, seo } from "@/seo";
 
 const fetchAuth = createServerFn({ method: "GET" }).handler(async () => {
 	const { account } = await getAccess();
@@ -64,7 +65,9 @@ export const Route = createFileRoute("/invite/$orgId/")({
 	},
 	head: ({ loaderData }) => ({
 		meta: seo({
-			title: loaderData?.organization ? `You've been invited · ${loaderData.organization.name}` : "You've been invited",
+			title: loaderData?.organization
+				? `You've been invited · ${loaderData.organization.name}`
+				: "You've been invited",
 			image: getOgImageUrl({
 				type: "simple",
 				title: "You've been invited",
@@ -91,7 +94,7 @@ function RouteComponent() {
 				icon={
 					<Avatar>
 						<AvatarImage src={organization?.logo || ""} alt={organization?.name} />
-						<AvatarFallback>{organization?.name.charAt(0)}</AvatarFallback>
+						<AvatarFallback>{getInitials(organization?.name)}</AvatarFallback>
 					</Avatar>
 				}
 				style="compact"

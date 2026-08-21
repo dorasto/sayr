@@ -7,16 +7,16 @@ import { IconLock } from "@tabler/icons-react";
 import { useRouterState } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import {
-	useTaskViewManager,
 	type FilterCondition,
 	type FilterField,
 	type FilterOperator,
+	useTaskViewManager,
 } from "@/hooks/useTaskViewManager";
-import { FilterBadges } from "./FilterBadges";
-import { FilterMenu } from "./FilterMenu";
+import { FilterBadges } from "./filter-badges";
 import { FILTER_FIELD_CONFIGS } from "./filter-config";
+import { FilterMenu } from "./filter-menu";
 import { getFieldConfig, isMultiCondition } from "./multi-select";
-import { NewViewPopover } from "./NewView";
+import { NewViewPopover } from "./new-view";
 import { getOperatorLabel } from "./operators"; // re-exported below
 import { serializeFilters } from "./serialization";
 import { DEFAULT_TASK_VIEW_STATE } from "./types";

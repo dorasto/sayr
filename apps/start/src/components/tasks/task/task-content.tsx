@@ -3,7 +3,7 @@ import { Tile, TileAction, TileHeader, TileTitle } from "@repo/ui/components/dor
 import { Label } from "@repo/ui/components/label";
 import { useReadOnlyStateManagementKey } from "@repo/ui/hooks/useStateManagement.ts";
 import { IconExternalLink, IconPlug } from "@tabler/icons-react";
-import { useLayoutData } from "@/components/generic/Context";
+import { useLayoutData } from "@/components/admin/shell/context";
 import { SubWrapper } from "@/components/generic/wrapper";
 import { useLayoutOrganization } from "@/contexts/ContextOrg";
 import type { useToastAction } from "@/lib/util";

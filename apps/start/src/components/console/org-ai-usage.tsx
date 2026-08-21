@@ -1,3 +1,4 @@
+import type { OrgAiSettings, OrganizationSettings } from "@repo/database";
 import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
 import { Badge } from "@repo/ui/components/badge";
 import { Button } from "@repo/ui/components/button";
@@ -9,24 +10,24 @@ import { Popover, PopoverContent, PopoverTrigger } from "@repo/ui/components/pop
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@repo/ui/components/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@repo/ui/components/table";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@repo/ui/components/tooltip";
+import { getInitials } from "@repo/util";
 import {
+	IconAlertTriangle,
+	IconBan,
 	IconBrain,
 	IconCalendar,
-	IconCoin,
-	IconLetterA,
-	IconAlertTriangle,
-	IconExternalLink,
-	IconBan,
 	IconClock,
+	IconCoin,
+	IconExternalLink,
+	IconLetterA,
 	IconX,
 } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
-import type { OrganizationSettings, OrgAiSettings } from "@repo/database";
 import {
+	type ConsoleAiMonthlySummary,
+	type ConsoleAiUsageRow,
 	getConsoleOrgAiUsage,
 	updateConsoleOrgAiSettings,
-	type ConsoleAiUsageRow,
-	type ConsoleAiMonthlySummary,
 } from "@/lib/fetches/console";
 
 type Props = {
@@ -534,7 +535,7 @@ export default function OrgAiUsage({ orgId, settings }: Props) {
 															<Avatar className="size-5 rounded-full shrink-0">
 																{row.actor_image && <AvatarImage src={row.actor_image} />}
 																<AvatarFallback className="text-[10px]">
-																	{(row.actor_name ?? row.actor_id).slice(0, 2).toUpperCase()}
+																	{getInitials(row.actor_name ?? row.actor_id)}
 																</AvatarFallback>
 															</Avatar>
 															<span className="text-xs truncate max-w-[120px]" title={row.actor_id}>

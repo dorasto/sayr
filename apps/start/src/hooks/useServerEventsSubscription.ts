@@ -1,12 +1,9 @@
 import type { schema } from "@repo/database";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { useEffect, useRef } from "react";
-import { useLayoutData } from "@/components/generic/Context";
+import { useLayoutData } from "@/components/admin/shell/context";
 import type { ServerEventMessage } from "../lib/serverEvents";
-import {
-	useWSMessageHandler,
-	type WSMessageHandler,
-} from "./useWSMessageHandler";
+import { useWSMessageHandler, type WSMessageHandler } from "./useWSMessageHandler";
 import useServerEvents from "@/lib/serverEvents";
 
 interface UseSSESubscriptionOptions {
@@ -30,11 +27,10 @@ export function useServerEventsSubscription({
 }: UseSSESubscriptionOptions): UseSSEReturn {
 	const { organizations, setOrganizations } = useLayoutData();
 
-	const { value: sseSubscribedState, setValue: setSSESubscribedState } =
-		useStateManagement<{ orgId?: string; channel?: string } | null>(
-			"sse-subscribe-state",
-			null
-		);
+	const { value: sseSubscribedState, setValue: setSSESubscribedState } = useStateManagement<{
+		orgId?: string;
+		channel?: string;
+	} | null>("sse-subscribe-state", null);
 
 	const serverEventsRef = useRef(serverEvents);
 	serverEventsRef.current = serverEvents;
@@ -42,11 +38,7 @@ export function useServerEventsSubscription({
 	const handlers: WSMessageHandler<ServerEventMessage> = {
 		UPDATE_ORG: (msg) => {
 			if (msg.scope === "INDIVIDUAL" && organizations) {
-				setOrganizations(
-					organizations.map((org) =>
-						org.id === msg.data.id ? { ...org, ...msg.data } : org
-					)
-				);
+				setOrganizations(organizations.map((org) => (org.id === msg.data.id ? { ...org, ...msg.data } : org)));
 			} else if (organization && setOrganization) {
 				setOrganization({ ...organization, ...msg.data });
 			}

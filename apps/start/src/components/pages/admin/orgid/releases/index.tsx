@@ -1,16 +1,3 @@
-import { useLayoutData } from "@/components/generic/Context";
-import { Page } from "@/components/generic/page";
-import { PageHeader } from "@/components/generic/PageHeader";
-import { PlanLimitBanner } from "@/components/generic/PlanLimitBanner";
-import { usePage, usePanel } from "@/components/generic/use-page";
-import { ReleasesListPanelContent, ReleasesListPanelHeader } from "@/components/admin/panels/releases-list";
-import { ReleasesKanban } from "@/components/releases/ReleasesKanban";
-import { useLayoutOrganization } from "@/contexts/ContextOrg";
-import { usePlanLimits } from "@/hooks/usePlanLimits";
-import { useServerEventsSubscription } from "@/hooks/useServerEventsSubscription";
-import { useWSMessageHandler, type WSMessageHandler } from "@/hooks/useWSMessageHandler";
-import type { ServerEventMessage } from "@/lib/serverEvents";
-import { sidebarActions } from "@/lib/sidebar/sidebar-store";
 import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
 import { Button } from "@repo/ui/components/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@repo/ui/components/tooltip";
@@ -25,6 +12,19 @@ import {
 } from "@tabler/icons-react";
 import { Link, useSearch } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
+import { ReleasesListPanelContent, ReleasesListPanelHeader } from "@/components/admin/panels/releases-list";
+import { useLayoutData } from "@/components/admin/shell/context";
+import { PageHeader } from "@/components/generic/PageHeader";
+import { Page } from "@/components/generic/page";
+import { PlanLimitBanner } from "@/components/generic/plan-limit-banner";
+import { usePage, usePanel } from "@/components/generic/use-page";
+import { ReleasesKanban } from "@/components/releases/releases-kanban";
+import { useLayoutOrganization } from "@/contexts/ContextOrg";
+import { usePlanLimits } from "@/hooks/usePlanLimits";
+import { useServerEventsSubscription } from "@/hooks/useServerEventsSubscription";
+import { useWSMessageHandler, type WSMessageHandler } from "@/hooks/useWSMessageHandler";
+import type { ServerEventMessage } from "@/lib/serverEvents";
+import { sidebarActions } from "@/lib/sidebar/sidebar-store";
 import { CreateReleaseDialog } from "./create-release-dialog";
 
 type ReleaseSearch = {

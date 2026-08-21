@@ -1,6 +1,6 @@
 "use client";
 
-import { useLayoutData } from "@/components/generic/Context";
+import { useLayoutData } from "@/components/admin/shell/context";
 import IconPicker from "@/components/generic/icon-picker";
 import RenderIcon from "@/components/generic/RenderIcon";
 import { useServerEventsSubscription } from "@/hooks/useServerEventsSubscription";

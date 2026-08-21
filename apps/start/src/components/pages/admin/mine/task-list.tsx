@@ -1,39 +1,25 @@
 import type { schema } from "@repo/database";
-import { Label } from "@repo/ui/components/label";
-import { ScrollArea } from "@repo/ui/components/scroll-area";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "@repo/ui/components/dropdown-menu";
-import { cn } from "@repo/ui/lib/utils";
-import {
-	IconBuilding,
-	IconCategory2,
-	IconSortDescending,
-	IconTag,
-} from "@tabler/icons-react";
-import { useMemo, useState } from "react";
-import { useNavigate } from "@tanstack/react-router";
+import { Label } from "@repo/ui/components/label";
+import { ScrollArea } from "@repo/ui/components/scroll-area";
 import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
-import { FilterMenu } from "@/components/tasks/filter/FilterMenu";
-import { FilterBadges } from "@/components/tasks/filter/FilterBadges";
-import type {
-	FilterCondition,
-	FilterField,
-	FilterFieldConfig,
-	FilterOperator,
-} from "@/components/tasks/filter/types";
-import { priorityConfig, statusConfig } from "@/components/tasks/shared/config";
+import { cn } from "@repo/ui/lib/utils";
+import { IconBuilding, IconCategory2, IconSortDescending, IconTag } from "@tabler/icons-react";
+import { useNavigate } from "@tanstack/react-router";
+import { useMemo, useState } from "react";
+import { FilterBadges } from "@/components/tasks/filter/filter-badges";
 import { applyFilters } from "@/components/tasks/filter/filter-config";
-import { TaskListItem } from "./tasks/task-item";
+import { FilterMenu } from "@/components/tasks/filter/filter-menu";
+import type { FilterCondition, FilterField, FilterFieldConfig, FilterOperator } from "@/components/tasks/filter/types";
+import { priorityConfig, statusConfig } from "@/components/tasks/shared/config";
 import { TaskEmptyState } from "./tasks/task-empty-state";
-import {
-	type SortOption,
-	priorityOrder,
-	statusOrder,
-} from "./tasks/task-sort-config";
+import { TaskListItem } from "./tasks/task-item";
+import { priorityOrder, type SortOption, statusOrder } from "./tasks/task-sort-config";
 
 // Status options
 const STATUS_OPTIONS = Object.entries(statusConfig).map(([value, config]) => ({
@@ -44,14 +30,12 @@ const STATUS_OPTIONS = Object.entries(statusConfig).map(([value, config]) => ({
 }));
 
 // Priority options
-const PRIORITY_OPTIONS = Object.entries(priorityConfig).map(
-	([value, config]) => ({
-		value,
-		label: config.label,
-		color: config.color,
-		icon: config.icon("w-3 h-3"),
-	}),
-);
+const PRIORITY_OPTIONS = Object.entries(priorityConfig).map(([value, config]) => ({
+	value,
+	label: config.label,
+	color: config.color,
+	icon: config.icon("w-3 h-3"),
+}));
 
 interface MyTasksListProps {
 	tasks: schema.TaskWithLabels[];
@@ -82,9 +66,7 @@ export function MyTasksList({
 	const isMobile = useIsMobile();
 	const [sortBy, setSortBy] = useState<SortOption>("newest");
 	const [mainSearch, setMainSearch] = useState("");
-	const [filterConditions, setFilterConditions] = useState<FilterCondition[]>(
-		[],
-	);
+	const [filterConditions, setFilterConditions] = useState<FilterCondition[]>([]);
 
 	// Filter field configurations specific to My Tasks page
 	const MY_TASKS_FILTER_CONFIGS: FilterFieldConfig[] = useMemo(
@@ -150,7 +132,7 @@ export function MyTasksList({
 					})),
 			},
 		],
-		[labels, categories, organizations],
+		[labels, categories, organizations]
 	);
 
 	const filteredAndSortedTasks = useMemo(() => {
@@ -160,9 +142,7 @@ export function MyTasksList({
 		const statusCondition = filterConditions.find((c) => c.field === "status");
 		if (!statusCondition) {
 			// No status filter applied, so exclude done and cancelled
-			filtered = filtered.filter(
-				(t) => t.status !== "done" && t.status !== "canceled",
-			);
+			filtered = filtered.filter((t) => t.status !== "done" && t.status !== "canceled");
 		}
 
 		// Apply filter conditions using the filter system
@@ -170,23 +150,15 @@ export function MyTasksList({
 			// Handle organization filter separately
 			const orgCondition = filterConditions.find((c) => c.field === "assignee");
 			if (orgCondition) {
-				const orgValues = Array.isArray(orgCondition.value)
-					? orgCondition.value
-					: [orgCondition.value];
-				filtered = filtered.filter((t) =>
-					orgValues.some((v) => v === t.organizationId),
-				);
+				const orgValues = Array.isArray(orgCondition.value) ? orgCondition.value : [orgCondition.value];
+				filtered = filtered.filter((t) => orgValues.some((v) => v === t.organizationId));
 			}
 
 			// Apply other filters using standard filter logic
-			const otherConditions = filterConditions.filter(
-				(c) => c.field !== "assignee",
-			);
+			const otherConditions = filterConditions.filter((c) => c.field !== "assignee");
 			if (otherConditions.length > 0) {
 				filtered = applyFilters(filtered, {
-					groups: [
-						{ id: "default", conditions: otherConditions, operator: "AND" },
-					],
+					groups: [{ id: "default", conditions: otherConditions, operator: "AND" }],
 					operator: "AND",
 				});
 			}
@@ -195,31 +167,19 @@ export function MyTasksList({
 		// Sort
 		switch (sortBy) {
 			case "newest":
-				filtered.sort(
-					(a, b) =>
-						new Date(b.createdAt || 0).getTime() -
-						new Date(a.createdAt || 0).getTime(),
-				);
+				filtered.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
 				break;
 			case "oldest":
-				filtered.sort(
-					(a, b) =>
-						new Date(a.createdAt || 0).getTime() -
-						new Date(b.createdAt || 0).getTime(),
-				);
+				filtered.sort((a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime());
 				break;
 			case "priority":
 				filtered.sort(
-					(a, b) =>
-						(priorityOrder[a.priority || "none"] ?? 4) -
-						(priorityOrder[b.priority || "none"] ?? 4),
+					(a, b) => (priorityOrder[a.priority || "none"] ?? 4) - (priorityOrder[b.priority || "none"] ?? 4)
 				);
 				break;
 			case "status":
 				filtered.sort(
-					(a, b) =>
-						(statusOrder[a.status || "backlog"] ?? 2) -
-						(statusOrder[b.status || "backlog"] ?? 2),
+					(a, b) => (statusOrder[a.status || "backlog"] ?? 2) - (statusOrder[b.status || "backlog"] ?? 2)
 				);
 				break;
 		}
@@ -229,14 +189,8 @@ export function MyTasksList({
 
 	const activeFiltersCount = filterConditions.length;
 
-	const handleFilterAdd = (
-		field: string,
-		operator: FilterOperator,
-		value: string,
-	) => {
-		const existingCondition = filterConditions.find(
-			(c) => c.field === field && c.operator === operator,
-		);
+	const handleFilterAdd = (field: string, operator: FilterOperator, value: string) => {
+		const existingCondition = filterConditions.find((c) => c.field === field && c.operator === operator);
 
 		if (existingCondition) {
 			// Add value to existing condition
@@ -249,10 +203,8 @@ export function MyTasksList({
 			if (!currentValues.includes(value)) {
 				setFilterConditions(
 					filterConditions.map((c) =>
-						c.id === existingCondition.id
-							? { ...c, value: [...currentValues, value] as string[] }
-							: c,
-					),
+						c.id === existingCondition.id ? { ...c, value: [...currentValues, value] as string[] } : c
+					)
 				);
 			}
 		} else {
@@ -274,9 +226,7 @@ export function MyTasksList({
 	};
 
 	const updateFilterOperator = (id: string, operator: FilterOperator) => {
-		setFilterConditions(
-			filterConditions.map((c) => (c.id === id ? { ...c, operator } : c)),
-		);
+		setFilterConditions(filterConditions.map((c) => (c.id === id ? { ...c, operator } : c)));
 	};
 
 	const toggleValue = (id: string, value: string) => {
@@ -288,13 +238,9 @@ export function MyTasksList({
 					: typeof c.value === "string"
 						? [c.value]
 						: [];
-				const newValues = values.includes(value)
-					? values.filter((v) => v !== value)
-					: [...values, value];
-				return newValues.length > 0
-					? { ...c, value: newValues as string[] }
-					: c;
-			}),
+				const newValues = values.includes(value) ? values.filter((v) => v !== value) : [...values, value];
+				return newValues.length > 0 ? { ...c, value: newValues as string[] } : c;
+			})
 		);
 	};
 
@@ -327,17 +273,15 @@ export function MyTasksList({
 	};
 
 	const renderFilterValue = (condition: FilterCondition) => {
-		if (typeof condition.value === "string")
-			return <span>{condition.value}</span>;
-		if (Array.isArray(condition.value))
-			return <span>{condition.value.join(", ")}</span>;
+		if (typeof condition.value === "string") return <span>{condition.value}</span>;
+		if (Array.isArray(condition.value)) return <span>{condition.value.join(", ")}</span>;
 		return <span>{String(condition.value ?? "")}</span>;
 	};
 
 	const filteredConfigs = MY_TASKS_FILTER_CONFIGS.filter(
 		(config) =>
 			config.label.toLowerCase().includes(mainSearch.toLowerCase()) ||
-			config.field.toLowerCase().includes(mainSearch.toLowerCase()),
+			config.field.toLowerCase().includes(mainSearch.toLowerCase())
 	);
 
 	return (

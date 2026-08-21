@@ -1,16 +1,10 @@
-import { AutocompleteList, AutocompletePopover } from "prosekit/react/autocomplete";
-import type { BasicExtension } from "prosekit/basic";
-import { canUseRegexLookbehind } from "prosekit/core";
-import { handleMediaUpload } from "../utils/uploadMedia";
-import SlashMenuEmpty from "./slash-menu-empty";
-import SlashMenuItem from "./slash-menu-item";
 import {
 	IconCode,
-	IconLibraryPhoto,
 	IconH1,
 	IconH2,
 	IconH3,
 	IconLetterCase,
+	IconLibraryPhoto,
 	IconLineDashed,
 	IconList,
 	IconListCheck,
@@ -21,9 +15,15 @@ import {
 	IconTable,
 	IconVideo,
 } from "@tabler/icons-react";
+import type { BasicExtension } from "prosekit/basic";
+import { canUseRegexLookbehind } from "prosekit/core";
 import { useEditor } from "prosekit/react";
-import { GifPickerModal } from "./GifPickerModal";
+import { AutocompleteList, AutocompletePopover } from "prosekit/react/autocomplete";
 import { useState } from "react";
+import { handleMediaUpload } from "../utils/uploadMedia";
+import { GifPickerModal } from "./gif-picker-modal";
+import SlashMenuEmpty from "./slash-menu-empty";
+import SlashMenuItem from "./slash-menu-item";
 
 // Match inputs like "/", "/table", "/heading 1" etc. Do not match "/ heading".
 const regex = canUseRegexLookbehind() ? /(?<!\S)\/(\S.*)?$/u : /\/(\S.*)?$/u;

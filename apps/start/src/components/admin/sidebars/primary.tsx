@@ -11,6 +11,7 @@ import {
 	SidebarMenuSub,
 	SidebarSubmenuItem,
 } from "@repo/ui/components/doras-ui/sidebar";
+import { Kbd } from "@repo/ui/components/kbd";
 import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
 import { cn } from "@repo/ui/lib/utils";
 import {
@@ -19,28 +20,25 @@ import {
 	IconPlus,
 	IconQuestionMark,
 	IconSearch,
-	IconSettings,
-	IconShield,
 } from "@tabler/icons-react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useStore } from "@tanstack/react-store";
-import { useLayoutData } from "@/components/generic/Context";
-import CreateOrganizationDialog from "@/components/organization/CreateOrganizationDialog";
-import { heading, navigation } from "@/lib/routemap";
+import { useLayoutData } from "@/components/admin/shell/context";
+import { StatusBar } from "@/components/generic/status";
+import CreateOrganizationDialog from "@/components/organization/create-organization-dialog";
 import { commandActions } from "@/lib/command-store";
+import { heading, navigation } from "@/lib/routemap";
 import { sidebarActions, sidebarStore } from "@/lib/sidebar/sidebar-store";
 import { notificationStore } from "@/lib/stores/notification-store";
 import OrgSection from "./primary-org";
 import UserDropdown from "./user-dropdown";
-import { Kbd } from "@repo/ui/components/kbd";
-import { StatusBar } from "@/components/generic/status";
 export function PrimarySidebar() {
 	const sidebarId = "primary-sidebar";
 	const isMobile = useIsMobile();
 
 	const rawPathname = useRouterState({ select: (s) => s.location.pathname });
 	const pathname = rawPathname.length > 1 ? rawPathname.replace(/\/$/, "") : rawPathname;
-	const { account, organizations } = useLayoutData();
+	const { organizations } = useLayoutData();
 	const sidebar = useStore(sidebarStore, (state) => state.sidebars[sidebarId]);
 	const isSidebarOpen = sidebar?.open ?? true;
 	const inboxCount = useStore(notificationStore, (state) => state.unreadCount);

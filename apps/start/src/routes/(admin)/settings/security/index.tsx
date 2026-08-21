@@ -1,38 +1,31 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
-import { SubWrapper } from "@/components/generic/wrapper";
-import { useLayoutData } from "@/components/generic/Context";
-import { useServerEventsSubscription } from "@/hooks/useServerEventsSubscription";
-import {
-	Tile,
-	TileAction,
-	TileDescription,
-	TileHeader,
-	TileIcon,
-	TileTitle,
-} from "@repo/ui/components/doras-ui/tile";
-import { Button } from "@repo/ui/components/button";
-import { Switch } from "@repo/ui/components/switch";
+import { auth as authServer } from "@repo/auth";
+import { authClient } from "@repo/auth/client";
+import { auth, db, type schema } from "@repo/database";
 import { Avatar, AvatarFallback } from "@repo/ui/components/avatar";
+import { Button } from "@repo/ui/components/button";
+import { Tile, TileAction, TileDescription, TileHeader, TileIcon, TileTitle } from "@repo/ui/components/doras-ui/tile";
+import { Switch } from "@repo/ui/components/switch";
 import {
+	IconAlertCircle,
+	IconDeviceDesktop,
+	IconDeviceMobile,
+	IconRefresh,
 	IconShield,
 	IconShieldCheck,
 	IconTrash,
-	IconDeviceDesktop,
-	IconDeviceMobile,
-	IconAlertCircle,
-	IconRefresh,
 } from "@tabler/icons-react";
-import { useState, useEffect } from "react";
-import { authClient } from "@repo/auth/client";
-import { auth as authServer } from "@repo/auth";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
-import { auth, db, schema } from "@repo/database";
 import { and, eq } from "drizzle-orm";
-import { TwoFactorPasswordDialog } from "@/components/settings/security/TwoFactorPasswordDialog";
-import { TwoFactorSetupDialog } from "@/components/settings/security/TwoFactorSetupDialog";
-import { BackupCodesDialog } from "@/components/settings/security/BackupCodesDialog";
-import { GenerateBackupCodesDialog } from "@/components/settings/security/GenerateBackupCodesDialog";
-import { PasskeySection } from "@/components/settings/security/PasskeySection";
+import { useEffect, useState } from "react";
+import { useLayoutData } from "@/components/admin/shell/context";
+import { SubWrapper } from "@/components/generic/wrapper";
+import { BackupCodesDialog } from "@/components/settings/security/backup-codes-dialog";
+import { GenerateBackupCodesDialog } from "@/components/settings/security/generate-backup-codes-dialog";
+import { PasskeySection } from "@/components/settings/security/passkey-section";
+import { TwoFactorPasswordDialog } from "@/components/settings/security/two-factor-password-dialog";
+import { TwoFactorSetupDialog } from "@/components/settings/security/two-factor-setup-dialog";
+import { useServerEventsSubscription } from "@/hooks/useServerEventsSubscription";
 import { seo } from "@/seo";
 
 export const getConnections = createServerFn({ method: "GET" })
@@ -40,10 +33,7 @@ export const getConnections = createServerFn({ method: "GET" })
 	.handler(async ({ data }) => {
 		try {
 			const email = await db.query.account.findFirst({
-				where: and(
-					eq(auth.account.userId, data.account?.id),
-					eq(auth.account.providerId, "credential"),
-				),
+				where: and(eq(auth.account.userId, data.account?.id), eq(auth.account.providerId, "credential")),
 			});
 
 			return {
@@ -148,17 +138,13 @@ function RouteComponent() {
 					setSessions(
 						sessionsList.data.map((s) => ({
 							id: s.id,
-							device: s.userAgent
-								? s.userAgent.includes("Mobile")
-									? "Mobile"
-									: "Desktop"
-								: "Unknown",
+							device: s.userAgent ? (s.userAgent.includes("Mobile") ? "Mobile" : "Desktop") : "Unknown",
 							os: s.userAgent || "Unknown",
 							ipAddress: s.ipAddress || "Unknown",
 							createdAt: new Date(s.createdAt),
 							expiresAt: new Date(s.expiresAt),
 							token: s.token,
-						})),
+						}))
 					);
 				}
 			} catch (error) {
@@ -217,9 +203,7 @@ function RouteComponent() {
 				// Step 1 → enable, get TOTP URI + backup codes
 				const result = await authClient.twoFactor.enable({ password });
 				if (result.error) {
-					setPasswordError(
-						result.error.message || "Failed to enable two-factor authentication",
-					);
+					setPasswordError(result.error.message || "Failed to enable two-factor authentication");
 					return;
 				}
 				// Store backup codes from the enable response
@@ -236,9 +220,7 @@ function RouteComponent() {
 			} else {
 				const result = await authClient.twoFactor.disable({ password });
 				if (result.error) {
-					setPasswordError(
-						result.error.message || "Failed to disable two-factor authentication",
-					);
+					setPasswordError(result.error.message || "Failed to disable two-factor authentication");
 					return;
 				}
 				setTwoFactorEnabled(false);
@@ -310,11 +292,7 @@ function RouteComponent() {
 								Backup codes let you recover access if you lose your authenticator.
 							</p>
 							<div className="flex gap-2">
-								<Button
-									variant="outline"
-									size="sm"
-									onClick={() => setShowGenerateBackupDialog(true)}
-								>
+								<Button variant="outline" size="sm" onClick={() => setShowGenerateBackupDialog(true)}>
 									<IconRefresh className="size-4 mr-1" />
 									Generate New
 								</Button>
@@ -336,9 +314,7 @@ function RouteComponent() {
 								</div>
 							</TileIcon>
 							<TileTitle>Active Sessions</TileTitle>
-							<TileDescription className="text-xs">
-								Manage your active sessions across devices
-							</TileDescription>
+							<TileDescription className="text-xs">Manage your active sessions across devices</TileDescription>
 						</TileHeader>
 					</Tile>
 
@@ -353,14 +329,11 @@ function RouteComponent() {
 								>
 									<div className="flex items-center gap-3">
 										<Avatar className="size-8">
-											<AvatarFallback className="text-xs">
-												{getDeviceIcon(_session.device)}
-											</AvatarFallback>
+											<AvatarFallback className="text-xs">{getDeviceIcon(_session.device)}</AvatarFallback>
 										</Avatar>
 										<div className="flex flex-col">
 											<span className="text-sm font-medium">
-												{_session.device}{" "}
-												{_session.id === session?.session?.id && "(Current)"}
+												{_session.device} {_session.id === session?.session?.id && "(Current)"}
 											</span>
 											<span className="text-xs text-muted-foreground">
 												{_session.os} · {_session.ipAddress}
@@ -371,19 +344,13 @@ function RouteComponent() {
 										</div>
 									</div>
 									{_session.id !== session?.session?.id && (
-										<Button
-											variant="ghost"
-											size="icon"
-											onClick={() => handleRevokeSession(_session.token)}
-										>
+										<Button variant="ghost" size="icon" onClick={() => handleRevokeSession(_session.token)}>
 											<IconTrash className="size-4" />
 										</Button>
 									)}
 								</div>
 							))}
-							{sessions.length === 0 && (
-								<div className="text-sm text-muted-foreground">No active sessions</div>
-							)}
+							{sessions.length === 0 && <div className="text-sm text-muted-foreground">No active sessions</div>}
 						</div>
 					)}
 				</div>
@@ -426,10 +393,7 @@ function RouteComponent() {
 			/>
 
 			{/* Generate new backup codes */}
-			<GenerateBackupCodesDialog
-				open={showGenerateBackupDialog}
-				onOpenChange={setShowGenerateBackupDialog}
-			/>
+			<GenerateBackupCodesDialog open={showGenerateBackupDialog} onOpenChange={setShowGenerateBackupDialog} />
 		</SubWrapper>
 	);
 }

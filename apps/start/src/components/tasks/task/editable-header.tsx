@@ -6,7 +6,7 @@ import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { sendWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
 import type { NodeJSON } from "prosekit/core";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useLayoutData } from "@/components/generic/Context";
+import { useLayoutData } from "@/components/admin/shell/context";
 import Editor from "@/components/prosekit/editor";
 import processUploads from "@/components/prosekit/upload";
 import { useDebounceAsync } from "@/hooks/useDebounceAsync";

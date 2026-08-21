@@ -1,5 +1,5 @@
 "use client";
-import { useLayoutData } from "@/components/generic/Context";
+import { useLayoutData } from "@/components/admin/shell/context";
 import { PageHeader } from "@/components/generic/PageHeader";
 import RenderIcon from "@/components/generic/RenderIcon";
 import { useLayoutOrganization } from "@/contexts/ContextOrg";

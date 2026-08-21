@@ -1,4 +1,4 @@
-export { HoverCardBase } from "./HoverCardBase";
-export type { HoverCardBaseProps } from "./HoverCardBase";
-export { ReleaseHoverCard } from "./release/ReleaseHoverCard";
-export type { ReleaseHoverCardProps } from "./release/ReleaseHoverCard";
+export type { HoverCardBaseProps } from "./hover-card-base";
+export { HoverCardBase } from "./hover-card-base";
+export type { ReleaseHoverCardProps } from "./release/release-hover-card";
+export { ReleaseHoverCard } from "./release/release-hover-card";

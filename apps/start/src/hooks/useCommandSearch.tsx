@@ -3,10 +3,11 @@
 import { formatTaskKey } from "@repo/util";
 import { IconCircleFilled } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { statusConfig } from "@/components/tasks/shared/config";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { searchTasks, type TaskSearchResult } from "@/lib/fetches/searchTasks";
 import type { CommandItem } from "@/types/command";
-import { statusConfig } from "@/components/tasks/shared/config";
 
 const DEBOUNCE_MS = 300;
 const MIN_QUERY_LENGTH = 2;
@@ -23,8 +24,7 @@ export function useCommandSearch(query: string, isOpen: boolean) {
 	const navigate = useNavigate();
 	const [results, setResults] = useState<CommandItem[]>([]);
 	const [isSearching, setIsSearching] = useState(false);
-	const abortControllerRef = useRef<AbortController | null>(null);
-	const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const debouncedQuery = useDebouncedValue(query, DEBOUNCE_MS);
 
 	const transformResult = useCallback(
 		(result: TaskSearchResult): CommandItem => {
@@ -70,47 +70,32 @@ export function useCommandSearch(query: string, isOpen: boolean) {
 	);
 
 	useEffect(() => {
-		// Clear results when palette closes or query is too short
-		if (!isOpen || query.trim().length < MIN_QUERY_LENGTH) {
+		// Clear results when palette closes or the debounced query is too short
+		if (!isOpen || debouncedQuery.trim().length < MIN_QUERY_LENGTH) {
 			setResults([]);
 			setIsSearching(false);
-			if (debounceTimerRef.current) {
-				clearTimeout(debounceTimerRef.current);
-				debounceTimerRef.current = null;
-			}
 			return;
 		}
 
+		let cancelled = false;
 		setIsSearching(true);
 
-		// Cancel any pending request
-		if (abortControllerRef.current) {
-			abortControllerRef.current.abort();
-		}
-
-		// Clear previous debounce
-		if (debounceTimerRef.current) {
-			clearTimeout(debounceTimerRef.current);
-		}
-
-		debounceTimerRef.current = setTimeout(async () => {
-			try {
-				const data = await searchTasks(query);
-				setResults(data.map(transformResult));
-			} catch {
+		searchTasks(debouncedQuery)
+			.then((data) => {
+				if (!cancelled) setResults(data.map(transformResult));
+			})
+			.catch(() => {
 				// Silently fail on network errors / aborts
-				setResults([]);
-			} finally {
-				setIsSearching(false);
-			}
-		}, DEBOUNCE_MS);
+				if (!cancelled) setResults([]);
+			})
+			.finally(() => {
+				if (!cancelled) setIsSearching(false);
+			});
 
 		return () => {
-			if (debounceTimerRef.current) {
-				clearTimeout(debounceTimerRef.current);
-			}
+			cancelled = true;
 		};
-	}, [query, isOpen, transformResult]);
+	}, [debouncedQuery, isOpen, transformResult]);
 
 	return { results, isSearching };
 }

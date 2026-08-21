@@ -3,7 +3,7 @@ import { Button } from "@repo/ui/components/button";
 import { resolveOrgAiStatus } from "@repo/util";
 import { IconClock, IconLock, IconSparkles, IconX } from "@tabler/icons-react";
 import { useCallback, useEffect, useState } from "react";
-import { useLayoutData } from "@/components/generic/Context";
+import { useLayoutData } from "@/components/admin/shell/context";
 import { AiRecommendations } from "./task-ai-recommendations";
 import { AiTaskSummary } from "./task-ai-summary";
 

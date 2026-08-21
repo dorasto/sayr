@@ -33,9 +33,9 @@ export default function OrganizationTaskIdPage() {
 	// Set mentionContext so the Editor's useMentionUsers hook can fetch org members and task participants
 	useEffect(() => {
 		if (organization?.id) {
-			setMentionContext({ orgId: organization.id, taskId: task.id });
+			setMentionContext({ orgId: organization.id, orgShortId: organization.shortId, taskId: task.id });
 		}
-	}, [organization?.id, task.id, setMentionContext]);
+	}, [organization?.id, organization?.shortId, task.id, setMentionContext]);
 
 	// TaskPanelContent pulls everything it needs from context itself, so it
 	// only needs to be handed to the panel once — it stays in sync on its own.

@@ -26,7 +26,7 @@ import {
 } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
 import { useEffect, useCallback, useState } from "react";
-import { useLayoutData } from "@/components/generic/Context";
+import { useLayoutData } from "@/components/admin/shell/context";
 import { Page } from "@/components/generic/page";
 import { PageHeader } from "@/components/generic/PageHeader";
 import RenderIcon from "@/components/generic/RenderIcon";

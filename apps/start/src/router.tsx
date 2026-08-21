@@ -1,7 +1,7 @@
 import { QueryClient } from "@tanstack/react-query";
 import { createRouter } from "@tanstack/react-router";
 import { setupRouterSsrQueryIntegration } from "@tanstack/react-router-ssr-query";
-import NotFound from "./components/NotFound";
+import NotFound from "./components/not-found";
 
 // Import the generated route tree
 import { routeTree } from "./routeTree.gen";
@@ -57,7 +57,7 @@ export const getRouter = () => {
 						hostname === "app.localhost" ||
 						hostname.startsWith("app.localhost:")
 					) {
-						return
+						return;
 					}
 
 					const parts = hostname.split(".");
