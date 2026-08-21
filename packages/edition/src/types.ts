@@ -42,6 +42,18 @@ export interface EditionCapabilities {
 	multiTenantEnabled: boolean;
 	/** Whether ClickHouse analytics/audit logging is enabled. */
 	clickhouseEnabled: boolean;
+	/**
+	 * Whether embeddings-backed semantic search (task recommendations'
+	 * nearest-neighbor matching, evidence-grounded label/category
+	 * suggestions) is enabled. Cloud-only, same as the other
+	 * infra-dependent capabilities above -- self-hosted instances still
+	 * need the `task.embedding` column to physically exist (Drizzle's
+	 * schema is shared across editions), which means Postgres must have
+	 * the `pgvector` extension available for migrations to succeed, but
+	 * the feature itself isn't enabled for self-hosted; recommendations
+	 * fall back to the local word-overlap heuristic instead.
+	 */
+	semanticSearchEnabled: boolean;
 }
 
 /**

@@ -11,12 +11,14 @@
     "zerops:start-main": "bun run dist/index.js main",
     "zerops:start-github": "bun run dist/index.js github",
     "internal:start": "op run --env-file .env -- bun run start",
+    "backfill:embeddings": "bun run scripts/backfill-task-embeddings.ts",
     "lint": "biome check .",
     "lint:fix": "biome check . --write",
     "format": "biome format --write ."
   },
   "dependencies": {
     "@clickhouse/client": "^1.18.2",
+    "@repo/ai": "workspace:*",
     "@repo/database": "workspace:*",
     "@repo/edition": "workspace:*",
     "@repo/opentelemetry": "workspace:*",

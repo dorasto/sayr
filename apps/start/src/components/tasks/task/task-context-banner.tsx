@@ -1,17 +1,17 @@
-import { useMemo } from "react";
 import type { schema } from "@repo/database";
-import { cn } from "@repo/ui/lib/utils";
-import { formatTaskKey } from "@repo/util";
-import type { TaskDetailOrganization } from "../types";
-import { IconArrowUpRight, IconChevronRight, IconCopy, IconExternalLink, IconLink } from "@tabler/icons-react";
-import { Link } from "@tanstack/react-router";
-import GlobalTaskStatus from "../shared/status";
-import { statusConfig } from "../shared/config";
-import { SubtaskProgressBadge } from "../shared/subtask-progress";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@repo/ui/components/collapsible";
 import { Label } from "@repo/ui/components/label";
 import { useReadOnlyStateManagementKey } from "@repo/ui/hooks/useStateManagement.ts";
+import { cn } from "@repo/ui/lib/utils";
+import { formatTaskKey } from "@repo/util";
+import { IconArrowUpRight, IconChevronRight, IconCopy, IconExternalLink, IconLink } from "@tabler/icons-react";
+import { Link } from "@tanstack/react-router";
+import { useMemo } from "react";
+import { statusConfig } from "../shared/config";
 import { getMatchedIntegrations } from "../shared/integration-registry";
+import GlobalTaskStatus from "../shared/status";
+import { SubtaskProgressBadge } from "../shared/subtask-progress";
+import type { TaskDetailOrganization } from "../types";
 
 interface TaskContextBannerProps {
 	task: schema.TaskWithLabels;
@@ -85,31 +85,46 @@ function RelationTaskRow({
 }
 
 /**
- * Section wrapper with a collapsible trigger.
+ * Section wrapper with a collapsible trigger — small chevron, tiny icon,
+ * `text-xs` label, no card/border/background. Exported so other "quiet
+ * context row" needs on the task page (e.g. AI Summary/Recommendations in
+ * `task-ai-insights.tsx`) can match this exact visual language instead of
+ * inventing a parallel one.
  */
-function ContextSection({
+export function ContextSection({
 	label,
 	icon,
 	trailing,
 	children,
+	labelClassName,
+	leadingClassName,
 }: {
 	label: string;
 	icon?: React.ReactNode;
 	/** Content rendered inline after the label (e.g. progress badge) */
 	trailing?: React.ReactNode;
 	children: React.ReactNode;
+	labelClassName?: string;
+	leadingClassName?: string;
 }) {
 	return (
 		<Collapsible defaultOpen>
-			<div className="flex items-center gap-1">
+			<div className={cn("flex items-center gap-1")}>
 				<CollapsibleTrigger asChild>
-					<div className="flex items-center gap-1 group cursor-pointer">
+					<button
+						type="button"
+						className={cn(
+							"flex items-center gap-1 group cursor-pointer",
+							leadingClassName,
+							leadingClassName && "p-1 rounded-lg"
+						)}
+					>
 						<IconChevronRight className="size-4 text-muted-foreground group-data-[state=open]:rotate-90 transition-all" />
 						{icon}
-						<Label variant={"description"} className="text-xs select-none">
+						<Label variant={"description"} className={cn("text-xs select-none", labelClassName)}>
 							{label}
 						</Label>
-					</div>
+					</button>
 				</CollapsibleTrigger>
 				{trailing}
 			</div>

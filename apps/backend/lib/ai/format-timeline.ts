@@ -1,5 +1,5 @@
 import type { getMergedTaskActivity } from "@repo/database";
-import { extractPlainText } from "./extract-plain-text";
+import { extractPlainText } from "@repo/util";
 
 type ActivityItem = Awaited<ReturnType<typeof getMergedTaskActivity>>[number];
 
@@ -22,7 +22,7 @@ export function formatDate(date: Date | null): string {
 export function buildTimelineLine(
 	item: ActivityItem,
 	labelMap: Map<string, string>,
-	assigneeMap: Map<string, string>,
+	assigneeMap: Map<string, string>
 ): string {
 	const date = formatDate(item.createdAt);
 	const actor = item.actor?.displayName ?? item.actor?.name ?? "Unknown";

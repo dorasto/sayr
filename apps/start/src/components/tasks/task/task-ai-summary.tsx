@@ -1,30 +1,10 @@
 import type { schema } from "@repo/database";
-import { resolveOrgAiStatus, formatDateTimeFromNow } from "@repo/util";
 import { Button } from "@repo/ui/components/button";
-import { Spinner } from "@repo/ui/components/spinner";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@repo/ui/components/collapsible";
-import {
-  IconSparkles,
-  IconRefresh,
-  IconChevronRight,
-  IconInfoCircle,
-  IconClock,
-  IconLock,
-  IconX,
-} from "@tabler/icons-react";
-import { useState, useEffect, useRef, useCallback } from "react";
-import parse from "html-react-parser";
-import {
-  streamSummarizeTask,
-  fetchTaskSummaryStatus,
-  type AiPromptDebugInfo,
-} from "@/lib/fetches/ai";
-import { renderMarkdown } from "@/lib/markdown";
-import { useLayoutData } from "@/components/generic/Context";
 import {
   Tile,
   TileDescription,
@@ -32,10 +12,35 @@ import {
   TileIcon,
   TileTitle,
 } from "@repo/ui/components/doras-ui/tile";
+import { Separator } from "@repo/ui/components/separator";
+import { Spinner } from "@repo/ui/components/spinner";
+import { BackgroundGradient } from "@repo/ui/doras-ui/gradient";
+import { formatDateTimeFromNow, resolveOrgAiStatus } from "@repo/util";
+import {
+  IconChevronRight,
+  IconClock,
+  IconInfoCircle,
+  IconLock,
+  IconRefresh,
+  IconSparkles,
+  IconX,
+} from "@tabler/icons-react";
+import parse from "html-react-parser";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useLayoutData } from "@/components/generic/Context";
+import {
+  type AiPromptDebugInfo,
+  fetchTaskSummaryStatus,
+  streamSummarizeTask,
+} from "@/lib/fetches/ai";
+import { renderMarkdown } from "@/lib/markdown";
+import { ContextSection } from "./task-context-banner";
 
 interface AiTaskSummaryProps {
   task: schema.TaskWithLabels;
   orgId: string;
+  /** When true, renders content only (no outer card, no upsell/rate-limited notices — the parent AiInsights card already handles those) — used when composed inside the merged AI Insights card. */
+  embedded?: boolean;
 }
 
 function AiRateLimitedNotice({ until }: { until: Date | null }) {
@@ -127,7 +132,7 @@ function AiProUpsell({ orgId }: { orgId: string }) {
   );
 }
 
-export function AiTaskSummary({ task, orgId }: AiTaskSummaryProps) {
+export function AiTaskSummary({ task, orgId, embedded }: AiTaskSummaryProps) {
   const { account, organizations, aiEnabled } = useLayoutData();
   const [summary, setSummary] = useState<string | null>(null);
   const [renderedHtml, setRenderedHtml] = useState<string | null>(null);
@@ -252,7 +257,10 @@ export function AiTaskSummary({ task, orgId }: AiTaskSummaryProps) {
   const isOrgOnCloud = editionRaw === "cloud";
   const isOrgPro = org?.plan === "pro";
   if (isOrgOnCloud && !isOrgPro) {
-    return <AiProUpsell orgId={orgId} />;
+    // When embedded, the parent AiInsights card already renders the shared
+    // upsell for the whole merged card — this branch should only ever be
+    // reached standalone.
+    return embedded ? null : <AiProUpsell orgId={orgId} />;
   }
 
   const { aiDisabled, aiRateLimited, rateLimitUntil, taskSummaryEnabled } =
@@ -263,127 +271,130 @@ export function AiTaskSummary({ task, orgId }: AiTaskSummaryProps) {
     return null;
   }
 
-  // Rate limited — show informational placeholder
+  // Rate limited — show informational placeholder (parent already shows the shared notice when embedded)
   if (aiRateLimited) {
-    return <AiRateLimitedNotice until={rateLimitUntil} />;
+    return embedded ? null : <AiRateLimitedNotice until={rateLimitUntil} />;
   }
 
-  return (
-    <div className="rounded-xl border border-dashed border-border bg-card p-3 flex flex-col gap-2">
-      {/* Header row */}
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-1.5 text-xs font-medium text-foreground">
-          <IconSparkles className="size-3.5" />
-          <span>AI Summary</span>
-        </div>
-        {account.role === "admin" && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-6 px-2 text-xs"
-            onClick={() => handleGenerate(true)}
-            disabled={loading}
-          >
-            {loading ? (
-              <Spinner className="size-3" />
-            ) : summary ? (
-              <>
-                <IconRefresh size={12} className="mr-1" />
-                Regenerate
-              </>
-            ) : (
-              <>
-                <IconSparkles size={12} className="mr-1" />
-                Generate
-              </>
+  const regenerateButton = account.role === "admin" && (
+    <Button
+      variant="ghost"
+      size="sm"
+      className="h-6 px-2 text-xs ml-auto"
+      onClick={() => handleGenerate(true)}
+      disabled={loading}
+    >
+      {loading ? (
+        <Spinner className="size-3" />
+      ) : summary ? (
+        <>
+          <IconRefresh size={12} className="mr-1" />
+          Regenerate
+        </>
+      ) : (
+        <>
+          <IconSparkles size={12} className="mr-1" />
+          Generate
+        </>
+      )}
+    </Button>
+  );
+
+  const content = (
+    <ContextSection
+      label="AI Summary"
+      leadingClassName="bg-primary/20"
+      labelClassName="text-foreground"
+      icon={<IconSparkles className="h-3 w-3 text-primary" />}
+      trailing={regenerateButton}
+    >
+      <div className="flex flex-col gap-2">
+        {/* Prompt preview — admin only, collapsed by default */}
+        {account.role === "admin" && summary && (
+          <Collapsible className="bg-accent p-3 rounded-lg max-w-prose w-fit">
+            <CollapsibleTrigger asChild>
+              <div className="flex items-center gap-1 group cursor-pointer w-fit">
+                <IconChevronRight
+                  size={12}
+                  className="text-muted-foreground group-data-[state=open]:rotate-90 transition-transform"
+                />
+                <span className="text-xs text-muted-foreground select-none">
+                  View prompt
+                </span>
+              </div>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              {promptDebug ? (
+                <div className="flex flex-col gap-2 mt-1.5 max-h-48 overflow-y-auto">
+                  <div>
+                    <div className="flex items-center gap-1.5 px-3 pt-1 pb-0.5">
+                      <span className="text-xs text-muted-foreground font-mono">
+                        url_fetch:{" "}
+                        <span
+                          className={
+                            promptDebug.urlFetchEnabled
+                              ? "text-green-500"
+                              : "text-destructive"
+                          }
+                        >
+                          {promptDebug.urlFetchEnabled
+                            ? `enabled (${promptDebug.urlCount ?? 0} url${(promptDebug.urlCount ?? 0) !== 1 ? "s" : ""})`
+                            : "disabled"}
+                        </span>
+                      </span>
+                    </div>
+                    <pre className="text-xs text-muted-foreground whitespace-pre-wrap font-mono rounded-md px-3 py-2 leading-relaxed">
+                      {promptDebug.systemPrompt}
+                    </pre>
+                    <pre className="text-xs text-muted-foreground whitespace-pre-wrap font-mono rounded-md px-3 py-2 leading-relaxed">
+                      {promptDebug.userPrompt}
+                    </pre>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground mt-1.5 italic">
+                  Generate a summary to see the prompt sent to Mistral.
+                </p>
+              )}
+            </CollapsibleContent>
+          </Collapsible>
+        )}
+
+        {error && <p className="text-xs text-destructive">{error}</p>}
+
+        {(renderedHtml || (loading && summary)) && (
+          <div className="text-sm text-foreground leading-normal! [&_strong]:font-semibold [&_code]:bg-muted [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-xs [&_code]:font-mono [&_p]:leading-normal! [&_p+p]:mt-2">
+            {renderedHtml ? parse(renderedHtml) : summary}
+            {loading && (
+              <span className="ml-0.5 inline-block w-0.5 h-3.5 bg-foreground/60 animate-pulse align-middle" />
             )}
-          </Button>
+          </div>
+        )}
+        {/*<Separator className="my-3 bg-primary/50" />*/}
+        {renderedHtml && !loading && (
+          <div className="flex flex-wrap wrap-anywhere gap-1">
+            <p className="text-xs text-foreground">AI can make mistakes</p>
+            <p className="text-xs text-muted-foreground">
+              Review important information carefully.
+            </p>
+          </div>
+        )}
+        {/* Generated-at timestamp — shown when a summary is displayed and not actively streaming */}
+        {generatedAt && !loading && (
+          <p className="text-xs text-muted-foreground">
+            Generated {formatDateTimeFromNow(generatedAt)}
+          </p>
+        )}
+
+        {!summary && !loading && !error && (
+          <p className="text-xs text-muted-foreground">
+            Generate a concise summary of this task based on its description and
+            comments.
+          </p>
         )}
       </div>
-
-      {/* Prompt preview — admin only, collapsed by default */}
-      {account.role === "admin" && summary && (
-        <Collapsible className="bg-accent p-3 rounded-lg max-w-prose w-fit">
-          <CollapsibleTrigger asChild>
-            <div className="flex items-center gap-1 group cursor-pointer w-fit">
-              <IconChevronRight
-                size={12}
-                className="text-muted-foreground group-data-[state=open]:rotate-90 transition-transform"
-              />
-              <span className="text-xs text-muted-foreground select-none">
-                View prompt
-              </span>
-            </div>
-          </CollapsibleTrigger>
-          <CollapsibleContent>
-            {promptDebug ? (
-              <div className="flex flex-col gap-2 mt-1.5 max-h-48 overflow-y-auto">
-                <div>
-                  <div className="flex items-center gap-1.5 px-3 pt-1 pb-0.5">
-                    <span className="text-xs text-muted-foreground font-mono">
-                      url_fetch:{" "}
-                      <span className={promptDebug.urlFetchEnabled ? "text-green-500" : "text-destructive"}>
-                        {promptDebug.urlFetchEnabled ? `enabled (${promptDebug.urlCount ?? 0} url${(promptDebug.urlCount ?? 0) !== 1 ? "s" : ""})` : "disabled"}
-                      </span>
-                    </span>
-                  </div>
-                  <pre className="text-xs text-muted-foreground whitespace-pre-wrap font-mono rounded-md px-3 py-2 leading-relaxed">
-                    {promptDebug.systemPrompt}
-                  </pre>
-                  <pre className="text-xs text-muted-foreground whitespace-pre-wrap font-mono rounded-md px-3 py-2 leading-relaxed">
-                    {promptDebug.userPrompt}
-                  </pre>
-                </div>
-              </div>
-            ) : (
-              <p className="text-xs text-muted-foreground mt-1.5 italic">
-                Generate a summary to see the prompt sent to Mistral.
-              </p>
-            )}
-          </CollapsibleContent>
-        </Collapsible>
-      )}
-
-      {error && <p className="text-xs text-destructive">{error}</p>}
-
-      {(renderedHtml || (loading && summary)) && (
-        <div className="text-sm text-foreground leading-relaxed [&_strong]:font-semibold [&_code]:bg-muted [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-xs [&_code]:font-mono [&_p]:leading-relaxed [&_p+p]:mt-2">
-          {renderedHtml ? parse(renderedHtml) : summary}
-          {loading && (
-            <span className="ml-0.5 inline-block w-0.5 h-3.5 bg-foreground/60 animate-pulse align-middle" />
-          )}
-        </div>
-      )}
-
-      {renderedHtml && !loading && (
-        <Tile className="border border-primary/30 rounded-lg py-1">
-          <TileHeader>
-            <div className="flex items-center gap-1">
-              <TileIcon className="bg-transparent border-transparent">
-                <IconInfoCircle />
-              </TileIcon>
-              <TileTitle>AI can make mistakes</TileTitle>
-            </div>
-            <TileDescription>
-              Review important information carefully.
-            </TileDescription>
-          </TileHeader>
-        </Tile>
-      )}
-
-      {/* Generated-at timestamp — shown when a summary is displayed and not actively streaming */}
-      {generatedAt && !loading && (
-        <p className="text-xs text-muted-foreground">
-          Generated {formatDateTimeFromNow(generatedAt)}
-        </p>
-      )}
-
-      {!summary && !loading && !error && (
-        <p className="text-xs text-muted-foreground">
-          Generate a concise summary of this task based on its description and
-          comments.
-        </p>
-      )}
-    </div>
+    </ContextSection>
   );
+
+  return content;
 }

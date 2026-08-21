@@ -98,8 +98,8 @@ Turborepo monorepo for Sayr.io, a transparent, collaborative project management 
 | `@repo/util` | Shared utilities (date formatting, slugs, CDN URLs, `formatTaskKey`) |
 | `@repo/queue` | Job queue abstraction (Redis or file-based) |
 | `@repo/opentelemetry` | Tracing and observability utilities |
-| `@repo/ai-mistral` | Mistral AI client (task summaries, etc.) |
-| `@repo/ai-prompts` | Shared prompt definitions consumed by `@repo/ai-mistral` callers |
+| `@repo/ai` | Requesty (OpenAI-compatible gateway) client built on TanStack AI — text generation, curated model catalog (task summaries, etc.) |
+| `@repo/ai-prompts` | Shared prompt definitions consumed by `@repo/ai` callers |
 | `@repo/integrations` | Third-party integration registry — manifests gated by `INTEGRATION_<ID>_ENABLED` env flags |
 | `@repo/create-integration` | Scaffolding CLI for new integrations (`pnpm create-integration`) |
 | `@repo/typescript-config` | Shared `tsconfig.json` bases |
@@ -310,6 +310,22 @@ Before adding a new type, function, component, or utility anywhere in this repo:
 | `document-feature/` | Writing user-facing docs for `apps/marketing`'s Starlight docs site |
 | `update-pr/` | Generating a PR title/description from the diff |
 | `agent-docs-maintenance/` | Checking `AGENTS.md`/skills for staleness, writing a new skill, updating an existing one |
+
+## Agent skills
+
+Configuration for the [mattpocock/skills](https://github.com/mattpocock/skills) engineering skills.
+
+### Issue tracker
+
+Tasks live on Sayr itself — the `platform` org at <https://platform.sayr.io>. **Read-only for agents**: a human gives you a task URL, you read it via `https://api.sayr.io/v1/organization/platform/tasks/<shortId>`. Never create or edit tasks, and never write to the GitHub mirror. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+The five canonical triage roles. Agents *recommend* a role in their output; they can't apply labels. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: one `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/agents/domain.md`.
 
 ## Agent Constraints
 

@@ -37,13 +37,58 @@ export interface OrgAiSettings {
 	 */
 	taskSummaryCustomPrompt?: string | null;
 	/**
-	 * When true, AI features that support URL fetching will embed external URLs
-	 * found in task content as document chunks in the prompt, so the model can
-	 * read the actual page content. Only takes effect for prompt configs where
-	 * `capabilities.urlFetch` is true.
+	 * When true, AI features that support URL fetching will fetch external URLs
+	 * found in task content server-side and fold their text content into the
+	 * prompt. Only takes effect for prompt configs where `capabilities.urlFetch`
+	 * is true.
 	 * Defaults to false — opt-in, as it incurs higher cost and latency.
 	 */
 	urlFetchEnabled?: boolean;
+	/**
+	 * Pro-plan orgs may pick a specific model per AI feature (a Requesty model
+	 * id, see `@repo/ai`'s `REQUESTY_MODEL_CATALOG`) to use instead of that
+	 * feature's prompt default — keyed by the feature's `PromptConfig.id`
+	 * (`@repo/ai-prompts`, e.g. `"task-summary"`), one entry per feature.
+	 * Free-plan orgs never reach this — `isAiAllowedForOrg` gates AI access
+	 * before this field is ever read.
+	 *
+	 * IMPORTANT: this is written through a generic, unvalidated
+	 * `organization/update` endpoint (no server-side schema check on
+	 * `settings.ai` — see apps/backend/routes/api/internal/v1/organization.ts),
+	 * so a stored value here is untrusted input. Always resolve it through
+	 * `@repo/ai`'s `resolveModelId()` before using it to make a request —
+	 * never pass it to a provider call directly.
+	 */
+	selectedModels?: Record<string, string>;
+	/**
+	 * Per-feature enable toggles for AI features added after task-summary,
+	 * keyed by the feature's `PromptConfig.id` (`@repo/ai-prompts`, e.g.
+	 * `"suggest-labels"`). Missing entry = enabled (opt-out model, matching
+	 * `taskSummary`'s default-on behaviour). `taskSummary` itself keeps its
+	 * own dedicated `taskSummary` boolean above rather than moving onto this
+	 * map — this field is only for features built on top of it.
+	 * Checked via `isAiFeatureEnabled` below.
+	 */
+	featureToggles?: Record<string, boolean>;
+	/**
+	 * Per-feature custom instructions (tone/style/behaviour guidance), keyed
+	 * by the feature's `PromptConfig.id`. Generalises `taskSummaryCustomPrompt`
+	 * for features built after task-summary — task-summary keeps its own
+	 * dedicated field rather than migrating onto this map, same reasoning as
+	 * `featureToggles` above. Sanitised and length-capped server-side
+	 * (`PromptConfig.maxCustomPromptLength`) before use — cannot override the
+	 * base system prompt or inject into the feature's user prompt.
+	 */
+	customPrompts?: Record<string, string>;
+	/**
+	 * Per-feature output-structure templates (e.g. desired section headings/
+	 * order), keyed by the feature's `PromptConfig.id`. Only meaningful for
+	 * features whose `PromptConfig` declares `maxTemplateLength > 0`
+	 * (`@repo/ai-prompts`) — features that don't declare it never read this.
+	 * Sanitised and length-capped server-side before use, same as
+	 * `customPrompts`.
+	 */
+	templates?: Record<string, string>;
 }
 
 export const defaultOrgAiSettings: OrgAiSettings = {
@@ -52,6 +97,10 @@ export const defaultOrgAiSettings: OrgAiSettings = {
 	taskSummary: true,
 	taskSummaryCustomPrompt: null,
 	urlFetchEnabled: false,
+	selectedModels: {},
+	featureToggles: {},
+	customPrompts: {},
+	templates: {},
 };
 
 /**
@@ -79,13 +128,25 @@ export function resolveOrgAiStatus(settings: { ai?: OrgAiSettings | null } | nul
 	const ai: OrgAiSettings = { ...defaultOrgAiSettings, ...(settings?.ai ?? {}) };
 
 	if (ai.disabled) {
-		return { aiDisabled: true, aiRateLimited: false, rateLimitUntil: null, taskSummaryEnabled: false, urlFetchEnabled: false };
+		return {
+			aiDisabled: true,
+			aiRateLimited: false,
+			rateLimitUntil: null,
+			taskSummaryEnabled: false,
+			urlFetchEnabled: false,
+		};
 	}
 
 	if (ai.rateLimited) {
 		const until = new Date(ai.rateLimited.until);
 		if (until > new Date()) {
-			return { aiDisabled: false, aiRateLimited: true, rateLimitUntil: until, taskSummaryEnabled: ai.taskSummary, urlFetchEnabled: ai.urlFetchEnabled ?? false };
+			return {
+				aiDisabled: false,
+				aiRateLimited: true,
+				rateLimitUntil: until,
+				taskSummaryEnabled: ai.taskSummary,
+				urlFetchEnabled: ai.urlFetchEnabled ?? false,
+			};
 		}
 	}
 
@@ -96,4 +157,24 @@ export function resolveOrgAiStatus(settings: { ai?: OrgAiSettings | null } | nul
 		taskSummaryEnabled: ai.taskSummary,
 		urlFetchEnabled: ai.urlFetchEnabled ?? false,
 	};
+}
+
+/**
+ * Whether a given AI feature (identified by its `PromptConfig.id`) is
+ * enabled for an organization, per `OrgAiSettings.featureToggles`.
+ *
+ * This only checks the per-feature toggle — callers must separately check
+ * `resolveOrgAiStatus(settings).aiDisabled`/`aiRateLimited` first (as
+ * `checkAiFeatureAccess` in `apps/backend/lib/ai/gate.ts` does) since those
+ * take precedence over any individual feature toggle.
+ *
+ * Not used for `taskSummary` — that feature keeps its own dedicated
+ * `taskSummaryEnabled` field on `resolveOrgAiStatus`'s return value.
+ */
+export function isAiFeatureEnabled(
+	settings: { ai?: OrgAiSettings | null } | null | undefined,
+	featureId: string
+): boolean {
+	const ai: OrgAiSettings = { ...defaultOrgAiSettings, ...(settings?.ai ?? {}) };
+	return ai.featureToggles?.[featureId] ?? true;
 }

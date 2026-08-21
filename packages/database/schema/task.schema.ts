@@ -49,6 +49,12 @@ export const task = table(
 		// Null means no summary has ever been generated for this task.
 		aiSummaryHash: v.text("ai_summary_hash"),
 		aiSummaryGeneratedAt: v.timestamp("ai_summary_generated_at"),
+		// Semantic-search embedding (Mistral's mistral-embed, 1024 dims — see
+		// @repo/ai's EMBEDDING_DIMENSIONS). Null until the background embed_task
+		// job processes this task, or permanently on self-hosted instances
+		// without the `vector` Postgres extension available. Never selected in
+		// normal task-fetch paths — only read explicitly by similarity search.
+		embedding: v.vector("embedding", { dimensions: 1024 }),
 	},
 	(t) => [
 		v.index("idx_task_org_status_priority").on(t.organizationId, t.status, t.priority),

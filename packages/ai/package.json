@@ -1,6 +1,6 @@
 {
-	"name": "@repo/ai-mistral",
-	"version": "0.0.8",
+	"name": "@repo/ai",
+	"version": "0.0.1",
 	"private": true,
 	"exports": {
 		".": "./src/index.ts",
@@ -12,7 +12,9 @@
 		"format": "biome format --write ."
 	},
 	"dependencies": {
-		"@mistralai/mistralai": "^1.7.2"
+		"@tanstack/ai": "^0.45.1",
+		"@tanstack/ai-mistral": "^0.3.2",
+		"@tanstack/ai-openai": "^0.19.1"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.1.1",

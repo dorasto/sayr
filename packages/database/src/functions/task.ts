@@ -1,5 +1,5 @@
-import { and, eq, sql, or, isNull, inArray, count, desc, asc } from "drizzle-orm";
-import { type NodeJSON } from "../../schema";
+import { and, asc, count, desc, eq, inArray, isNull, or, sql } from "drizzle-orm";
+import type { NodeJSON } from "../../schema";
 import { taskComment } from "../../schema/taskComment.schema";
 import { taskRelation } from "../../schema/taskRelation.schema";
 import { taskTimeline } from "../../schema/taskTimeline.schema";
@@ -1293,4 +1293,94 @@ export async function updateTaskAiSummaryMeta(
 		.update(schema.task)
 		.set({ aiSummaryHash: hash, aiSummaryGeneratedAt: generatedAt })
 		.where(and(eq(schema.task.organizationId, orgId), eq(schema.task.id, taskId)));
+}
+
+// ---------------------------------------------------------------------------
+// Semantic search (task.embedding, pgvector)
+// ---------------------------------------------------------------------------
+
+/**
+ * Persists a task's embedding vector — called by the `embed_task` background
+ * job (apps/worker/main/embed-task.ts) after generating it via @repo/ai's
+ * embedText(). Does NOT update `updatedAt` — same reasoning as
+ * updateTaskAiSummaryMeta, this is internal derived data, not a user edit.
+ */
+export async function updateTaskEmbedding(orgId: string, taskId: string, embedding: number[]): Promise<void> {
+	await db
+		.update(schema.task)
+		.set({ embedding })
+		.where(and(eq(schema.task.organizationId, orgId), eq(schema.task.id, taskId)));
+}
+
+export interface SimilarTask {
+	id: string;
+	title: string | null;
+	shortId: number | null;
+	status: string;
+	similarity: number;
+}
+
+/**
+ * Finds the org's tasks most semantically similar to a given embedding
+ * vector, via pgvector's cosine-distance operator (`<=>`). Returns tasks
+ * with no embedding yet excluded (nothing to compare). `similarity` is
+ * `1 - cosine_distance`, so 1.0 = identical, 0.0 = unrelated.
+ *
+ * Used by the Recommendations feature (apps/backend/routes/api/internal/v1/ai/recommendations.ts)
+ * to shortlist relation (duplicate/blocking/related) candidates — replaces
+ * the earlier local word-overlap prefilter with genuine semantic nearest
+ * neighbors across all of the org's tasks, not just a recent-tasks window.
+ */
+export async function findSimilarTasks(
+	orgId: string,
+	embedding: number[],
+	options: { excludeTaskId?: string; limit?: number } = {}
+): Promise<SimilarTask[]> {
+	const limit = Math.min(Math.max(options.limit ?? 12, 1), 50);
+	const vectorLiteral = `[${embedding.join(",")}]`;
+
+	const conditions = [eq(schema.task.organizationId, orgId), sql`${schema.task.embedding} IS NOT NULL`];
+	if (options.excludeTaskId) {
+		conditions.push(sql`${schema.task.id} != ${options.excludeTaskId}`);
+	}
+
+	const rows = await db
+		.select({
+			id: schema.task.id,
+			title: schema.task.title,
+			shortId: schema.task.shortId,
+			status: schema.task.status,
+			similarity: sql<number>`1 - (${schema.task.embedding} <=> ${vectorLiteral}::vector)`,
+		})
+		.from(schema.task)
+		.where(and(...conditions))
+		.orderBy(sql`${schema.task.embedding} <=> ${vectorLiteral}::vector`)
+		.limit(limit);
+
+	return rows;
+}
+
+/**
+ * Batch-fetches just the label ids + category id for a set of tasks —
+ * everything the Recommendations evidence layer needs ("N similar tasks
+ * used this label") and nothing else, so it stays cheap even for the
+ * nearest-neighbor set on every recommendations call.
+ */
+export async function getTaskLabelCategorySummaries(
+	orgId: string,
+	taskIds: string[]
+): Promise<Map<string, { labelIds: string[]; categoryId: string | null }>> {
+	const map = new Map<string, { labelIds: string[]; categoryId: string | null }>();
+	if (taskIds.length === 0) return map;
+
+	const tasks = await db.query.task.findMany({
+		where: (t) => and(eq(t.organizationId, orgId), inArray(t.id, taskIds)),
+		columns: { id: true, category: true },
+		with: { labels: { with: { label: { columns: { id: true } } } } },
+	});
+
+	for (const t of tasks) {
+		map.set(t.id, { labelIds: t.labels.map((assignment) => assignment.label.id), categoryId: t.category ?? null });
+	}
+	return map;
 }

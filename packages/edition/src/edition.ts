@@ -50,7 +50,11 @@ function resolveEdition(): Edition {
 
 	// Local development: read from env var
 	const envEdition = process.env.SAYR_EDITION as Edition | undefined;
-	if (envEdition === "cloud" || envEdition === "community" || envEdition === "enterprise") {
+	if (
+		envEdition === "cloud" ||
+		envEdition === "community" ||
+		envEdition === "enterprise"
+	) {
 		return envEdition;
 	}
 
@@ -110,10 +114,10 @@ export function isEnterprise(): boolean {
  *
  * AI is available when:
  * - Running on cloud (sayr.io), OR
- * - Running on community/enterprise AND a MISTRAL_API_KEY is configured
+ * - Running on community/enterprise AND a REQUESTY_API_KEY is configured
  *
- * **Server-side only** — reads process.env.MISTRAL_API_KEY.
+ * **Server-side only** — reads process.env.REQUESTY_API_KEY.
  */
 export function isAiEnabled(): boolean {
-	return isCloud() || !!process.env.MISTRAL_API_KEY;
+	return isCloud() || !!process.env.REQUESTY_API_KEY;
 }

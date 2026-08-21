@@ -264,12 +264,24 @@ export const prosekitSchema = new Schema({
 			],
 			toDOM: (node) => ["th", node.attrs, 0],
 		},
+		// Matches @prosekit/extensions/list's real node spec (backed by
+		// prosemirror-flat-list) — the actual editor's schema has a single
+		// flat "list" node with `content: "block+"` and no separate
+		// "listItem" wrapper; nested lists are just adjacent "list" nodes
+		// inside a parent list's content, not wrapped in a list-item node.
+		// This must stay structurally identical to prosemirror-flat-list's
+		// `createListSpec()`, or NodeJSON produced here (e.g. by
+		// markdownToProsekitJSON) fails with "Unknown node type" when the
+		// frontend editor tries to load it — content/attrs shape is read by
+		// name, not validated against this schema.
 		list: {
-			content: "listItem+",
-			group: "block",
+			content: "block+",
+			group: "list block",
 			attrs: {
-				kind: { default: "bullet" }, // "bullet" or "ordered"
-				start: { default: 1 },
+				kind: { default: "bullet" }, // "bullet" | "ordered" | "task" | "toggle"
+				order: { default: null },
+				checked: { default: false },
+				collapsed: { default: false },
 			},
 			parseDOM: [
 				{ tag: "ul", attrs: { kind: "bullet" } },
@@ -277,11 +289,11 @@ export const prosekitSchema = new Schema({
 					tag: "ol",
 					getAttrs: (node) => ({
 						kind: "ordered",
-						start: Number((node as HTMLElement).getAttribute("start")) || 1,
+						order: Number((node as HTMLElement).getAttribute("start")) || 1,
 					}),
 				},
 			],
-			toDOM: (node) => (node.attrs.kind === "ordered" ? ["ol", { start: node.attrs.start }, 0] : ["ul", 0]),
+			toDOM: (node) => (node.attrs.kind === "ordered" ? ["ol", { start: node.attrs.order }, 0] : ["ul", 0]),
 		},
 	},
 	marks: {

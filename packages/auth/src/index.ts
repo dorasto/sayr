@@ -12,9 +12,10 @@ import { Polar } from "@polar-sh/sdk";
 import { validateEvent } from '@polar-sh/sdk/webhooks'
 import { Subscription } from "@polar-sh/sdk/models/components/subscription.js";
 import { CustomerSeat } from "@polar-sh/sdk/models/components/customerseat.js";
-import { getEditionCapabilities, isSelfHosted } from "@repo/edition";
+import { getEditionCapabilities, isCloud, isSelfHosted } from "@repo/edition";
 import { eq, sql } from "drizzle-orm";
 import { sendEmail } from "@repo/util";
+import { addContactToContactBook } from "@repo/util/email";
 export { Polar, validateEvent };
 export type { Subscription, CustomerSeat };
 const rootUrl = process.env.VITE_ROOT_DOMAIN;
@@ -242,6 +243,17 @@ export const auth = betterAuth({
 		user: {
 			create: {
 				after: async (user) => {
+					if (isCloud()) {
+						if (user.emailVerified) {
+							await addContactToContactBook({
+								email: user.email,
+								firstName: user.name,
+								properties: {
+									user_id: user.id,
+								},
+							})
+						}
+					}
 					// Emit user.registered event to ClickHouse (cloud only, fire-and-forget)
 					if (getEditionCapabilities().clickhouseEnabled) {
 						const chUrl = process.env.CLICKHOUSE_URL;
@@ -290,6 +302,21 @@ export const auth = betterAuth({
 							image: "https://files.sayr.io/sayr.webp",
 							role: "system"
 						})
+					}
+				},
+			},
+			update: {
+				after: async (user, ctx) => {
+					if (isCloud()) {
+						if (user.emailVerified) {
+							await addContactToContactBook({
+								email: user.email,
+								firstName: user.name,
+								properties: {
+									user_id: user.id,
+								},
+							})
+						}
 					}
 				},
 			},
