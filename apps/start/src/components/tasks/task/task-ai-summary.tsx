@@ -1,6 +1,5 @@
 import type { schema } from "@repo/database";
 import { Button } from "@repo/ui/components/button";
-import { BackgroundGradient } from "@repo/ui/doras-ui/gradient";
 import {
   Collapsible,
   CollapsibleContent,
@@ -13,7 +12,9 @@ import {
   TileIcon,
   TileTitle,
 } from "@repo/ui/components/doras-ui/tile";
+import { Separator } from "@repo/ui/components/separator";
 import { Spinner } from "@repo/ui/components/spinner";
+import { BackgroundGradient } from "@repo/ui/doras-ui/gradient";
 import { formatDateTimeFromNow, resolveOrgAiStatus } from "@repo/util";
 import {
   IconChevronRight,
@@ -33,7 +34,7 @@ import {
   streamSummarizeTask,
 } from "@/lib/fetches/ai";
 import { renderMarkdown } from "@/lib/markdown";
-import { Separator } from "@repo/ui/components/separator";
+import { ContextSection } from "./task-context-banner";
 
 interface AiTaskSummaryProps {
   task: schema.TaskWithLabels;
@@ -275,40 +276,39 @@ export function AiTaskSummary({ task, orgId, embedded }: AiTaskSummaryProps) {
     return embedded ? null : <AiRateLimitedNotice until={rateLimitUntil} />;
   }
 
-  const content = (
-    <>
-      <div className="">
-        {/* Header row */}
-        <div className="flex items-center justify-between gap-2 mb-3">
-          <div className="flex items-center gap-1.5 font-medium text-foreground">
-            <IconSparkles className="" />
-            <span>AI Summary</span>
-          </div>
-          {account.role === "admin" && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-6 px-2 text-xs"
-              onClick={() => handleGenerate(true)}
-              disabled={loading}
-            >
-              {loading ? (
-                <Spinner className="size-3" />
-              ) : summary ? (
-                <>
-                  <IconRefresh size={12} className="mr-1" />
-                  Regenerate
-                </>
-              ) : (
-                <>
-                  <IconSparkles size={12} className="mr-1" />
-                  Generate
-                </>
-              )}
-            </Button>
-          )}
-        </div>
+  const regenerateButton = account.role === "admin" && (
+    <Button
+      variant="ghost"
+      size="sm"
+      className="h-6 px-2 text-xs ml-auto"
+      onClick={() => handleGenerate(true)}
+      disabled={loading}
+    >
+      {loading ? (
+        <Spinner className="size-3" />
+      ) : summary ? (
+        <>
+          <IconRefresh size={12} className="mr-1" />
+          Regenerate
+        </>
+      ) : (
+        <>
+          <IconSparkles size={12} className="mr-1" />
+          Generate
+        </>
+      )}
+    </Button>
+  );
 
+  const content = (
+    <ContextSection
+      label="AI Summary"
+      leadingClassName="bg-primary/20"
+      labelClassName="text-foreground"
+      icon={<IconSparkles className="h-3 w-3 text-primary" />}
+      trailing={regenerateButton}
+    >
+      <div className="flex flex-col gap-2">
         {/* Prompt preview — admin only, collapsed by default */}
         {account.role === "admin" && summary && (
           <Collapsible className="bg-accent p-3 rounded-lg max-w-prose w-fit">
@@ -363,7 +363,7 @@ export function AiTaskSummary({ task, orgId, embedded }: AiTaskSummaryProps) {
         {error && <p className="text-xs text-destructive">{error}</p>}
 
         {(renderedHtml || (loading && summary)) && (
-          <div className="text-sm text-foreground leading-relaxed [&_strong]:font-semibold [&_code]:bg-muted [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-xs [&_code]:font-mono [&_p]:leading-relaxed [&_p+p]:mt-2">
+          <div className="text-sm text-foreground leading-normal! [&_strong]:font-semibold [&_code]:bg-muted [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-xs [&_code]:font-mono [&_p]:leading-normal! [&_p+p]:mt-2">
             {renderedHtml ? parse(renderedHtml) : summary}
             {loading && (
               <span className="ml-0.5 inline-block w-0.5 h-3.5 bg-foreground/60 animate-pulse align-middle" />
@@ -393,14 +393,8 @@ export function AiTaskSummary({ task, orgId, embedded }: AiTaskSummaryProps) {
           </p>
         )}
       </div>
-    </>
+    </ContextSection>
   );
 
-  if (embedded) return content;
-
-  return (
-    <div className="rounded-xl border border-dashed border-border bg-card p-3 flex flex-col gap-2">
-      {content}
-    </div>
-  );
+  return content;
 }

@@ -298,7 +298,7 @@ export function TaskContentMain({
 
 	return (
 		<div className="">
-			<SubWrapper style="compact" className="max-w-6xl gap-3">
+			<SubWrapper style="compact" className="max-w-6xl gap-6">
 				{/* Editable Header with title and description */}
 				<TaskEditableHeader
 					task={task}

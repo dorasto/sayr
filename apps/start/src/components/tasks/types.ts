@@ -47,3 +47,18 @@ export function deriveAvailableUsers(
 	}
 	return [];
 }
+
+/**
+ * Derive org-admin status for `accountId` from an organization's team
+ * memberships (`member.teams[].team.permissions.admin.administrator`) —
+ * same check used by the org settings page's own `isAdmin` computation.
+ * Falls back to `false` when only a `MinimalOrganization` is available
+ * (cross-org contexts without a loaded member list), same fallback shape
+ * as `deriveAvailableUsers`.
+ */
+export function deriveIsProjectAdmin(organization: TaskDetailOrganization | undefined, accountId?: string): boolean {
+	if (!organization || !accountId || !hasMembers(organization)) return false;
+	const currentMember = organization.members.find((m) => m.userId === accountId);
+	if (!currentMember?.teams) return false;
+	return currentMember.teams.some((mt) => mt.team.permissions.admin.administrator);
+}
