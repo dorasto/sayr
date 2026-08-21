@@ -36,6 +36,16 @@ import { enforceLimit, refreshGitHubTokenIfNeeded, traceOrgPermissionCheck, trac
 import { apiRouteAdminProjectTask } from "./task";
 export const apiRouteAdminOrganization = new Hono<AppEnv>();
 
+/** Narrow read of an HTTP status off a caught `unknown` error (e.g. Octokit errors). */
+function getHttpStatus(error: unknown): number | undefined {
+	return typeof error === "object" && error !== null && "status" in error
+		? Number((error as { status: unknown }).status)
+		: undefined;
+}
+
+/** Minimal shape read off a GitHub App installation's `/installation/repositories` response. */
+type GitHubInstallationRepo = { name: string; owner: { login: string } };
+
 function isPlainObject(value: unknown): value is Record<string, unknown> {
 	return typeof value === "object" && value !== null && !Array.isArray(value) && value.constructor === Object;
 }
@@ -58,16 +68,24 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
  * current value (read inside the same row-locked transaction) instead
  * means each request only ever changes the keys it actually intended to.
  */
-function deepMergeSettings<T extends object>(current: T, incoming: Partial<T>): T {
+const FORBIDDEN_MERGE_KEYS = new Set(["__proto__", "constructor", "prototype"]);
+const MAX_MERGE_DEPTH = 8;
+
+function deepMergeSettings<T extends object>(current: T, incoming: Partial<T>, depth = 0): T {
+	if (depth > MAX_MERGE_DEPTH) return current;
 	const currentRecord = current as Record<string, unknown>;
 	const incomingRecord = incoming as Record<string, unknown>;
 	const result: Record<string, unknown> = { ...currentRecord };
 	for (const key of Object.keys(incomingRecord)) {
+		// `incoming` is `data.settings` straight from the request body — JSON.parse
+		// can produce an own enumerable "__proto__" key, and assigning through it
+		// on a plain object mutates the prototype instead of storing a data key.
+		if (FORBIDDEN_MERGE_KEYS.has(key)) continue;
 		const incomingValue = incomingRecord[key];
 		const currentValue = currentRecord[key];
 		result[key] =
 			isPlainObject(incomingValue) && isPlainObject(currentValue)
-				? deepMergeSettings(currentValue, incomingValue)
+				? deepMergeSettings(currentValue, incomingValue, depth + 1)
 				: incomingValue;
 	}
 	return result as T;
@@ -2888,10 +2906,10 @@ apiRouteAdminOrganization.get("/:orgId/github/installations", async (c) => {
 			success: true,
 			data: filteredInstallations,
 		});
-	} catch (error: any) {
+	} catch (error: unknown) {
 		/* ⭐ Important fallback:
 			   If GitHub says token invalid → force refresh once */
-		if (error?.status === 401 && githubAccount.refreshToken) {
+		if (getHttpStatus(error) === 401 && githubAccount.refreshToken) {
 			const refreshed = await refreshGitHubTokenIfNeeded({
 				...githubAccount,
 				accessTokenExpiresAt: new Date(0),
@@ -3036,10 +3054,10 @@ apiRouteAdminOrganization.post("/:orgId/github/link", async (c) => {
 		return c.json({
 			success: true,
 		});
-	} catch (error: any) {
+	} catch (error: unknown) {
 		console.error("Failed to link GitHub installation:", error);
 
-		if (error?.status === 401) {
+		if (getHttpStatus(error) === 401) {
 			return c.json(
 				{
 					success: false,
@@ -3816,7 +3834,9 @@ apiRouteAdminOrganization.get("/:orgId/github_prs", async (c) => {
 				});
 
 				// Find the repo by name (e.g., "sayr-io-test")
-				const repoInfo = installationRepos.repositories.find((r: any) => r.name === repo.repoName);
+				const repoInfo = (installationRepos.repositories as GitHubInstallationRepo[]).find(
+					(r) => r.name === repo.repoName
+				);
 				if (!repoInfo) return [];
 
 				const orgName = repoInfo.owner.login;

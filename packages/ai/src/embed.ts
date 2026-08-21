@@ -48,5 +48,13 @@ export async function embedText(text: string): Promise<number[]> {
 export async function embedTexts(texts: string[]): Promise<number[][]> {
 	if (texts.length === 0) return [];
 	const result = await embed({ adapter: getEmbeddingAdapter(), input: texts });
+	// The backfill script persists per-task embeddings by index, so a provider
+	// returning fewer/more vectors than inputs (partial response, dropped
+	// input) would silently misalign vectors to the wrong tasks.
+	if (result.embeddings.length !== texts.length) {
+		throw new Error(
+			`Mistral returned ${result.embeddings.length} embeddings for ${texts.length} inputs`,
+		);
+	}
 	return result.embeddings.map((e) => e.vector);
 }

@@ -283,7 +283,7 @@ recommendationsRoute.post("/", async (c) => {
 		const existingIds = new Set((task.assignees ?? []).map((a) => a.id));
 		candidateAssignees = (access.org.members ?? [])
 			.filter((m) => !existingIds.has(m.user.id))
-			.map((m) => ({ id: m.user.id, name: m.user.displayName || m.user.name || m.user.email || "Unknown" }));
+			.map((m) => ({ id: m.user.id, name: m.user.displayName || m.user.name || "Unknown" }));
 		if (candidateAssignees.length > 0) {
 			sections.push(
 				`Available assignees (pick zero or more, only with a concrete signal):\n${candidateAssignees.map((a, i) => `${i + 1}. id="${a.id}" name="${a.name}"`).join("\n")}`

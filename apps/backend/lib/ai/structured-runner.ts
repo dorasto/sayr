@@ -144,10 +144,12 @@ export async function runAiStructuredFeature<TSchema extends z.ZodTypeAny>(
 							if (item.type === "chunk") {
 								outputText += item.text;
 							} else if (item.type === "done") {
-								promptTokens = item.usage.promptTokens;
-								completionTokens = item.usage.completionTokens;
-								totalTokens = item.usage.totalTokens;
-								costUsd = item.usage.cost ?? 0;
+								// Both attempts are billed by the provider, so accumulate rather
+								// than overwrite — otherwise a retry under-reports usage/cost.
+								promptTokens += item.usage.promptTokens;
+								completionTokens += item.usage.completionTokens;
+								totalTokens += item.usage.totalTokens;
+								costUsd += item.usage.cost ?? 0;
 							}
 						}
 

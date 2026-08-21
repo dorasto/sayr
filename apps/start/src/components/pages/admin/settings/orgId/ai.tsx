@@ -150,17 +150,24 @@ export default function AiSettingsPage({ locked }: { locked?: boolean }) {
 		aiSettings.customPrompts?.[RELEASE_NOTES_FEATURE_ID] ?? ""
 	);
 
+	// Every successful save replaces `organization.settings` wholesale
+	// (`setOrganization({ ...result.data, ... })`), which creates new
+	// `templates`/`customPrompts` map identities even when this particular key
+	// didn't change. Depending on the map itself would re-run these effects (and
+	// discard an in-progress draft) on every unrelated save; depending on the
+	// derived primitive string instead means React only resyncs the draft when
+	// the actual persisted value at this key changes.
+	const persistedTemplate = aiSettings.templates?.[RELEASE_NOTES_FEATURE_ID] ?? "";
+	const persistedCustomPrompt = aiSettings.customPrompts?.[RELEASE_NOTES_FEATURE_ID] ?? "";
 	useEffect(() => {
-		setReleaseNotesTemplateDraft(aiSettings.templates?.[RELEASE_NOTES_FEATURE_ID] ?? "");
-	}, [aiSettings.templates]);
+		setReleaseNotesTemplateDraft(persistedTemplate);
+	}, [persistedTemplate]);
 	useEffect(() => {
-		setReleaseNotesCustomPromptDraft(aiSettings.customPrompts?.[RELEASE_NOTES_FEATURE_ID] ?? "");
-	}, [aiSettings.customPrompts]);
+		setReleaseNotesCustomPromptDraft(persistedCustomPrompt);
+	}, [persistedCustomPrompt]);
 
-	const releaseNotesTemplateDirty =
-		releaseNotesTemplateDraft.trim() !== (aiSettings.templates?.[RELEASE_NOTES_FEATURE_ID] ?? "").trim();
-	const releaseNotesCustomPromptDirty =
-		releaseNotesCustomPromptDraft.trim() !== (aiSettings.customPrompts?.[RELEASE_NOTES_FEATURE_ID] ?? "").trim();
+	const releaseNotesTemplateDirty = releaseNotesTemplateDraft.trim() !== persistedTemplate.trim();
+	const releaseNotesCustomPromptDirty = releaseNotesCustomPromptDraft.trim() !== persistedCustomPrompt.trim();
 
 	// ---------------------------------------------------------------------------
 	// Handlers

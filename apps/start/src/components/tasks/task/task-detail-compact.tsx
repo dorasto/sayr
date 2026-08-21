@@ -75,18 +75,28 @@ export function TaskDetailCompact({
 	// aren't silently empty in this compact/dialog view.
 	const [fetchedRelations, setFetchedRelations] = useState<schema.TaskRelationWithTarget[] | undefined>(undefined);
 	useEffect(() => {
+		// Drop any relations fetched for a previously displayed task — this
+		// component is reused across consecutive tasks in the dialog/side panel,
+		// so without this a task switch briefly (or permanently, if the new task
+		// already has task.relations) shows the previous task's related tasks.
+		setFetchedRelations(undefined);
 		if (task.relations !== undefined) return;
 		let cancelled = false;
-		getTaskRelationsAction(task.organizationId, task.id).then((res) => {
-			if (!cancelled && res.success && res.data) {
-				setFetchedRelations(res.data);
-			}
-		});
+		getTaskRelationsAction(task.organizationId, task.id)
+			.then((res) => {
+				if (!cancelled && res.success && res.data) {
+					setFetchedRelations(res.data);
+				}
+			})
+			.catch(() => {
+				// Relations stay hidden — the banner simply omits the rows.
+			});
 		return () => {
 			cancelled = true;
 		};
 	}, [task.id, task.organizationId, task.relations]);
-	const taskWithRelations = fetchedRelations ? { ...task, relations: fetchedRelations } : task;
+	const taskWithRelations =
+		task.relations === undefined && fetchedRelations ? { ...task, relations: fetchedRelations } : task;
 
 	// Get labels and categories for this task's organization
 	const orgLabels = labels.filter((l) => l.organizationId === task.organizationId);

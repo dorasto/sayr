@@ -1,5 +1,7 @@
 import { releaseNotesPrompt } from "@repo/ai-prompts";
-import { getReleaseWithTasks } from "@repo/database";
+import { db, getReleaseWithTasks } from "@repo/database";
+import { extractPlainText } from "@repo/util";
+import { eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { z } from "zod";
 import type { AppEnv } from "@/index";
@@ -16,8 +18,24 @@ const requestSchema = z.object({
 	orgId: z.string().min(1),
 });
 
-function buildUserPrompt(release: NonNullable<Awaited<ReturnType<typeof getReleaseWithTasks>>>): string {
-	const taskLines = release.tasks.map((t) => `- [${t.status ?? "unknown"}] ${t.title}`);
+/** Max chars of a task's description folded into the prompt per task — keeps token usage bounded. */
+const MAX_TASK_DESCRIPTION_LENGTH = 500;
+
+function buildUserPrompt(
+	release: NonNullable<Awaited<ReturnType<typeof getReleaseWithTasks>>>,
+	categoryNamesById: Map<string, string>
+): string {
+	const taskLines = release.tasks.map((t) => {
+		const parts = [`[${t.status ?? "unknown"}]`, t.title];
+		if (t.priority && t.priority !== "none") parts.push(`(priority: ${t.priority})`);
+		const categoryName = t.category ? categoryNamesById.get(t.category) : undefined;
+		if (categoryName) parts.push(`(category: ${categoryName})`);
+		const descriptionText = t.description
+			? extractPlainText(t.description).slice(0, MAX_TASK_DESCRIPTION_LENGTH)
+			: "";
+		const line = `- ${parts.join(" ")}`;
+		return descriptionText ? `${line}\n  ${descriptionText}` : line;
+	});
 
 	return [
 		`Release: ${release.name}`,
@@ -61,7 +79,16 @@ releaseNotesRoute.post("/", async (c) => {
 		return c.json(errorResponse("Release not found"), 404);
 	}
 
-	const userPrompt = buildUserPrompt(release);
+	// `release.tasks[].category` is only the raw category id (getReleaseWithTasks
+	// doesn't join it) — resolve names separately here rather than widening that
+	// shared function's return shape for every other caller.
+	const categories = await db.query.category.findMany({
+		where: (category) => eq(category.organizationId, orgId),
+		columns: { id: true, name: true },
+	});
+	const categoryNamesById = new Map(categories.map((cat) => [cat.id, cat.name]));
+
+	const userPrompt = buildUserPrompt(release, categoryNamesById);
 	const model = resolveActiveModel(releaseNotesPrompt, access.org.settings);
 	const systemPrompt = buildEffectiveSystemPrompt(releaseNotesPrompt, access.org.settings);
 

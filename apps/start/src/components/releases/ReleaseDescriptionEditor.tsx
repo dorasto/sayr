@@ -1,17 +1,17 @@
-import type { NodeJSON } from "prosekit/core";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import Editor from "@/components/prosekit/editor";
-import processUploads from "@/components/prosekit/upload";
+import type { schema } from "@repo/database";
 import { Button } from "@repo/ui/components/button";
 import { Spinner } from "@repo/ui/components/spinner";
-import { IconSparkles } from "@tabler/icons-react";
-import { extractTextContent, useToastAction } from "@/lib/util";
-import type { schema } from "@repo/database";
-import { isAiFeatureEnabled, resolveOrgAiStatus } from "@repo/util";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
-import { updateReleaseAction } from "@/lib/fetches/release";
-import { streamGenerateReleaseNotes } from "@/lib/fetches/ai";
+import { isAiFeatureEnabled, resolveOrgAiStatus } from "@repo/util";
+import { IconSparkles } from "@tabler/icons-react";
+import type { NodeJSON } from "prosekit/core";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLayoutData } from "@/components/generic/Context";
+import Editor from "@/components/prosekit/editor";
+import processUploads from "@/components/prosekit/upload";
+import { streamGenerateReleaseNotes } from "@/lib/fetches/ai";
+import { updateReleaseAction } from "@/lib/fetches/release";
+import { extractTextContent, useToastAction } from "@/lib/util";
 
 const RELEASE_NOTES_FEATURE_ID = "release-notes";
 
@@ -43,7 +43,7 @@ export function ReleaseDescriptionEditor({
 	const [aiDraftText, setAiDraftText] = useState<string>("");
 	const [aiGenerating, setAiGenerating] = useState(false);
 	const [aiError, setAiError] = useState<string | null>(null);
-	const pendingNodeJsonRef = useRef<NodeJSON | null>(null);
+	const [pendingNodeJson, setPendingNodeJson] = useState<NodeJSON | null>(null);
 
 	// Sync with release changes
 	useEffect(() => {
@@ -118,14 +118,14 @@ export function ReleaseDescriptionEditor({
 		setAiGenerating(true);
 		setAiDraftText("");
 		setAiError(null);
-		pendingNodeJsonRef.current = null;
+		setPendingNodeJson(null);
 
 		streamGenerateReleaseNotes(
 			release.id,
 			organizationId,
 			(chunk) => setAiDraftText((prev) => prev + chunk),
 			(content) => {
-				pendingNodeJsonRef.current = content as NodeJSON;
+				setPendingNodeJson(content as NodeJSON);
 			},
 			() => setAiGenerating(false),
 			(err) => {
@@ -136,17 +136,17 @@ export function ReleaseDescriptionEditor({
 	};
 
 	const handleInsert = () => {
-		if (!pendingNodeJsonRef.current) return;
-		setAiDraftContent(pendingNodeJsonRef.current);
-		setDescription(pendingNodeJsonRef.current);
+		if (!pendingNodeJson) return;
+		setAiDraftContent(pendingNodeJson);
+		setDescription(pendingNodeJson);
 		setAiDraftText("");
-		pendingNodeJsonRef.current = null;
+		setPendingNodeJson(null);
 	};
 
 	const handleDismissDraft = () => {
 		setAiDraftText("");
 		setAiError(null);
-		pendingNodeJsonRef.current = null;
+		setPendingNodeJson(null);
 	};
 
 	return (
@@ -176,7 +176,7 @@ export function ReleaseDescriptionEditor({
 							<span className="ml-0.5 inline-block w-0.5 h-3.5 bg-foreground/60 animate-pulse align-middle" />
 						)}
 					</div>
-					{!aiGenerating && pendingNodeJsonRef.current && (
+					{!aiGenerating && pendingNodeJson && (
 						<div className="flex items-center gap-2">
 							<Button variant="primary" size="sm" className="text-xs h-auto py-1" onClick={handleInsert}>
 								Insert into description

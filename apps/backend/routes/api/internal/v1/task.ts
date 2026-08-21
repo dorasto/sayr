@@ -570,6 +570,16 @@ apiRouteAdminProjectTask.post("/public-create", async (c) => {
 		metadata: { status: resolvedStatus, priority: resolvedPriority, source: "public" },
 	});
 
+	// Fire-and-forget: same as the member /create route above — a brand-new
+	// task always needs its semantic-search embedding generated. Public tasks
+	// were previously missing this entirely, leaving `task.embedding` NULL
+	// until a later edit or manual backfill.
+	if (getEditionCapabilities().semanticSearchEnabled) {
+		enqueue("main", { type: "embed_task", payload: { orgId, taskId: task.id } }).catch((err) => {
+			console.error("[task.public_create] Failed to enqueue embed_task job:", err);
+		});
+	}
+
 	return c.json({ success: true, data: taskWithData });
 });
 
@@ -879,9 +889,10 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 	// the task.updated ClickHouse events above, so an unrelated field change
 	// (status/priority/etc) doesn't trigger a wasted embedding call. Cloud-only,
 	// same as the /create enqueue above.
-	const titleChanged = updates.title && updates.title !== existingTask.title;
+	const titleChanged = updates.title !== undefined && updates.title !== existingTask.title;
 	const descriptionChanged =
-		updates.description && JSON.stringify(updates.description) !== JSON.stringify(existingTask.description);
+		updates.description !== undefined &&
+		JSON.stringify(updates.description) !== JSON.stringify(existingTask.description);
 	if ((titleChanged || descriptionChanged) && getEditionCapabilities().semanticSearchEnabled) {
 		enqueue("main", { type: "embed_task", payload: { orgId, taskId } }).catch((err) => {
 			console.error("[task.update] Failed to enqueue embed_task job:", err);
