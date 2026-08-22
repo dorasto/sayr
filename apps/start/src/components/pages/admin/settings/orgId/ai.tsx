@@ -17,7 +17,7 @@ import { defaultOrgAiSettings, type OrgAiSettings } from "@repo/util";
 import { IconDeviceFloppy, IconLock, IconSparkles } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useLayoutData } from "@/components/generic/Context";
+import { useLayoutData } from "@/components/admin/shell/context";
 import { useLayoutOrganizationSettings } from "@/contexts/ContextOrgSettings";
 import { updateOrganizationAction } from "@/lib/fetches/organization";
 

@@ -1,21 +1,17 @@
 import type { schema } from "@repo/database";
 import { Tile, TileAction, TileHeader, TileTitle } from "@repo/ui/components/doras-ui/tile";
 import { Label } from "@repo/ui/components/label";
-import { Separator } from "@repo/ui/components/separator";
-import SimpleClipboard from "@repo/ui/components/tomui/simple-clipboard";
 import { useReadOnlyStateManagementKey } from "@repo/ui/hooks/useStateManagement.ts";
-import { IconExternalLink, IconLink, IconPlug } from "@tabler/icons-react";
-import { useLayoutData } from "@/components/generic/Context";
+import { IconExternalLink, IconPlug } from "@tabler/icons-react";
+import { useLayoutData } from "@/components/admin/shell/context";
 import { SubWrapper } from "@/components/generic/wrapper";
 import { useLayoutOrganization } from "@/contexts/ContextOrg";
 import type { useToastAction } from "@/lib/util";
 import { cn } from "@/lib/utils";
-import { InlineLabel } from "../shared";
+import { getMatchedIntegrations, InlineLabel, TaskFieldToolbar, getTaskFieldPermissions } from "../shared";
 import GlobalTaskAssignees from "../shared/assignee";
 import GlobalTaskGithubIssue from "../shared/github-issue";
-import { getMatchedIntegrations } from "../shared/integration-registry";
 import GlobalTaskLabels from "../shared/label";
-import TaskFieldToolbar, { getTaskFieldPermissions } from "../shared/task-field-toolbar";
 import { TaskEditableHeader } from "./editable-header";
 import { AiInsights } from "./task-ai-insights";
 import { TaskContextBanner } from "./task-context-banner";
@@ -217,7 +213,6 @@ export function TaskContentMobileContent({
 	setSelectedTask,
 	availableUsers = [],
 	categories,
-	organization,
 	releases,
 }: Omit<TaskContentSideContentProps, "sseClientId" | "runWithToast">) {
 	const { permissions } = useLayoutOrganization();
@@ -225,7 +220,7 @@ export function TaskContentMobileContent({
 	const fieldPerms = getTaskFieldPermissions(task, account?.id, permissions);
 	return (
 		<div className="flex items-center justify-between gap-3">
-			<div className="flex items-center flex-wrap gap-1 w-full overflow-x-auto py-1">
+			<div className="flex items-center gap-1 w-full overflow-x-auto py-1">
 				<TaskFieldToolbar
 					task={task}
 					variant="compact"
@@ -248,16 +243,7 @@ export function TaskContentMobileContent({
 						"vote",
 					]}
 				/>
-				<Separator orientation="vertical" className="h-[26px]" />
-				<SimpleClipboard
-					textToCopy={`https://${organization?.slug}.${import.meta.env.VITE_ROOT_DOMAIN}/${task.shortId}`}
-					variant={"primary"}
-					className="h-[26px] p-1 w-fit bg-accent"
-					copyIcon={<IconLink />}
-					tooltipText="Copy task URL"
-					tooltipSide="bottom"
-				/>
-				<GlobalTaskGithubIssue task={task} className="bg-accent" />
+				<GlobalTaskGithubIssue task={task} className="shrink-0 bg-accent" />
 			</div>
 		</div>
 	);

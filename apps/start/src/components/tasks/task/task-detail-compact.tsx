@@ -1,21 +1,23 @@
 import type { schema } from "@repo/database";
 import { Button } from "@repo/ui/components/button";
-import { Separator } from "@repo/ui/components/separator";
+import { Tile, TileAction, TileHeader, TileTitle } from "@repo/ui/components/doras-ui/tile";
 import SimpleClipboard from "@repo/ui/components/tomui/simple-clipboard";
-import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
-import { IconExternalLink, IconLink } from "@tabler/icons-react";
+import { useReadOnlyStateManagementKey, useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
+import { IconExternalLink, IconLink, IconPlug } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
-import { useLayoutData } from "@/components/generic/Context";
+import { useLayoutData } from "@/components/admin/shell/context";
 import type { MentionContext } from "@/hooks/useMentionUsers";
 import { getTaskRelationsAction } from "@/lib/fetches/task";
-import TaskFieldToolbar from "../shared/task-field-toolbar";
-import type { FieldPermissions } from "../shared/task-field-toolbar-types";
+import { cn } from "@/lib/utils";
+import { useToastAction } from "@/lib/util";
+import { getMatchedIntegrations, InlineLabel, TaskFieldToolbar, type FieldPermissions } from "../shared";
 import { deriveAvailableUsers, deriveIsProjectAdmin, type TaskDetailOrganization } from "../types";
 import { TaskEditableHeader } from "./editable-header";
 import { AiInsights } from "./task-ai-insights";
 import { TaskContextBanner } from "./task-context-banner";
+import { TaskParentSection, TaskRelationsSection, TaskSubtasksSection } from "./task-hierarchy-sections";
 import GlobalTimeline from "./timeline/root";
 
 export interface TaskDetailCompactProps {
@@ -60,14 +62,20 @@ export function TaskDetailCompact({
 	fieldPermissions,
 }: TaskDetailCompactProps) {
 	const { setValue: setMentionContext } = useStateManagement<MentionContext | null>("mentionContext", null);
+	const { value: sseClientId } = useStateManagement<string>("sse-clientId", "");
+	const { runWithToast } = useToastAction();
 	const { account } = useLayoutData();
+
+	// Resolve the organization to use for display / clipboard / mention context.
+	// Prefer the explicit prop; fall back to the minimal shape on `task.organization`.
+	const resolvedOrg = organization ?? task.organization;
 
 	// Set mentionContext so the Editor's useMentionUsers hook can fetch org members and task participants
 	useEffect(() => {
 		if (task.organizationId) {
-			setMentionContext({ orgId: task.organizationId, taskId: task.id });
+			setMentionContext({ orgId: task.organizationId, orgShortId: resolvedOrg?.shortId, taskId: task.id });
 		}
-	}, [task.organizationId, task.id, setMentionContext]);
+	}, [task.organizationId, resolvedOrg?.shortId, task.id, setMentionContext]);
 
 	// List-sourced tasks (the `tasks` array backing UnifiedTaskView / inbox) never
 	// carry `relations` — only the main task page's single-task fetch does. Fetch
@@ -103,10 +111,6 @@ export function TaskDetailCompact({
 	const orgCategories = categories.filter((c) => c.organizationId === task.organizationId);
 	const orgReleases = releases.filter((r) => r.organizationId === task.organizationId);
 
-	// Resolve the organization to use for display / clipboard.
-	// Prefer the explicit prop; fall back to the minimal shape on `task.organization`.
-	const resolvedOrg = organization ?? task.organization;
-
 	// Derive available users: full member list when OrganizationWithMembers is
 	// provided, otherwise fall back to the task's existing assignees.
 	const availableUsers = deriveAvailableUsers(resolvedOrg, task);
@@ -115,6 +119,19 @@ export function TaskDetailCompact({
 	// false (not thrown) when only a MinimalOrganization is available, same
 	// cross-org fallback shape as availableUsers above.
 	const isProjectAdmin = deriveIsProjectAdmin(resolvedOrg, account?.id);
+
+	// Matched integration activity for the "Integrations" tile — same derivation
+	// as the full task page's TaskContentSideContent.
+	// biome-ignore lint/suspicious/noExplicitAny: activity payload shape is dynamic per event type
+	const { value: activity }: any = useReadOnlyStateManagementKey([
+		"timeline",
+		"activity",
+		task.id,
+		task.organizationId,
+	]);
+	// biome-ignore lint/suspicious/noExplicitAny: see above
+	const integrationActivities = activity?.filter((e: any) => e.eventType === "integration");
+	const matchedIntegrations = getMatchedIntegrations(integrationActivities ?? []);
 
 	return (
 		<div className="flex flex-col h-full">
@@ -194,6 +211,86 @@ export function TaskDetailCompact({
 					setSelectedTask={setSelectedTask}
 					organization={resolvedOrg}
 				/>
+				{/*
+					Parent/subtasks/relations management and the integrations tile —
+					previously only on the full task page (TaskContentSideContent),
+					missing here despite this view matching it on every other feature
+					(toolbar, AI insights, timeline). TaskContextBanner above only
+					*displays* relations; these sections are what actually let you
+					set a parent, add a subtask, or link a related task from the
+					compact/dialog/inbox view.
+				*/}
+				<TaskParentSection
+					task={task}
+					tasks={tasks}
+					setTasks={setTasks}
+					setSelectedTask={setSelectedTask}
+					sseClientId={sseClientId}
+					runWithToast={runWithToast}
+					orgShortId={resolvedOrg?.shortId}
+				/>
+				<TaskSubtasksSection
+					task={task}
+					tasks={tasks}
+					setTasks={setTasks}
+					setSelectedTask={setSelectedTask}
+					sseClientId={sseClientId}
+					runWithToast={runWithToast}
+					orgShortId={resolvedOrg?.shortId}
+				/>
+				<TaskRelationsSection
+					task={task}
+					tasks={tasks}
+					setTasks={setTasks}
+					setSelectedTask={setSelectedTask}
+					sseClientId={sseClientId}
+					runWithToast={runWithToast}
+					orgShortId={resolvedOrg?.shortId}
+				/>
+				{matchedIntegrations.length > 0 && (
+					<Tile className="md:w-full items-start p-0 flex-col gap-1" variant="transparent">
+						<TileHeader>
+							<TileTitle asChild>
+								<InlineLabel
+									icon={<IconPlug />}
+									text="Integrations"
+									className="text-xs text-muted-foreground [&_svg]:size-4 ps-6"
+								/>
+							</TileTitle>
+						</TileHeader>
+						<TileAction className="flex flex-col gap-1 items-start">
+							{matchedIntegrations.map(({ config, activity: matchedActivity }) => {
+								const url = config.getUrl(matchedActivity.toValue?.data);
+								if (url) {
+									return (
+										<a
+											key={matchedActivity.id}
+											href={url}
+											target="_blank"
+											rel="noopener noreferrer"
+											className={cn(
+												"bg-transparent p-1 h-auto w-fit inline-flex items-center rounded-lg hover:bg-secondary border border-transparent hover:border-border group/link transition-all",
+												config.className
+											)}
+										>
+											<div className="flex items-center gap-2 text-xs">
+												{config.icon}
+												<span>{config.label}</span>
+												<IconExternalLink className="size-3 shrink-0 opacity-0 group-hover/link:opacity-100 transition-all" />
+											</div>
+										</a>
+									);
+								}
+								return (
+									<div key={matchedActivity.id} className="flex items-center gap-2 text-xs p-1">
+										{config.icon}
+										<span>{config.label}</span>
+									</div>
+								);
+							})}
+						</TileAction>
+					</Tile>
+				)}
 				<AiInsights
 					task={task}
 					orgId={task.organizationId}

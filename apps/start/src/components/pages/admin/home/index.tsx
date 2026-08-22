@@ -1,22 +1,22 @@
 import type { schema } from "@repo/database";
 import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
+import SayrIcon from "@repo/ui/components/brand-icon";
 import { Tile, TileDescription, TileHeader, TileIcon, TileTitle } from "@repo/ui/components/doras-ui/tile";
 import { Label } from "@repo/ui/components/label";
+import { Separator } from "@repo/ui/components/separator";
 import { cn } from "@repo/ui/lib/utils";
-import { formatTaskKey } from "@repo/util";
+import { formatTaskKey, getInitials } from "@repo/util";
 import { IconChevronRight, IconHome, IconListCheck, IconUser } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
-import { useLayoutData } from "@/components/generic/Context";
+import { useLayoutData } from "@/components/admin/shell/context";
 import { PageHeader } from "@/components/generic/PageHeader";
+import { SubWrapper } from "@/components/generic/wrapper";
 import { priorityConfig, statusConfig } from "@/components/tasks/shared/config";
 import { InlineLabel } from "@/components/tasks/shared/inlinelabel";
 import { useMyTasks } from "@/contexts/ContextMine";
-import { SubWrapper } from "@/components/generic/wrapper";
 import { useServerEventsSubscription } from "@/hooks/useServerEventsSubscription";
-import SayrIcon from "@repo/ui/components/brand-icon";
-import { Separator } from "@repo/ui/components/separator";
-import { PendingInvitesSection } from "./pending-invites";
 import type { PendingInviteWithOrg } from "@/routes/(admin)/home/index";
+import { PendingInvitesSection } from "./pending-invites";
 
 // Priority order for sorting tasks
 const priorityOrder: Record<string, number> = {
@@ -114,7 +114,7 @@ export default function AdminHomePage({ pendingInvites }: { pendingInvites: Pend
 											<TileIcon className="h-full aspect-square flex items-center justify-center bg-transparent">
 												<Avatar className="h-8 w-8">
 													<AvatarImage src={org.logo || ""} alt={org.name} />
-													<AvatarFallback className="text-xs">{org.name.charAt(0)}</AvatarFallback>
+													<AvatarFallback className="text-xs">{getInitials(org.name)}</AvatarFallback>
 												</Avatar>
 											</TileIcon>
 											<div className="flex-1 min-w-0">
@@ -223,7 +223,9 @@ function PriorityTaskItem({ task }: PriorityTaskItemProps) {
 							icon={
 								<Avatar className="h-4 w-4">
 									<AvatarImage src={task.organization.logo || ""} alt={task.organization.name} />
-									<AvatarFallback className="text-[10px]">{task.organization.name.charAt(0)}</AvatarFallback>
+									<AvatarFallback className="text-[10px]">
+										{getInitials(task.organization.name)}
+									</AvatarFallback>
 								</Avatar>
 							}
 							text={task.organization.name}

@@ -1,11 +1,13 @@
 import type { schema } from "@repo/database";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { searchGlobalUsers } from "@/lib/fetches/mention";
 
 export interface MentionContext {
 	orgId: string;
+	orgShortId?: string;
 	taskId?: string;
 	releaseId?: string;
 }
@@ -31,18 +33,7 @@ export function useMentionUsers(seedUsers?: schema.UserSummary[]) {
 
 	// Debounced version of searchQuery — only this value triggers network fetches.
 	// The raw searchQuery still drives client-side filtering for instant feedback.
-	const [debouncedQuery, setDebouncedQuery] = useState("");
-
-	useEffect(() => {
-		if (searchQuery.length === 0) {
-			setDebouncedQuery("");
-			return;
-		}
-		const timer = setTimeout(() => {
-			setDebouncedQuery(searchQuery);
-		}, 300);
-		return () => clearTimeout(timer);
-	}, [searchQuery]);
+	const debouncedQuery = useDebouncedValue(searchQuery, 300);
 
 	// Cumulative user cache — grows as we see more users from searches.
 	// Keyed by user ID for deduplication.
@@ -61,12 +52,13 @@ export function useMentionUsers(seedUsers?: schema.UserSummary[]) {
 	// Handles context-aware ordering (task participants > org members > all users)
 	const searchQueryResult = useQuery<schema.UserSummary[]>({
 		queryKey: ["mentionUsers", orgId, taskId, "search", debouncedQuery],
-		queryFn: () => searchGlobalUsers({
-			query: debouncedQuery || undefined,
-			orgId,
-			taskId,
-			limit: 20,
-		}),
+		queryFn: () =>
+			searchGlobalUsers({
+				query: debouncedQuery || undefined,
+				orgId,
+				taskId,
+				limit: 20,
+			}),
 		enabled: !!orgId,
 		staleTime: debouncedQuery ? 1000 * 60 * 2 : 1000 * 60 * 5, // 2 min for search, 5 min for initial
 		gcTime: 1000 * 60 * 10,
@@ -93,12 +85,9 @@ export function useMentionUsers(seedUsers?: schema.UserSummary[]) {
 	const loading = searchQueryResult.isFetching;
 
 	// Look up a user by ID from the cumulative cache (for MentionView chips)
-	const getUserById = useCallback(
-		(userId: string): schema.UserSummary | undefined => {
-			return seenUsersRef.current.get(userId);
-		},
-		[],
-	);
+	const getUserById = useCallback((userId: string): schema.UserSummary | undefined => {
+		return seenUsersRef.current.get(userId);
+	}, []);
 
 	// All users we've ever seen (for MentionView)
 	// biome-ignore lint/correctness/useExhaustiveDependencies: needs to recompute when fetched data changes

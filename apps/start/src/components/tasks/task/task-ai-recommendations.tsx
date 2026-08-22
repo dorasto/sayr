@@ -22,7 +22,7 @@ import {
 	IconX,
 } from "@tabler/icons-react";
 import { useEffect, useRef, useState } from "react";
-import { useLayoutData } from "@/components/generic/Context";
+import { useLayoutData } from "@/components/admin/shell/context";
 import { getAssigneeBulkUpdatePayload } from "@/components/tasks/actions/assignees";
 import { getCategoryUpdatePayload } from "@/components/tasks/actions/category";
 import { getLabelBulkUpdatePayload } from "@/components/tasks/actions/labels";
@@ -394,7 +394,7 @@ function AiRecommendationsContent({
 	return (
 		<ContextSection
 			label="Recommendations"
-			leadingClassName="bg-primary/20"
+			leadingClassName="bg-primary/10"
 			labelClassName="text-foreground"
 			icon={<IconSparkles className="h-3 w-3 text-primary" />}
 			trailing={regenerateButton}

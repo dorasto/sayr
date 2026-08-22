@@ -1,37 +1,19 @@
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "@repo/ui/components/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
 import { Badge } from "@repo/ui/components/badge";
 import { Button } from "@repo/ui/components/button";
 import { Label } from "@repo/ui/components/label";
 import {
-  TimelineContent,
-  TimelineHeader,
-  TimelineIndicator,
-  TimelineItem,
-  TimelineSeparator,
-  TimelineTitle,
+	TimelineContent,
+	TimelineHeader,
+	TimelineIndicator,
+	TimelineItem,
+	TimelineSeparator,
+	TimelineTitle,
 } from "@repo/ui/components/tomui/timeline";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@repo/ui/components/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@repo/ui/components/tooltip";
 import { cn } from "@repo/ui/lib/utils";
-import {
-  formatDateTime,
-  formatDateTimeFromNow,
-  getDisplayName,
-} from "@repo/util";
-import {
-  IconBan,
-  IconBrandGithub,
-  IconCheck,
-  IconLock,
-  IconX,
-} from "@tabler/icons-react";
+import { formatDateTime, formatDateTimeFromNow, getDisplayName, getInitials } from "@repo/util";
+import { IconBan, IconBrandGithub, IconCheck, IconLock, IconX } from "@tabler/icons-react";
 import type { NodeJSON } from "prosekit/core";
 import Editor from "@/components/prosekit/editor";
 import { InlineLabel } from "../../shared/inlinelabel";
@@ -39,306 +21,267 @@ import { ReactionDisplay, type ReactionEmoji } from "./reactions";
 import type { TimelineItemWrapperProps } from "./types";
 
 export function TimelineItemWrapper({
-  item,
-  icon: Icon,
-  color,
-  children,
-  availableUsers,
-  categories,
-  tasks,
-  actionButtons,
-  isEditing,
-  onContentChange,
-  onSave,
-  onCancel,
-  isSaving,
-  canSave,
-  variant = "activity",
-  showSeparator = true,
-  onReactionToggle,
-  footer,
-  isReply,
-  blockedUserIds,
+	item,
+	icon: Icon,
+	color,
+	children,
+	availableUsers,
+	categories,
+	tasks,
+	actionButtons,
+	isEditing,
+	onContentChange,
+	onSave,
+	onCancel,
+	isSaving,
+	canSave,
+	variant = "activity",
+	showSeparator = true,
+	onReactionToggle,
+	footer,
+	isReply,
+	blockedUserIds,
 }: TimelineItemWrapperProps & {
-  onReactionToggle?: (emoji: ReactionEmoji) => void;
-  footer?: React.ReactNode;
-  isReply?: boolean;
+	onReactionToggle?: (emoji: ReactionEmoji) => void;
+	footer?: React.ReactNode;
+	isReply?: boolean;
 }) {
-  const isDescription = variant === "description";
-  const isComment = variant === "comment";
-  const isActivity = variant === "activity";
-  const showIndicator = isActivity;
-  const isBlocked = isComment && !!item.actor?.id && !!blockedUserIds?.has(item.actor.id);
-  // Activities show header only (no content card), comments/description show content card
-  const showContent = (isComment || isDescription) && item.content;
-  return (
-    <TimelineItem
-      key={item.id}
-      step={2}
-      className={cn(
-        "group-data-[orientation=vertical]/timeline:not-last:pb-4 ",
-        showIndicator && "group-data-[orientation=vertical]/timeline:ms-10",
-        isDescription && "ms-0!",
-        isComment && "ms-0!",
-        isReply && "pb-0! ms-0!",
-      )}
-    >
-      {/* Activity items show the timeline header with indicator */}
-      {showIndicator && (
-        <TimelineHeader>
-          {showSeparator && (
-            <TimelineSeparator className="group-data-[orientation=vertical]/timeline:-left-4 group-data-[orientation=vertical]/timeline:h-[calc(100%-1.5rem-0.25rem)] group-data-[orientation=vertical]/timeline:translate-y-6.5" />
-          )}
-          <TimelineTitle className="mt-0.5">
-            <Label
-              variant={"description"}
-              className="text-muted-foreground items-center flex flex-wrap gap-2"
-            >
-              <span>{children}</span>·{/*{!item.content && (*/}
-              <Tooltip delayDuration={500}>
-                <TooltipTrigger asChild>
-                  <Label
-                    variant={"description"}
-                    className="text-muted-foreground"
-                  >
-                    {" "}
-                    {formatDateTimeFromNow(item.createdAt as Date)}
-                  </Label>
-                </TooltipTrigger>
-                <TooltipContent side="top">
-                  {formatDateTime(item.createdAt as Date)}
-                </TooltipContent>
-              </Tooltip>
-              {/*)}*/}
-            </Label>
-          </TimelineTitle>
+	const isDescription = variant === "description";
+	const isComment = variant === "comment";
+	const isActivity = variant === "activity";
+	const showIndicator = isActivity;
+	const isBlocked = isComment && !!item.actor?.id && !!blockedUserIds?.has(item.actor.id);
+	// Activities show header only (no content card), comments/description show content card
+	const showContent = (isComment || isDescription) && item.content;
+	return (
+		<TimelineItem
+			key={item.id}
+			step={2}
+			className={cn(
+				"group-data-[orientation=vertical]/timeline:not-last:pb-4 ",
+				showIndicator && "group-data-[orientation=vertical]/timeline:ms-10",
+				isDescription && "ms-0!",
+				isComment && "ms-0!",
+				isReply && "pb-0! ms-0!"
+			)}
+		>
+			{/* Activity items show the timeline header with indicator */}
+			{showIndicator && (
+				<TimelineHeader>
+					{showSeparator && (
+						<TimelineSeparator className="group-data-[orientation=vertical]/timeline:-left-4 group-data-[orientation=vertical]/timeline:h-[calc(100%-1.5rem-0.25rem)] group-data-[orientation=vertical]/timeline:translate-y-6.5" />
+					)}
+					<TimelineTitle className="mt-0.5">
+						<Label variant={"description"} className="text-muted-foreground items-center flex flex-wrap gap-2">
+							<span>{children}</span>·{/*{!item.content && (*/}
+							<Tooltip delayDuration={500}>
+								<TooltipTrigger asChild>
+									<Label variant={"description"} className="text-muted-foreground">
+										{" "}
+										{formatDateTimeFromNow(item.createdAt as Date)}
+									</Label>
+								</TooltipTrigger>
+								<TooltipContent side="top">{formatDateTime(item.createdAt as Date)}</TooltipContent>
+							</Tooltip>
+							{/*)}*/}
+						</Label>
+					</TimelineTitle>
 
-          <TimelineIndicator className="group-data-completed/timeline-item:bg-primary group-data-completed/timeline-item:text-muted-foreground flex size-6 items-center justify-center border-none group-data-[orientation=vertical]/timeline:-left-4 [&_svg]:text-foreground">
-            <Avatar className={cn("h-6! w-6! rounded-full", color)}>
-              <AvatarFallback className="rounded-full bg-transparent">
-                <Icon size={12} />
-              </AvatarFallback>
-            </Avatar>
-          </TimelineIndicator>
-        </TimelineHeader>
-      )}
-      {/* Comments and description show the content card (activities never do) */}
-      {showContent ? (
-        <TimelineContent
-          className={cn(
-            "text-foreground rounded-lg border bg-accent/50 relative overflow-hidden p-2",
-            item.visibility === "internal" && "border-primary/30 bg-primary/5",
-            isDescription && "border-0 bg-transparent p-0",
-            isReply && "border-0 bg-transparent rounded-none p-0 py-2",
-          )}
-        >
-          <div
-            className={cn(
-              "flex flex-col",
-              isReply ? "group/reply-item" : "group/timeline-item",
-            )}
-          >
-            <div className="flex items-center gap-3">
-              {!isDescription && (
-                <InlineLabel
-                  text={
-                    item.source === "github" &&
-                      !item.actor &&
-                      item.externalAuthorLogin
-                      ? item.externalAuthorLogin
-                      : item.actor
-                        ? getDisplayName(item.actor)
-                        : "Unknown"
-                  }
-                  image={
-                    item.source === "github" &&
-                      !item.actor &&
-                      item.externalAuthorLogin
-                      ? `https://github.com/${item.externalAuthorLogin}.png?size=64`
-                      : item.actor?.image || ""
-                  }
-                  avatarClassName="size-5!"
-                  textNode={
-                    <div className="flex items-center gap-2 pl-2">
-                      <Label
-                        className="text-xs text-foreground"
-                        variant={"description"}
-                      >
-                        {item.source === "github" &&
-                          !item.actor &&
-                          item.externalAuthorLogin
-                          ? item.externalAuthorLogin
-                          : item.actor
-                            ? getDisplayName(item.actor)
-                            : "Unknown"}{" "}
-                        {item.source === "github" && (
-                          <a
-                            href={item.externalCommentUrl || ""}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            <InlineLabel
-                              text={item.externalCommentUrl?.includes("/pull/") ? "via GitHub (PR)" : "via GitHub"}
-                              icon={<IconBrandGithub size={12} />}
-                              className="bg-secondary border rounded-lg pe-1"
-                            />
-                          </a>
-                        )}
-                      </Label>
+					<TimelineIndicator className="group-data-completed/timeline-item:bg-primary group-data-completed/timeline-item:text-muted-foreground flex size-6 items-center justify-center border-none group-data-[orientation=vertical]/timeline:-left-4 [&_svg]:text-foreground">
+						<Avatar className={cn("h-6! w-6! rounded-full", color)}>
+							<AvatarFallback className="rounded-full bg-transparent">
+								<Icon size={12} />
+							</AvatarFallback>
+						</Avatar>
+					</TimelineIndicator>
+				</TimelineHeader>
+			)}
+			{/* Comments and description show the content card (activities never do) */}
+			{showContent ? (
+				<TimelineContent
+					className={cn(
+						"text-foreground rounded-lg border bg-accent/50 relative overflow-hidden p-2",
+						item.visibility === "internal" && "border-primary/30 bg-primary/5",
+						isDescription && "border-0 bg-transparent p-0",
+						isReply && "border-0 bg-transparent rounded-none p-0 py-2"
+					)}
+				>
+					<div className={cn("flex flex-col", isReply ? "group/reply-item" : "group/timeline-item")}>
+						<div className="flex items-center gap-3">
+							{!isDescription && (
+								<InlineLabel
+									text={
+										item.source === "github" && !item.actor && item.externalAuthorLogin
+											? item.externalAuthorLogin
+											: item.actor
+												? getDisplayName(item.actor)
+												: "Unknown"
+									}
+									image={
+										item.source === "github" && !item.actor && item.externalAuthorLogin
+											? `https://github.com/${item.externalAuthorLogin}.png?size=64`
+											: item.actor?.image || ""
+									}
+									avatarClassName="size-5!"
+									textNode={
+										<div className="flex items-center gap-2 pl-2">
+											<Label className="text-xs text-foreground" variant={"description"}>
+												{item.source === "github" && !item.actor && item.externalAuthorLogin
+													? item.externalAuthorLogin
+													: item.actor
+														? getDisplayName(item.actor)
+														: "Unknown"}{" "}
+												{item.source === "github" && (
+													<a
+														href={item.externalCommentUrl || ""}
+														target="_blank"
+														rel="noopener noreferrer"
+													>
+														<InlineLabel
+															text={
+																item.externalCommentUrl?.includes("/pull/")
+																	? "via GitHub (PR)"
+																	: "via GitHub"
+															}
+															icon={<IconBrandGithub size={12} />}
+															className="bg-secondary border rounded-lg pe-1"
+														/>
+													</a>
+												)}
+											</Label>
 
-                      {isBlocked && (
-                        <Badge variant="destructive" className="gap-1 text-xs py-0 px-1.5">
-                          <IconBan size={12} />
-                          Blocked user
-                        </Badge>
-                      )}
+											{isBlocked && (
+												<Badge variant="destructive" className="gap-1 text-xs py-0 px-1.5">
+													<IconBan size={12} />
+													Blocked user
+												</Badge>
+											)}
 
-                      <Tooltip delayDuration={500}>
-                        <TooltipTrigger asChild>
-                          <Label
-                            variant={"description"}
-                            className="text-muted-foreground"
-                          >
-                            {" "}
-                            {formatDateTimeFromNow(item.createdAt as Date)}
-                          </Label>
-                        </TooltipTrigger>
-                        <TooltipContent side="top">
-                          {formatDateTime(item.createdAt as Date)}
-                        </TooltipContent>
-                      </Tooltip>
-                    </div>
-                  }
-                />
-              )}
+											<Tooltip delayDuration={500}>
+												<TooltipTrigger asChild>
+													<Label variant={"description"} className="text-muted-foreground">
+														{" "}
+														{formatDateTimeFromNow(item.createdAt as Date)}
+													</Label>
+												</TooltipTrigger>
+												<TooltipContent side="top">{formatDateTime(item.createdAt as Date)}</TooltipContent>
+											</Tooltip>
+										</div>
+									}
+								/>
+							)}
 
-              <div className="flex items-center gap-1 ml-auto">
-                {actionButtons && (
-                  <div
-                    className={cn(
-                      "flex items-center gap-1 opacity-0 has-data-[state=open]:opacity-100 transition-all",
-                      isReply
-                        ? "group-hover/reply-item:opacity-100"
-                        : "group-hover/timeline-item:opacity-100",
-                    )}
-                  >
-                    {actionButtons}
-                  </div>
-                )}
-                {item.visibility === "internal" && (
-                  <Tooltip delayDuration={0}>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="p-1 h-auto w-auto aspect-square data-[state=open]:bg-accent"
-                      >
-                        <IconLock size={16} />
-                      </Button>
-                      {/*<Badge
+							<div className="flex items-center gap-1 ml-auto">
+								{actionButtons && (
+									<div
+										className={cn(
+											"flex items-center gap-1 opacity-0 has-data-[state=open]:opacity-100 transition-all",
+											isReply
+												? "group-hover/reply-item:opacity-100"
+												: "group-hover/timeline-item:opacity-100"
+										)}
+									>
+										{actionButtons}
+									</div>
+								)}
+								{item.visibility === "internal" && (
+									<Tooltip delayDuration={0}>
+										<TooltipTrigger asChild>
+											<Button
+												variant="ghost"
+												size="icon"
+												className="p-1 h-auto w-auto aspect-square data-[state=open]:bg-accent"
+											>
+												<IconLock size={16} />
+											</Button>
+											{/*<Badge
                         variant={"secondary"}
                         className="w-fit bg-transparent pointer-events-none rounded-lg gap-1 text-sm"
                       >
                         <IconLock className="size-4" />
                       </Badge>*/}
-                    </TooltipTrigger>
-                    <TooltipContent side="top">
-                      <p>
-                        This is an internal comment. Only team members can see
-                        it.
-                      </p>
-                    </TooltipContent>
-                  </Tooltip>
-                )}
-              </div>
-            </div>
-            {isEditing ? (
-              <>
-                <Editor
-                  defaultContent={item.content as NodeJSON}
-                  categories={categories}
-                  tasks={tasks}
-                  onChange={onContentChange}
-                  submit={onSave}
-                />
-                <div className="flex items-center gap-2 mt-2 justify-end">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={onCancel}
-                    disabled={isSaving}
-                    className="text-muted-foreground hover:text-foreground"
-                  >
-                    <IconX size={16} />
-                    Cancel
-                  </Button>
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    onClick={onSave}
-                    disabled={isSaving || !canSave}
-                  >
-                    <IconCheck size={16} />
-                    {isSaving ? "Saving..." : "Update comment"}
-                  </Button>
-                </div>
-              </>
-            ) : (
-              <Editor
-                readonly
-                defaultContent={item.content as any}
-                categories={categories}
-                tasks={tasks}
-                className="pl-1"
-              />
-            )}
-            {/* Reactions display */}
-            {item.reactions?.reactions &&
-              Object.keys(item.reactions.reactions).length > 0 && (
-                <ReactionDisplay
-                  reactions={item.reactions.reactions}
-                  toggleReaction={(emoji) =>
-                    onReactionToggle ? onReactionToggle(emoji) : ""
-                  }
-                  users={availableUsers}
-                />
-              )}
-          </div>
-          {footer}
-        </TimelineContent>
-      ) : null}
-    </TimelineItem>
-  );
+										</TooltipTrigger>
+										<TooltipContent side="top">
+											<p>This is an internal comment. Only team members can see it.</p>
+										</TooltipContent>
+									</Tooltip>
+								)}
+							</div>
+						</div>
+						{isEditing ? (
+							<>
+								<Editor
+									defaultContent={item.content as NodeJSON}
+									categories={categories}
+									tasks={tasks}
+									onChange={onContentChange}
+									submit={onSave}
+								/>
+								<div className="flex items-center gap-2 mt-2 justify-end">
+									<Button
+										variant="ghost"
+										size="sm"
+										onClick={onCancel}
+										disabled={isSaving}
+										className="text-muted-foreground hover:text-foreground"
+									>
+										<IconX size={16} />
+										Cancel
+									</Button>
+									<Button variant="primary" size="sm" onClick={onSave} disabled={isSaving || !canSave}>
+										<IconCheck size={16} />
+										{isSaving ? "Saving..." : "Update comment"}
+									</Button>
+								</div>
+							</>
+						) : (
+							<Editor
+								readonly
+								defaultContent={item.content as any}
+								categories={categories}
+								tasks={tasks}
+								className="pl-1"
+							/>
+						)}
+						{/* Reactions display */}
+						{item.reactions?.reactions && Object.keys(item.reactions.reactions).length > 0 && (
+							<ReactionDisplay
+								reactions={item.reactions.reactions}
+								toggleReaction={(emoji) => (onReactionToggle ? onReactionToggle(emoji) : "")}
+								users={availableUsers}
+							/>
+						)}
+					</div>
+					{footer}
+				</TimelineContent>
+			) : null}
+		</TimelineItem>
+	);
 }
 
 export function AvatarWithName({
-  name,
-  image,
-  className,
-  custom,
+	name,
+	image,
+	className,
+	custom,
 }: {
-  name: string;
-  image: string;
-  className?: string;
-  custom?: React.ReactNode;
+	name: string;
+	image: string;
+	className?: string;
+	custom?: React.ReactNode;
 }) {
-  return custom ? (
-    custom
-  ) : (
-    <Badge
-      variant={"secondary"}
-      className={cn(
-        "inline-flex items-center gap-1 justify-center h-5 border border-border",
-        className,
-      )}
-    >
-      <Avatar className={cn("rounded-full bg-primary h-3 w-3")}>
-        <AvatarImage src={image || "/avatar.jpg"} alt={name} />
-        <AvatarFallback className="rounded-full bg-transparent uppercase">
-          {name.slice(0, 2)}
-        </AvatarFallback>
-      </Avatar>
-      <span>{name}</span>
-    </Badge>
-  );
+	return custom ? (
+		custom
+	) : (
+		<Badge
+			variant={"secondary"}
+			className={cn("inline-flex items-center gap-1 justify-center h-5 border border-border", className)}
+		>
+			<Avatar className={cn("rounded-full bg-primary h-3 w-3")}>
+				<AvatarImage src={image || "/avatar.jpg"} alt={name} />
+				<AvatarFallback className="rounded-full bg-transparent uppercase">{getInitials(name)}</AvatarFallback>
+			</Avatar>
+			<span>{name}</span>
+		</Badge>
+	);
 }

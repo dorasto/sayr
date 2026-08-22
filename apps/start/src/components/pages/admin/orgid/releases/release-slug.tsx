@@ -1,6 +1,8 @@
 import type { schema } from "@repo/database";
 import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
 import { Button } from "@repo/ui/components/button";
+import { Label } from "@repo/ui/components/label";
+import { Separator } from "@repo/ui/components/separator";
 import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { cn } from "@repo/ui/lib/utils";
@@ -14,32 +16,30 @@ import {
 } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useLayoutData } from "@/components/generic/Context";
-import { Page } from "@/components/generic/page";
+import { useLayoutData } from "@/components/admin/shell/context";
 import { PageHeader } from "@/components/generic/PageHeader";
-import { usePage, usePanel } from "@/components/generic/use-page";
+import { Page } from "@/components/generic/page";
 import RenderIcon from "@/components/generic/RenderIcon";
-import { ReleaseDescriptionEditor } from "@/components/releases/ReleaseDescriptionEditor";
-import { ReleaseInfo } from "@/components/releases/ReleaseInfo";
-import { ReleaseHeader } from "@/components/releases/ReleaseHeader";
-import { ReleaseSidebar } from "@/components/releases/ReleaseSidebar";
-import { ReleaseStatusUpdatesFeed } from "@/components/releases/ReleaseStatusUpdatesFeed";
-import { ReleaseDiscussion } from "@/components/releases/ReleaseDiscussion";
+import { usePage, usePanel } from "@/components/generic/use-page";
+import Loader from "@/components/loader";
+import { ReleaseDescriptionEditor } from "@/components/releases/release-description-editor";
+import { ReleaseDiscussion } from "@/components/releases/release-discussion";
+import { ReleaseHeader } from "@/components/releases/release-header";
+import { ReleaseInfo } from "@/components/releases/release-info";
+import { ReleaseSidebar } from "@/components/releases/release-sidebar";
+import { ReleaseStatusUpdatesFeed } from "@/components/releases/release-status-updates-feed";
 import { UnifiedTaskView } from "@/components/tasks/views/unified-task-view";
 import { useLayoutOrganization } from "@/contexts/ContextOrg";
 import { LayoutReleaseProvider, useLayoutRelease } from "@/contexts/ContextOrgRelease";
-import { useServerEventsSubscription } from "@/hooks/useServerEventsSubscription";
+import { useReleaseCommands } from "@/hooks/commands/useReleaseCommands";
 import type { MentionContext } from "@/hooks/useMentionUsers";
+import { useServerEventsSubscription } from "@/hooks/useServerEventsSubscription";
 import { useWSMessageHandler, type WSMessageHandler } from "@/hooks/useWSMessageHandler";
+import { commandActions } from "@/lib/command-store";
 import { getReleaseWithTasksAction, updateReleaseAction } from "@/lib/fetches/release";
+import type { ServerEventMessage } from "@/lib/serverEvents";
 import { sidebarActions } from "@/lib/sidebar/sidebar-store";
 import { useToastAction } from "@/lib/util";
-import type { ServerEventMessage } from "@/lib/serverEvents";
-import { Label } from "@repo/ui/components/label";
-import Loader from "@/components/Loader";
-import { useReleaseCommands } from "@/hooks/commands/useReleaseCommands";
-import { commandActions } from "@/lib/command-store";
-import { Separator } from "@repo/ui/components/separator";
 
 interface ReleaseDetailPageProps {
 	release: schema.releaseType;
@@ -81,9 +81,9 @@ function ReleaseDetailPageContent() {
 	// Set mentionContext so the Editor's useMentionUsers hook can fetch org members with release context
 	useEffect(() => {
 		if (organization?.id) {
-			setMentionContext({ orgId: organization.id, releaseId: release?.id });
+			setMentionContext({ orgId: organization.id, orgShortId: organization.shortId, releaseId: release?.id });
 		}
-	}, [organization?.id, release?.id, setMentionContext]);
+	}, [organization?.id, organization?.shortId, release?.id, setMentionContext]);
 
 	useServerEventsSubscription({
 		serverEvents,
@@ -280,7 +280,24 @@ function ReleaseDetailPageContent() {
 			panels={{
 				right: {
 					id: RELEASE_CHARTS_PANEL_ID,
-					header: <Label>Information</Label>,
+					header: (
+						<div className="flex items-center gap-2 w-full flex-1 min-w-0">
+							<div
+								className="flex items-center justify-center size-4 shrink-0 rounded-md"
+								style={{
+									background: release.color ? `hsla(${extractHslValues(release.color)}, 0.1)` : undefined,
+								}}
+							>
+								<RenderIcon
+									iconName={release.icon || "IconRocket"}
+									size={12}
+									color={release.color || undefined}
+									raw
+								/>
+							</div>
+							<span className="text-xs font-medium truncate">{release.name}</span>
+						</div>
+					),
 					defaultOpen: true,
 					width: "380px",
 				},

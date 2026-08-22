@@ -3,49 +3,48 @@
 import type { schema, TeamPermissions } from "@repo/database";
 import {
 	GridBoardCells,
+	type GridBoardColumnData,
 	GridBoardColumnHeader,
 	GridBoardColumns,
-	type GridBoardColumnData,
 	type GridBoardDragEndEvent,
 	GridBoardItem,
 	GridBoardProvider,
+	type GridBoardRowData,
 	GridBoardRowHeader,
 	GridBoardRows,
-	type GridBoardRowData,
 } from "@repo/ui/components/doras-ui/grid-board";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { cn } from "@repo/ui/lib/utils";
 import { useStore } from "@tanstack/react-store";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import Loader from "@/components/loader";
 import { useTaskSelection } from "@/hooks/useTaskSelection";
 import { useTaskViewManager } from "@/hooks/useTaskViewManager";
 import { useWSMessageHandler, type WSMessageHandler } from "@/hooks/useWSMessageHandler";
 import { updateTaskAction } from "@/lib/fetches/task";
-import { useToastAction } from "@/lib/util";
-import type { FieldUpdatePayload } from "../actions/types";
-import {
-	getStatusUpdatePayload,
-	getPriorityUpdatePayload,
-	getAssigneeBulkUpdatePayload,
-	getLabelBulkUpdatePayload,
-	getCategoryUpdatePayload,
-	getReleaseUpdatePayload,
-	getParentUpdatePayload,
-	getRelationUpdatePayload,
-} from "../actions";
+import type useServerEvents from "@/lib/serverEvents";
 import type { ServerEventMessage } from "@/lib/serverEvents";
-import useServerEvents from "@/lib/serverEvents";
+import { userPreferencesStore } from "@/lib/stores/user-preferences-store";
+import { useToastAction } from "@/lib/util";
+import {
+	getAssigneeBulkUpdatePayload,
+	getCategoryUpdatePayload,
+	getLabelBulkUpdatePayload,
+	getParentUpdatePayload,
+	getPriorityUpdatePayload,
+	getRelationUpdatePayload,
+	getReleaseUpdatePayload,
+	getStatusUpdatePayload,
+} from "../actions";
+import type { FieldUpdatePayload } from "../actions/types";
 import { applyFilters } from "../filter/filter-config";
 import { sortTasks } from "../filter/sort-config";
 import type { TaskGroup } from "../filter/types";
-import { applyNestedGrouping, type NestedTaskGroup } from "../shared/nested-grouping";
-import { TaskGroupSectionHeader } from "../task/task-group-section-header";
-import { UnifiedTaskItem } from "./unified-task-item";
-import { getTaskFieldPermissions, type FieldPermissions } from "../shared/task-field-toolbar-types";
-import { BulkActionBar, type BulkUpdateAddRemove } from "./bulk-action-bar";
-import Loader from "@/components/Loader";
-import { userPreferencesStore } from "@/lib/stores/user-preferences-store";
+import { applyNestedGrouping, type FieldPermissions, getTaskFieldPermissions, type NestedTaskGroup } from "../shared";
 import { TaskDetailDialog } from "../task/task-detail-dialog";
+import { TaskGroupSectionHeader } from "../task/task-group-section-header";
+import { BulkActionBar, type BulkUpdateAddRemove } from "./bulk-action-bar";
+import { UnifiedTaskItem } from "./unified-task-item";
 
 interface UnifiedTaskViewProps {
 	tasks: schema.TaskWithLabels[];

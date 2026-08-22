@@ -1,24 +1,24 @@
-import { PublicTaskContent, PUBLIC_TASK_PANEL_ID } from "@/components/public/public-task-content";
-import { usePage, usePanel } from "@/components/generic/use-page";
-import { sidebarActions } from "@/lib/sidebar/sidebar-store";
 import {
+	getCommentReplies,
 	getOrganizationPublic,
+	getRelease,
 	getTaskByShortId,
 	getTaskComments,
-	getCommentReplies,
-	getRelease,
 } from "@repo/database";
 import { Button } from "@repo/ui/components/button";
 import { cn } from "@repo/ui/lib/utils";
-import { createFileRoute, Link, redirect } from "@tanstack/react-router";
-import { createServerFn } from "@tanstack/react-start";
-import { getOgImageUrl, seo } from "@/seo";
 import { formatTaskKey } from "@repo/util";
 import { IconArrowLeft, IconLayoutSidebarRight, IconLayoutSidebarRightFilled } from "@tabler/icons-react";
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import { createServerFn } from "@tanstack/react-start";
 import type { NodeJSON } from "prosekit/core";
-import { extractTextContent } from "@/lib/util";
+import { usePage, usePanel } from "@/components/generic/use-page";
+import { type LLMOComment, LLMOContent } from "@/components/llmo/llmo-content";
+import { PUBLIC_TASK_PANEL_ID, PublicTaskContent } from "@/components/public/public-task-content";
 import { prosekitHtmlFromJSON } from "@/lib/prosekit-ssr";
-import { LLMOContent, type LLMOComment } from "@/components/llmo/LLMOContent";
+import { sidebarActions } from "@/lib/sidebar/sidebar-store";
+import { extractTextContent } from "@/lib/util";
+import { getOgImageUrl, seo } from "@/seo";
 
 interface LLMOCommentWithReplies extends LLMOComment {
 	text: string;
@@ -45,7 +45,12 @@ const fetchPublicTask = createServerFn({ method: "GET" })
 			return {
 				task: null,
 				release: null,
-				org: { name: organization.name, logo: organization.logo, shortId: organization.shortId },
+				org: {
+					name: organization.name,
+					slug: organization.slug,
+					logo: organization.logo,
+					shortId: organization.shortId,
+				},
 				descriptionHtml: "",
 				descriptionText: "",
 				commentsHtml: [],
@@ -129,7 +134,12 @@ const fetchPublicTask = createServerFn({ method: "GET" })
 		return {
 			task,
 			release,
-			org: { name: organization.name, logo: organization.logo, shortId: organization.shortId },
+			org: {
+				name: organization.name,
+				slug: organization.slug,
+				logo: organization.logo,
+				shortId: organization.shortId,
+			},
 			descriptionHtml,
 			descriptionText,
 			commentsHtml: commentsWithReplies,
@@ -174,7 +184,7 @@ export const Route = createFileRoute("/orgs/$orgSlug/$shortId/")({
 					headline: `${taskKey} - ${task.title}`,
 					name: task.title,
 					description: descriptionText.trim() || undefined,
-					url: `https://${org?.name?.toLowerCase().replace(/\s+/g, "-")}.sayr.io/${task.shortId}`,
+					url: `https://${org?.slug}.${import.meta.env.VITE_ROOT_DOMAIN}/${task.shortId}`,
 					datePublished: task.createdAt,
 					dateModified: task.updatedAt || task.createdAt,
 					keywords: [
@@ -188,7 +198,7 @@ export const Route = createFileRoute("/orgs/$orgSlug/$shortId/")({
 					publisher: {
 						"@type": "Organization",
 						name: org?.name ?? "Sayr",
-						url: `https://${org?.name?.toLowerCase().replace(/\s+/g, "-")}.sayr.io`,
+						url: `https://${org?.slug}.${import.meta.env.VITE_ROOT_DOMAIN}`,
 					},
 					...(commentsText.length > 0
 						? {
@@ -278,7 +288,7 @@ function RouteComponent() {
 				descriptionHtml={descriptionHtml}
 				comments={commentsHtml}
 				orgName={org?.name ?? undefined}
-				url={`https://${org?.name?.toLowerCase().replace(/\s+/g, "-")}.sayr.io/${task.shortId}`}
+				url={`https://${org?.slug}.${import.meta.env.VITE_ROOT_DOMAIN}/${task.shortId}`}
 			/>
 
 			{/* Top bar */}

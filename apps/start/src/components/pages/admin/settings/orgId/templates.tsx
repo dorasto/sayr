@@ -1,14 +1,14 @@
 "use client";
 
-import { useLayoutData } from "@/components/generic/Context";
-import { PlanLimitBanner } from "@/components/generic/PlanLimitBanner";
+import { useEffect } from "react";
+import { useLayoutData } from "@/components/admin/shell/context";
+import { PlanLimitBanner } from "@/components/generic/plan-limit-banner";
 import CreateIssueTemplate from "@/components/organization/create-issue-template";
 import { useLayoutOrganizationSettings } from "@/contexts/ContextOrgSettings";
 import { usePlanLimitsFromData } from "@/hooks/usePlanLimits";
 import { useServerEventsSubscription } from "@/hooks/useServerEventsSubscription";
-import { useWSMessageHandler, WSMessageHandler } from "@/hooks/useWSMessageHandler";
+import { useWSMessageHandler, type WSMessageHandler } from "@/hooks/useWSMessageHandler";
 import type { ServerEventMessage } from "@/lib/serverEvents";
-import { useEffect } from "react";
 
 export default function SettingsOrganizationTemplatesPage() {
 	const { serverEvents } = useLayoutData();
@@ -40,8 +40,7 @@ export default function SettingsOrganizationTemplatesPage() {
 			}
 		},
 	};
-	const handleMessage = useWSMessageHandler<ServerEventMessage>(handlers, {
-	});
+	const handleMessage = useWSMessageHandler<ServerEventMessage>(handlers, {});
 	useEffect(() => {
 		if (!serverEvents.event) return;
 		serverEvents.event.addEventListener("message", handleMessage);
@@ -54,9 +53,7 @@ export default function SettingsOrganizationTemplatesPage() {
 	}
 	return (
 		<div className="flex flex-col gap-2">
-			{templatesOverLimit && (
-				<PlanLimitBanner title="Template limit exceeded" description={templateLimitMessage} />
-			)}
+			{templatesOverLimit && <PlanLimitBanner title="Template limit exceeded" description={templateLimitMessage} />}
 			<CreateIssueTemplate
 				orgId={organization.id}
 				setIssueTemplates={setIssueTemplates}

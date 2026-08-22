@@ -26,7 +26,7 @@ import {
 } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
 import { useEffect, useCallback, useState } from "react";
-import { useLayoutData } from "@/components/generic/Context";
+import { useLayoutData } from "@/components/admin/shell/context";
 import { Page } from "@/components/generic/page";
 import { PageHeader } from "@/components/generic/PageHeader";
 import RenderIcon from "@/components/generic/RenderIcon";
@@ -214,6 +214,13 @@ export default function OrganizationTasksHomePage() {
 			if (activeDialogTaskId && msg.data.id === activeDialogTaskId) {
 				sendWindowMessage(window, { type: "timeline-update-comment", payload: msg.data.id }, "*");
 			}
+		},
+		// This page's "tasks" room now also receives vote broadcasts (previously
+		// only the task-specific room did, so votes never live-updated here — see
+		// apps/backend/routes/api/internal/v1/task.ts's vote broadcast).
+		UPDATE_TASK_VOTE: (msg) => {
+			const { id, voteCount } = msg.data;
+			setTasks(tasks.map((task) => (task.id === id ? { ...task, voteCount } : task)));
 		},
 		UPDATE_LABELS: (msg) => {
 			if (msg.scope === "INDIVIDUAL" && msg.meta?.orgId === organization.id) {

@@ -1,23 +1,14 @@
-import { getOrganizationPublic, getReleaseBySlug } from "@repo/database";
+import { authClient } from "@repo/auth/client";
+import { db, getOrganizationPublic, getReleaseBySlug, schema } from "@repo/database";
 import { getEditionCapabilities } from "@repo/edition";
 import { Badge } from "@repo/ui/components/badge";
 import { Button } from "@repo/ui/components/button";
+import { Tile, TileAction, TileDescription, TileHeader, TileIcon, TileTitle } from "@repo/ui/components/doras-ui/tile";
 import { Label } from "@repo/ui/components/label";
+import { Separator } from "@repo/ui/components/separator";
+import { onWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
 import { cn } from "@repo/ui/lib/utils";
-import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
-import { createServerFn } from "@tanstack/react-start";
-import { useState, useMemo, useEffect } from "react";
-import { getReleaseStatusConfig } from "@/components/releases/config";
-import { statusConfig } from "@/components/tasks/shared/config";
-import { db, schema } from "@repo/database";
-import { and, eq } from "drizzle-orm";
-import { SubWrapper } from "@/components/generic/wrapper";
-import { Page } from "@/components/generic/page";
-import { usePage, usePanel } from "@/components/generic/use-page";
-import { sidebarActions } from "@/lib/sidebar/sidebar-store";
-import Editor from "@/components/prosekit/editor";
-import type { NodeJSON } from "prosekit/core";
-import { getOgImageUrl, seo } from "@/seo";
+import { extractTaskText, formatCount } from "@repo/util";
 import {
 	IconArrowLeft,
 	IconArrowUpRight,
@@ -26,19 +17,27 @@ import {
 	IconMessage,
 	IconTrendingUp,
 } from "@tabler/icons-react";
-import { authClient } from "@repo/auth/client";
-import { SimpleAreaChart, type AreaChartSeries } from "@/components/charts";
-import { ReleaseStats } from "@/components/releases/ReleaseStats";
-import { Tile, TileHeader, TileIcon, TileTitle, TileDescription, TileAction } from "@repo/ui/components/doras-ui/tile";
-import { Separator } from "@repo/ui/components/separator";
-import { extractTaskText, formatCount } from "@repo/util";
+import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
+import { createServerFn } from "@tanstack/react-start";
+import { and, eq } from "drizzle-orm";
+import type { NodeJSON } from "prosekit/core";
+import { useEffect, useMemo, useState } from "react";
+import { type AreaChartSeries, SimpleAreaChart } from "@/components/charts";
+import { Page } from "@/components/generic/page";
+import { usePage, usePanel } from "@/components/generic/use-page";
+import { SubWrapper } from "@/components/generic/wrapper";
+import Editor from "@/components/prosekit/editor";
 import { PublicReleaseDiscussion } from "@/components/public/releases/public-release-discussion";
 import { PublicReleaseStatusUpdates } from "@/components/public/releases/public-release-status-updates";
+import { getReleaseStatusConfig } from "@/components/releases/config";
+import { LinkedGithubPRs } from "@/components/releases/linked-github-prs";
+import { ReleaseStats } from "@/components/releases/release-stats";
+import { statusConfig } from "@/components/tasks/shared/config";
 import { usePublicOrganizationLayout } from "@/contexts/publicContextOrg";
 import { useWSMessageHandler, type WSMessageHandler } from "@/hooks/useWSMessageHandler";
 import type { ServerEventMessage } from "@/lib/serverEvents";
-import { onWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
-import { LinkedGithubPRs } from "@/components/releases/LinkedGithubPRs";
+import { sidebarActions } from "@/lib/sidebar/sidebar-store";
+import { getOgImageUrl, seo } from "@/seo";
 
 const fetchPublicRelease = createServerFn({ method: "GET" })
 	.inputValidator((data: { orgSlug: string; releaseSlug: string }) => data)
@@ -131,6 +130,10 @@ export const Route = createFileRoute("/orgs/$orgSlug/releases/$releaseSlug/")({
 	component: ReleaseDetailPage,
 });
 
+// Not switched to @repo/util's formatDate/formatDateCompact: those hardcode
+// month: "short" and locale "en-US", whereas this uses month: "long" and the
+// browser's default locale (e.g. "September 18, 2025") — switching would
+// silently change the displayed text.
 function formatDate(date: Date | string | null | undefined): string {
 	if (!date) return "";
 	const d = date instanceof Date ? date : new Date(date);

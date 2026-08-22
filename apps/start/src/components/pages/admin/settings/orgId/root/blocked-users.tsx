@@ -1,11 +1,7 @@
 "use client";
 
 import type { schema } from "@repo/database";
-import {
-	Avatar,
-	AvatarFallback,
-	AvatarImage,
-} from "@repo/ui/components/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
 import { Badge } from "@repo/ui/components/badge";
 import { Button } from "@repo/ui/components/button";
 import { Input } from "@repo/ui/components/input";
@@ -20,16 +16,11 @@ import {
 	SheetTrigger,
 } from "@repo/ui/components/sheet";
 import { Spinner } from "@repo/ui/components/spinner";
-import {
-	IconBan,
-	IconSearch,
-	IconUser,
-	IconUserMinus,
-	IconUserPlus,
-} from "@tabler/icons-react";
+import { IconBan, IconSearch, IconUser, IconUserMinus, IconUserPlus } from "@tabler/icons-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useLayoutOrganizationSettings } from "@/contexts/ContextOrgSettings";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import {
 	blockUserAction,
 	getBlockedUsersAction,
@@ -46,19 +37,9 @@ export function BlockedUsersSheet({ children }: { children: React.ReactNode }) {
 
 	const [open, setOpen] = useState(false);
 	const [searchInput, setSearchInput] = useState("");
-	const [debouncedQuery, setDebouncedQuery] = useState("");
 
 	// Debounce search input — 300ms delay, matching the mention pattern
-	useEffect(() => {
-		if (searchInput.length === 0) {
-			setDebouncedQuery("");
-			return;
-		}
-		const timer = setTimeout(() => {
-			setDebouncedQuery(searchInput);
-		}, 300);
-		return () => clearTimeout(timer);
-	}, [searchInput]);
+	const debouncedQuery = useDebouncedValue(searchInput, 300);
 
 	// Fetch blocked users list
 	const blockedQuery = useQuery<schema.BlockedUserWithDetails[]>({
@@ -101,7 +82,7 @@ export function BlockedUsersSheet({ children }: { children: React.ReactNode }) {
 					await queryClient.invalidateQueries({ queryKey: ["blockedUsersSearch", orgId] });
 				}
 				return result;
-			},
+			}
 		);
 	};
 
@@ -120,7 +101,7 @@ export function BlockedUsersSheet({ children }: { children: React.ReactNode }) {
 					await queryClient.invalidateQueries({ queryKey: ["blockedUsersSearch", orgId] });
 				}
 				return result;
-			},
+			}
 		);
 	};
 
@@ -177,7 +158,9 @@ export function BlockedUsersSheet({ children }: { children: React.ReactNode }) {
 														</AvatarFallback>
 													</Avatar>
 													<div className="min-w-0">
-														<p className="text-sm font-medium truncate">{user.displayName || user.name}</p>
+														<p className="text-sm font-medium truncate">
+															{user.displayName || user.name}
+														</p>
 														{user.displayName && user.displayName !== user.name && (
 															<p className="text-xs text-muted-foreground truncate">{user.name}</p>
 														)}
@@ -196,17 +179,13 @@ export function BlockedUsersSheet({ children }: { children: React.ReactNode }) {
 										))}
 									</div>
 								) : (
-									<p className="text-sm text-muted-foreground text-center py-4">
-										No matching users found.
-									</p>
+									<p className="text-sm text-muted-foreground text-center py-4">No matching users found.</p>
 								)}
 							</div>
 						)}
 
 						{searchInput.length > 0 && searchInput.length < 2 && (
-							<p className="text-xs text-muted-foreground mt-1.5">
-								Type at least 2 characters to search.
-							</p>
+							<p className="text-xs text-muted-foreground mt-1.5">Type at least 2 characters to search.</p>
 						)}
 					</div>
 
@@ -269,7 +248,9 @@ export function BlockedUsersSheet({ children }: { children: React.ReactNode }) {
 								<div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
 									<IconBan className="size-8 mb-2 opacity-50" />
 									<p className="text-sm">No blocked users</p>
-									<p className="text-xs">Search above to block users from interacting with your organization.</p>
+									<p className="text-xs">
+										Search above to block users from interacting with your organization.
+									</p>
 								</div>
 							)}
 						</ScrollArea>

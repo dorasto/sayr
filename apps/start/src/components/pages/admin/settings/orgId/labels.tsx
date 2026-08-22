@@ -1,6 +1,6 @@
 "use client";
 
-import { useLayoutData } from "@/components/generic/Context";
+import { useLayoutData } from "@/components/admin/shell/context";
 import CreateLabel from "@/components/organization/create-label";
 import { useLayoutOrganizationSettings } from "@/contexts/ContextOrgSettings";
 import { useServerEventsSubscription } from "@/hooks/useServerEventsSubscription";
@@ -12,7 +12,7 @@ import { useEffect } from "react";
 export default function SettingsOrganizationLabelsPage() {
 	const { serverEvents } = useLayoutData();
 	const { organization, setOrganization, setCategories, setLabels, tasks, labels } = useLayoutOrganizationSettings();
-	console.log("🚀 ~ SettingsOrganizationLabelsPage ~ labels:", labels)
+	console.log("🚀 ~ SettingsOrganizationLabelsPage ~ labels:", labels);
 	useServerEventsSubscription({
 		serverEvents,
 		orgId: organization.id,
@@ -32,8 +32,7 @@ export default function SettingsOrganizationLabelsPage() {
 			}
 		},
 	};
-	const handleMessage = useWSMessageHandler<ServerEventMessage>(handlers, {
-	});
+	const handleMessage = useWSMessageHandler<ServerEventMessage>(handlers, {});
 	useEffect(() => {
 		if (!serverEvents.event) return;
 		serverEvents.event.addEventListener("message", handleMessage);

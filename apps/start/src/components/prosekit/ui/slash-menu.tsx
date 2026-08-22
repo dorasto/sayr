@@ -1,159 +1,157 @@
 import {
-  AutocompleteList,
-  AutocompletePopover,
-} from "prosekit/react/autocomplete";
+	IconCode,
+	IconH1,
+	IconH2,
+	IconH3,
+	IconLetterCase,
+	IconLibraryPhoto,
+	IconLineDashed,
+	IconList,
+	IconListCheck,
+	IconListDetails,
+	IconListNumbers,
+	IconPhoto,
+	IconQuote,
+	IconTable,
+	IconVideo,
+} from "@tabler/icons-react";
 import type { BasicExtension } from "prosekit/basic";
 import { canUseRegexLookbehind } from "prosekit/core";
+import { useEditor } from "prosekit/react";
+import { AutocompleteList, AutocompletePopover } from "prosekit/react/autocomplete";
+import { useState } from "react";
 import { handleMediaUpload } from "../utils/uploadMedia";
+import { GifPickerModal } from "./gif-picker-modal";
 import SlashMenuEmpty from "./slash-menu-empty";
 import SlashMenuItem from "./slash-menu-item";
-import {
-  IconCode,
-  IconLibraryPhoto,
-  IconH1,
-  IconH2,
-  IconH3,
-  IconLetterCase,
-  IconLineDashed,
-  IconList,
-  IconListCheck,
-  IconListDetails,
-  IconListNumbers,
-  IconPhoto,
-  IconQuote,
-  IconTable,
-  IconVideo,
-} from "@tabler/icons-react";
-import { useEditor } from "prosekit/react";
-import { GifPickerModal } from "./GifPickerModal";
-import { useState } from "react";
 
 // Match inputs like "/", "/table", "/heading 1" etc. Do not match "/ heading".
 const regex = canUseRegexLookbehind() ? /(?<!\S)\/(\S.*)?$/u : /\/(\S.*)?$/u;
 
-export default function SlashMenu() {
-  const editor = useEditor<BasicExtension>();
-  const [showGifPicker, setShowGifPicker] = useState(false);
-  return (
-    <>
-      <AutocompletePopover
-        regex={regex}
-        className="relative block max-h-100 min-w-60 select-none overflow-auto whitespace-nowrap p-1 z-50 box-border rounded-xl border bg-popover text-foreground shadow-lg [&:not([data-state])]:hidden"
-        placement="top"
-      >
-        <AutocompleteList>
-          <SlashMenuItem
-            label="Text"
-            icon={<IconLetterCase className="size-4" />}
-            onSelect={() => editor.commands.setParagraph()}
-          />
+interface SlashMenuProps {
+	onOpenChange?: (open: boolean) => void;
+}
 
-          <SlashMenuItem
-            label="Heading 1"
-            icon={<IconH1 className="size-4" />}
-            kbd="#"
-            onSelect={() => editor.commands.setHeading({ level: 1 })}
-          />
+export default function SlashMenu({ onOpenChange }: SlashMenuProps = {}) {
+	const editor = useEditor<BasicExtension>();
+	const [showGifPicker, setShowGifPicker] = useState(false);
+	return (
+		<>
+			<AutocompletePopover
+				regex={regex}
+				className="relative block max-h-100 min-w-60 select-none overflow-auto whitespace-nowrap p-1 z-50 box-border rounded-xl border bg-popover text-foreground shadow-lg [&:not([data-state])]:hidden"
+				placement="top"
+				onOpenChange={onOpenChange}
+			>
+				<AutocompleteList>
+					<SlashMenuItem
+						label="Text"
+						icon={<IconLetterCase className="size-4" />}
+						onSelect={() => editor.commands.setParagraph()}
+					/>
 
-          <SlashMenuItem
-            label="Heading 2"
-            icon={<IconH2 className="size-4" />}
-            kbd="##"
-            onSelect={() => editor.commands.setHeading({ level: 2 })}
-          />
+					<SlashMenuItem
+						label="Heading 1"
+						icon={<IconH1 className="size-4" />}
+						kbd="#"
+						onSelect={() => editor.commands.setHeading({ level: 1 })}
+					/>
 
-          <SlashMenuItem
-            label="Heading 3"
-            icon={<IconH3 className="size-4" />}
-            kbd="###"
-            onSelect={() => editor.commands.setHeading({ level: 3 })}
-          />
+					<SlashMenuItem
+						label="Heading 2"
+						icon={<IconH2 className="size-4" />}
+						kbd="##"
+						onSelect={() => editor.commands.setHeading({ level: 2 })}
+					/>
 
-          <SlashMenuItem
-            label="Bullet list"
-            kbd="-"
-            icon={<IconList className="size-4" />}
-            onSelect={() => editor.commands.wrapInList({ kind: "bullet" })}
-          />
+					<SlashMenuItem
+						label="Heading 3"
+						icon={<IconH3 className="size-4" />}
+						kbd="###"
+						onSelect={() => editor.commands.setHeading({ level: 3 })}
+					/>
 
-          <SlashMenuItem
-            label="Ordered list"
-            kbd="1."
-            icon={<IconListNumbers className="size-4" />}
-            onSelect={() => editor.commands.wrapInList({ kind: "ordered" })}
-          />
+					<SlashMenuItem
+						label="Bullet list"
+						kbd="-"
+						icon={<IconList className="size-4" />}
+						onSelect={() => editor.commands.wrapInList({ kind: "bullet" })}
+					/>
 
-          <SlashMenuItem
-            label="Task list"
-            kbd="[]"
-            icon={<IconListCheck className="size-4" />}
-            onSelect={() => editor.commands.wrapInList({ kind: "task" })}
-          />
+					<SlashMenuItem
+						label="Ordered list"
+						kbd="1."
+						icon={<IconListNumbers className="size-4" />}
+						onSelect={() => editor.commands.wrapInList({ kind: "ordered" })}
+					/>
 
-          <SlashMenuItem
-            label="Toggle list"
-            kbd=">>"
-            icon={<IconListDetails className="size-4" />}
-            onSelect={() => editor.commands.wrapInList({ kind: "toggle" })}
-          />
+					<SlashMenuItem
+						label="Task list"
+						kbd="[]"
+						icon={<IconListCheck className="size-4" />}
+						onSelect={() => editor.commands.wrapInList({ kind: "task" })}
+					/>
 
-          <SlashMenuItem
-            label="Quote"
-            kbd=">"
-            icon={<IconQuote className="size-4" />}
-            onSelect={() => editor.commands.setBlockquote()}
-          />
+					<SlashMenuItem
+						label="Toggle list"
+						kbd=">>"
+						icon={<IconListDetails className="size-4" />}
+						onSelect={() => editor.commands.wrapInList({ kind: "toggle" })}
+					/>
 
-          <SlashMenuItem
-            label="Table"
-            icon={<IconTable className="size-4" />}
-            onSelect={() => editor.commands.insertTable({ row: 3, col: 3 })}
-          />
+					<SlashMenuItem
+						label="Quote"
+						kbd=">"
+						icon={<IconQuote className="size-4" />}
+						onSelect={() => editor.commands.setBlockquote()}
+					/>
 
-          <SlashMenuItem
-            label="Divider"
-            kbd="---"
-            icon={<IconLineDashed className="size-4" />}
-            onSelect={() => editor.commands.insertHorizontalRule()}
-          />
+					<SlashMenuItem
+						label="Table"
+						icon={<IconTable className="size-4" />}
+						onSelect={() => editor.commands.insertTable({ row: 3, col: 3 })}
+					/>
 
-          <SlashMenuItem
-            label="Code"
-            kbd="```"
-            icon={<IconCode className="size-4" />}
-            onSelect={() => editor.commands.setCodeBlock()}
-          />
+					<SlashMenuItem
+						label="Divider"
+						kbd="---"
+						icon={<IconLineDashed className="size-4" />}
+						onSelect={() => editor.commands.insertHorizontalRule()}
+					/>
 
-          <SlashMenuItem
-            label="Image"
-            icon={<IconPhoto className="size-4" />}
-            onSelect={() => handleMediaUpload(editor, "image")}
-          />
+					<SlashMenuItem
+						label="Code"
+						kbd="```"
+						icon={<IconCode className="size-4" />}
+						onSelect={() => editor.commands.setCodeBlock()}
+					/>
 
-          <SlashMenuItem
-            label="Video"
-            icon={<IconVideo className="size-4" />}
-            onSelect={() => handleMediaUpload(editor, "video")}
-          />
+					<SlashMenuItem
+						label="Image"
+						icon={<IconPhoto className="size-4" />}
+						onSelect={() => handleMediaUpload(editor, "image")}
+					/>
 
-          {import.meta.env.VITE_KLIPY_API && (
-            <SlashMenuItem
-              label="GIF"
-              icon={<IconLibraryPhoto className="size-4" />}
-              onSelect={() => setShowGifPicker(true)}
-            />
-          )}
+					<SlashMenuItem
+						label="Video"
+						icon={<IconVideo className="size-4" />}
+						onSelect={() => handleMediaUpload(editor, "video")}
+					/>
 
-          <SlashMenuEmpty />
-        </AutocompleteList>
-      </AutocompletePopover>
-      {import.meta.env.VITE_KLIPY_API && (
-        <GifPickerModal
-          editor={editor}
-          open={showGifPicker}
-          onOpenChange={setShowGifPicker}
-        />
-      )}
-    </>
-  );
+					{import.meta.env.VITE_KLIPY_API && (
+						<SlashMenuItem
+							label="GIF"
+							icon={<IconLibraryPhoto className="size-4" />}
+							onSelect={() => setShowGifPicker(true)}
+						/>
+					)}
+
+					<SlashMenuEmpty />
+				</AutocompleteList>
+			</AutocompletePopover>
+			{import.meta.env.VITE_KLIPY_API && (
+				<GifPickerModal editor={editor} open={showGifPicker} onOpenChange={setShowGifPicker} />
+			)}
+		</>
+	);
 }

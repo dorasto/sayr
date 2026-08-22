@@ -1,16 +1,13 @@
 "use client";
 
 import type { schema } from "@repo/database";
-import {
-	Avatar,
-	AvatarFallback,
-	AvatarImage,
-} from "@repo/ui/components/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
 import { Badge } from "@repo/ui/components/badge";
 import { cn } from "@repo/ui/lib/utils";
+import { getInitials } from "@repo/util";
 import { IconCircleFilled, IconUserOff } from "@tabler/icons-react";
-import { RenderLabel } from "../shared/label";
 import { RenderCategory, RenderRelease } from "../shared";
+import { RenderLabel } from "../shared/label";
 
 // ---------------------------------------------------------------------------
 // Assignee avatar trigger (used inside GlobalTaskAssignees customTrigger)
@@ -51,12 +48,9 @@ export function AssigneeAvatarTrigger({
 		return (
 			<div className="flex items-center cursor-pointer" data-no-propagate>
 				<Avatar className={cn("rounded-full h-5 w-5", avatarClassName)}>
-					<AvatarImage
-						src={assignees[0]?.image || "/avatar.jpg"}
-						alt={assignees[0]?.name}
-					/>
+					<AvatarImage src={assignees[0]?.image || "/avatar.jpg"} alt={assignees[0]?.name} />
 					<AvatarFallback className="rounded-full bg-accent uppercase text-xs">
-						{assignees[0]?.name.slice(0, 2)}
+						{getInitials(assignees[0]?.name)}
 					</AvatarFallback>
 				</Avatar>
 			</div>
@@ -64,33 +58,16 @@ export function AssigneeAvatarTrigger({
 	}
 
 	return (
-		<div
-			className={cn("flex -space-x-2", !simple && "cursor-pointer")}
-			data-no-propagate
-		>
+		<div className={cn("flex -space-x-2", !simple && "cursor-pointer")} data-no-propagate>
 			{assignees.slice(0, maxVisible).map((assignee, index) => (
 				<Avatar
 					key={assignee.id}
-					className={cn(
-						"rounded-full h-5 w-5",
-						!simple && index > 0 && "relative",
-					)}
+					className={cn("rounded-full h-5 w-5", !simple && index > 0 && "relative")}
 					style={!simple ? { zIndex: assignees.length - index } : undefined}
 				>
-					<AvatarImage
-						src={assignee?.image || (simple ? undefined : "/avatar.jpg")}
-						alt={assignee?.name}
-					/>
-					<AvatarFallback
-						className={cn(
-							simple
-								? "text-[8px]"
-								: "rounded-full bg-accent uppercase text-xs",
-						)}
-					>
-						{simple
-							? assignee.name?.slice(0, 2).toUpperCase()
-							: assignee?.name.slice(0, 2)}
+					<AvatarImage src={assignee?.image || (simple ? undefined : "/avatar.jpg")} alt={assignee?.name} />
+					<AvatarFallback className={cn(simple ? "text-[8px]" : "rounded-full bg-accent uppercase text-xs")}>
+						{getInitials(assignee?.name)}
 					</AvatarFallback>
 				</Avatar>
 			))}
@@ -118,11 +95,7 @@ interface CategoryBadgeButtonProps {
 	onClick: (categoryId: string) => void;
 }
 
-export function CategoryBadgeButton({
-	categoryId,
-	categories,
-	onClick,
-}: CategoryBadgeButtonProps) {
+export function CategoryBadgeButton({ categoryId, categories, onClick }: CategoryBadgeButtonProps) {
 	if (!categoryId) return null;
 	const category = categories.find((c) => c.id === categoryId);
 	if (!category) return null;
@@ -153,11 +126,7 @@ interface ReleaseBadgeButtonProps {
 	onClick: (releaseId: string) => void;
 }
 
-export function ReleaseBadgeButton({
-	releaseId,
-	releases,
-	onClick,
-}: ReleaseBadgeButtonProps) {
+export function ReleaseBadgeButton({ releaseId, releases, onClick }: ReleaseBadgeButtonProps) {
 	if (!releaseId) return null;
 	const release = releases.find((r) => r.id === releaseId);
 	if (!release) return null;
@@ -208,12 +177,7 @@ export function TaskLabelsInline({
 	return (
 		<div className={className}>
 			{labels.slice(0, maxVisible).map((label) => (
-				<RenderLabel
-					key={label.id}
-					label={label}
-					data-no-propagate
-					className={labelClassName}
-				/>
+				<RenderLabel key={label.id} label={label} data-no-propagate className={labelClassName} />
 			))}
 			{labels.length > maxVisible && (
 				<Badge
@@ -221,7 +185,7 @@ export function TaskLabelsInline({
 					className={cn(
 						"flex items-center justify-center gap-1 bg-accent text-xs h-5 border border-border rounded-2xl truncate group/label cursor-pointer w-fit relative shrink-0",
 						overflowStyle === "dots" && "bg-accent",
-						overflowStyle === "count" && labels.length <= maxVisible + 5 && "px-1",
+						overflowStyle === "count" && labels.length <= maxVisible + 5 && "px-1"
 					)}
 					onClick={(e) => {
 						e.stopPropagation();

@@ -1,24 +1,44 @@
 import type { schema } from "@repo/database";
-import { Badge } from "@repo/ui/components/badge";
 import { Button } from "@repo/ui/components/button";
-import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@repo/ui/components/resizable";
 import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
 import { sendWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
 import { cn } from "@repo/ui/lib/utils";
 import { IconChecks, IconNotification } from "@tabler/icons-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useLayoutData } from "@/components/generic/Context";
+import { useLayoutData } from "@/components/admin/shell/context";
 import { PageHeader } from "@/components/generic/PageHeader";
+import { Page } from "@/components/generic/page";
+import { usePage, usePanel } from "@/components/generic/use-page";
+import { getTaskFieldPermissions } from "@/components/tasks/shared";
+import { TaskDetailCompact } from "@/components/tasks/task/task-detail-compact";
 import { useInbox } from "@/contexts/ContextInbox";
+import { useServerEventsSubscription } from "@/hooks/useServerEventsSubscription";
 import { useWSMessageHandler, type WSMessageHandler } from "@/hooks/useWSMessageHandler";
 import { markAllNotificationsReadAction } from "@/lib/fetches/notification";
+import type { ServerEventMessage } from "@/lib/serverEvents";
 import { getTaskByIdForInbox } from "@/lib/serverFunctions/getTaskByIdForInbox";
-import { TaskDetailCompact } from "@/components/tasks/task/task-detail-compact";
-import { getTaskFieldPermissions } from "@/components/tasks/shared/task-field-toolbar-types";
 import { NotificationList } from "./notification-list";
-import { ServerEventMessage } from "@/lib/serverEvents";
-import { useServerEventsSubscription } from "@/hooks/useServerEventsSubscription";
+
+const INBOX_LIST_PANEL_ID = "inbox-list-panel";
+
+/** Left-panel header: matches the h-11 row every other panel/toolbar uses, with the mark-all-read action on the right. */
+function InboxListPanelHeader({ unreadCount, onMarkAllRead }: { unreadCount: number; onMarkAllRead: () => void }) {
+	return (
+		<div className="flex items-center gap-2 w-full">
+			<IconNotification className="size-4 shrink-0" />
+			<span className="text-xs font-medium truncate">Inbox</span>
+			<div className="flex items-center gap-1 shrink-0 ml-auto">
+				{unreadCount > 0 && (
+					<Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={onMarkAllRead}>
+						<IconChecks className="size-3.5" />
+						Mark all read
+					</Button>
+				)}
+			</div>
+		</div>
+	);
+}
 
 export default function InboxPage() {
 	const queryClient = useQueryClient();
@@ -254,100 +274,96 @@ export default function InboxPage() {
 
 	const isMobile = useIsMobile();
 
-	const leftPanelContent = (
-		<div className="flex-1 overflow-hidden h-full min-h-0 flex flex-col">
-			<NotificationList
-				onSelectTask={handleNotificationSelectTask}
-				selectedNotificationId={selectedNotificationId}
-			/>
-		</div>
+	// Memoized on its actual primitive/callback deps, not recreated as a
+	// fresh JSX literal every render — an unmemoized object here would make
+	// the effect below re-fire every render (setPanelContent -> store update
+	// -> re-render -> new object -> effect fires again), a "Maximum update
+	// depth exceeded" loop. See the page-component skill's gotchas.
+	const leftPanelContent = useMemo(
+		() => (
+			<div className="flex-1 overflow-hidden h-full min-h-0 flex flex-col">
+				<NotificationList
+					onSelectTask={handleNotificationSelectTask}
+					selectedNotificationId={selectedNotificationId}
+				/>
+			</div>
+		),
+		[handleNotificationSelectTask, selectedNotificationId]
 	);
 
+	// Desktop-only: the notification list renders through Page's shared left
+	// panel (header + resize + push-content, same system every other panel
+	// uses) instead of a hand-rolled ResizablePanelGroup. Content depends on
+	// selection/unread state, so it's kept in sync via setPanelContent rather
+	// than set once — see the page-component skill.
+	const { setPanelContent } = usePage();
+	const panel = usePanel(INBOX_LIST_PANEL_ID);
+	useEffect(() => {
+		if (!panel.isRegistered) return;
+		setPanelContent(INBOX_LIST_PANEL_ID, leftPanelContent);
+	}, [panel.isRegistered, setPanelContent, leftPanelContent]);
+
+	if (isMobile) {
+		return (
+			<div className="relative flex flex-col h-full max-h-full overflow-hidden">
+				<PageHeader>
+					<PageHeader.Identity
+						icon={<IconNotification className="size-4" />}
+						title="Inbox"
+						actions={
+							unreadCount > 0 && (
+								<Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={handleMarkAllRead}>
+									<IconChecks className="size-3.5" />
+									Mark all read
+								</Button>
+							)
+						}
+					/>
+				</PageHeader>
+				{leftPanelContent}
+			</div>
+		);
+	}
+
 	return (
-		<div className="relative flex flex-col h-full max-h-full overflow-hidden">
-			{isMobile ? (
-				<>
-					<PageHeader>
-						<PageHeader.Identity
-							icon={<IconNotification className="size-4" />}
-							title="Inbox"
-							actions={
-								<>
-									{unreadCount > 0 && (
-										<Button
-											variant="ghost"
-											size="sm"
-											className="h-7 text-xs gap-1"
-											onClick={handleMarkAllRead}
-										>
-											<IconChecks className="size-3.5" />
-											Mark all read
-										</Button>
-									)}
-								</>
-							}
-						/>
-					</PageHeader>
-					{leftPanelContent}
-				</>
-			) : (
-				<ResizablePanelGroup direction="horizontal" className="h-full">
-					{/* Left panel - Notification list */}
-					<ResizablePanel defaultSize={25} minSize={10} maxSize={30}>
-						<div className="flex flex-col h-full">
-							<div className="flex items-center gap-2 h-11 px-3 shrink-0 border-b">
-								<IconNotification className="size-4 shrink-0" />
-								<span className="text-xs font-medium truncate">Inbox</span>
-
-								<div className="flex items-center gap-1 shrink-0 ml-auto">
-									{unreadCount > 0 && (
-										<Button
-											variant="ghost"
-											size="sm"
-											className="h-7 text-xs gap-1"
-											onClick={handleMarkAllRead}
-										>
-											<IconChecks className="size-3.5" />
-											Mark all read
-										</Button>
-									)}
-								</div>
-							</div>
-							{leftPanelContent}
-						</div>
-					</ResizablePanel>
-
-					<ResizableHandle />
-
-					{/* Right panel - Task detail */}
-					<ResizablePanel defaultSize={75}>
-						<div className={cn("flex-1 overflow-y-auto h-full flex flex-col relative")}>
-							{selectedTask ? (
-								<TaskDetailCompact
-									task={selectedTask}
-									tasks={tasks}
-									setTasks={setTasks}
-									setSelectedTask={setSelectedTask}
-									labels={labels}
-									categories={categories}
-									releases={releases}
-									fieldPermissions={getTaskFieldPermissions(
-										selectedTask,
-										account.id,
-										permissionsByOrg[selectedTask.organizationId]
-									)}
-								/>
-							) : (
-								<div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-									<IconNotification className="size-8 mb-2 opacity-50" />
-									<p className="text-sm">No task selected</p>
-									<p className="text-xs mt-1">Pick a notification to view its task</p>
-								</div>
-							)}
-						</div>
-					</ResizablePanel>
-				</ResizablePanelGroup>
-			)}
-		</div>
+		<Page
+			panels={{
+				left: {
+					id: INBOX_LIST_PANEL_ID,
+					header: <InboxListPanelHeader unreadCount={unreadCount} onMarkAllRead={handleMarkAllRead} />,
+					defaultOpen: true,
+					persistOpenState: false,
+					width: "320px",
+					minWidth: 260,
+					maxWidth: 480,
+				},
+			}}
+			className="h-full"
+		>
+			<div className={cn("flex-1 overflow-y-auto h-full flex flex-col relative")}>
+				{selectedTask ? (
+					<TaskDetailCompact
+						task={selectedTask}
+						tasks={tasks}
+						setTasks={setTasks}
+						setSelectedTask={setSelectedTask}
+						labels={labels}
+						categories={categories}
+						releases={releases}
+						fieldPermissions={getTaskFieldPermissions(
+							selectedTask,
+							account.id,
+							permissionsByOrg[selectedTask.organizationId]
+						)}
+					/>
+				) : (
+					<div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+						<IconNotification className="size-8 mb-2 opacity-50" />
+						<p className="text-sm">No task selected</p>
+						<p className="text-xs mt-1">Pick a notification to view its task</p>
+					</div>
+				)}
+			</div>
+		</Page>
 	);
 }

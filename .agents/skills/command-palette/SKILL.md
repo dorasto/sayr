@@ -22,7 +22,7 @@ The command palette is built on `cmdk` and uses a **registration pattern** where
 | `apps/start/src/lib/command-store.ts` | TanStack Store: `open`, `registrations`, `createTaskDialog`, `initialView` state + actions |
 | `apps/start/src/hooks/useRegisterCommands.ts` | Hook for components to register/unregister commands dynamically |
 | `apps/start/src/hooks/use-command-registry.tsx` | Merges all registrations + static base commands, sorts by priority, filters `show === false` |
-| `apps/start/src/components/generic/AdminCommand.tsx` | Full command palette UI: search, view stack navigation, sub-views, badge display |
+| `apps/start/src/components/admin/shell/admin-command.tsx` | Full command palette UI: search, view stack navigation, sub-views, badge display |
 | `apps/start/src/hooks/useCommandSearch.tsx` | Debounced server-side task search |
 | `packages/ui/src/components/command.tsx` | Shadcn Command UI primitives (`CommandDialog`, `CommandInput` with `icon`/`badge` props, etc.) |
 

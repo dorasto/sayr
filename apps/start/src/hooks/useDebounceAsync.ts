@@ -1,5 +1,5 @@
 import debounce from "lodash/debounce";
-import { useCallback, useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 
 /**
  * React-safe, awaitable debounce for async functions.
@@ -7,8 +7,12 @@ import { useCallback, useEffect, useMemo } from "react";
 
 // biome-ignore lint/suspicious/noExplicitAny: <any>
 export function useDebounceAsync<TArgs extends any[], TResult>(fn: (...args: TArgs) => Promise<TResult>, wait = 500) {
-	// keep fn stable for lodash
-	const stableFn = useCallback(fn, []);
+	// Always call the latest `fn` without resetting the debounce timer when its identity
+	// changes across renders (e.g. a callback that closes over changing props).
+	const fnRef = useRef(fn);
+	useEffect(() => {
+		fnRef.current = fn;
+	}, [fn]);
 
 	const debounced = useMemo(() => {
 		let lastArgs: TArgs | null = null;
@@ -19,7 +23,7 @@ export function useDebounceAsync<TArgs extends any[], TResult>(fn: (...args: TAr
 			async () => {
 				if (!lastArgs) return;
 				try {
-					const out = await stableFn(...lastArgs);
+					const out = await fnRef.current(...lastArgs);
 					resolver?.(out);
 				} catch (err) {
 					rejecter?.(err);
@@ -43,9 +47,10 @@ export function useDebounceAsync<TArgs extends any[], TResult>(fn: (...args: TAr
 		};
 
 		wrapped.cancel = () => runner.cancel();
+		wrapped.flush = () => runner.flush();
 
-		return wrapped as typeof wrapped & { cancel: () => void };
-	}, [stableFn, wait]);
+		return wrapped as typeof wrapped & { cancel: () => void; flush: () => void };
+	}, [wait]);
 
 	useEffect(() => () => debounced.cancel(), [debounced]);
 

@@ -44,7 +44,7 @@ import GlobalTaskAssignees from "../shared/assignee";
 import { priorityConfig, statusConfig } from "../shared/config";
 import GlobalTaskPriority from "../shared/priority";
 import GlobalTaskStatus from "../shared/status";
-import type { FieldPermissions } from "../shared/task-field-toolbar-types";
+import type { FieldPermissions } from "../shared";
 import { SubtaskProgressBadge } from "../shared/subtask-progress";
 import { InlineLabel } from "../shared/inlinelabel";
 import { Input } from "@repo/ui/components/input";

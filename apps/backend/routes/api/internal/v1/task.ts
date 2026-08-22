@@ -3138,7 +3138,14 @@ apiRouteAdminProjectTask.post("/create-vote", async (c) => {
 				},
 			};
 
-			sseBroadcastToRoom(orgId, `task:${taskId}`, data, found?.id, false);
+			// Broadcast to both the task-specific room and the org's general "tasks"
+			// list room — previously this only reached `task:${taskId}`, so a vote
+			// cast while someone else was viewing the org Tasks list would never
+			// update their vote count live (unlike /mine, /inbox, and the public
+			// board, which all receive it via the individual-client fallback
+			// below). Matches the combined-room pattern used by every other task
+			// broadcast in this file (e.g. the UPDATE_TASK broadcast above).
+			sseBroadcastToRoom(orgId, `tasks;task:${taskId}`, data, found?.id, true);
 			sseBroadcastPublic(orgId, { ...data });
 
 			const members = await getOrganizationMembers(orgId);
@@ -3147,7 +3154,6 @@ apiRouteAdminProjectTask.post("/create-vote", async (c) => {
 				clients.forEach(
 					(client) =>
 						client.id !== sseClientId &&
-						client.orgId !== orgId &&
 						!(client.channel === `task:${taskId}` || client.channel === "tasks") &&
 						sseBroadcastIndividual(client, data, orgId)
 				);
