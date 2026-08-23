@@ -1,0 +1,36 @@
+name: pr-comment-test
+on: github.pull_request_comment_created
+max_runtime: 10m
+filters:
+  repo: dorasto/sayr
+  contains: "@paseobot"
+  from_users: [tommerty, trent-001]
+steps:
+  - id: respond
+    environment: dev
+    max_runtime: 5m
+    idle_timeout: 2m
+    agent: pr-summarizer
+    github:
+      connection: dorasto-github
+      repositories: [dorasto/sayr]
+      permissions:
+        contents: read
+        pull_requests: write
+        issues: write
+    prompt:
+      - text: |
+          This is a diagnostic test of Hub's GitHub trigger routing for the sayr
+          project. It has nothing to do with the actual PR content — do not
+          summarize, review, or comment on the code.
+
+          Event context:
+          ${{ paseo.context }}
+
+          The PR number is at `payload.issue.number` (comment events use the
+          issue shape even on pull requests). Post exactly this comment:
+          `gh issue comment <number> --body "[sayr-trigger-test] received: ${{ paseo.prompt }}"`
+
+          This is an unattended run — do not ask for clarification, make a
+          reasonable judgment call if anything is ambiguous. When done, call
+          hub.finish_execution.
