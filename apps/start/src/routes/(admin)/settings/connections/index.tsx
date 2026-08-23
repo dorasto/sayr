@@ -20,7 +20,6 @@ async function resolveAccessToken(providerId: string, accountRow: any, headers: 
   try {
     const res = await auth.api.getAccessToken({
       body: {
-        providerId,
         accountId: accountRow.id,
       },
       headers,
@@ -42,32 +41,32 @@ export const getConnections = createServerFn({ method: "GET" })
       const email = await db.query.account.findFirst({
         where: and(
           eq(authSchema.account.userId, data.account?.id),
-          eq(authSchema.account.providerId, "credential"),
+          eq(authSchema.account.issuer, "local:credential"),
         ),
       });
       const [github, doras, discord, slack] = await Promise.all([
         db.query.account.findFirst({
           where: and(
             eq(authSchema.account.userId, data.account?.id),
-            eq(authSchema.account.providerId, "github")
+            eq(authSchema.account.issuer, "local:oauth:github")
           ),
         }),
         db.query.account.findFirst({
           where: and(
             eq(authSchema.account.userId, data.account?.id),
-            eq(authSchema.account.providerId, "doras")
+            eq(authSchema.account.issuer, "local:oauth:doras")
           ),
         }),
         db.query.account.findFirst({
           where: and(
             eq(authSchema.account.userId, data.account?.id),
-            eq(authSchema.account.providerId, "discord")
+            eq(authSchema.account.issuer, "local:oauth:discord")
           ),
         }),
         db.query.account.findFirst({
           where: and(
             eq(authSchema.account.userId, data.account?.id),
-            eq(authSchema.account.providerId, "slack")
+            eq(authSchema.account.issuer, "local:oauth:slack")
           ),
         }),
       ]);
@@ -85,10 +84,19 @@ export const getConnections = createServerFn({ method: "GET" })
       ]);
       return {
         email,
-        githubUser,
+        githubUser: githubUser && {
+          ...githubUser,
+          account_id: github?.id,
+        },
         dorasUser,
-        discordUser,
-        slackUser,
+        discordUser: discordUser && {
+          ...discordUser,
+          account_id: discord?.id
+        },
+        slackUser: slackUser && {
+          ...slackUser,
+          account_id: slack?.id
+        },
         providers: {
           github: !!(
             process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET
@@ -135,10 +143,10 @@ function RouteComponent() {
     >
       <UserConnections
         email={email}
-        githubUser={githubUser}
+        githubUser={githubUser as any}
         dorasUser={dorasUser}
-        discordUser={discordUser}
-        slackUser={slackUser}
+        discordUser={discordUser as any}
+        slackUser={slackUser as any}
         providers={providers}
       />
     </SubWrapper>

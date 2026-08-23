@@ -2,7 +2,7 @@ import * as schema from "@repo/database";
 import { db } from "@repo/database";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { admin, apiKey, genericOAuth, lastLoginMethod, twoFactor } from "better-auth/plugins";
+import { admin, genericOAuth, lastLoginMethod, twoFactor } from "better-auth/plugins";
 import { passkey } from "@better-auth/passkey";
 import {
 	polar,
@@ -15,7 +15,8 @@ import { CustomerSeat } from "@polar-sh/sdk/models/components/customerseat.js";
 import { getEditionCapabilities, isCloud, isSelfHosted } from "@repo/edition";
 import { eq, sql } from "drizzle-orm";
 import { sendEmail } from "@repo/util";
-import { addContactToContactBook } from "@repo/util/email";
+import { addContactToContactBook, deleteContactByEmail } from "@repo/util/email";
+import { apiKey } from "@better-auth/api-key"
 export { Polar, validateEvent };
 export type { Subscription, CustomerSeat };
 const rootUrl = process.env.VITE_ROOT_DOMAIN;
@@ -36,7 +37,7 @@ const plugins = [
 	lastLoginMethod({
 		storeInDatabase: true
 	}),
-	apiKey({ enableMetadata: true, defaultPrefix: "api_", defaultKeyLength: 64 }),
+	apiKey({ configId: "default", enableMetadata: true, defaultPrefix: "api_", defaultKeyLength: 64 }),
 	admin(),
 	genericOAuth({
 		config: [
@@ -53,11 +54,12 @@ const plugins = [
 				authorizationUrlParams: {
 					redirect_to: "/",
 				},
-				redirectURI: `${authCallbackUrl}/api/auth/oauth2/callback/doras`,
+				redirectURI: `${authCallbackUrl}/api/auth/callback/doras`,
+				//@ts-ignore
 				mapProfileToUser: async (profile) => {
 					return {
 						id: profile.id,
-						email: profile.email,
+						email: profile.email ?? `${profile.id}@doras.local`, // fallback
 						name: profile.username,
 						displayName: profile.displayName ?? profile.username,
 						emailVerified: true,
@@ -85,9 +87,8 @@ if (polarBillingEnabled) {
 	if (!polarClient) {
 		throw new Error("Polar client not initialized");
 	}
-
 	plugins.push(
-		//@ts-expect-error
+		//@ts-ignore
 		polar({
 			client: polarClient,
 			createCustomerOnSignUp: true,
@@ -156,6 +157,9 @@ export const auth = betterAuth({
 		deleteUser: {
 			enabled: true,
 			afterDelete: async (user, request) => {
+				if (isCloud()) {
+					await deleteContactByEmail(user.email)
+				}
 				polarClient && await polarClient.customers.deleteExternal({
 					externalId: user.id,
 				});
@@ -175,8 +179,8 @@ export const auth = betterAuth({
 	},
 	emailVerification: {
 		autoSignInAfterVerification: true,
-		callbackURL: "/auth/auth-check",
-		sendVerificationEmail: async ({ user, url, token }, request) => {
+		sendVerificationEmail: async ({ user, url }) => {
+			url = url.replace("&callbackURL=%2F", `&callbackURL=${encodeURI("/auth/auth-check")}`)
 			void sendEmail({
 				to: user.email,
 				subject: "Verify your email address",
@@ -201,34 +205,48 @@ export const auth = betterAuth({
 				`,
 			});
 		},
+		onExistingUserSignUp: async (ctx: any) => {
+			ctx.user
+			void sendEmail({
+				to: ctx.user.email,
+				subject: "Sign-up attempt with your email",
+				text: "Someone tried to create an account using your email address. If this was you, try signing in instead. If not, you can safely ignore this email.",
+			});
+		},
 	},
 	socialProviders: {
 		github: {
 			clientId: process.env.GITHUB_CLIENT_ID as string,
 			clientSecret: process.env.GITHUB_CLIENT_SECRET as string,
 			redirectURI: `${authCallbackUrl}/api/auth/callback/github`,
-			mapProfileToUser: async (profile) => {
-				return {
-					id: String(profile.id),
-					email: profile.email ?? `${profile.id}@github.local`, // fallback
-					name: profile.name ?? profile.login,
-					displayName: profile.name ?? profile.login,
-					image: profile.avatar_url,
-					emailVerified: true,
-					createdAt: new Date(),
-					updatedAt: new Date(),
-				};
-			},
+			scope: ["user:email"],
+			mapProfileToUser: (profile) => ({
+				email: profile.email ?? `${profile.id}@github.local`, // fallback
+				name: profile.name.toLowerCase() ?? profile.login.toLowerCase(),
+				displayName: profile.name ?? profile.login,
+				image: profile.avatar_url,
+				emailVerified: true,
+				createdAt: new Date(),
+				updatedAt: new Date(),
+			}),
 		},
 		discord: {
 			clientId: process.env.DISCORD_CLIENT_ID as string,
 			clientSecret: process.env.DISCORD_CLIENT_SECRET as string,
 			redirectURI: `${authCallbackUrl}/api/auth/callback/discord`,
+			mapProfileToUser: (profile) => ({
+				name: profile.username.toLowerCase(),
+				displayName: profile.username
+			}),
 		},
 		slack: {
 			clientId: process.env.SLACK_CLIENT_ID as string,
 			clientSecret: process.env.SLACK_CLIENT_SECRET as string,
 			redirectURI: `${authCallbackUrl}/api/auth/callback/slack`,
+			mapProfileToUser: (profile) => ({
+				displayName: profile.name,
+				name: profile.name.toLowerCase()
+			})
 		},
 	},
 	account: {

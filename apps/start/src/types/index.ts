@@ -1,4 +1,5 @@
 export type GithubUserType = {
+	account_id: string;
 	login: string;
 	id: number;
 	node_id: string;
@@ -35,6 +36,7 @@ export type GithubUserType = {
 	updated_at: string;
 };
 export type DorasUserType = {
+	account_id: string;
 	email: string;
 	id: string;
 	created_at: string;
@@ -60,6 +62,7 @@ export type DorasUserType = {
 };
 
 export type DiscordUserType = {
+	account_id: string;
 	id: string;
 	username: string;
 	global_name: string | null;
@@ -69,6 +72,7 @@ export type DiscordUserType = {
 };
 
 export type SlackUserType = {
+	account_id: string;
 	sub: string;
 	name: string;
 	picture: string;
