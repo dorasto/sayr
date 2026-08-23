@@ -49,7 +49,7 @@ export function TaskGroupSectionHeader({
     >
       <div
         className={cn(
-          "flex items-center justify-between px-4 py-1 relative overflow-hidden shrink-0 rounded-lg",
+          "flex items-center justify-between px-4 py-1 relative overflow-hidden shrink-0 rounded-lg bg-card",
           compact && "px-2 py-1.5",
           headerStyle?.getItemClassName?.(group.key),
           className,
