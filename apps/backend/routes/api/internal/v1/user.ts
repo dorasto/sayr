@@ -6,7 +6,6 @@ import { eq } from "drizzle-orm";
 import { Hono } from "hono";
 import type { AppEnv } from "@/index";
 import { enqueue, getRedis } from "@repo/queue";
-import { auth as betterAuth } from "@repo/auth";
 
 export const apiRouteAdminUser = new Hono<AppEnv>();
 
@@ -529,6 +528,16 @@ apiRouteAdminUser.delete("/delete", async (c) => {
 		await traceAsync(
 			"user.delete",
 			async () => {
+				const user = await db.query.user.findFirst({
+					columns: {
+						email: true,
+					},
+					where: () => eq(auth.user.id, userId),
+				});
+
+				if (!user) {
+					throw new Error(`User not found: ${userId}`);
+				}
 				await db
 					.update(schema.taskTimeline)
 					.set({ actorId: null })
@@ -553,7 +562,6 @@ apiRouteAdminUser.delete("/delete", async (c) => {
 					},
 					{ description: "Deleting user S3 files", data: { userId } }
 				);
-
 				await db.delete(auth.user).where(eq(auth.user.id, userId));
 			},
 			{

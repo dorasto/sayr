@@ -138,7 +138,10 @@ services:
       - RUSTFS_SECRET_KEY=${STORAGE_SECRET_KEY}
 
   db:
-    image: postgres:16
+    # pgvector-capable image (not stock postgres:16) — Sayr's schema requires
+    # the `vector` extension for semantic search/recommendations; migrations
+    # will fail on a Postgres build without it. See self-host docs.
+    image: pgvector/pgvector:pg16
     restart: always
     entrypoint: ["/app/db-entrypoint.sh"]
     environment:

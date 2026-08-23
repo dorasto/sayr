@@ -3,12 +3,9 @@ import { useEffect, useMemo } from "react";
 import { useMyTasks } from "@/contexts/ContextMine";
 import { IconUser } from "@tabler/icons-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useLayoutData } from "@/components/generic/Context";
+import { useLayoutData } from "@/components/admin/shell/context";
 import { PageHeader } from "@/components/generic/PageHeader";
-import {
-	useWSMessageHandler,
-	type WSMessageHandler,
-} from "@/hooks/useWSMessageHandler";
+import { useWSMessageHandler, type WSMessageHandler } from "@/hooks/useWSMessageHandler";
 import { sendWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
 import { Separator } from "@repo/ui/components/separator";
 import { TaskFilterDropdown } from "@/components/tasks/filter";
@@ -20,27 +17,14 @@ export default function MyTasksPage() {
 	const queryClient = useQueryClient();
 	queryClient.removeQueries({ queryKey: ["organization"] });
 	const { serverEvents, account } = useLayoutData();
-	const {
-		tasks,
-		setTasks,
-		labels,
-		setLabels,
-		categories,
-		setCategories,
-		releases,
-		permissionsByOrg,
-	} = useMyTasks();
+	const { tasks, setTasks, labels, setLabels, categories, setCategories, releases, permissionsByOrg } = useMyTasks();
 
 	useServerEventsSubscription({ serverEvents });
 
 	// Get unique organizations from tasks for WS handlers
 	const organizations = useMemo(() => {
 		return Array.from(
-			new Map(
-				tasks
-					.filter((t) => t.organization)
-					.map((t) => [t.organization!.id, t.organization!]),
-			).values(),
+			new Map(tasks.filter((t) => t.organization).map((t) => [t.organization!.id, t.organization!])).values()
 		);
 	}, [tasks]);
 
@@ -75,13 +59,12 @@ export default function MyTasksPage() {
 						name: org.name,
 						slug: org.slug,
 						logo: org.logo,
+						shortId: org.shortId,
 					},
 				}),
 			};
 
-			const isUserInList = updatedTask.assignees?.some(
-				(user) => user.id === account.id,
-			);
+			const isUserInList = updatedTask.assignees?.some((user) => user.id === account.id);
 
 			const taskExists = tasks.some((task) => task.id === updatedTask.id);
 
@@ -89,9 +72,7 @@ export default function MyTasksPage() {
 
 			if (isUserInList) {
 				newTasks = taskExists
-					? tasks.map((task) =>
-						task.id === updatedTask.id ? updatedTask : task,
-					)
+					? tasks.map((task) => (task.id === updatedTask.id ? updatedTask : task))
 					: [...tasks, updatedTask];
 			} else {
 				newTasks = tasks.filter((task) => task.id !== updatedTask.id);
@@ -104,15 +85,11 @@ export default function MyTasksPage() {
 					type: "timeline-update",
 					payload: updatedTask.id,
 				},
-				"*",
+				"*"
 			);
 		},
 		CREATE_TASK: (msg) => {
-			if (
-				msg.data.assignees.find(
-					(e: { id: string }) => e.id === account.id,
-				)
-			) {
+			if (msg.data.assignees.find((e: { id: string }) => e.id === account.id)) {
 				setTasks([...tasks, msg.data]);
 			}
 		},
@@ -121,13 +98,10 @@ export default function MyTasksPage() {
 				const newLabels = msg.data;
 				if (!Array.isArray(newLabels)) return;
 
-				const orgId =
-					msg.meta?.orgId || newLabels[0]?.organizationId;
+				const orgId = msg.meta?.orgId || newLabels[0]?.organizationId;
 				if (!orgId) return;
 
-				const updatedList = labels.filter(
-					(label) => label.organizationId !== orgId,
-				);
+				const updatedList = labels.filter((label) => label.organizationId !== orgId);
 				const newList = [...updatedList, ...newLabels];
 				setLabels(newList);
 			}
@@ -137,13 +111,10 @@ export default function MyTasksPage() {
 				const newCategories = msg.data;
 				if (!Array.isArray(newCategories)) return;
 
-				const orgId =
-					msg.meta?.orgId || newCategories[0]?.organizationId;
+				const orgId = msg.meta?.orgId || newCategories[0]?.organizationId;
 				if (!orgId) return;
 
-				const updatedList = categories.filter(
-					(cat) => cat.organizationId !== orgId,
-				);
+				const updatedList = categories.filter((cat) => cat.organizationId !== orgId);
 				const newList = [...updatedList, ...newCategories];
 				setCategories(newList);
 			}
@@ -156,7 +127,7 @@ export default function MyTasksPage() {
 						type: "timeline-update-comment",
 						payload: msg.data.id,
 					},
-					"*",
+					"*"
 				);
 			}
 		},
@@ -164,9 +135,7 @@ export default function MyTasksPage() {
 			if (msg.scope === "INDIVIDUAL" && msg.meta?.orgId) {
 				const { id, voteCount } = msg.data;
 				const updatedTasks = tasks.map((task) =>
-					task.id === id && task.organizationId === msg.meta?.orgId
-						? { ...task, voteCount }
-						: task,
+					task.id === id && task.organizationId === msg.meta?.orgId ? { ...task, voteCount } : task
 				);
 				setTasks(updatedTasks);
 				sendWindowMessage(
@@ -175,7 +144,7 @@ export default function MyTasksPage() {
 						type: "update-votes",
 						payload: msg.meta?.orgId,
 					},
-					"*",
+					"*"
 				);
 			}
 		},
@@ -194,10 +163,7 @@ export default function MyTasksPage() {
 	return (
 		<div className="relative flex flex-col h-full max-h-full overflow-hidden">
 			<PageHeader>
-				<PageHeader.Identity
-					icon={<IconUser className="size-4" />}
-					title="My Tasks"
-				/>
+				<PageHeader.Identity icon={<IconUser className="size-4" />} title="My Tasks" />
 				<PageHeader.Toolbar
 					left={
 						<>

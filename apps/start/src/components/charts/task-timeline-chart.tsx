@@ -2,7 +2,8 @@
 
 import type { schema } from "@repo/database";
 import { useMemo } from "react";
-import { SimpleAreaChart, type AreaChartSeries } from "./simple-area-chart";
+import { formatDateKey, formatDateLabel } from "./chart-date-utils";
+import { type AreaChartSeries, SimpleAreaChart } from "./simple-area-chart";
 
 export interface TaskTimelineChartProps {
 	tasks: schema.TaskWithLabels[];
@@ -17,15 +18,6 @@ export interface TaskTimelineChartProps {
 }
 
 const COMPLETED_STATUSES = ["done", "canceled"];
-
-function formatDateKey(date: Date): string {
-	return date.toISOString().split("T")[0] || "";
-}
-
-function formatDateLabel(dateKey: string): string {
-	const date = new Date(dateKey);
-	return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-}
 
 export function TaskTimelineChart({ tasks, days = 14, size = "md", className }: TaskTimelineChartProps) {
 	const { chartData, series } = useMemo(() => {

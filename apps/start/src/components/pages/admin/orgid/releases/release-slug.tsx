@@ -1,514 +1,498 @@
 import type { schema } from "@repo/database";
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "@repo/ui/components/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
 import { Button } from "@repo/ui/components/button";
+import { Label } from "@repo/ui/components/label";
+import { Separator } from "@repo/ui/components/separator";
 import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { cn } from "@repo/ui/lib/utils";
 import { ensureCdnUrl, extractHslValues } from "@repo/util";
 import {
-  IconLayoutSidebarRight,
-  IconLayoutSidebarRightFilled,
-  IconPlus,
-  IconRocket,
-  IconUsers,
+	IconLayoutSidebarRight,
+	IconLayoutSidebarRightFilled,
+	IconPlus,
+	IconRocket,
+	IconUsers,
 } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
-import { useStore } from "@tanstack/react-store";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useLayoutData } from "@/components/generic/Context";
+import { useLayoutData } from "@/components/admin/shell/context";
 import { PageHeader } from "@/components/generic/PageHeader";
-import { PanelWrapper } from "@/components/generic/wrapper";
+import { Page } from "@/components/generic/page";
 import RenderIcon from "@/components/generic/RenderIcon";
-import { ReleaseDescriptionEditor } from "@/components/releases/ReleaseDescriptionEditor";
-import { ReleaseInfo } from "@/components/releases/ReleaseInfo";
-import { ReleaseHeader } from "@/components/releases/ReleaseHeader";
-import { ReleaseSidebar } from "@/components/releases/ReleaseSidebar";
-import { ReleaseStatusUpdatesFeed } from "@/components/releases/ReleaseStatusUpdatesFeed";
-import { ReleaseDiscussion } from "@/components/releases/ReleaseDiscussion";
+import { usePage, usePanel } from "@/components/generic/use-page";
+import Loader from "@/components/loader";
+import { ReleaseDescriptionEditor } from "@/components/releases/release-description-editor";
+import { ReleaseDiscussion } from "@/components/releases/release-discussion";
+import { ReleaseHeader } from "@/components/releases/release-header";
+import { ReleaseInfo } from "@/components/releases/release-info";
+import { ReleaseSidebar } from "@/components/releases/release-sidebar";
+import { ReleaseStatusUpdatesFeed } from "@/components/releases/release-status-updates-feed";
 import { UnifiedTaskView } from "@/components/tasks/views/unified-task-view";
 import { useLayoutOrganization } from "@/contexts/ContextOrg";
-import {
-  LayoutReleaseProvider,
-  useLayoutRelease,
-} from "@/contexts/ContextOrgRelease";
-import { useServerEventsSubscription } from "@/hooks/useServerEventsSubscription";
-import type { MentionContext } from "@/hooks/useMentionUsers";
-import {
-  useWSMessageHandler,
-  type WSMessageHandler,
-} from "@/hooks/useWSMessageHandler";
-import { getReleaseWithTasksAction, updateReleaseAction } from "@/lib/fetches/release";
-import {
-  releaseChartsActions,
-  releaseChartsStore,
-} from "@/lib/stores/release-charts-store";
-import { useToastAction } from "@/lib/util";
-import type { ServerEventMessage } from "@/lib/serverEvents";
-import { Label } from "@repo/ui/components/label";
-import Loader from "@/components/Loader";
+import { LayoutReleaseProvider, useLayoutRelease } from "@/contexts/ContextOrgRelease";
 import { useReleaseCommands } from "@/hooks/commands/useReleaseCommands";
+import type { MentionContext } from "@/hooks/useMentionUsers";
+import { useServerEventsSubscription } from "@/hooks/useServerEventsSubscription";
+import { useWSMessageHandler, type WSMessageHandler } from "@/hooks/useWSMessageHandler";
 import { commandActions } from "@/lib/command-store";
-import { Separator } from "@repo/ui/components/separator";
+import { getReleaseWithTasksAction, updateReleaseAction } from "@/lib/fetches/release";
+import type { ServerEventMessage } from "@/lib/serverEvents";
+import { sidebarActions } from "@/lib/sidebar/sidebar-store";
+import { useToastAction } from "@/lib/util";
 
 interface ReleaseDetailPageProps {
-  release: schema.releaseType;
+	release: schema.releaseType;
 }
+
+const RELEASE_CHARTS_PANEL_ID = "release-charts-panel";
 
 function ReleaseDetailPageContent() {
-  const { serverEvents, account } = useLayoutData();
-  const { organization, setOrganization, categories, releases, setReleases } =
-    useLayoutOrganization();
-  const { release, setRelease } = useLayoutRelease();
+	const { serverEvents, account } = useLayoutData();
+	const { organization, setOrganization, categories, releases, setReleases } = useLayoutOrganization();
+	const { release, setRelease } = useLayoutRelease();
 
-  const [tasks, setTasks] = useState<schema.TaskWithLabels[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [statusUpdatesRefreshKey, setStatusUpdatesRefreshKey] = useState(0);
-  const [commentsRefreshKey, setCommentsRefreshKey] = useState(0);
-  const { runWithToast } = useToastAction();
-  const { value: sseClientId } = useStateManagement<string>("sse-clientId", "");
-  const { setValue: setMentionContext } =
-    useStateManagement<MentionContext | null>("mentionContext", null);
-  const isChartsPanelOpen = useStore(
-    releaseChartsStore,
-    (state) => state.isOpen,
-  );
-  const useMobile = useIsMobile();
-  const loadedReleaseIdRef = useRef<string | null>(null);
-  const refreshCommentsRef = useRef<(() => Promise<void>) | null>(null);
-  const handleRegisterRefresh = useCallback((fn: () => Promise<void>) => {
-    refreshCommentsRef.current = fn;
-  }, []);
+	const [tasks, setTasks] = useState<schema.TaskWithLabels[]>([]);
+	const [loading, setLoading] = useState(true);
+	const [statusUpdatesRefreshKey, setStatusUpdatesRefreshKey] = useState(0);
+	const [commentsRefreshKey, setCommentsRefreshKey] = useState(0);
+	const { runWithToast } = useToastAction();
+	const { value: sseClientId } = useStateManagement<string>("sse-clientId", "");
+	const { setValue: setMentionContext } = useStateManagement<MentionContext | null>("mentionContext", null);
+	const { setPanelContent, closePanel } = usePage();
+	const panel = usePanel(RELEASE_CHARTS_PANEL_ID);
+	const isChartsPanelOpen = panel.isOpen;
+	const useMobile = useIsMobile();
+	const loadedReleaseIdRef = useRef<string | null>(null);
+	const refreshCommentsRef = useRef<(() => Promise<void>) | null>(null);
+	const handleRegisterRefresh = useCallback((fn: () => Promise<void>) => {
+		refreshCommentsRef.current = fn;
+	}, []);
 
-  // Register release-specific command palette commands
-  useReleaseCommands(release, tasks, setTasks);
+	// Register release-specific command palette commands
+	useReleaseCommands(release, tasks, setTasks);
 
-  // Memoize to prevent unnecessary re-renders of Editor
-  const availableUsers = useMemo(
-    () => organization?.members.map((member) => member.user) || [],
-    [organization?.members],
-  );
+	// Memoize to prevent unnecessary re-renders of Editor
+	const availableUsers = useMemo(
+		() => organization?.members.map((member) => member.user) || [],
+		[organization?.members]
+	);
 
-  // Set mentionContext so the Editor's useMentionUsers hook can fetch org members with release context
-  useEffect(() => {
-    if (organization?.id) {
-      setMentionContext({ orgId: organization.id, releaseId: release?.id });
-    }
-  }, [organization?.id, release?.id, setMentionContext]);
+	// Set mentionContext so the Editor's useMentionUsers hook can fetch org members with release context
+	useEffect(() => {
+		if (organization?.id) {
+			setMentionContext({ orgId: organization.id, orgShortId: organization.shortId, releaseId: release?.id });
+		}
+	}, [organization?.id, organization?.shortId, release?.id, setMentionContext]);
 
-  useServerEventsSubscription({
-    serverEvents,
-    orgId: organization.id,
-    organization: organization,
-    channel: "releases",
-    setOrganization: setOrganization,
-  });
+	useServerEventsSubscription({
+		serverEvents,
+		orgId: organization.id,
+		organization: organization,
+		channel: "releases",
+		setOrganization: setOrganization,
+	});
 
-  // Load release with tasks
-  useEffect(() => {
-    const loadRelease = async () => {
-      if (!release?.id) return;
+	// Load release with tasks
+	useEffect(() => {
+		const loadRelease = async () => {
+			if (!release?.id) return;
 
-      // Avoid reloading if we've already loaded this release
-      if (loadedReleaseIdRef.current === release.id) {
-        setLoading(false);
-        return;
-      }
+			// Avoid reloading if we've already loaded this release
+			if (loadedReleaseIdRef.current === release.id) {
+				setLoading(false);
+				return;
+			}
 
-      try {
-        setLoading(true);
-        const result = await getReleaseWithTasksAction(
-          organization.id,
-          release.id,
-        );
-        if (result.success && result.data) {
-          setRelease(result.data);
-          setTasks(result.data.tasks);
-          loadedReleaseIdRef.current = release.id;
-        }
-      } catch (error) {
-        console.error("Failed to load release:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+			try {
+				setLoading(true);
+				const result = await getReleaseWithTasksAction(organization.id, release.id);
+				if (result.success && result.data) {
+					setRelease(result.data);
+					setTasks(result.data.tasks);
+					loadedReleaseIdRef.current = release.id;
+				}
+			} catch (error) {
+				console.error("Failed to load release:", error);
+			} finally {
+				setLoading(false);
+			}
+		};
 
-    void loadRelease();
-  }, [release?.id, organization.id, setRelease]);
+		void loadRelease();
+	}, [release?.id, organization.id, setRelease]);
 
-  const handlers: WSMessageHandler<ServerEventMessage> = {
-    UPDATE_RELEASES: (msg) => {
-      if (msg.scope === "CHANNEL" && "data" in msg) {
-        setReleases(msg.data);
-        // Update current release if it's in the updated list
-        const updatedRelease = (msg.data as schema.releaseType[]).find(
-          (r) => r.id === release?.id,
-        );
-        if (updatedRelease && release) {
-          // Preserve tasks array and createdBy when updating release metadata
-          setRelease({
-            ...release,
-            ...updatedRelease,
-            tasks: release.tasks,
-            createdBy: release.createdBy,
-          } as schema.ReleaseWithTasks);
-        }
-      }
-    },
-    UPDATE_TASK: (msg) => {
-      if (msg.scope === "CHANNEL" && "data" in msg) {
-        const task = msg.data as schema.TaskWithLabels;
-        // If task belongs to this release, update it
-        if (task.releaseId === release?.id) {
-          setTasks((prevTasks) => {
-            const existingIndex = prevTasks.findIndex((t) => t.id === task.id);
-            if (existingIndex >= 0) {
-              const newTasks = [...prevTasks];
-              newTasks[existingIndex] = task;
-              return newTasks;
-            }
-            return [...prevTasks, task];
-          });
-        } else {
-          // Task was removed from this release
-          setTasks((prevTasks) => prevTasks.filter((t) => t.id !== task.id));
-        }
-      }
-    },
-    UPDATE_RELEASE_STATUS_UPDATES: (msg) => {
-      if (
-        "data" in msg &&
-        (msg.data as { releaseId?: string })?.releaseId === release?.id
-      ) {
-        setStatusUpdatesRefreshKey((k) => k + 1);
-      }
-    },
-    UPDATE_RELEASE_COMMENTS: (msg) => {
-      if (
-        "data" in msg &&
-        (msg.data as { releaseId?: string })?.releaseId === release?.id
-      ) {
-        refreshCommentsRef.current?.();
-        setCommentsRefreshKey((k) => k + 1);
-      }
-    },
-  };
+	const handlers: WSMessageHandler<ServerEventMessage> = {
+		UPDATE_RELEASES: (msg) => {
+			if (msg.scope === "CHANNEL" && "data" in msg) {
+				setReleases(msg.data);
+				// Update current release if it's in the updated list
+				const updatedRelease = (msg.data as schema.releaseType[]).find((r) => r.id === release?.id);
+				if (updatedRelease && release) {
+					// Preserve tasks array and createdBy when updating release metadata
+					setRelease({
+						...release,
+						...updatedRelease,
+						tasks: release.tasks,
+						createdBy: release.createdBy,
+					} as schema.ReleaseWithTasks);
+				}
+			}
+		},
+		UPDATE_TASK: (msg) => {
+			if (msg.scope === "CHANNEL" && "data" in msg) {
+				const task = msg.data as schema.TaskWithLabels;
+				// If task belongs to this release, update it
+				if (task.releaseId === release?.id) {
+					setTasks((prevTasks) => {
+						const existingIndex = prevTasks.findIndex((t) => t.id === task.id);
+						if (existingIndex >= 0) {
+							const newTasks = [...prevTasks];
+							newTasks[existingIndex] = task;
+							return newTasks;
+						}
+						return [...prevTasks, task];
+					});
+				} else {
+					// Task was removed from this release
+					setTasks((prevTasks) => prevTasks.filter((t) => t.id !== task.id));
+				}
+			}
+		},
+		UPDATE_RELEASE_STATUS_UPDATES: (msg) => {
+			if ("data" in msg && (msg.data as { releaseId?: string })?.releaseId === release?.id) {
+				setStatusUpdatesRefreshKey((k) => k + 1);
+			}
+		},
+		UPDATE_RELEASE_COMMENTS: (msg) => {
+			if ("data" in msg && (msg.data as { releaseId?: string })?.releaseId === release?.id) {
+				refreshCommentsRef.current?.();
+				setCommentsRefreshKey((k) => k + 1);
+			}
+		},
+	};
 
-  const handleMessage = useWSMessageHandler<ServerEventMessage>(handlers, {});
+	const handleMessage = useWSMessageHandler<ServerEventMessage>(handlers, {});
 
-  useEffect(() => {
-    if (!serverEvents.event) return;
-    serverEvents.event.addEventListener("message", handleMessage);
-    return () => {
-      serverEvents.event?.removeEventListener("message", handleMessage);
-    };
-  }, [serverEvents.event, handleMessage]);
+	useEffect(() => {
+		if (!serverEvents.event) return;
+		serverEvents.event.addEventListener("message", handleMessage);
+		return () => {
+			serverEvents.event?.removeEventListener("message", handleMessage);
+		};
+	}, [serverEvents.event, handleMessage]);
 
-  // Handle name and slug update from header
-  const handleNameSlugUpdate = useCallback(
-    async (data: { name: string; slug: string }) => {
-      if (!release) return;
+	// Handle name and slug update from header
+	const handleNameSlugUpdate = useCallback(
+		async (data: { name: string; slug: string }) => {
+			if (!release) return;
 
-      const result = await runWithToast(
-        "update-release-name-slug",
-        {
-          loading: {
-            title: "Saving...",
-            description: "Updating release name and slug.",
-          },
-          success: {
-            title: "Saved",
-            description: "Release updated successfully.",
-          },
-          error: {
-            title: "Failed",
-            description: "Could not update release.",
-          },
-        },
-        () =>
-          updateReleaseAction(organization.id, release.id, data, sseClientId),
-      );
+			const result = await runWithToast(
+				"update-release-name-slug",
+				{
+					loading: {
+						title: "Saving...",
+						description: "Updating release name and slug.",
+					},
+					success: {
+						title: "Saved",
+						description: "Release updated successfully.",
+					},
+					error: {
+						title: "Failed",
+						description: "Could not update release.",
+					},
+				},
+				() => updateReleaseAction(organization.id, release.id, data, sseClientId)
+			);
 
-      if (result?.success && result.data) {
-        setRelease((prev) =>
-          prev
-            ? {
-              ...prev,
-              name: result.data.name,
-              slug: result.data.slug,
-            }
-            : null,
-        );
-      }
-    },
-    [release, organization.id, sseClientId, runWithToast, setRelease],
-  );
+			if (result?.success && result.data) {
+				setRelease((prev) =>
+					prev
+						? {
+								...prev,
+								name: result.data.name,
+								slug: result.data.slug,
+							}
+						: null
+				);
+			}
+		},
+		[release, organization.id, sseClientId, runWithToast, setRelease]
+	);
 
-  // Calculate task statistics for the release
-  const taskStats = useMemo(() => {
-    const total = tasks.length;
-    const completed = tasks.filter(
-      (t) => t.status === "done" || t.status === "canceled",
-    ).length;
-    const inProgress = tasks.filter((t) => t.status === "in-progress").length;
-    const todo = tasks.filter((t) => t.status === "todo").length;
-    const backlog = tasks.filter((t) => t.status === "backlog").length;
-    const completionPercentage = total > 0 ? (completed / total) * 100 : 0;
+	// Calculate task statistics for the release
+	const taskStats = useMemo(() => {
+		const total = tasks.length;
+		const completed = tasks.filter((t) => t.status === "done" || t.status === "canceled").length;
+		const inProgress = tasks.filter((t) => t.status === "in-progress").length;
+		const todo = tasks.filter((t) => t.status === "todo").length;
+		const backlog = tasks.filter((t) => t.status === "backlog").length;
+		const completionPercentage = total > 0 ? (completed / total) * 100 : 0;
 
-    return {
-      total,
-      completed,
-      inProgress,
-      todo,
-      backlog,
-      completionPercentage,
-    };
-  }, [tasks]);
+		return {
+			total,
+			completed,
+			inProgress,
+			todo,
+			backlog,
+			completionPercentage,
+		};
+	}, [tasks]);
 
-  // Calculate days until/since target date
-  const daysUntilTarget = useMemo(() => {
-    if (!release?.targetDate) return null;
-    const now = new Date();
-    const target = new Date(release.targetDate);
-    const diff = Math.ceil(
-      (target.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
-    );
-    return diff;
-  }, [release?.targetDate]);
+	// Calculate days until/since target date
+	const daysUntilTarget = useMemo(() => {
+		if (!release?.targetDate) return null;
+		const now = new Date();
+		const target = new Date(release.targetDate);
+		const diff = Math.ceil((target.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+		return diff;
+	}, [release?.targetDate]);
 
-  const setChartsPanelOpen = useCallback((open: boolean) => {
-    if (open) {
-      releaseChartsActions.open();
-    } else {
-      releaseChartsActions.close();
-    }
-  }, []);
+	// Panel body needs live tasks/taskStats/daysUntilTarget, unlike the
+	// task/tasks-list panels — real deps, not a set-once-on-mount effect.
+	// Still gated on isRegistered: Page defers registering the panel to its
+	// client-only pass, so this would otherwise race it on first mount.
+	useEffect(() => {
+		if (!panel.isRegistered || !release) return;
+		setPanelContent(
+			RELEASE_CHARTS_PANEL_ID,
+			<div className="flex flex-col gap-3">
+				<ReleaseInfo release={release} />
+				{tasks.length > 0 && <Label>Status</Label>}
+				<ReleaseSidebar
+					tasks={tasks}
+					taskStats={taskStats}
+					daysUntilTarget={daysUntilTarget}
+					organizationId={organization.id}
+					release={release}
+				/>
+			</div>
+		);
+	}, [panel.isRegistered, setPanelContent, release, tasks, taskStats, daysUntilTarget, organization.id]);
 
-  if (loading || !release) {
-    return <Loader />;
-  }
+	if (loading || !release) {
+		return <Loader />;
+	}
 
-  return (
-    <PanelWrapper
-      isOpen={isChartsPanelOpen}
-      setOpen={setChartsPanelOpen}
-      panelHeader={<Label>Information</Label>}
-      panelBody={
-        <div className="flex flex-col gap-3">
-          <ReleaseInfo release={release} />
-          {tasks.length > 0 && <Label>Status</Label>}
-          <ReleaseSidebar
-            tasks={tasks}
-            taskStats={taskStats}
-            daysUntilTarget={daysUntilTarget}
-            organizationId={organization.id}
-            release={release}
-          />
-        </div>
-      }
-    >
-      <div className="relative flex flex-col h-full max-h-full">
-        <PageHeader>
-          <PageHeader.Identity
-            actions={
-              <div className="flex items-center gap-1">
-                <Button
-                  variant="accent"
-                  className={cn(
-                    "gap-2 h-6 w-fit bg-accent border-transparent p-1",
-                    !isChartsPanelOpen && "bg-transparent",
-                  )}
-                  onClick={() => releaseChartsActions.toggle()}
-                >
-                  {isChartsPanelOpen ? (
-                    <IconLayoutSidebarRightFilled className="w-3 h-3" />
-                  ) : (
-                    <IconLayoutSidebarRight className="w-3 h-3" />
-                  )}
-                </Button>
-              </div>
-            }
-          >
-            {!useMobile && (
-              <>
-                <Link to="/$orgId/tasks" params={{ orgId: organization.id }}>
-                  <Button
-                    variant={"primary"}
-                    className="w-fit text-xs p-1 h-auto rounded-lg bg-transparent"
-                    size={"sm"}
-                  >
-                    <Avatar className="h-4 w-4">
-                      <AvatarImage
-                        src={
-                          organization.logo
-                            ? ensureCdnUrl(organization.logo)
-                            : ""
-                        }
-                        alt={organization.name}
-                      />
-                      <AvatarFallback className="rounded-md uppercase text-xs">
-                        <IconUsers className="h-4 w-4" />
-                      </AvatarFallback>
-                    </Avatar>
-                    <span>{organization.name}</span>
-                  </Button>
-                </Link>
-                <span className="text-muted-foreground text-xs">/</span>
-                <Link
-                  to="/$orgId/releases"
-                  params={{ orgId: organization.id }}
-                  search={{
-                    status: undefined,
-                    targetDateFrom: undefined,
-                    targetDateTo: undefined,
-                    releasedFrom: undefined,
-                    releasedTo: undefined,
-                  }}
-                >
-                  <Button
-                    variant={"ghost"}
-                    className="w-fit text-xs p-1 h-auto rounded-lg bg-transparent"
-                    size={"sm"}
-                  >
-                    <IconRocket className="size-3.5 text-muted-foreground" />
-                    <span>Releases</span>
-                  </Button>
-                </Link>
-                <span className="text-muted-foreground text-xs">/</span>
-              </>
-            )}
-            <div className="flex items-center gap-2">
-              <div
-                className="p-1 rounded-lg shrink-0"
-                style={{
-                  background: release.color
-                    ? `hsla(${extractHslValues(release.color)}, 0.2)`
-                    : undefined,
-                }}
-              >
-                <RenderIcon
-                  iconName={release.icon || "IconRocket"}
-                  size={8}
-                  color={release.color || undefined}
-                  raw
-                />
-              </div>
-              <span className="font-semibold text-xs truncate">
-                {release.name}{" "}
-                <span className="text-muted-foreground font-mono">
-                  ({release.slug})
-                </span>
-              </span>
-            </div>
-          </PageHeader.Identity>
-        </PageHeader>
-        <div className="flex-1 overflow-y-scroll h-full flex flex-col relative p-3 gap-3">
-          {/* Header Section */}
-          <div className="flex flex-col gap-3">
-            <ReleaseHeader release={release} onUpdate={handleNameSlugUpdate} />
+	return (
+		<Page
+			panels={{
+				right: {
+					id: RELEASE_CHARTS_PANEL_ID,
+					header: (
+						<div className="flex items-center gap-2 w-full flex-1 min-w-0">
+							<div
+								className="flex items-center justify-center size-4 shrink-0 rounded-md"
+								style={{
+									background: release.color ? `hsla(${extractHslValues(release.color)}, 0.1)` : undefined,
+								}}
+							>
+								<RenderIcon
+									iconName={release.icon || "IconRocket"}
+									size={12}
+									color={release.color || undefined}
+									raw
+								/>
+							</div>
+							<span className="text-xs font-medium truncate">{release.name}</span>
+						</div>
+					),
+					defaultOpen: true,
+					width: "380px",
+				},
+			}}
+			header={
+				<PageHeader.Identity
+					actions={
+						<div className="flex items-center gap-1">
+							<Button
+								variant="accent"
+								className={cn(
+									"gap-2 h-6 w-fit bg-accent border-transparent p-1",
+									!isChartsPanelOpen && "bg-transparent"
+								)}
+								onClick={() =>
+									isChartsPanelOpen
+										? closePanel(RELEASE_CHARTS_PANEL_ID)
+										: sidebarActions.setOpen(RELEASE_CHARTS_PANEL_ID, true)
+								}
+							>
+								{isChartsPanelOpen ? (
+									<IconLayoutSidebarRightFilled className="w-3 h-3" />
+								) : (
+									<IconLayoutSidebarRight className="w-3 h-3" />
+								)}
+							</Button>
+						</div>
+					}
+				>
+					{!useMobile && (
+						<>
+							<Link to="/$orgId/tasks" params={{ orgId: organization.id }}>
+								<Button
+									variant={"primary"}
+									className="w-fit text-xs p-1 h-auto rounded-lg bg-transparent"
+									size={"sm"}
+								>
+									<Avatar className="h-4 w-4">
+										<AvatarImage
+											src={organization.logo ? ensureCdnUrl(organization.logo) : ""}
+											alt={organization.name}
+										/>
+										<AvatarFallback className="rounded-md uppercase text-xs">
+											<IconUsers className="h-4 w-4" />
+										</AvatarFallback>
+									</Avatar>
+									<span>{organization.name}</span>
+								</Button>
+							</Link>
+							<span className="text-muted-foreground text-xs">/</span>
+							<Link
+								to="/$orgId/releases"
+								params={{ orgId: organization.id }}
+								search={{
+									status: undefined,
+									targetDateFrom: undefined,
+									targetDateTo: undefined,
+									releasedFrom: undefined,
+									releasedTo: undefined,
+								}}
+							>
+								<Button
+									variant={"ghost"}
+									className="w-fit text-xs p-1 h-auto rounded-lg bg-transparent"
+									size={"sm"}
+								>
+									<IconRocket className="size-3.5 text-muted-foreground" />
+									<span>Releases</span>
+								</Button>
+							</Link>
+							<span className="text-muted-foreground text-xs">/</span>
+						</>
+					)}
+					<div className="flex items-center gap-2">
+						<div
+							className="p-1 rounded-lg shrink-0"
+							style={{
+								background: release.color ? `hsla(${extractHslValues(release.color)}, 0.2)` : undefined,
+							}}
+						>
+							<RenderIcon
+								iconName={release.icon || "IconRocket"}
+								size={8}
+								color={release.color || undefined}
+								raw
+							/>
+						</div>
+						<span className="font-semibold text-xs truncate">
+							{release.name} <span className="text-muted-foreground font-mono">({release.slug})</span>
+						</span>
+					</div>
+				</PageHeader.Identity>
+			}
+		>
+			<div className="flex-1 overflow-y-scroll h-full flex flex-col relative p-3 gap-3">
+				{/* Header Section */}
+				<div className="flex flex-col gap-3">
+					<ReleaseHeader release={release} onUpdate={handleNameSlugUpdate} />
 
-            {/* Description Section */}
-            <div className="flex flex-col gap-3">
-              <ReleaseDescriptionEditor
-                release={release}
-                organizationId={organization.id}
-                categories={categories}
-                tasks={tasks}
-              />
-            </div>
-          </div>
-          {/* Status Updates & Discussion */}
-          <div className="flex flex-col gap-6">
-            <ReleaseStatusUpdatesFeed
-              releaseId={release.id}
-              orgId={organization.id}
-              currentUserId={account?.id}
-              canManage={true}
-              refreshKey={statusUpdatesRefreshKey}
-              commentsRefreshKey={commentsRefreshKey}
-            />
-          </div>
-          {/* Tasks Section */}
-          <div className="bg-card rounded-xl overflow-clip border p-3 flex flex-col gap-2">
-            <div className="flex items-center justify-between">
-              <Label variant={"subheading"}>Tasks</Label>
-              <Button
-                variant="accent"
-                className="gap-1.5 h-6 w-fit bg-transparent border-transparent px-1.5 text-xs"
-                onClick={() => {
-                  const viewId = `release-add-tasks-${release.id}`;
-                  commandActions.setInitialView(viewId, "Add tasks");
-                  commandActions.open();
-                }}
-              >
-                <IconPlus className="w-3 h-3" />
-                <span>Add tasks</span>
-              </Button>
-            </div>
+					{/* Description Section */}
+					<div className="flex flex-col gap-3">
+						<ReleaseDescriptionEditor
+							release={release}
+							organizationId={organization.id}
+							categories={categories}
+							tasks={tasks}
+						/>
+					</div>
+				</div>
+				{/* Status Updates & Discussion */}
+				<div className="flex flex-col gap-6">
+					<ReleaseStatusUpdatesFeed
+						releaseId={release.id}
+						orgId={organization.id}
+						currentUserId={account?.id}
+						canManage={true}
+						refreshKey={statusUpdatesRefreshKey}
+						commentsRefreshKey={commentsRefreshKey}
+					/>
+				</div>
+				{/* Tasks Section */}
+				<div className="bg-card rounded-xl overflow-clip border p-3 flex flex-col gap-2">
+					<div className="flex items-center justify-between">
+						<Label variant={"subheading"}>Tasks</Label>
+						<Button
+							variant="accent"
+							className="gap-1.5 h-6 w-fit bg-transparent border-transparent px-1.5 text-xs"
+							onClick={() => {
+								const viewId = `release-add-tasks-${release.id}`;
+								commandActions.setInitialView(viewId, "Add tasks");
+								commandActions.open();
+							}}
+						>
+							<IconPlus className="w-3 h-3" />
+							<span>Add tasks</span>
+						</Button>
+					</div>
 
-            <UnifiedTaskView
-              tasks={tasks}
-              setTasks={setTasks}
-              serverEvents={serverEvents}
-              availableUsers={availableUsers}
-              organization={organization}
-              categories={categories}
-              releases={releases}
-              compact={true}
-              forceShowCompleted={true}
-              className="h-auto overflow-visible"
-              overviewLayout={true}
-              showGroupHeaders={false}
-            />
-          </div>
-          <Separator />
-          <div className="rounded-xl overflow-clip p-3 flex flex-col gap-2">
-            <ReleaseDiscussion
-              releaseId={release.id}
-              orgId={organization.id}
-              currentUserId={account?.id}
-              canComment={true}
-              canManage={true}
-              onRegisterRefresh={handleRegisterRefresh}
-            />
-          </div>
-        </div>
-      </div>
-    </PanelWrapper>
-  );
+					<UnifiedTaskView
+						tasks={tasks}
+						setTasks={setTasks}
+						serverEvents={serverEvents}
+						availableUsers={availableUsers}
+						organization={organization}
+						categories={categories}
+						releases={releases}
+						compact={true}
+						forceShowCompleted={true}
+						className="h-auto overflow-visible"
+						overviewLayout={true}
+						showGroupHeaders={false}
+					/>
+				</div>
+				<Separator />
+				<div className="rounded-xl overflow-clip p-3 flex flex-col gap-2">
+					<ReleaseDiscussion
+						releaseId={release.id}
+						orgId={organization.id}
+						currentUserId={account?.id}
+						canComment={true}
+						canManage={true}
+						onRegisterRefresh={handleRegisterRefresh}
+					/>
+				</div>
+			</div>
+		</Page>
+	);
 }
 
-export default function ReleaseDetailPage({
-  release: initialRelease,
-}: ReleaseDetailPageProps) {
-  const [release, setRelease] = useState<schema.ReleaseWithTasks | null>(
-    () =>
-      ({
-        ...initialRelease,
-        tasks: [],
-        createdBy: null,
-        labels: [],
-        lead: null,
-      }) as any,
-  );
+export default function ReleaseDetailPage({ release: initialRelease }: ReleaseDetailPageProps) {
+	const [release, setRelease] = useState<schema.ReleaseWithTasks | null>(
+		() =>
+			({
+				...initialRelease,
+				tasks: [],
+				createdBy: null,
+				labels: [],
+				lead: null,
+			}) as any
+	);
 
-  // Update release when initialRelease changes
-  useEffect(() => {
-    setRelease({
-      ...initialRelease,
-      tasks: [],
-      createdBy: null,
-      labels: [],
-      lead: null,
-    } as any);
-  }, [initialRelease]);
+	// Update release when initialRelease changes
+	useEffect(() => {
+		setRelease({
+			...initialRelease,
+			tasks: [],
+			createdBy: null,
+			labels: [],
+			lead: null,
+		} as any);
+	}, [initialRelease]);
 
-  return (
-    <LayoutReleaseProvider initialRelease={release}>
-      <ReleaseDetailPageContent />
-    </LayoutReleaseProvider>
-  );
+	return (
+		<LayoutReleaseProvider initialRelease={release}>
+			<ReleaseDetailPageContent />
+		</LayoutReleaseProvider>
+	);
 }

@@ -1,4 +1,11 @@
+import { auth, db, schema } from "@repo/database";
+import { isCloud } from "@repo/edition";
+import { initTracing } from "@repo/opentelemetry";
+import { withTraceContext } from "@repo/opentelemetry/trace";
 import { dequeue, type JobGroups } from "@repo/queue";
+import { CronJob } from "cron";
+import { eq, lt, sql } from "drizzle-orm";
+import { insertSnapshots, type SnapshotRow } from "./clickhouse";
 import { handleComment, handleSayrKeywordParse } from "./github";
 import { handleGithubCommitRef } from "./github/commitRef";
 import {
@@ -8,26 +15,14 @@ import {
 	handleGithubPullRequestLink,
 	handleGithubPullRequestSync,
 } from "./github/pullRequest";
-
+import { embedTaskWorker } from "./main/embed-task";
 import { gdprExportWorker } from "./main/gdpr";
-
-import { withTraceContext } from "@repo/opentelemetry/trace";
-import { initTracing } from "@repo/opentelemetry";
-
-import { CronJob } from "cron";
-import { db, schema, auth } from "@repo/database";
-import { lt, eq, sql } from "drizzle-orm";
-import { isCloud } from "@repo/edition";
-import { insertSnapshots, type SnapshotRow } from "./clickhouse";
 
 /* ============================================================
    Environment
    ============================================================ */
 const APP_ENV = process.env.APP_ENV;
-const env =
-	APP_ENV === "production" || APP_ENV === "development"
-		? APP_ENV
-		: "development";
+const env = APP_ENV === "production" || APP_ENV === "development" ? APP_ENV : "development";
 
 let shuttingDown = false;
 
@@ -55,9 +50,7 @@ function initMainCronJobs() {
 			try {
 				const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
-				await db
-					.delete(schema.invite)
-					.where(lt(schema.invite.expiresAt, cutoff));
+				await db.delete(schema.invite).where(lt(schema.invite.expiresAt, cutoff));
 
 				console.log("🧹 Cleaned expired invites (older than 24h)");
 			} catch (err) {
@@ -65,7 +58,7 @@ function initMainCronJobs() {
 			}
 		},
 		null,
-		true,
+		true
 	);
 
 	// Daily platform snapshots to ClickHouse (1am UTC, cloud only)
@@ -76,39 +69,30 @@ function initMainCronJobs() {
 				try {
 					const snapshotDate = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
 
-					const [
-						usersTotal,
-						orgsTotal,
-						orgsFree,
-						orgsPro,
-						membersTotal,
-						membersSeated,
-						tasksTotal,
-					] = await Promise.all([
-						db.select({ count: sql<number>`count(*)` }).from(auth.user),
-						db
-							.select({ count: sql<number>`count(*)` })
-							.from(schema.organization)
-							.where(eq(schema.organization.isSystemOrg, false)),
-						db
-							.select({ count: sql<number>`count(*)` })
-							.from(schema.organization)
-							.where(
-								sql`${schema.organization.isSystemOrg} = false AND ${schema.organization.plan} = 'free'`,
-							),
-						db
-							.select({ count: sql<number>`count(*)` })
-							.from(schema.organization)
-							.where(
-								sql`${schema.organization.isSystemOrg} = false AND ${schema.organization.plan} = 'pro'`,
-							),
-						db.select({ count: sql<number>`count(*)` }).from(schema.member),
-						db
-							.select({ count: sql<number>`count(*)` })
-							.from(schema.member)
-							.where(eq(schema.member.seatAssigned, true)),
-						db.select({ count: sql<number>`count(*)` }).from(schema.task),
-					]);
+					const [usersTotal, orgsTotal, orgsFree, orgsPro, membersTotal, membersSeated, tasksTotal] =
+						await Promise.all([
+							db.select({ count: sql<number>`count(*)` }).from(auth.user),
+							db
+								.select({ count: sql<number>`count(*)` })
+								.from(schema.organization)
+								.where(eq(schema.organization.isSystemOrg, false)),
+							db
+								.select({ count: sql<number>`count(*)` })
+								.from(schema.organization)
+								.where(
+									sql`${schema.organization.isSystemOrg} = false AND ${schema.organization.plan} = 'free'`
+								),
+							db
+								.select({ count: sql<number>`count(*)` })
+								.from(schema.organization)
+								.where(sql`${schema.organization.isSystemOrg} = false AND ${schema.organization.plan} = 'pro'`),
+							db.select({ count: sql<number>`count(*)` }).from(schema.member),
+							db
+								.select({ count: sql<number>`count(*)` })
+								.from(schema.member)
+								.where(eq(schema.member.seatAssigned, true)),
+							db.select({ count: sql<number>`count(*)` }).from(schema.task),
+						]);
 
 					const rows: SnapshotRow[] = [
 						{ snapshot_date: snapshotDate, metric: "users.total", value: Number(usersTotal[0]?.count ?? 0) },
@@ -135,7 +119,7 @@ function initMainCronJobs() {
 				}
 			},
 			null,
-			true,
+			true
 		);
 		console.log("📊 Platform snapshot cron scheduled (daily at 1am UTC)");
 	}
@@ -183,31 +167,29 @@ async function processMainJob(job: JobGroups["main"]) {
 		case "gdpr_export":
 			return gdprExportWorker(job);
 
+		case "embed_task":
+			return embedTaskWorker(job);
+
 		default:
-			console.warn(`⚠️ Unhandled main job type: ${job.type}`);
+			// Now that MainJob has more than one member, this branch is
+			// exhaustively narrowed to `never` by TS — cast is safe, every
+			// member of the union structurally has `.type`.
+			console.warn(`⚠️ Unhandled main job type: ${(job as { type: string }).type}`);
 	}
 }
 
 /* ============================================================
    Generic Job Handler
    ============================================================ */
-async function handleJob<G extends keyof JobGroups>(
-	group: G,
-	job: JobGroups[G],
-) {
+async function handleJob<G extends keyof JobGroups>(group: G, job: JobGroups[G]) {
 	const traceContext = "traceContext" in job ? job.traceContext : undefined;
 
 	try {
-		await withTraceContext(
-			traceContext,
-			`worker.${group}.${job.type}`,
-			async () => {
-				if (group === "github")
-					return processGithubJob(job as JobGroups["github"]);
-				if (group === "main") return processMainJob(job as JobGroups["main"]);
-				console.warn(`⚠️ No handler defined for group "${group}"`);
-			},
-		);
+		await withTraceContext(traceContext, `worker.${group}.${job.type}`, async () => {
+			if (group === "github") return processGithubJob(job as JobGroups["github"]);
+			if (group === "main") return processMainJob(job as JobGroups["main"]);
+			console.warn(`⚠️ No handler defined for group "${group}"`);
+		});
 	} catch (err) {
 		console.error(`❌ [${group}] ${job.type} failed:`, err);
 	}
@@ -260,7 +242,7 @@ async function main() {
 
 	if (!groupArg) {
 		console.error(
-			"❌ Missing group argument.\nUsage: bun run dev-<group>\nExample: bun run dev-github , bun run dev-main",
+			"❌ Missing group argument.\nUsage: bun run dev-<group>\nExample: bun run dev-github , bun run dev-main"
 		);
 		process.exit(1);
 	}

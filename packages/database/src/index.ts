@@ -15,10 +15,25 @@ export {
 } from "../schema/organization.schema";
 
 // Re-export AI org types and helpers from @repo/util (browser-safe)
-export { type OrgAiSettings, type OrgAiRateLimit, defaultOrgAiSettings, resolveOrgAiStatus } from "@repo/util";
+export {
+	type OrgAiSettings,
+	type OrgAiRateLimit,
+	defaultOrgAiSettings,
+	resolveOrgAiStatus,
+	isAiFeatureEnabled,
+} from "@repo/util";
 
 import { and, eq, inArray } from "drizzle-orm";
-import { member, memberTeam, team, defaultTeamPermissions as defaultPerms, type TeamPermissions, organization, type OrganizationSettings, defaultOrganizationSettings } from "../schema";
+import {
+	member,
+	memberTeam,
+	team,
+	defaultTeamPermissions as defaultPerms,
+	type TeamPermissions,
+	organization,
+	type OrganizationSettings,
+	defaultOrganizationSettings,
+} from "../schema";
 import { type OrgAiSettings } from "@repo/util";
 
 import { user } from "../schema/auth";
@@ -143,15 +158,9 @@ export async function hasOrgPermission(userId: string, orgId: string, permPath: 
 	return allowed;
 }
 
-type PublicAccessCheck =
-	| "enablePublicPage"
-	| "publicActions"
-	| "both";
+type PublicAccessCheck = "enablePublicPage" | "publicActions" | "both";
 
-export async function canPublicAccessOrg(
-	orgId: string,
-	check: PublicAccessCheck = "both"
-): Promise<boolean> {
+export async function canPublicAccessOrg(orgId: string, check: PublicAccessCheck = "both"): Promise<boolean> {
 	const result = await db
 		.select({
 			settings: organization.settings,
@@ -162,10 +171,7 @@ export async function canPublicAccessOrg(
 
 	if (!result.length) return false;
 
-	const {
-		enablePublicPage,
-		publicActions,
-	} = result[0]?.settings || defaultOrganizationSettings;
+	const { enablePublicPage, publicActions } = result[0]?.settings || defaultOrganizationSettings;
 
 	switch (check) {
 		case "enablePublicPage":

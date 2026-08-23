@@ -10,6 +10,8 @@ type viewConfig = {
 	groupBy: "status" | "priority" | "assignee" | "category";
 	subGroupBy?: "status" | "priority" | "assignee" | "category" | "none";
 	showCompletedTasks: boolean;
+	sortBy?: "priority" | "voteCount" | "createdAt" | "updatedAt" | "status" | "none";
+	sortDirection?: "asc" | "desc";
 	color?: string;
 	icon?: string;
 };

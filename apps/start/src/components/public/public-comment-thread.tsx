@@ -1,33 +1,20 @@
+import { authClient } from "@repo/auth/client";
 import type { schema } from "@repo/database";
-import {
-	Avatar,
-	AvatarFallback,
-	AvatarImage,
-} from "@repo/ui/components/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
 import { Button } from "@repo/ui/components/button";
+import { headlessToast } from "@repo/ui/components/headless-toast";
 import { Label } from "@repo/ui/components/label";
 import { Separator } from "@repo/ui/components/separator";
-import { headlessToast } from "@repo/ui/components/headless-toast";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { cn } from "@repo/ui/lib/utils";
-import { getDisplayName } from "@repo/util";
-import {
-	IconArrowBack,
-	IconChevronDown,
-	IconChevronUp,
-	IconLoader2,
-} from "@tabler/icons-react";
+import { getDisplayName, getInitials } from "@repo/util";
+import { IconArrowBack, IconChevronDown, IconChevronUp, IconLoader2 } from "@tabler/icons-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { NodeJSON } from "prosekit/core";
 import { lazy, Suspense, useCallback, useMemo, useState } from "react";
-import { authClient } from "@repo/auth/client";
-import {
-	CreateTaskCommentAction,
-	CreateTaskReactionAction,
-	FetchCommentRepliesAction,
-} from "@/lib/fetches/task";
-import { extractTextContent } from "@/lib/util";
 import type { ReactionEmoji } from "@/components/tasks/task/timeline/reactions";
+import { CreateTaskCommentAction, CreateTaskReactionAction, FetchCommentRepliesAction } from "@/lib/fetches/task";
+import { extractTextContent } from "@/lib/util";
 import { PublicCommentItem } from "./public-comment-item";
 import type { CommentData } from "./public-comments-types";
 
@@ -61,7 +48,7 @@ export function PublicCommentThreadTrigger({
 			onClick={onToggle}
 			className={cn(
 				"flex items-center gap-2 pt-2 mt-2 text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer border-t border-border/50 w-full",
-				replyCount === 0 && "pb-2",
+				replyCount === 0 && "pb-2"
 			)}
 		>
 			{expanded ? <IconChevronUp size={14} /> : <IconChevronDown size={14} />}
@@ -71,7 +58,7 @@ export function PublicCommentThreadTrigger({
 						<Avatar key={author.id} className="size-5 border-2 border-background rounded-full">
 							<AvatarImage src={author.image || ""} alt={getDisplayName(author)} />
 							<AvatarFallback className="text-[8px] rounded-full">
-								{getDisplayName(author).slice(0, 2).toUpperCase()}
+								{getInitials(getDisplayName(author))}
 							</AvatarFallback>
 						</Avatar>
 					))}
@@ -161,14 +148,15 @@ export function PublicCommentThreadBody({
 			content: r.content as NodeJSON,
 			visibility: r.visibility as "public" | "internal",
 			createdAt: r.createdAt instanceof Date ? r.createdAt.toISOString() : String(r.createdAt ?? ""),
-			updatedAt: r.updatedAt instanceof Date ? r.updatedAt.toISOString() : r.updatedAt ? String(r.updatedAt) : undefined,
+			updatedAt:
+				r.updatedAt instanceof Date ? r.updatedAt.toISOString() : r.updatedAt ? String(r.updatedAt) : undefined,
 			createdBy: (r as any).actor
 				? {
-					id: (r as any).actor.id,
-					name: (r as any).actor.name,
-					image: (r as any).actor.image,
-					displayName: (r as any).actor.displayName ?? null,
-				}
+						id: (r as any).actor.id,
+						name: (r as any).actor.name,
+						image: (r as any).actor.image,
+						displayName: (r as any).actor.displayName ?? null,
+					}
 				: null,
 			reactions: r.reactions as CommentData["reactions"],
 			parentId: r.parentId ?? parentComment.id,
@@ -191,7 +179,9 @@ export function PublicCommentThreadBody({
 				return (old as Array<Record<string, unknown>>).map((reply) => {
 					if ((reply as { id: string }).id !== commentId) return reply;
 
-					const currentReactions = ((reply as { reactions?: { reactions?: Record<string, { count: number; users: string[] }> } }).reactions?.reactions ?? {}) as Record<string, { count: number; users: string[] }>;
+					const currentReactions = ((
+						reply as { reactions?: { reactions?: Record<string, { count: number; users: string[] }> } }
+					).reactions?.reactions ?? {}) as Record<string, { count: number; users: string[] }>;
 					const emojiData = currentReactions[emoji] ?? { count: 0, users: [] };
 					const hasReacted = emojiData.users.includes(userId);
 
@@ -230,7 +220,7 @@ export function PublicCommentThreadBody({
 					parentComment.taskId,
 					commentId,
 					emoji,
-					sseClientId,
+					sseClientId
 				);
 			} catch {
 				queryClient.setQueryData(queryKey, previousData);
@@ -241,7 +231,14 @@ export function PublicCommentThreadBody({
 				});
 			}
 		},
-		[session?.user?.id, parentComment.id, parentComment.organizationId, parentComment.taskId, queryClient, sseClientId],
+		[
+			session?.user?.id,
+			parentComment.id,
+			parentComment.organizationId,
+			parentComment.taskId,
+			queryClient,
+			sseClientId,
+		]
 	);
 
 	return (
@@ -258,9 +255,7 @@ export function PublicCommentThreadBody({
 							{index > 0 && <Separator className="opacity-50" />}
 							<PublicCommentItem
 								comment={reply}
-								memberTeamName={
-									reply.createdBy ? (memberHighestTeam.get(reply.createdBy.id) ?? null) : null
-								}
+								memberTeamName={reply.createdBy ? (memberHighestTeam.get(reply.createdBy.id) ?? null) : null}
 								onToggleReaction={canAct ? handleReplyReaction : undefined}
 								users={users}
 								currentUserId={currentUserId}
@@ -356,7 +351,7 @@ function PublicReplyInput({
 					content,
 					"public",
 					sseClientId,
-					parentComment.id,
+					parentComment.id
 				);
 				if (result.success) {
 					setContent(undefined);
@@ -401,7 +396,7 @@ function PublicReplyInput({
 			<Avatar className="h-5 w-5 shrink-0 rounded-full mt-2">
 				<AvatarImage src={session?.user?.image || "/avatar.jpg"} alt={displayName} />
 				<AvatarFallback className="rounded-full bg-muted text-[10px] uppercase">
-					{displayName.slice(0, 2)}
+					{getInitials(displayName)}
 				</AvatarFallback>
 			</Avatar>
 			<div className={cn("flex-1 min-w-0", !multiline && "flex items-center gap-2")}>

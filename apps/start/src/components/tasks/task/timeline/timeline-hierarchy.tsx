@@ -1,5 +1,6 @@
 import { cn } from "@repo/ui/lib/utils";
-import { getDisplayName } from "@repo/util";
+import { formatTaskKey, getDisplayName } from "@repo/util";
+import type { TaskDetailOrganization } from "../../types";
 import {
 	IconArrowUpRight,
 	IconArrowDownRight,
@@ -19,7 +20,10 @@ import type { schema } from "@repo/database";
 /*                               Shared helpers                               */
 /* -------------------------------------------------------------------------- */
 
-function taskStatusIcon(task: schema.TaskWithLabels, FallbackIcon: React.ComponentType<{ size?: number; className?: string }>) {
+function taskStatusIcon(
+	task: schema.TaskWithLabels,
+	FallbackIcon: React.ComponentType<{ size?: number; className?: string }>
+) {
 	const statusKey = task.status?.replace(/"/g, "") as keyof typeof statusConfig | undefined;
 	const cfg = statusKey ? statusConfig[statusKey] : undefined;
 	return cfg ? cfg.icon(cn(cfg.className, "h-3.5 w-3.5")) : <FallbackIcon size={12} />;
@@ -28,10 +32,13 @@ function taskStatusIcon(task: schema.TaskWithLabels, FallbackIcon: React.Compone
 function TaskLink({
 	task,
 	FallbackIcon,
+	organization,
 }: {
 	task: schema.TaskWithLabels;
 	FallbackIcon: React.ComponentType<{ size?: number; className?: string }>;
+	organization?: TaskDetailOrganization;
 }) {
+	const orgShortId = organization?.shortId ?? task.organization?.shortId;
 	return (
 		<Link
 			to="/$orgId/tasks/$taskShortId"
@@ -43,7 +50,7 @@ function TaskLink({
 		>
 			<InlineLabel
 				className="text-muted-foreground hover:text-foreground"
-				text={`#${task.shortId} ${task.title}`}
+				text={`${orgShortId ? formatTaskKey(orgShortId, task.shortId) : task.shortId} ${task.title}`}
 				icon={taskStatusIcon(task, FallbackIcon)}
 			/>
 		</Link>
@@ -58,6 +65,7 @@ export function TimelineParentAdded({
 	item,
 	tasks = [],
 	showSeparator = true,
+	organization,
 }: TimelineItemProps & { showSeparator?: boolean }) {
 	const parentId = typeof item.toValue === "string" ? item.toValue.replaceAll('"', "") : null;
 	const parentTask = parentId ? tasks.find((t) => t.id === parentId) : null;
@@ -76,13 +84,9 @@ export function TimelineParentAdded({
 			/>{" "}
 			set parent to{" "}
 			{parentTask ? (
-				<TaskLink task={parentTask} FallbackIcon={IconArrowUpRight} />
+				<TaskLink task={parentTask} FallbackIcon={IconArrowUpRight} organization={organization} />
 			) : (
-				<InlineLabel
-					className="text-muted-foreground"
-					text="a task"
-					icon={<IconArrowUpRight size={12} />}
-				/>
+				<InlineLabel className="text-muted-foreground" text="a task" icon={<IconArrowUpRight size={12} />} />
 			)}
 		</TimelineItemWrapper>
 	);
@@ -92,6 +96,7 @@ export function TimelineParentRemoved({
 	item,
 	tasks = [],
 	showSeparator = true,
+	organization,
 }: TimelineItemProps & { showSeparator?: boolean }) {
 	const parentId = typeof item.fromValue === "string" ? item.fromValue.replaceAll('"', "") : null;
 	const parentTask = parentId ? tasks.find((t) => t.id === parentId) : null;
@@ -110,13 +115,9 @@ export function TimelineParentRemoved({
 			/>{" "}
 			removed parent{" "}
 			{parentTask ? (
-				<TaskLink task={parentTask} FallbackIcon={IconArrowUpRight} />
+				<TaskLink task={parentTask} FallbackIcon={IconArrowUpRight} organization={organization} />
 			) : (
-				<InlineLabel
-					className="text-muted-foreground"
-					text="a task"
-					icon={<IconArrowUpRight size={12} />}
-				/>
+				<InlineLabel className="text-muted-foreground" text="a task" icon={<IconArrowUpRight size={12} />} />
 			)}
 		</TimelineItemWrapper>
 	);
@@ -130,6 +131,7 @@ export function TimelineSubtaskAdded({
 	item,
 	tasks = [],
 	showSeparator = true,
+	organization,
 }: TimelineItemProps & { showSeparator?: boolean }) {
 	const subtaskId = typeof item.toValue === "string" ? item.toValue.replaceAll('"', "") : null;
 	const subtask = subtaskId ? tasks.find((t) => t.id === subtaskId) : null;
@@ -148,13 +150,9 @@ export function TimelineSubtaskAdded({
 			/>{" "}
 			added subtask{" "}
 			{subtask ? (
-				<TaskLink task={subtask} FallbackIcon={IconArrowDownRight} />
+				<TaskLink task={subtask} FallbackIcon={IconArrowDownRight} organization={organization} />
 			) : (
-				<InlineLabel
-					className="text-muted-foreground"
-					text="a task"
-					icon={<IconArrowDownRight size={12} />}
-				/>
+				<InlineLabel className="text-muted-foreground" text="a task" icon={<IconArrowDownRight size={12} />} />
 			)}
 		</TimelineItemWrapper>
 	);
@@ -164,6 +162,7 @@ export function TimelineSubtaskRemoved({
 	item,
 	tasks = [],
 	showSeparator = true,
+	organization,
 }: TimelineItemProps & { showSeparator?: boolean }) {
 	const subtaskId = typeof item.fromValue === "string" ? item.fromValue.replaceAll('"', "") : null;
 	const subtask = subtaskId ? tasks.find((t) => t.id === subtaskId) : null;
@@ -182,13 +181,9 @@ export function TimelineSubtaskRemoved({
 			/>{" "}
 			removed subtask{" "}
 			{subtask ? (
-				<TaskLink task={subtask} FallbackIcon={IconArrowDownRight} />
+				<TaskLink task={subtask} FallbackIcon={IconArrowDownRight} organization={organization} />
 			) : (
-				<InlineLabel
-					className="text-muted-foreground"
-					text="a task"
-					icon={<IconArrowDownRight size={12} />}
-				/>
+				<InlineLabel className="text-muted-foreground" text="a task" icon={<IconArrowDownRight size={12} />} />
 			)}
 		</TimelineItemWrapper>
 	);
@@ -224,6 +219,7 @@ export function TimelineRelationAdded({
 	item,
 	tasks = [],
 	showSeparator = true,
+	organization,
 }: TimelineItemProps & { showSeparator?: boolean }) {
 	const info = parseRelationValue(item.toValue);
 	const relationType = info?.type || "related";
@@ -245,7 +241,7 @@ export function TimelineRelationAdded({
 			/>{" "}
 			added {config.label} relation{" "}
 			{relatedTask ? (
-				<TaskLink task={relatedTask} FallbackIcon={config.icon} />
+				<TaskLink task={relatedTask} FallbackIcon={config.icon} organization={organization} />
 			) : (
 				<InlineLabel
 					className="text-muted-foreground"

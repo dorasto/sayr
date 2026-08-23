@@ -1,6 +1,6 @@
 import { useRouter } from "@tanstack/react-router";
 import { useCallback } from "react";
-import { useLayoutData } from "@/components/generic/Context";
+import { useLayoutData } from "@/components/admin/shell/context";
 import { clearAuthCache } from "@/routes/(admin)/route";
 import { UserSettingsContent } from "./user-settings-content";
 import { useServerEventsSubscription } from "@/hooks/useServerEventsSubscription";
@@ -28,10 +28,6 @@ export default function UserSettings() {
 	}, [account, setAccount, router]);
 
 	return (
-		<UserSettingsContent
-			account={account}
-			organizations={organizations}
-			onAccountUpdated={handleAccountUpdated}
-		/>
+		<UserSettingsContent account={account} organizations={organizations} onAccountUpdated={handleAccountUpdated} />
 	);
 }

@@ -1,4 +1,4 @@
-import { useLayoutData } from "@/components/generic/Context";
+import { useLayoutData } from "@/components/admin/shell/context";
 import { useLayoutOrganizationSettings } from "@/contexts/ContextOrgSettings";
 import { useServerEventsSubscription } from "@/hooks/useServerEventsSubscription";
 import { useWSMessageHandler, WSMessageHandler } from "@/hooks/useWSMessageHandler";
@@ -29,8 +29,7 @@ export default function SettingsOrganizationViewsPage() {
 		},
 	};
 
-	const handleMessage = useWSMessageHandler<ServerEventMessage>(handlers, {
-	});
+	const handleMessage = useWSMessageHandler<ServerEventMessage>(handlers, {});
 
 	useEffect(() => {
 		if (!serverEvents.event) return;
@@ -46,11 +45,16 @@ export default function SettingsOrganizationViewsPage() {
 
 	return (
 		<div className="flex flex-col gap-2">
+			{/* No standalone edit page anymore — editing happens inline from the
+			    tasks page (pencil icon on the saved-view tile in the panel opens
+			    SettingsOrganizationViewDetailPage in a Sheet). This just gets you
+			    there with the view applied. */}
 			{views.map((view) => (
 				<Link
 					key={view.id}
-					to="/settings/org/$orgId/views/$viewId"
-					params={{ orgId: organization.id, viewId: view.id }}
+					to="/$orgId/tasks"
+					params={{ orgId: organization.id }}
+					search={{ view: view.slug || view.id }}
 				>
 					<Tile className="bg-card hover:bg-accent md:w-full transition-colors cursor-pointer">
 						<TileHeader>

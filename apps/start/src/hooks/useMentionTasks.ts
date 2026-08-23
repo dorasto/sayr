@@ -1,7 +1,7 @@
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { searchOrgTasks, type OrgTaskSearchResult } from "@/lib/fetches/searchTasks";
+import { type OrgTaskSearchResult, searchOrgTasks } from "@/lib/fetches/searchTasks";
 import type { MentionContext } from "./useMentionUsers";
 
 /**
@@ -16,6 +16,7 @@ import type { MentionContext } from "./useMentionUsers";
 export function useMentionTasks() {
 	const { value: mentionContext } = useStateManagement<MentionContext | null>("mentionContext", null);
 	const orgId = mentionContext?.orgId;
+	const orgShortId = mentionContext?.orgShortId;
 
 	const [searchQuery, setSearchQuery] = useState("");
 	const [debouncedQuery, setDebouncedQuery] = useState("");
@@ -58,12 +59,9 @@ export function useMentionTasks() {
 
 	const loading = searchQueryResult.isFetching;
 
-	const getTaskById = useCallback(
-		(taskId: string): OrgTaskSearchResult | undefined => {
-			return seenTasksRef.current.get(taskId);
-		},
-		[],
-	);
+	const getTaskById = useCallback((taskId: string): OrgTaskSearchResult | undefined => {
+		return seenTasksRef.current.get(taskId);
+	}, []);
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: needs to recompute when fetched data changes
 	const allSeenTasks = useMemo(() => {
@@ -77,5 +75,6 @@ export function useMentionTasks() {
 		getTaskById,
 		allSeenTasks,
 		hasContext: !!orgId,
+		orgShortId,
 	};
 }

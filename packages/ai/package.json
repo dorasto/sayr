@@ -1,0 +1,24 @@
+{
+	"name": "@repo/ai",
+	"version": "0.0.1",
+	"private": true,
+	"exports": {
+		".": "./src/index.ts",
+		"./*": "./src/*.ts"
+	},
+	"scripts": {
+		"lint": "biome check .",
+		"lint:fix": "biome check . --write",
+		"format": "biome format --write ."
+	},
+	"dependencies": {
+		"@tanstack/ai": "^0.45.1",
+		"@tanstack/ai-mistral": "^0.3.2",
+		"@tanstack/ai-openai": "^0.19.1"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^2.1.1",
+		"@repo/typescript-config": "workspace:*",
+		"@types/node": "^24.0.14"
+	}
+}

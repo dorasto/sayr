@@ -85,7 +85,7 @@ export type TaskWithLabels = Omit<taskType, "createdBy"> & {
 	labels: labelType[];
 	assignees: UserSummary[];
 	createdBy?: UserSummary | null;
-	organization?: { id: string; name: string; slug: string; logo: string | null };
+	organization?: { id: string; name: string; slug: string; logo: string | null; shortId: string };
 	comments?: CommentsWithAuthor;
 	githubIssue?: githubIssueType;
 	githubPullRequest?: githubPullRequestType;
@@ -216,6 +216,7 @@ export type NotificationWithDetails = notificationType & {
 		name: string;
 		slug: string;
 		logo: string | null;
+		shortId: string;
 	};
 	timelineEvent?: {
 		id: string;

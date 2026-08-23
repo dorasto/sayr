@@ -31,7 +31,13 @@ export const getAdminOrganizationTask = createServerFn({ method: "GET" })
 				//@ts-expect-error should be fine
 				throw redirect({ to: `/admin/${organization.id}/tasks` });
 			}
-			return { task, orgName: organization.name, orgSlug: organization.slug, orgLogo: organization.logo };
+			return {
+				task,
+				orgName: organization.name,
+				orgSlug: organization.slug,
+				orgLogo: organization.logo,
+				orgShortId: organization.shortId,
+			};
 		} catch (error) {
 			// If it's already a redirect, re-throw it
 			if (isRedirect(error)) {

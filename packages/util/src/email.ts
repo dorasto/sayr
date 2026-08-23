@@ -366,3 +366,129 @@ export async function sendEmailBatch(
 	}
 	return ids;
 }
+
+const contactBookId = process.env.USESEND_SIGNUP_CONTACT_BOOK_ID;
+const apiKey = process.env.SAYR_EMAIL;
+const headers = {
+	Authorization: `Bearer ${apiKey}`,
+	"Content-Type": "application/json",
+};
+
+export async function deleteContactByEmail(email: string) {
+	if (!contactBookId) {
+		throw new Error(
+			"Missing USESEND_SIGNUP_CONTACT_BOOK_ID environment variable",
+		);
+	}
+
+	if (!apiKey) {
+		throw new Error("Missing SAYR_EMAIL environment variable");
+	}
+	const listResponse = await fetch(
+		`https://app.usesend.com/api/v1/contactBooks/${contactBookId}/contacts?emails=${encodeURIComponent(email)}`,
+		{
+			method: "GET",
+			headers,
+		},
+	);
+
+	if (!listResponse.ok) {
+		throw new Error(
+			`Failed to find contact: ${listResponse.status} ` +
+			(await listResponse.text()),
+		);
+	}
+
+	const result = await listResponse.json();
+	// Adjust this depending on the exact response shape.
+	const contact = Array.isArray(result)
+		? result[0]
+		: result.contacts?.[0] ?? result.data?.[0];
+
+	if (!contact) {
+		console.log(`No contact found for ${email}`);
+		return;
+	}
+
+	const contactId = contact.id;
+
+	const deleteResponse = await fetch(
+		`https://app.usesend.com/api/v1/contactBooks/${contactBookId}/contacts/${encodeURIComponent(contactId)}`,
+		{
+			method: "DELETE",
+			headers,
+		},
+	);
+
+	if (!deleteResponse.ok) {
+		throw new Error(
+			`Failed to delete contact: ${deleteResponse.status} ` +
+			(await deleteResponse.text()),
+		);
+	}
+
+	console.log(`Deleted contact ${contactId} (${email})`);
+}
+
+type AddContactInput = {
+	email: string;
+	firstName?: string;
+	lastName?: string;
+	properties?: Record<string, string | number | boolean | null>;
+	subscribed?: boolean;
+};
+
+type UseSendContactResponse = {
+	id?: string;
+	email?: string;
+	[key: string]: unknown;
+};
+
+export async function addContactToContactBook(
+	contact: AddContactInput,
+): Promise<UseSendContactResponse> {
+	if (!contactBookId) {
+		throw new Error(
+			"Missing USESEND_SIGNUP_CONTACT_BOOK_ID environment variable",
+		);
+	}
+
+	if (!apiKey) {
+		throw new Error("Missing SAYR_EMAIL environment variable");
+	}
+
+	const response = await fetch(
+		`https://app.usesend.com/api/v1/contactBooks/${contactBookId}/contacts`,
+		{
+			method: "POST",
+			headers,
+			body: JSON.stringify({
+				email: contact.email,
+				firstName: contact.firstName,
+				lastName: contact.lastName,
+				properties: contact.properties,
+				subscribed: contact.subscribed ?? true,
+			}),
+		},
+	);
+
+	const responseText = await response.text();
+
+	let data: UseSendContactResponse;
+
+	try {
+		data = JSON.parse(responseText) as UseSendContactResponse;
+	} catch {
+		throw new Error(
+			`UseSend returned invalid JSON: ${response.status} ${responseText}`,
+		);
+	}
+
+	if (!response.ok) {
+		throw new Error(
+			`Failed to add contact: ${response.status} ${JSON.stringify(data)}`,
+		);
+	}
+
+	return data;
+}

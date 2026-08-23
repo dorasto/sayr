@@ -52,12 +52,21 @@ export async function getUserInfoDiscord(accessToken: string): Promise<DiscordUs
 }
 
 export async function getUserInfoSlack(accessToken: string): Promise<SlackUserType> {
-	const response = await fetch("https://slack.com/api/openid.connect.userinfo", {
-		method: "GET",
-		headers: {
-			Authorization: `Bearer ${accessToken}`,
-		},
+	const body = new URLSearchParams({
+		token: accessToken,
 	});
+
+	const response = await fetch(
+		"https://slack.com/api/openid.connect.userInfo",
+		{
+			method: "POST",
+			headers: {
+				"Content-Type": "application/x-www-form-urlencoded",
+				Accept: "application/json",
+			},
+			body,
+		},
+	);
 
 	if (!response.ok) {
 		throw new Error(`Slack API error: ${response.status} ${response.statusText}`);

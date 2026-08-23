@@ -2,7 +2,16 @@ import crypto from "node:crypto";
 import { relations, sql } from "drizzle-orm";
 import * as v from "drizzle-orm/pg-core";
 import { pgTable as table } from "drizzle-orm/pg-core";
+import { type OrgAiSettings, defaultOrgAiSettings } from "@repo/util";
 import { member } from "./member.schema";
+
+// OrgAiRateLimit/OrgAiSettings/defaultOrgAiSettings live in @repo/util (not
+// redeclared here) so browser-safe consumers and this schema's $type<>() hint
+// share one definition — a field added to only one used to silently desync
+// from the other. Re-exported for convenience since callers already import
+// organization types from @repo/database.
+export type { OrgAiRateLimit, OrgAiSettings } from "@repo/util";
+export { defaultOrgAiSettings } from "@repo/util";
 
 /**
  * Organization-level preferences stored as JSONB.
@@ -17,54 +26,6 @@ export interface PublicTaskFieldSettings {
 	/** Allow public users to set the priority of the task. */
 	priority: boolean;
 }
-
-/** Active rate limit applied to an org's AI features. */
-export interface OrgAiRateLimit {
-	/** ISO 8601 date-time string — rate limit is active until this moment. */
-	until: string;
-	/** Optional human-readable reason shown to admins. */
-	reason?: string;
-}
-
-/** AI-feature settings for an organization. */
-export interface OrgAiSettings {
-	/**
-	 * When true, all AI features are hidden entirely for this org.
-	 * Takes precedence over rateLimited and individual feature flags.
-	 */
-	disabled: boolean;
-	/**
-	 * When set and `until` is in the future, AI generation is blocked but the
-	 * UI shows a "temporarily unavailable" message instead of hiding the feature.
-	 * Set to null to remove the rate limit.
-	 */
-	rateLimited: OrgAiRateLimit | null;
-	/** When false, the AI task summary panel is hidden for this org. */
-	taskSummary: boolean;
-	/**
-	 * Optional additional instructions appended to the system prompt for task summaries.
-	 * Intended for tone and style guidance only (e.g. "Use formal language.").
-	 * Sanitised and length-capped server-side before use — cannot override the base
-	 * system prompt or inject into the task data user prompt.
-	 */
-	taskSummaryCustomPrompt?: string | null;
-	/**
-	 * When true, AI features that support URL fetching will embed external URLs
-	 * found in task content as document chunks in the prompt, so the model can
-	 * read the actual page content. Only takes effect for prompt configs where
-	 * `capabilities.urlFetch` is true.
-	 * Defaults to false — opt-in, as it incurs higher cost and latency.
-	 */
-	urlFetchEnabled?: boolean;
-}
-
-export const defaultOrgAiSettings: OrgAiSettings = {
-	disabled: false,
-	rateLimited: null,
-	taskSummary: true,
-	taskSummaryCustomPrompt: null,
-	urlFetchEnabled: false,
-};
 
 export interface OrganizationSettings {
 	/** When false, users without privileges cannot comment on or modify closed tasks. */
@@ -97,36 +58,33 @@ export const defaultOrganizationSettings: OrganizationSettings = {
 	ai: defaultOrgAiSettings,
 };
 
-export const organization = table("organization", {
-	id: v.text("id").primaryKey(),
-	name: v.text("name").notNull(),
-	slug: v.text("slug").notNull(),
-	logo: v.text("logo"),
-	bannerImg: v.text("banner_img"),
-	description: v.text("description").default("").notNull(),
-	settings: v
-		.json("settings")
-		.$type<OrganizationSettings>()
-		.notNull()
-		.default(defaultOrganizationSettings),
-	createdAt: v.timestamp("created_at").$defaultFn(() => new Date()),
-	updatedAt: v.timestamp("updated_at").$defaultFn(() => new Date()),
-	privateId: v.text("private_id").$defaultFn(() => generatePrivateId()),
-	plan: v.text("plan").default("free"),
-	seatCount: v.integer("seat_count").default(5),
-	polarCustomerId: v.text("polar_customer_id"),
-	polarSubscriptionId: v.text("polar_subscription_id"),
-	currentPeriodEnd: v.timestamp("current_period_end"),
-	isSystemOrg: v.boolean("is_system_org").default(false).notNull(),
-	shortId: v.text("short_id").default("SAY").notNull(),
-	createdBy: v.text("created_by"),
-}, (t) => [
-	v
-		.uniqueIndex("one_system_org_only")
-		.on(t.isSystemOrg)
-		.where(sql`is_system_org = true`),
-	v.index("idx_org_created_by").on(t.createdBy)
-]);
+export const organization = table(
+	"organization",
+	{
+		id: v.text("id").primaryKey(),
+		name: v.text("name").notNull(),
+		slug: v.text("slug").notNull(),
+		logo: v.text("logo"),
+		bannerImg: v.text("banner_img"),
+		description: v.text("description").default("").notNull(),
+		settings: v.json("settings").$type<OrganizationSettings>().notNull().default(defaultOrganizationSettings),
+		createdAt: v.timestamp("created_at").$defaultFn(() => new Date()),
+		updatedAt: v.timestamp("updated_at").$defaultFn(() => new Date()),
+		privateId: v.text("private_id").$defaultFn(() => generatePrivateId()),
+		plan: v.text("plan").default("free"),
+		seatCount: v.integer("seat_count").default(5),
+		polarCustomerId: v.text("polar_customer_id"),
+		polarSubscriptionId: v.text("polar_subscription_id"),
+		currentPeriodEnd: v.timestamp("current_period_end"),
+		isSystemOrg: v.boolean("is_system_org").default(false).notNull(),
+		shortId: v.text("short_id").default("SAY").notNull(),
+		createdBy: v.text("created_by"),
+	},
+	(t) => [
+		v.uniqueIndex("one_system_org_only").on(t.isSystemOrg).where(sql`is_system_org = true`),
+		v.index("idx_org_created_by").on(t.createdBy),
+	]
+);
 
 export type organizationType = typeof organization.$inferSelect;
 

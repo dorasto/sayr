@@ -1,5 +1,6 @@
 import type { schema } from "@repo/database";
 import StatusIcon from "@repo/ui/components/icons/status";
+import { formatTaskKey } from "@repo/util";
 import { IconGitBranch } from "@tabler/icons-react";
 import { setTaskParentAction, removeTaskParentAction } from "@/lib/fetches/task";
 import type { FieldDisplay, FieldOption, ParentFieldUpdatePayload } from "./types";
@@ -13,6 +14,7 @@ import type { FieldDisplay, FieldOption, ParentFieldUpdatePayload } from "./type
 export function getParentOptions(
 	task: schema.TaskWithLabels,
 	tasks: schema.TaskWithLabels[],
+	orgShortId?: string
 ): FieldOption<string | null>[] {
 	const noneOption: FieldOption<string | null> = {
 		id: "none",
@@ -26,7 +28,7 @@ export function getParentOptions(
 		.filter((t) => t.id !== task.id && !t.parentId && (t.subtaskCount ?? 0) === 0)
 		.map((t) => ({
 			id: t.id,
-			label: `#${t.shortId} ${t.title}`,
+			label: `${orgShortId ? formatTaskKey(orgShortId, t.shortId) : t.shortId} ${t.title}`,
 			icon: <StatusIcon status={t.status} className="h-4 w-4" />,
 			value: t.id,
 			keywords: `parent ${t.title} ${t.shortId}`,
@@ -38,9 +40,11 @@ export function getParentOptions(
 /**
  * Returns display info for the current parent state of a task.
  */
-export function getParentDisplay(task: schema.TaskWithLabels): FieldDisplay {
+export function getParentDisplay(task: schema.TaskWithLabels, orgShortId?: string): FieldDisplay {
 	return {
-		label: task.parent ? `#${task.parent.shortId}` : "None",
+		label: task.parent
+			? `${orgShortId ? formatTaskKey(orgShortId, task.parent.shortId) : task.parent.shortId}`
+			: "None",
 		icon: <IconGitBranch className="h-4 w-4 opacity-60" />,
 	};
 }
@@ -53,6 +57,7 @@ export function getParentUpdatePayload(
 	newParentId: string | null,
 	tasks: schema.TaskWithLabels[],
 	sseClientId: string,
+	orgShortId?: string
 ): ParentFieldUpdatePayload {
 	if (newParentId === null) {
 		// Remove parent
@@ -86,7 +91,12 @@ export function getParentUpdatePayload(
 		},
 		toastMessages: {
 			loading: { title: "Setting parent..." },
-			success: { title: "Parent set", description: parentTask ? `Set to #${parentTask.shortId}` : undefined },
+			success: {
+				title: "Parent set",
+				description: parentTask
+					? `Set to ${orgShortId ? formatTaskKey(orgShortId, parentTask.shortId) : parentTask.shortId}`
+					: undefined,
+			},
 			error: { title: "Failed to set parent" },
 		},
 	};

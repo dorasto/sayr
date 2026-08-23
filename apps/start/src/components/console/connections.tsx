@@ -1,9 +1,9 @@
 "use client";
-import { useState, useEffect } from "react";
-import { ConnectionsSnapshotTable } from "./ConnectionsSnapshotTable";
 import { Button } from "@repo/ui/components/button";
 import { IconCircleFilled } from "@tabler/icons-react";
+import { useEffect, useState } from "react";
 import RenderIcon from "../generic/RenderIcon";
+import { ConnectionsSnapshotTable } from "./connections-snapshot-table";
 
 export type ConnectionType = {
 	sseClientId: string;
@@ -32,13 +32,10 @@ export type IntegrationType = {
 	author?: {
 		name: string;
 		url?: string;
-	}
+	};
 };
 
-const INTERNAL_API_URL =
-	import.meta.env.VITE_APP_ENV === "development"
-		? "/backend-api/internal"
-		: "/api/internal";
+const INTERNAL_API_URL = import.meta.env.VITE_APP_ENV === "development" ? "/backend-api/internal" : "/api/internal";
 
 export default function AdminConnectionsPage() {
 	const [snapshot, setSnapshot] = useState<ConnectionType[]>([]);
@@ -50,14 +47,13 @@ export default function AdminConnectionsPage() {
 		try {
 			const response = await fetch(`${INTERNAL_API_URL.replace("/internal", "")}/events/connections`, {
 				method: "GET",
-				credentials: "include"
+				credentials: "include",
 			});
 
 			if (!response.ok) {
-				const error =
-					(await response.json().catch(() => null)) || {
-						error: "Failed to fetch connections"
-					};
+				const error = (await response.json().catch(() => null)) || {
+					error: "Failed to fetch connections",
+				};
 				throw new Error(error.error || "Failed to fetch connections");
 			}
 
@@ -68,7 +64,7 @@ export default function AdminConnectionsPage() {
 			return {
 				success: false,
 				data: [] as ConnectionType[],
-				error: (error as Error).message
+				error: (error as Error).message,
 			};
 		}
 	}
@@ -77,7 +73,7 @@ export default function AdminConnectionsPage() {
 		try {
 			const response = await fetch(`${INTERNAL_API_URL}/v1/admin/integrations/all`, {
 				method: "GET",
-				credentials: "include"
+				credentials: "include",
 			});
 
 			if (!response.ok) {
@@ -94,10 +90,10 @@ export default function AdminConnectionsPage() {
 
 	// Load immediately on first render
 	const refreshNow = () => {
-		getConnections().then(res => {
+		getConnections().then((res) => {
 			if (res.success) setSnapshot(res.data);
 		});
-		getIntegrations().then(res => {
+		getIntegrations().then((res) => {
 			if (res.success) setIntegrations(res.data);
 		});
 		setRefreshIn(refreshInterval);
@@ -110,7 +106,7 @@ export default function AdminConnectionsPage() {
 	// Countdown + auto-refresh every 60s
 	useEffect(() => {
 		const id = setInterval(() => {
-			setRefreshIn(prev => {
+			setRefreshIn((prev) => {
 				if (prev <= 1) {
 					refreshNow();
 					return refreshInterval;
@@ -128,13 +124,10 @@ export default function AdminConnectionsPage() {
 				<div className="flex items-center gap-2 p-3 bg-muted/30 rounded-lg border">
 					<span className="text-sm font-medium">Integrations:</span>
 					<div className="flex items-center gap-3">
-						{integrations.map(integration => {
+						{integrations.map((integration) => {
 							const hasEnabledOrgs = (integration.enabledOrgCount ?? 0) > 0;
 							return (
-								<div
-									key={integration.id}
-									className="flex items-center gap-1.5 text-sm"
-								>
+								<div key={integration.id} className="flex items-center gap-1.5 text-sm">
 									{integration.icon && <RenderIcon iconName={integration.icon} size={16} raw />}
 									<span>{integration.name}</span>
 									{hasEnabledOrgs ? (
@@ -144,7 +137,8 @@ export default function AdminConnectionsPage() {
 									)}
 									{(integration.enabledOrgCount ?? 0) > 0 && (
 										<span className="text-xs text-muted-foreground">
-											({integration.enabledOrgCount} org{(integration.enabledOrgCount ?? 0) !== 1 ? "s" : ""})
+											({integration.enabledOrgCount} org{(integration.enabledOrgCount ?? 0) !== 1 ? "s" : ""}
+											)
 										</span>
 									)}
 								</div>
@@ -155,15 +149,9 @@ export default function AdminConnectionsPage() {
 			)}
 			<div className="flex items-center justify-end">
 				<div className="flex items-center gap-3">
-					<span className="text-sm text-muted-foreground">
-						Refreshing in {refreshIn}s
-					</span>
+					<span className="text-sm text-muted-foreground">Refreshing in {refreshIn}s</span>
 
-					<Button
-						variant="outline"
-						size="sm"
-						onClick={refreshNow}
-					>
+					<Button variant="outline" size="sm" onClick={refreshNow}>
 						Refresh now
 					</Button>
 				</div>

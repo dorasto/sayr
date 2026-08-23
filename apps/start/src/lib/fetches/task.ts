@@ -775,7 +775,7 @@ export async function setTaskParentAction(
 	organizationId: string,
 	taskId: string,
 	parentId: string,
-	sseClientId: string,
+	sseClientId: string
 ): Promise<{ success: boolean; data?: schema.TaskWithLabels; error?: string }> {
 	const res = await fetch(`${API_URL}/v1/admin/organization/task/set-parent`, {
 		method: "PATCH",
@@ -798,7 +798,7 @@ export async function setTaskParentAction(
 export async function removeTaskParentAction(
 	organizationId: string,
 	taskId: string,
-	sseClientId: string,
+	sseClientId: string
 ): Promise<{ success: boolean; data?: schema.TaskWithLabels; error?: string }> {
 	const res = await fetch(`${API_URL}/v1/admin/organization/task/remove-parent`, {
 		method: "PATCH",
@@ -819,7 +819,7 @@ export async function removeTaskParentAction(
  */
 export async function getSubtasksAction(
 	organizationId: string,
-	taskId: string,
+	taskId: string
 ): Promise<{ success: boolean; data?: schema.SubtaskSummary[]; error?: string }> {
 	const params = new URLSearchParams({ org_id: organizationId, task_id: taskId });
 	const res = await fetch(`${API_URL}/v1/admin/organization/task/subtasks?${params}`, {
@@ -835,6 +835,28 @@ export async function getSubtasksAction(
 /* -------------------------------------------------------------------------- */
 
 /**
+ * Fetches a task's relations (related/blocking/duplicate, both directions).
+ *
+ * Needed because list-sourced `TaskWithLabels` objects (e.g. the `tasks` array
+ * backing `UnifiedTaskView`) never carry `relations` — only the single-task
+ * fetch behind the main task detail page (`getTaskByShortId`) does. Consumers
+ * that render `TaskContextBanner` from a list-sourced task (`TaskDetailCompact`)
+ * call this to fill that gap.
+ */
+export async function getTaskRelationsAction(
+	organizationId: string,
+	taskId: string
+): Promise<{ success: boolean; data?: schema.TaskRelationWithTarget[]; error?: string }> {
+	const params = new URLSearchParams({ org_id: organizationId, task_id: taskId });
+	const res = await fetch(`${API_URL}/v1/admin/organization/task/relations?${params}`, {
+		method: "GET",
+		credentials: "include",
+	});
+
+	return res.json();
+}
+
+/**
  * Creates a relation between two tasks.
  * @param type - "related" | "blocking" | "duplicate"
  */
@@ -843,7 +865,7 @@ export async function createTaskRelationAction(
 	sourceTaskId: string,
 	targetTaskId: string,
 	type: "related" | "blocking" | "duplicate",
-	sseClientId: string,
+	sseClientId: string
 ): Promise<{ success: boolean; data?: schema.TaskWithLabels; error?: string }> {
 	const res = await fetch(`${API_URL}/v1/admin/organization/task/create-relation`, {
 		method: "POST",
@@ -870,7 +892,7 @@ export async function removeTaskRelationAction(
 	relationId: string,
 	sourceTaskId: string,
 	targetTaskId: string,
-	sseClientId: string,
+	sseClientId: string
 ): Promise<{ success: boolean; data?: schema.TaskWithLabels; error?: string }> {
 	const res = await fetch(`${API_URL}/v1/admin/organization/task/remove-relation`, {
 		method: "DELETE",

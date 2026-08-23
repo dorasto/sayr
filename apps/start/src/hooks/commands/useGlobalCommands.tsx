@@ -1,14 +1,9 @@
 "use client";
 
-import {
-	IconBuilding,
-	IconCheckbox,
-	IconPlus,
-	IconSwitchHorizontal,
-} from "@tabler/icons-react";
+import { IconBuilding, IconCheckbox, IconPlus, IconSwitchHorizontal } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
 import { useMemo } from "react";
-import { useLayoutData } from "@/components/generic/Context";
+import { useLayoutData } from "@/components/admin/shell/context";
 import { commandActions } from "@/lib/command-store";
 import type { CommandMap } from "@/types/command";
 import { useRegisterCommands } from "../useRegisterCommands";

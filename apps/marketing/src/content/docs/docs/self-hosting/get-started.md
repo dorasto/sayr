@@ -12,7 +12,7 @@ This guide walks you through deploying a self-hosted Sayr instance using Docker 
 Before you begin, make sure you have the following ready:
 
 - **Docker** and **Docker Compose** installed on your server
-- A **PostgreSQL** database (v15+ recommended)
+- A **PostgreSQL** database (v15+ recommended) **with the [`pgvector`](https://github.com/pgvector/pgvector) extension available** -- required for semantic search and AI recommendations. The bundled compose file's `db` service already uses a pgvector-capable image (`pgvector/pgvector:pg16`); if you're bringing your own Postgres instead, make sure it can run `CREATE EXTENSION vector` (see [Step 3](#step-3-set-up-the-database))
 - An **S3-compatible object store** (MinIO, AWS S3, Cloudflare R2, etc.) for file uploads
 - A **domain name** with DNS configured (Sayr uses subdomains for routing)
 - A **GitHub OAuth App** for user authentication (optional but recommended)
@@ -175,6 +175,16 @@ Sayr uses PostgreSQL with Drizzle ORM. Before starting the containers, you need 
 
 Make sure the `DATABASE_URL` in your `.env` file points to your database. Sayr will run migrations automatically on startup.
 
+### pgvector requirement
+
+Sayr's schema includes a `vector` column (task embeddings, used for semantic search and AI recommendations), so your Postgres instance **must** have the [`pgvector`](https://github.com/pgvector/pgvector) extension available. Migrations will fail with an error like `extension "vector" is not available` if it isn't.
+
+- **Using the bundled compose file?** Nothing to do -- its `db` service already runs `pgvector/pgvector:pg16`, a stock Postgres image with pgvector pre-installed.
+- **Bringing your own Postgres?** Swap to a pgvector-enabled image or install the extension yourself:
+  - Docker: use [`pgvector/pgvector`](https://hub.docker.com/r/pgvector/pgvector) instead of the stock `postgres` image (matching your Postgres major version, e.g. `pgvector/pgvector:pg16`)
+  - Managed Postgres (RDS, Supabase, Neon, etc.): most modern providers support enabling `pgvector` from their dashboard or via `CREATE EXTENSION vector;` directly -- check your provider's docs
+  - Bare-metal/VM: install the `pgvector` package for your distro (e.g. Debian/Ubuntu's `postgresql-XX-pgvector`), then run `CREATE EXTENSION vector;` as a superuser
+
 ## Step 4: Set Up the Reverse Proxy
 
 The compose file includes an nginx container that routes traffic to the correct services based on subdomain. It builds from the included Dockerfile and nginx config.
@@ -260,6 +270,7 @@ docker compose logs github-worker
 Common issues:
 - **Database connection failed** -- Verify `DATABASE_URL` is correct and the database is reachable from inside Docker
 - **Storage connection failed** -- Verify `STORAGE_URL`, access keys, and that the bucket exists
+- **`extension "vector" is not available`** -- Your Postgres image/instance doesn't have `pgvector` installed. See [pgvector requirement](#pgvector-requirement) above -- swap to a `pgvector/pgvector` image (or install the extension) and restart the database before retrying.
 
 ### Can't reach the app
 

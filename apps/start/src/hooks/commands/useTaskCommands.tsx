@@ -2,6 +2,7 @@
 
 import { IconArrowLeft, IconCheck, IconCopy, IconLink } from "@tabler/icons-react";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
+import { formatTaskKey } from "@repo/util";
 import { useNavigate } from "@tanstack/react-router";
 import { useMemo } from "react";
 import {
@@ -54,7 +55,7 @@ function buildSingleSelectItems(
 	fieldPrefix: string,
 	buildPayload: (value: string | null) => Parameters<ReturnType<typeof useTaskFieldAction>["execute"]>[0],
 	execute: ReturnType<typeof useTaskFieldAction>["execute"],
-	closeOnSelect = true,
+	closeOnSelect = true
 ): CommandItem[] {
 	return options.map((opt) => {
 		const isCurrent = currentValue === opt.value || (currentValue === null && opt.value === null);
@@ -67,11 +68,11 @@ function buildSingleSelectItems(
 				execute(buildPayload(opt.value));
 			},
 			closeOnSelect,
-			metadata: isCurrent
-				? <IconCheck className="h-4 w-4 text-primary" />
-				: opt.description
-					? <span className="text-xs text-muted-foreground">{opt.description}</span>
-					: undefined,
+			metadata: isCurrent ? (
+				<IconCheck className="h-4 w-4 text-primary" />
+			) : opt.description ? (
+				<span className="text-xs text-muted-foreground">{opt.description}</span>
+			) : undefined,
 			keywords: opt.keywords,
 		};
 	});
@@ -87,7 +88,7 @@ function buildMultiSelectItems(
 	taskId: string,
 	fieldPrefix: string,
 	buildPayload: (value: string) => Parameters<ReturnType<typeof useTaskFieldAction>["execute"]>[0],
-	execute: ReturnType<typeof useTaskFieldAction>["execute"],
+	execute: ReturnType<typeof useTaskFieldAction>["execute"]
 ): CommandItem[] {
 	return options.map((opt) => {
 		const isActive = activeIds.has(opt.value);
@@ -143,7 +144,7 @@ export function useTaskCommands() {
 			task.id,
 			"status",
 			(value) => getStatusUpdatePayload(task, value as string),
-			execute,
+			execute
 		);
 
 		const priorityItems = buildSingleSelectItems(
@@ -152,7 +153,7 @@ export function useTaskCommands() {
 			task.id,
 			"priority",
 			(value) => getPriorityUpdatePayload(task, value),
-			execute,
+			execute
 		);
 
 		const categoryItems = buildSingleSelectItems(
@@ -161,7 +162,7 @@ export function useTaskCommands() {
 			task.id,
 			"category",
 			(value) => getCategoryUpdatePayload(task, value, categories),
-			execute,
+			execute
 		);
 
 		const releaseItems = buildSingleSelectItems(
@@ -170,7 +171,7 @@ export function useTaskCommands() {
 			task.id,
 			"release",
 			(value) => getReleaseUpdatePayload(task, value, releases),
-			execute,
+			execute
 		);
 
 		const visibilityItems = buildSingleSelectItems(
@@ -179,7 +180,7 @@ export function useTaskCommands() {
 			task.id,
 			"visibility",
 			(value) => getVisibilityUpdatePayload(task, value as string),
-			execute,
+			execute
 		);
 
 		const assigneeItems = buildMultiSelectItems(
@@ -188,7 +189,7 @@ export function useTaskCommands() {
 			task.id,
 			"assignee",
 			(userId) => getAssigneeUpdatePayload(task, userId, members, sseClientId),
-			execute,
+			execute
 		);
 
 		const labelItems = buildMultiSelectItems(
@@ -197,20 +198,20 @@ export function useTaskCommands() {
 			task.id,
 			"label",
 			(labelId) => getLabelUpdatePayload(task, labelId, orgLabels, sseClientId),
-			execute,
+			execute
 		);
 
 		// --- Parent items (conditionally empty if task has subtasks) ---
 		const parentItems: CommandItem[] = hasSubtasks
 			? []
 			: buildSingleSelectItems(
-				getParentOptions(task, tasks),
-				task.parentId ?? null,
-				task.id,
-				"parent",
-				(value) => getParentUpdatePayload(task, value, tasks, sseClientId),
-				execute,
-			);
+					getParentOptions(task, tasks, organization.shortId),
+					task.parentId ?? null,
+					task.id,
+					"parent",
+					(value) => getParentUpdatePayload(task, value, tasks, sseClientId, organization.shortId),
+					execute
+				);
 
 		// --- Relation type items (drill into sub-views) ---
 		const relationTypes = getRelationTypeOptions();
@@ -229,12 +230,13 @@ export function useTaskCommands() {
 
 		// --- Relation target items (per type) ---
 		const buildRelationTargetItems = (type: "related" | "blocking" | "duplicate"): CommandItem[] => {
-			const targetOptions = getRelationTargetOptions(task, tasks);
+			const targetOptions = getRelationTargetOptions(task, tasks, organization.shortId);
 			return targetOptions.map((opt) => ({
 				id: `task-relation-${task.id}-${type}-${opt.id}`,
 				label: opt.label,
 				icon: opt.icon,
-				action: () => execute(getRelationUpdatePayload(task, opt.value, type, tasks, sseClientId)),
+				action: () =>
+					execute(getRelationUpdatePayload(task, opt.value, type, tasks, sseClientId, organization.shortId)),
 				closeOnSelect: true,
 				keywords: opt.keywords,
 			}));
@@ -248,12 +250,12 @@ export function useTaskCommands() {
 		const visibilityDisplay = getVisibilityDisplay(task);
 		const assigneeDisplay = getAssigneeDisplay(task);
 		const labelDisplay = getLabelDisplay(task);
-		const parentDisplay = getParentDisplay(task);
+		const parentDisplay = getParentDisplay(task, organization.shortId);
 
 		return {
 			root: [
 				{
-					heading: `Task #${task.shortId}`,
+					heading: `Task ${formatTaskKey(organization.shortId, task.shortId)}`,
 					priority: 1,
 					items: [
 						{
@@ -341,10 +343,12 @@ export function useTaskCommands() {
 						},
 						{
 							id: `task-copy-id-${task.id}`,
-							label: `Copy task ID (#${task.shortId})`,
+							label: `Copy task ID (${formatTaskKey(organization.shortId, task.shortId)})`,
 							icon: <IconCopy size={16} className="opacity-60" aria-hidden="true" />,
 							action: () => {
-								navigator.clipboard.writeText(`#${task.shortId}`);
+								void navigator.clipboard
+									.writeText(formatTaskKey(organization.shortId, task.shortId))
+									.catch(() => {});
 							},
 							closeOnSelect: true,
 							keywords: "identifier number",
@@ -370,11 +374,14 @@ export function useTaskCommands() {
 			[relationTypeViewId]: [{ heading: "Relation Type", priority: 1, items: relationTypeItems }],
 			[relationBlockingViewId]: [{ heading: "Blocking", priority: 1, items: buildRelationTargetItems("blocking") }],
 			[relationRelatedViewId]: [{ heading: "Related to", priority: 1, items: buildRelationTargetItems("related") }],
-			[relationDuplicateViewId]: [{ heading: "Duplicate of", priority: 1, items: buildRelationTargetItems("duplicate") }],
+			[relationDuplicateViewId]: [
+				{ heading: "Duplicate of", priority: 1, items: buildRelationTargetItems("duplicate") },
+			],
 		};
 	}, [
 		navigate,
 		organization.id,
+		organization.shortId,
 		organization.members,
 		task,
 		tasks,

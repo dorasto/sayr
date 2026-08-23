@@ -71,15 +71,48 @@ Shape: `{code, error, suggestion?, apiCode?, diagnostic?, apiMeta?, checks?, rec
 
 # AGENTS.md - Sayr Project Management Platform
 
-## Overview
-Turborepo monorepo for Sayr.io, a collaborative project management platform. Uses pnpm for package management, Biome for linting/formatting, TypeScript throughout, and Bun runtime for backend services.
+## Repository Overview
+
+Turborepo monorepo for Sayr.io, a transparent, collaborative project management platform bridging internal workflows with public collaboration via granular visibility controls (public/private per-item). Package manager is **pnpm**; **Biome** for lint/format; TypeScript throughout; **Bun** runtime for `backend`/`worker`.
+
+### Apps
+
+| App | Description |
+|---|---|
+| `apps/backend` | Hono API server on Bun (REST + WebSocket, port 5468) |
+| `apps/start` | TanStack Start frontend with React 19 (port 3000) — the production admin + public UI |
+| `apps/marketing` | Astro marketing site with Starlight docs (port 3002) |
+| `apps/worker` | GitHub webhook queue processor (Bun) |
+| `apps/nginx` | Reverse proxy config (Dockerfile + templates, not a Node app) |
+| `apps/traefik` | Edge router config (Dockerfile + templates, not a Node app) |
+
+### Packages
+
+| Package | Description |
+|---|---|
+| `@repo/auth` | Better Auth config (GitHub + Doras OAuth) |
+| `@repo/database` | Drizzle ORM schemas and CRUD functions (PostgreSQL) |
+| `@repo/edition` | Edition detection (cloud/community/enterprise), capabilities, and plan limits |
+| `@repo/storage` | MinIO S3-compatible client with obfuscated filenames |
+| `@repo/ui` | Shadcn/ui component library |
+| `@repo/util` | Shared utilities (date formatting, slugs, CDN URLs, `formatTaskKey`) |
+| `@repo/queue` | Job queue abstraction (Redis or file-based) |
+| `@repo/opentelemetry` | Tracing and observability utilities |
+| `@repo/ai` | Requesty (OpenAI-compatible gateway) client built on TanStack AI — text generation, curated model catalog (task summaries, etc.) |
+| `@repo/ai-prompts` | Shared prompt definitions consumed by `@repo/ai` callers |
+| `@repo/integrations` | Third-party integration registry — manifests gated by `INTEGRATION_<ID>_ENABLED` env flags |
+| `@repo/create-integration` | Scaffolding CLI for new integrations (`pnpm create-integration`) |
+| `@repo/typescript-config` | Shared `tsconfig.json` bases |
+| `@sayrio/public` | Public read-only JS/TS SDK for Sayr.io (REST + SSE), published separately |
 
 ## Commands
 
 ### Development
 ```bash
-pnpm dev                          # Start all apps (backend :5468, start :3000, marketing :3002)
+pnpm dev                          # Start backend, start, integrations, marketing, @repo/database
 pnpm dev:op                       # Start with 1Password secret injection
+pnpm dev:ce / dev:ce:op           # Start with SAYR_EDITION=community
+pnpm dev:cloud / dev:cloud:op     # Start with SAYR_EDITION=cloud
 pnpm -F backend dev               # Backend only
 pnpm -F start dev                 # Frontend (TanStack Start) only
 pnpm -F marketing dev             # Marketing site only
@@ -88,16 +121,16 @@ pnpm -F worker dev                # GitHub webhook processor only
 
 ### Build & Quality
 ```bash
-pnpm build                        # Build all apps
-pnpm lint                         # Run Biome linting
+pnpm build                        # Build all apps (turbo build)
+pnpm lint                         # Run Biome linting (turbo lint)
 pnpm lint:fix                     # Fix lint issues
-pnpm format-write                 # Format with Biome (or: biome format --write .)
+pnpm format                       # Format with Biome (turbo format)
 pnpm check-types                  # TypeScript type checking (turbo check-types)
 ```
 
 ### Database (packages/database)
 ```bash
-pnpm -F @repo/database generate   # Generate schema
+pnpm -F @repo/database generate   # Generate migration from schema changes
 pnpm -F @repo/database migrate    # Apply schema to PostgreSQL
 pnpm -F @repo/database db:studio  # Open Drizzle Studio
 ```
@@ -109,27 +142,9 @@ pnpm -F start test -- --testNamePattern="pattern"   # Run tests matching pattern
 pnpm -F start test -- path/to/file.test.ts          # Run specific test file
 ```
 
-## Architecture
-
-```
-apps/
-  backend/     # Hono API server on Bun (REST + WebSocket, port 5468)
-  start/       # TanStack Start frontend with React 19 (port 3000)
-  marketing/   # Astro marketing site with Starlight docs (port 3002)
-  worker/      # GitHub webhook queue processor (Bun)
-
-packages/
-  auth/        # Better Auth config (GitHub + Doras OAuth)
-  database/    # Drizzle ORM schemas and CRUD functions (PostgreSQL)
-  edition/     # Edition detection (cloud/community/enterprise), capabilities, and plan limits
-  storage/     # MinIO S3-compatible client with obfuscated filenames
-  ui/          # Shadcn/ui component library
-  util/        # Shared utilities (date formatting, slugs, CDN URLs)
-  queue/       # Job queue abstraction (Redis or file-based)
-  opentelemetry/ # Tracing and observability utilities
-```
-
 ## Code Style (Biome)
+
+**There is no root `biome.json`** — every app/package has its own (`apps/start/biome.json`, `packages/ui/biome.json`, etc.), so a repo-root `pnpm exec biome format --write <file>` fails with "Found a nested root configuration, but there's already a root configuration." **Run Biome from inside the specific app/package directory** you're formatting (`cd apps/start && pnpm exec biome format --write src/foo.tsx`), not from the repo root.
 
 ### Formatting
 - **Indentation**: Tabs, width 3
@@ -252,10 +267,16 @@ const result = await traceAsync("operation.name", () => performOperation(), {
 ```
 
 ### PageHeader
-All admin pages must use a consistent `PageHeader` component (`h-11`, sticky, two zones: Identity left + Toolbar right). Task list pages integrate `UnifiedTaskView` which supports both single-org and cross-org modes. See `.opencode/skills/page-header/SKILL.md` for full patterns and props reference.
+All admin pages must use a consistent `PageHeader` component (`h-11`, sticky, two zones: Identity left + Toolbar right). Task list pages integrate `UnifiedTaskView` which supports both single-org and cross-org modes. See the `page-header` skill for full patterns and props reference.
+
+### Page / panel layout
+Every page needing a floating side panel (right or left) goes through the shared `Page` component + `IndentDrawer` primitive + a global `sidebar-store` — a non-modal, portalled drawer that pushes (not covers) main content, animates open/close, and supports drag-to-resize on desktop. This replaced an older `PanelWrapper` (`react-resizable-panels` + a `vaul` mobile `Sheet`) — that component is deleted; if you see `PanelWrapper`, `panelDefaultSize`, `isProjectPanelOpen`, or `setProjectPanelOpen` referenced anywhere, it's describing the retired system. See the `page-component` skill for the current one.
+
+### Task identifiers
+Every displayed task identifier is `formatTaskKey(orgShortId, taskShortId)` from `@repo/util` (e.g. `SAY-123`) — no `#` prefix, and never a bare `task.shortId`. Route params still use the raw numeric `shortId`; only display text uses the formatted key. `apps/start/src/components/tasks/shared/identifier.tsx` (`GlobalTaskIdentifier`) is the canonical clickable-badge component when a link is appropriate.
 
 ### Edition System
-Sayr has three editions: `cloud` (hosted sayr.io), `community` (free self-host), `enterprise` (licensed self-host). The `@repo/edition` package is the single source of truth for edition detection, capabilities, and plan limits. Import from `@repo/edition` in server-side code; use `import.meta.env.VITE_SAYR_EDITION` in client-side React components. See `.opencode/skills/edition/SKILL.md` for full API reference, patterns, and rules.
+Sayr has three editions: `cloud` (hosted sayr.io), `community` (free self-host), `enterprise` (licensed self-host). The `@repo/edition` package is the single source of truth for edition detection, capabilities, and plan limits. Import from `@repo/edition` in server-side code; use `import.meta.env.VITE_SAYR_EDITION` in client-side React components. See the `edition` skill for full API reference, patterns, and rules.
 
 ## Database Schema
 
@@ -272,17 +293,52 @@ Install Shadcn components with:
 pnpm dlx shadcn@latest add <component-name>
 ```
 
-## Agent Behavior Guidelines
+## Search before you build
 
-1. **Before commits**: Always ask user for confirmation
-2. **Multi-step tasks**: Use Task tool for complex refactoring
-3. **File search**: Use Grep for patterns, Glob for file names
-4. **Code reading**: Use Read tool, not cat/head/tail
-5. **Edits**: Use Edit tool, not sed/awk
-6. **Avoid**: Creating unnecessary files, especially .md files unless requested
-7. **ONLY** do type checks like pnpm tsc etc when requested, don't do it on your own accord.
-8. **Do not** a worry about running pnpm builds, lints, etc.
+Before adding a new type, function, component, or utility anywhere in this repo: **search for an existing one first.** Grep the target package/app for a similarly-named or similarly-purposed symbol before writing a new one; check `packages/util`, `packages/ui`, and the relevant skill below for shared helpers before hand-rolling logic. If you're fairly sure nothing existing covers your case, say so explicitly rather than silently adding something new. Concrete example from this repo's own history: the org-prefixed task-key format (`SAY-123`) already existed as an inline template literal on the "copy branch name" button before a shared `formatTaskKey()` helper was extracted into `@repo/util` and reused everywhere else the same format was needed — check for that kind of one-off-that-should-be-shared before duplicating a format/convention across files.
+
+## Skills Directory
+
+`.agents/skills/` contains specialized documentation, auto-discovered by any tool that supports the [Agent Skills](https://agentskills.io) open standard (OpenCode, Claude Code, Copilot, Cursor, Codex, and others). **Check relevant skills before making changes in their area.**
+
+| Skill | Purpose |
+|---|---|
+| `page-header/` | `PageHeader` component (identity + toolbar zones), `UnifiedTaskView` integration, single-org vs cross-org patterns |
+| `page-component/` | `Page` layout + panel system (`IndentDrawer`, `sidebar-store`) — adding/toggling/resizing a side panel |
+| `command-palette/` | Cmd+K command palette — registering commands, sub-views, auto-drill, badges |
+| `edition/` | Edition detection, capabilities, and plan limits (`@repo/edition`) |
+| `document-feature/` | Writing user-facing docs for `apps/marketing`'s Starlight docs site |
+| `update-pr/` | Generating a PR title/description from the diff |
+| `agent-docs-maintenance/` | Checking `AGENTS.md`/skills for staleness, writing a new skill, updating an existing one |
+
+## Agent skills
+
+Configuration for the [mattpocock/skills](https://github.com/mattpocock/skills) engineering skills.
+
+### Issue tracker
+
+Tasks live on Sayr itself — the `platform` org at <https://platform.sayr.io>. **Read-only for agents**: a human gives you a task URL, you read it via `https://api.sayr.io/v1/organization/platform/tasks/<shortId>`. Never create or edit tasks, and never write to the GitHub mirror. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+The five canonical triage roles. Agents *recommend* a role in their output; they can't apply labels. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: one `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/agents/domain.md`.
+
+## Agent Constraints
+
+1. **Before commits**: Always ask user for confirmation, unless the user has explicitly granted standing permission to commit/push in the current conversation.
+2. **Multi-step tasks**: Use the Task/Agent tool for complex refactoring or broad research.
+3. **File search**: Use Grep for patterns, Glob for file names.
+4. **Code reading**: Use the Read tool, not cat/head/tail.
+5. **Edits**: Use the Edit tool, not sed/awk — sed in particular has repeatedly corrupted template-literal interpolations (`${...}`) in this repo when the `$` wasn't escaped; prefer Edit for anything containing a template literal.
+6. **Avoid**: Creating unnecessary files, especially `.md` files, unless requested.
+7. **Type checks**: Only run `pnpm check-types`/`tsc` when requested, not on your own accord — except as a verification step after an edit you're making, where diffing against a pre-edit baseline (not just eyeballing the count) is the reliable way to confirm you introduced zero new errors.
+8. **Builds/lints**: Don't worry about running `pnpm build` on your own accord. Do run Biome format on files you touch (from inside the specific app/package dir — see Code Style above), since there's no repo-wide format pass to catch it later.
+9. **Stay in scope.** Don't add dependencies, abstractions, features, or "while I'm in here" refactors beyond what was asked. If something extra is genuinely needed, say so and ask rather than just doing it.
+10. **No `any`.** If the real type isn't obvious, derive it (`typeof`, `ReturnType<...>`, inference from the schema/query) or ask — don't type around the problem.
 
 ## Additional notices
 - If you are aware of any changes that may require an update to our /legal pages, please let this be known. This includes changes to OAuth providers, cookies, managing account information, subprocessors, or any other relevant changes.
--

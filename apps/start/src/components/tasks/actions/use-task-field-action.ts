@@ -35,7 +35,7 @@ export function useTaskFieldAction(
 	tasks: schema.TaskWithLabels[],
 	setTask: (t: schema.TaskWithLabels | null) => void,
 	setTasks: (t: schema.TaskWithLabels[]) => void,
-	sseClientId: string,
+	sseClientId: string
 ) {
 	const { runWithToast } = useToastAction();
 
@@ -68,7 +68,7 @@ export function useTaskFieldAction(
 			setTasks(tasksRef.current.map((t) => (t.id === data.id ? data : t)));
 			sendWindowMessage(window, { type: "timeline-update", payload: data.id }, "*");
 		},
-		[setTask, setTasks],
+		[setTask, setTasks]
 	);
 
 	const execute = useCallback(
@@ -84,10 +84,8 @@ export function useTaskFieldAction(
 					setTask(payload.optimisticTask);
 					setTasks(tasksRef.current.map((t) => (t.id === taskRef.current.id ? payload.optimisticTask : t)));
 
-					const data = await runWithToast(
-						`update-task-${payload.field}`,
-						payload.toastMessages,
-						() => updateTaskAction(taskRef.current.organizationId, taskRef.current.id, payload.updateData, sseClientId),
+					const data = await runWithToast(`update-task-${payload.field}`, payload.toastMessages, () =>
+						updateTaskAction(taskRef.current.organizationId, taskRef.current.id, payload.updateData, sseClientId)
 					);
 
 					if (data?.success && data.data) {
@@ -111,11 +109,7 @@ export function useTaskFieldAction(
 					const timer = setTimeout(async () => {
 						pendingRef.current.delete(payload.actionId);
 
-						const multiData = await runWithToast(
-							payload.actionId,
-							payload.toastMessages,
-							payload.apiFn,
-						);
+						const multiData = await runWithToast(payload.actionId, payload.toastMessages, payload.apiFn);
 
 						if (multiData?.success && multiData.data) {
 							reconcile(multiData.data);
@@ -130,11 +124,7 @@ export function useTaskFieldAction(
 					setTask(payload.optimisticTask);
 					setTasks(tasksRef.current.map((t) => (t.id === taskRef.current.id ? payload.optimisticTask : t)));
 
-					const parentData = await runWithToast(
-						payload.actionId,
-						payload.toastMessages,
-						payload.apiFn,
-					);
+					const parentData = await runWithToast(payload.actionId, payload.toastMessages, payload.apiFn);
 
 					if (parentData?.success && parentData.data) {
 						reconcile(parentData.data);
@@ -143,21 +133,23 @@ export function useTaskFieldAction(
 				}
 
 				case "relation": {
-					// No optimistic update for relations (they're separate entities).
-					const relData = await runWithToast(
-						payload.actionId,
-						payload.toastMessages,
-						payload.apiFn,
-					);
+					// No optimistic update for relations (they're separate entities) — but
+					// the API already returns the source task with its relations refetched
+					// (see create-relation's `sourceWithData`), so reconcile with that
+					// directly instead of only nudging the timeline. Previously this branch
+					// discarded that response and only sent a timeline-update message, so
+					// the Relations section stayed stale until a manual refresh even though
+					// the mutation had succeeded.
+					const relData = await runWithToast(payload.actionId, payload.toastMessages, payload.apiFn);
 
-					if (relData?.success) {
-						sendWindowMessage(window, { type: "timeline-update", payload: taskRef.current.id }, "*");
+					if (relData?.success && relData.data) {
+						reconcile(relData.data);
 					}
 					break;
 				}
 			}
 		},
-		[setTask, setTasks, sseClientId, runWithToast, reconcile],
+		[setTask, setTasks, sseClientId, runWithToast, reconcile]
 	);
 
 	return { execute };

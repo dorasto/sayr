@@ -134,7 +134,7 @@ Route.get(
             }
         );
 
-        if (!apiKeyResult?.valid || !apiKeyResult.key || !apiKeyResult.key.enabled || !apiKeyResult.key.userId) {
+        if (!apiKeyResult?.valid || !apiKeyResult.key || !apiKeyResult.key.enabled || !apiKeyResult.key.referenceId) {
             return c.json(errorResponse("Invalid API key"), 401);
         }
 
@@ -142,11 +142,11 @@ Route.get(
             "me.public.fetch",
             () =>
                 db.query.user.findFirst({
-                    where: (u) => eq(u.id, apiKeyResult.key?.userId || ""),
+                    where: (u) => eq(u.id, apiKeyResult.key?.referenceId || ""),
                 }),
             {
                 description: "Fetching public user info",
-                data: { userId: apiKeyResult.key.userId },
+                data: { userId: apiKeyResult.key.referenceId },
                 onSuccess: () => ({
                     outcome: "Public user info fetched",
                 }),
@@ -160,7 +160,7 @@ Route.get(
                 code: "NOT_FOUND",
                 message: "No user found for API key owner",
                 contextData: {
-                    userId: apiKeyResult.key.userId,
+                    userId: apiKeyResult.key.referenceId,
                 },
             });
 
@@ -214,16 +214,16 @@ Route.get(
             }
         );
 
-        if (!apiKeyResult?.valid || !apiKeyResult.key || !apiKeyResult.key.enabled || !apiKeyResult.key.userId) {
+        if (!apiKeyResult?.valid || !apiKeyResult.key || !apiKeyResult.key.enabled || !apiKeyResult.key.referenceId) {
             return c.json(errorResponse("Invalid API key"), 401);
         }
 
         const organizations = await traceAsync(
             "me.public.organizations.fetch",
-            () => getOrganizations(apiKeyResult.key?.userId || ""),
+            () => getOrganizations(apiKeyResult.key?.referenceId || ""),
             {
                 description: "Fetching user's organizations",
-                data: { userId: apiKeyResult.key.userId },
+                data: { userId: apiKeyResult.key.referenceId },
                 onSuccess: () => ({
                     outcome: "User's organizations fetched",
                 }),
@@ -360,10 +360,10 @@ Route.post(
             }
         );
 
-        if (!apiKeyResult?.valid || !apiKeyResult.key || !apiKeyResult.key.enabled || !apiKeyResult.key.userId) {
+        if (!apiKeyResult?.valid || !apiKeyResult.key || !apiKeyResult.key.enabled || !apiKeyResult.key.referenceId) {
             return c.json(errorResponse("Invalid API key", "The provided API key is invalid or disabled"), 401);
         }
-        let userId = apiKeyResult.key?.userId;
+        let userId = apiKeyResult.key?.referenceId;
 
         const body = await c.req.json();
         const { orgId, title, description, status, priority, category, integration, createdBy } = body;
@@ -399,7 +399,7 @@ Route.post(
             }
         }
 
-        const isAuthorized = await traceOrgPermissionCheck(apiKeyResult.key.userId || "", orgId, "tasks.create");
+        const isAuthorized = await traceOrgPermissionCheck(apiKeyResult.key.referenceId || "", orgId, "tasks.create");
 
         if (!isAuthorized) {
             return c.json({ success: false, error: "You don't have permission to create tasks.", message: "You are not authorized to create tasks in this organization." }, 401);
@@ -583,10 +583,10 @@ Route.post(
             }
         );
 
-        if (!apiKeyResult?.valid || !apiKeyResult.key || !apiKeyResult.key.enabled || !apiKeyResult.key.userId) {
+        if (!apiKeyResult?.valid || !apiKeyResult.key || !apiKeyResult.key.enabled || !apiKeyResult.key.referenceId) {
             return c.json(errorResponse("Invalid API key", "The provided API key is invalid or disabled"), 401);
         }
-        let userId = apiKeyResult.key?.userId;
+        let userId = apiKeyResult.key?.referenceId;
 
         const body = await c.req.json();
         const { taskId, orgId, type, id, name, data, createdBy } = body;
@@ -621,7 +621,7 @@ Route.post(
             }
         }
 
-        const isAuthorized = await traceOrgPermissionCheck(apiKeyResult.key.userId || "", orgId, "tasks.create");
+        const isAuthorized = await traceOrgPermissionCheck(apiKeyResult.key.referenceId || "", orgId, "tasks.create");
 
         if (!isAuthorized) {
             return c.json({ success: false, error: "You don't have permission to create tasks.", message: "You are not authorized to create tasks in this organization." }, 401);
@@ -796,10 +796,10 @@ Route.post("/create_comment",
             }
         );
 
-        if (!apiKeyResult?.valid || !apiKeyResult.key || !apiKeyResult.key.enabled || !apiKeyResult.key.userId) {
+        if (!apiKeyResult?.valid || !apiKeyResult.key || !apiKeyResult.key.enabled || !apiKeyResult.key.referenceId) {
             return c.json(errorResponse("Invalid API key", "The provided API key is invalid or disabled"), 401);
         }
-        let userId = apiKeyResult.key?.userId;
+        let userId = apiKeyResult.key?.referenceId;
 
         const body = await c.req.json();
         const { taskId, orgId, content, visibility, createdBy } = body;
@@ -834,7 +834,7 @@ Route.post("/create_comment",
             }
         }
 
-        const isAuthorized = await traceOrgPermissionCheck(apiKeyResult.key.userId || "", orgId, "tasks.create");
+        const isAuthorized = await traceOrgPermissionCheck(apiKeyResult.key.referenceId || "", orgId, "tasks.create");
 
         if (!isAuthorized) {
             return c.json({ success: false, error: "You don't have permission to create tasks.", message: "You are not authorized to create tasks in this organization." }, 401);

@@ -489,9 +489,10 @@ apiRouteConsole.get("/system-api-keys", async (c) => {
 						createdAt: schema.apikey.createdAt,
 						lastRequest: schema.apikey.lastRequest,
 						requestCount: schema.apikey.requestCount,
+						start: schema.apikey.start,
 					})
 					.from(schema.apikey)
-					.where(eq(schema.apikey.userId, systemUser.id))
+					.where(eq(schema.apikey.referenceId, systemUser.id))
 					.orderBy(desc(schema.apikey.createdAt)),
 			{
 				description: "Listing system API keys",
@@ -550,6 +551,9 @@ apiRouteConsole.post("/system-api-keys", async (c) => {
 						name: name.trim(),
 						userId: systemUser.id,
 						rateLimitEnabled: false,
+						metadata: {
+							"source": "console-page-generated"
+						}
 					},
 				}),
 			{
@@ -999,7 +1003,7 @@ apiRouteConsole.delete("/system-api-keys/:keyId", async (c) => {
 				db.delete(schema.apikey).where(
 					and(
 						eq(schema.apikey.id, keyId),
-						eq(schema.apikey.userId, systemUser.id),
+						eq(schema.apikey.referenceId, systemUser.id),
 					),
 				),
 			{

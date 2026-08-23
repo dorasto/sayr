@@ -1,5 +1,12 @@
 export { BANNED_SLUGS, isSlugBanned } from "./bannedSlugs";
-export { type OrgAiRateLimit, type OrgAiSettings, defaultOrgAiSettings, resolveOrgAiStatus } from "./org-ai";
+export {
+	defaultOrgAiSettings,
+	isAiFeatureEnabled,
+	type OrgAiRateLimit,
+	type OrgAiSettings,
+	resolveOrgAiStatus,
+} from "./org-ai";
+export { extractPlainText, type PlainTextNode } from "./prosekit-text";
 
 /**
  * Extracts the private ID (orgKey) if present in a Sayr file URL.
@@ -38,7 +45,7 @@ export function extractIdsFromUrl(url?: string): {
 			return {
 				hasPrivateId: true,
 				privateId: afterFiles[0] || null,
-				userId: afterFiles[1] || null
+				userId: afterFiles[1] || null,
 			};
 		}
 
@@ -97,6 +104,35 @@ export function getActorDisplayName(
 		return getDisplayName(fullUser);
 	}
 	return actor.name;
+}
+
+/**
+ * Derives 1-2 uppercase initials from a user's name or email, for avatar fallbacks.
+ *
+ * Splits on whitespace and takes the first character of up to the first two
+ * words (e.g. "John Doe" -> "JD"). Falls back to the first two characters of
+ * a single-word name/email local-part, and to "?" when nothing is available.
+ *
+ * @param source - A display name or email address. `null`/`undefined`/empty falls back to "?".
+ * @returns 1-2 uppercase characters.
+ *
+ * @example
+ * ```ts
+ * getInitials("John Doe");   // "JD"
+ * getInitials("johndoe");    // "JO"
+ * getInitials(undefined);    // "?"
+ * ```
+ */
+export function getInitials(source: string | null | undefined): string {
+	if (!source) return "?";
+	const initials = source
+		.split(" ")
+		.filter(Boolean)
+		.map((part) => part[0])
+		.join("")
+		.slice(0, 2)
+		.toUpperCase();
+	return initials || "?";
 }
 
 /**
@@ -470,16 +506,40 @@ export function extractTaskText(description: unknown): string {
 	return texts.join(" ");
 }
 
+/**
+ * Formats a task's display identifier as `{orgShortId}-{taskShortId}`,
+ * matching the "copy branch name" convention (see
+ * apps/start/src/components/admin/panels/task.tsx and the branch-name
+ * parser in apps/backend/routes/webhook/github.ts) — e.g. a task with
+ * shortId 123 in an org with shortId "SAY" displays as "SAY-123" instead
+ * of the old bare "#123".
+ *
+ * @param orgShortId - The organization's short identifier (e.g. "SAY").
+ * @param taskShortId - The task's own short numeric id. Falls back to "?"
+ * when null/undefined (a task can be momentarily shortId-less right after
+ * creation, before the per-org sequence assigns one).
+ *
+ * @example
+ * ```ts
+ * formatTaskKey("SAY", 123);
+ * // "SAY-123"
+ *
+ * formatTaskKey("SAY", null);
+ * // "SAY-?"
+ * ```
+ */
+export function formatTaskKey(orgShortId: string, taskShortId: number | null | undefined): string {
+	return `${orgShortId}-${taskShortId ?? "?"}`;
+}
+
 export class PermissionError extends Error {
 	readonly type = "PERMISSION_ERROR";
 
-	constructor(
-		message = "You do not have permission to access this page."
-	) {
+	constructor(message = "You do not have permission to access this page.") {
 		super(message);
 		this.name = "PermissionError";
 	}
 }
 
 export { sendEmail } from "./email";
-export { parseGithubPrUrl, type ParsedGithubPrUrl } from "./github/parse-pr-url";
+export { type ParsedGithubPrUrl, parseGithubPrUrl } from "./github/parse-pr-url";

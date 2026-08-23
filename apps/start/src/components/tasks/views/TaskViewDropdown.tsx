@@ -16,15 +16,19 @@ import OptionField from "@repo/ui/components/tomui/option-field";
 import { cn } from "@repo/ui/lib/utils";
 import {
 	IconAdjustmentsHorizontal,
+	IconArrowsSort,
 	IconCheck,
 	IconEyeOff,
 	IconLayoutKanban,
 	IconLayoutList,
 	IconLayoutRows,
+	IconSortAscending,
+	IconSortDescending,
 } from "@tabler/icons-react";
 import { useMemo } from "react";
 import { useTaskViewManager, type TaskGroupingId } from "@/hooks/useTaskViewManager";
 import { TASK_GROUPING_OPTIONS, TASK_GROUPINGS } from "../shared/config";
+import { TASK_SORT_FIELDS, type TaskSortField } from "../filter/sort-config";
 
 const VIEW_MODE_OPTIONS = [
 	{ id: "list", label: "List", icon: <IconLayoutList className="h-4 w-4" /> },
@@ -43,14 +47,19 @@ export function TaskViewDropdown() {
 		subGrouping,
 		showCompletedTasks,
 		viewMode,
+		sortBy,
+		sortDirection,
 		setGrouping,
 		setSubGrouping,
 		setShowCompletedTasks,
 		setViewMode,
+		setSortBy,
+		setSortDirection,
 	} = useTaskViewManager();
 
 	const activeGrouping = TASK_GROUPINGS[grouping] ?? TASK_GROUPINGS.status;
 	const activeSubGrouping = subGrouping && subGrouping !== "none" ? TASK_GROUPINGS[subGrouping] : null;
+	const activeSortField = sortBy !== "none" ? TASK_SORT_FIELDS.find((f) => f.id === sortBy) : null;
 
 	const activeViewMode: ViewMode = viewMode;
 
@@ -162,6 +171,67 @@ export function TaskViewDropdown() {
 								</DropdownMenuRadioGroup>
 							</DropdownMenuContent>
 						</DropdownMenu>
+					}
+				/>
+				<OptionField
+					title="Sort by"
+					icon={<IconArrowsSort className="h-4 w-4" />}
+					customSide={
+						<div className="flex items-center gap-1">
+							<DropdownMenu>
+								<DropdownMenuTrigger asChild>
+									<Button variant="accent" className={cn("gap-2 border-transparent p-1 h-auto")}>
+										<span className="text-xs">{activeSortField ? activeSortField.label : "None"}</span>
+									</Button>
+								</DropdownMenuTrigger>
+								<DropdownMenuContent className="w-64" side="bottom" align="end">
+									<DropdownMenuRadioGroup
+										value={sortBy ?? "none"}
+										onValueChange={(value) => setSortBy(value as TaskSortField | "none")}
+									>
+										<DropdownMenuRadioItem value="none" className="pl-8">
+											<span className="mr-3 flex h-5 w-5 items-center justify-center text-muted-foreground">
+												<IconEyeOff className="h-4 w-4" />
+											</span>
+											<span
+												className={cn(
+													"text-sm",
+													(sortBy ?? "none") === "none" && "font-semibold text-foreground"
+												)}
+											>
+												None
+											</span>
+										</DropdownMenuRadioItem>
+										{TASK_SORT_FIELDS.map((option) => (
+											<DropdownMenuRadioItem key={option.id} value={option.id} className="pl-8">
+												<span
+													className={cn(
+														"text-sm",
+														sortBy === option.id && "font-semibold text-foreground"
+													)}
+												>
+													{option.label}
+												</span>
+											</DropdownMenuRadioItem>
+										))}
+									</DropdownMenuRadioGroup>
+								</DropdownMenuContent>
+							</DropdownMenu>
+							{sortBy && sortBy !== "none" && (
+								<Button
+									variant="accent"
+									size="icon"
+									className="border-transparent size-7"
+									onClick={() => setSortDirection(sortDirection === "desc" ? "asc" : "desc")}
+								>
+									{sortDirection === "desc" ? (
+										<IconSortDescending className="h-4 w-4" />
+									) : (
+										<IconSortAscending className="h-4 w-4" />
+									)}
+								</Button>
+							)}
+						</div>
 					}
 				/>
 				<OptionField
