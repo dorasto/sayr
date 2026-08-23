@@ -6,8 +6,6 @@ import { eq } from "drizzle-orm";
 import { Hono } from "hono";
 import type { AppEnv } from "@/index";
 import { enqueue, getRedis } from "@repo/queue";
-import { auth as betterAuth } from "@repo/auth";
-import { deleteContactByEmail } from "@repo/util/email";
 
 export const apiRouteAdminUser = new Hono<AppEnv>();
 
@@ -564,7 +562,6 @@ apiRouteAdminUser.delete("/delete", async (c) => {
 					},
 					{ description: "Deleting user S3 files", data: { userId } }
 				);
-				await deleteContactByEmail(user.email)
 				await db.delete(auth.user).where(eq(auth.user.id, userId));
 			},
 			{

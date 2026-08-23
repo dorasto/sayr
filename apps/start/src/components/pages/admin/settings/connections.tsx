@@ -104,7 +104,7 @@ export default function UserConnections({ email, githubUser, dorasUser, discordU
 									}
 									onClick={async () => {
 										await authClient.unlinkAccount({
-											providerId: "credential",
+											accountId: email.id,
 										});
 										window.location.reload();
 									}}
@@ -160,8 +160,8 @@ export default function UserConnections({ email, githubUser, dorasUser, discordU
 									variant="primary"
 									size="sm"
 									onClick={async () => {
-										await authClient.oauth2.link({
-											providerId: "doras",
+										await authClient.linkSocial({
+											provider: "doras",
 											callbackURL: "/settings/connections",
 										});
 									}}
@@ -179,7 +179,7 @@ export default function UserConnections({ email, githubUser, dorasUser, discordU
 											: "You must have at least one other connection to disconnect Doras"
 									}
 									onClick={async () => {
-										await authClient.unlinkAccount({ providerId: "doras" });
+										dorasUser && await authClient.unlinkAccount({ accountId: dorasUser.account_id });
 										window.location.reload();
 									}}
 								>
@@ -242,7 +242,7 @@ export default function UserConnections({ email, githubUser, dorasUser, discordU
 											: "You must connect another account first to disconnect GitHub"
 									}
 									onClick={async () => {
-										await authClient.unlinkAccount({ providerId: "github" });
+										githubUser && await authClient.unlinkAccount({ accountId: githubUser.account_id });
 										window.location.reload();
 									}}
 								>
@@ -314,7 +314,7 @@ export default function UserConnections({ email, githubUser, dorasUser, discordU
 											: "You must have at least one other connection to disconnect Discord"
 									}
 									onClick={async () => {
-										await authClient.unlinkAccount({ providerId: "discord" });
+										discordUser && await authClient.unlinkAccount({ accountId: discordUser.account_id });
 										window.location.reload();
 									}}
 								>
@@ -381,7 +381,7 @@ export default function UserConnections({ email, githubUser, dorasUser, discordU
 											: "You must have at least one other connection to disconnect Slack"
 									}
 									onClick={async () => {
-										await authClient.unlinkAccount({ providerId: "slack" });
+										slackUser && await authClient.unlinkAccount({ accountId: slackUser.account_id });
 										window.location.reload();
 									}}
 								>

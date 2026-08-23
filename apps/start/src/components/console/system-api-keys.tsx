@@ -26,7 +26,7 @@ import { IconCopy, IconCheck } from "@tabler/icons-react";
 interface ApiKey {
 	id: string;
 	name: string;
-	prefix: string;
+	start: string;
 	enabled: boolean;
 	expiresAt: Date | null;
 	createdAt: Date;
@@ -196,7 +196,7 @@ export function SystemApiKeys({ initialData = [] }: SystemApiKeysProps) {
 					<TableHeader>
 						<TableRow>
 							<TableHead>Name</TableHead>
-							<TableHead>Prefix</TableHead>
+							<TableHead>Start</TableHead>
 							<TableHead>Status</TableHead>
 							<TableHead>Created</TableHead>
 							<TableHead>Expires</TableHead>
@@ -210,7 +210,7 @@ export function SystemApiKeys({ initialData = [] }: SystemApiKeysProps) {
 								<TableCell className="font-medium">{key.name}</TableCell>
 								<TableCell>
 									<code className="text-xs bg-muted px-1.5 py-0.5 rounded">
-										{key.prefix}...
+										{key.start}...
 									</code>
 								</TableCell>
 								<TableCell>

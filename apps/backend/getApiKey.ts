@@ -45,18 +45,18 @@ export async function safeGetApiKey(
             result.valid === true &&
             result.key &&
             result.key.enabled === true &&
-            typeof result.key.userId === "string";
+            typeof result.key.referenceId === "string";
 
         if (!valid) {
             return null;
         }
-        if (!result.key?.userId) return null;
+        if (!result.key?.referenceId) return null;
 
         // Fetch full user account
         const [account] = await db
             .select()
             .from(authSchema.user)
-            .where(eq(authSchema.user.id, result.key?.userId))
+            .where(eq(authSchema.user.id, result.key?.referenceId))
             .limit(1);
 
         if (!account) {

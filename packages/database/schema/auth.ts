@@ -1,5 +1,7 @@
 import * as v from "drizzle-orm/pg-core";
 import { pgTable as table } from "drizzle-orm/pg-core";
+import { relations } from "drizzle-orm";
+
 // --------------------
 // User
 // --------------------
@@ -34,7 +36,15 @@ export const two_factor = table("twoFactor", {
 	userId: v.text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
 	secret: v.text("secret"),
 	backupCodes: v.text("backup_codes"),
-});
+	verified: v.boolean("verified").default(true),
+	failedVerificationCount: v.integer("failed_verification_count").default(0),
+	lockedUntil: v.timestamp("locked_until"),
+},
+	(table) => [
+		v.index("twoFactor_secret_idx").on(table.secret),
+		v.index("twoFactor_userId_idx").on(table.userId),
+	],
+);
 
 export const passkey = table("passkey", {
 	id: v.text("id").primaryKey(),
@@ -48,8 +58,12 @@ export const passkey = table("passkey", {
 	transports: v.text("transports"),
 	createdAt: v.timestamp("created_at", { precision: 6, withTimezone: true }),
 	aaguid: v.text("aaguid"),
-});
-
+},
+	(table) => [
+		v.index("passkey_userId_idx").on(table.userId),
+		v.index("passkey_credentialID_idx").on(table.credentialID),
+	],
+);
 // --------------------
 // Session
 // --------------------
@@ -66,13 +80,16 @@ export const session = table("session", {
 		.notNull()
 		.references(() => user.id, { onDelete: "cascade" }),
 	impersonatedBy: v.text("impersonated_by"),
-});
+},
+	(table) => [v.index("session_userId_idx").on(table.userId)],
+);
 
 // --------------------
 // Account
 // --------------------
 export const account = table("account", {
 	id: v.text("id").primaryKey(),
+	issuer: v.text("issuer").notNull(),
 	accountId: v.text("account_id").notNull(),
 	providerId: v.text("provider_id").notNull(),
 	userId: v
@@ -88,7 +105,15 @@ export const account = table("account", {
 	password: v.text("password"),
 	createdAt: v.timestamp("created_at").notNull(),
 	updatedAt: v.timestamp("updated_at").notNull(),
-});
+},
+	(table) => [
+		v.uniqueIndex("account_issuer_accountId_uidx").on(
+			table.issuer,
+			table.accountId,
+		),
+		v.index("account_userId_idx").on(table.userId),
+	],
+);
 
 // --------------------
 // Verification
@@ -100,4 +125,41 @@ export const verification = table("verification", {
 	expiresAt: v.timestamp("expires_at").notNull(),
 	createdAt: v.timestamp("created_at").$defaultFn(() => new Date()),
 	updatedAt: v.timestamp("updated_at").$defaultFn(() => new Date()),
-});
+},
+	(table) => [v.index("verification_identifier_idx").on(table.identifier)],
+);
+
+export const userRelations = relations(user, ({ many }) => ({
+	sessions: many(session),
+	accounts: many(account),
+	twoFactors: many(two_factor),
+	passkeys: many(passkey),
+}));
+
+export const sessionRelations = relations(session, ({ one }) => ({
+	user: one(user, {
+		fields: [session.userId],
+		references: [user.id],
+	}),
+}));
+
+export const accountRelations = relations(account, ({ one }) => ({
+	user: one(user, {
+		fields: [account.userId],
+		references: [user.id],
+	}),
+}));
+
+export const twoFactorRelations = relations(two_factor, ({ one }) => ({
+	user: one(user, {
+		fields: [two_factor.userId],
+		references: [user.id],
+	}),
+}));
+
+export const passkeyRelations = relations(passkey, ({ one }) => ({
+	user: one(user, {
+		fields: [passkey.userId],
+		references: [user.id],
+	}),
+}));

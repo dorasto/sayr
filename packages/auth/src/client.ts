@@ -1,14 +1,11 @@
-import { genericOAuthClient, inferAdditionalFields, lastLoginMethodClient, twoFactorClient } from "better-auth/client/plugins";
-import { polarClient } from "@polar-sh/better-auth/client";
+import { inferAdditionalFields, lastLoginMethodClient, twoFactorClient } from "better-auth/client/plugins";
 import { passkeyClient } from "@better-auth/passkey/client";
 import { createAuthClient } from "better-auth/react"; // make sure to import from better-auth/react
 import type { auth } from "./index";
 export const authClient = createAuthClient({
 	plugins: [
 		inferAdditionalFields<typeof auth>(),
-		genericOAuthClient(),
 		lastLoginMethodClient(),
-		polarClient(),
 		twoFactorClient({
 			onTwoFactorRedirect() {
 				window.location.href = "/auth/2fa";
@@ -60,8 +57,8 @@ export const signInDoras = async () => {
 		return;
 	}
 	setLoginOriginCookie();
-	await authClient.signIn.oauth2({
-		providerId: "doras",
+	await authClient.signIn.social({
+		provider: "doras",
 		callbackURL: `/auth/auth-check`,
 	});
 };

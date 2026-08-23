@@ -52,7 +52,6 @@ export const getBackupCodes = createServerFn({ method: "GET" })
 	.inputValidator((data: { account: schema.userType }) => data)
 	.handler(async ({ data }) => {
 		try {
-			//@ts-expect-error
 			const backupCodes = await authServer.api.viewBackupCodes({
 				body: {
 					userId: data.account.id,
@@ -207,10 +206,10 @@ function RouteComponent() {
 					return;
 				}
 				// Store backup codes from the enable response
-				if (result.data?.backupCodes) {
+				if (result.data.method === "totp" && result.data?.backupCodes) {
 					setSetupBackupCodes(result.data.backupCodes);
 				}
-				if (result.data?.totpURI) {
+				if (result.data.method === "totp" && result.data?.totpURI) {
 					setTotpUri(result.data.totpURI);
 				}
 				// Move to step 2: TOTP setup dialog

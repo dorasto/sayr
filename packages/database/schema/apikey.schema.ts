@@ -9,19 +9,15 @@ export const apikey = table(
 	"api_key",
 	{
 		id: v.text("id").primaryKey(),
+		configId: v.text("config_id").default("default").notNull(),
 
 		name: v.text("name"),
 		start: v.text("start"),
 		prefix: v.text("prefix"),
+		referenceId: v.text("user_id").notNull(),
 
 		// Hashed API key
 		key: v.text("key").notNull(),
-
-		userId: v
-			.text("user_id")
-			.notNull()
-			.references(() => user.id, { onDelete: "cascade" }),
-
 		refillInterval: v.integer("refill_interval"),
 		refillAmount: v.integer("refill_amount"),
 		lastRefillAt: v.timestamp("last_refill_at"),
@@ -67,12 +63,8 @@ export const apikey = table(
 		v
 			.index("apikey_key_idx")
 			.on(t.key),
-
-		// 👤 Fast lookup of keys by user
-		v
-			.index("apikey_user_idx")
-			.on(t.userId),
-
+		v.index("apikey_configId_idx").on(t.configId),
+		v.index("apikey_referenceId_idx").on(t.referenceId),
 		// ✅ Optional: enabled/disabled filtering
 		v
 			.index("apikey_enabled_idx")
