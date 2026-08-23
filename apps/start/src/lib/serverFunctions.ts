@@ -1,9 +1,8 @@
-import { auth } from "@repo/auth";
+import { auth, getSessionCookie } from "@repo/auth";
 import { getOrganizations as dbGetOrganizations, type schema } from "@repo/database";
 import { redirect } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { getRequestHeaders } from "@tanstack/react-start/server";
-import { getSessionCookie } from "better-auth/cookies";
 
 /**
  * Helper to normalize better-auth user to schema.userType

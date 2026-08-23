@@ -1,7 +1,6 @@
-import { auth } from "@repo/auth";
+import { auth, getSessionCookie } from "@repo/auth";
 import type { schema } from "@repo/database";
 import { getRequestHeaders } from "@tanstack/react-start/server";
-import { getSessionCookie } from "better-auth/cookies";
 
 export const getAccess = async () => {
 	const headers = getRequestHeaders();

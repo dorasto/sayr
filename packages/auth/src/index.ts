@@ -17,8 +17,10 @@ import { eq, sql } from "drizzle-orm";
 import { sendEmail } from "@repo/util";
 import { addContactToContactBook, deleteContactByEmail } from "@repo/util/email";
 import { apiKey } from "@better-auth/api-key"
+import { getSessionCookie } from "better-auth/cookies";
 export { Polar, validateEvent };
 export type { Subscription, CustomerSeat };
+export { getSessionCookie };
 const rootUrl = process.env.VITE_ROOT_DOMAIN;
 const isProd = process.env.APP_ENV === "production";
 // Auth callback URL for OAuth providers (must be consistent subdomain)

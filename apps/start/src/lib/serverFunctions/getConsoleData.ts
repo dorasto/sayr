@@ -1,10 +1,9 @@
-import { auth } from "@repo/auth";
+import { auth, getSessionCookie } from "@repo/auth";
 import { auth as authSchema, db, schema } from "@repo/database";
 import { ensureCdnUrl } from "@repo/util";
 import { redirect } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { getRequestHeaders } from "@tanstack/react-start/server";
-import { getSessionCookie } from "better-auth/cookies";
 import { and, asc, count, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
 
 /**
@@ -292,30 +291,30 @@ export const getConsoleUserServer = createServerFn({ method: "GET" })
 				};
 			});
 
-		return {
-			user: {
-				...targetUser,
-				image: targetUser.image ? ensureCdnUrl(targetUser.image) : null,
-			},
-			organizations,
-			sessions,
-			accounts,
-			activity: {
-				aggregates: activityAggregates.map((a) => ({
-					eventType: a.eventType,
-					count: Number(a.count),
-				})),
-				recent: recentActivityWithOrg,
-			},
-		};
-	} catch (error) {
-		// If it's already a redirect, re-throw it
-		if (error && typeof error === "object" && "redirect" in error) {
-			throw error;
+			return {
+				user: {
+					...targetUser,
+					image: targetUser.image ? ensureCdnUrl(targetUser.image) : null,
+				},
+				organizations,
+				sessions,
+				accounts,
+				activity: {
+					aggregates: activityAggregates.map((a) => ({
+						eventType: a.eventType,
+						count: Number(a.count),
+					})),
+					recent: recentActivityWithOrg,
+				},
+			};
+		} catch (error) {
+			// If it's already a redirect, re-throw it
+			if (error && typeof error === "object" && "redirect" in error) {
+				throw error;
+			}
+			throw redirect({ to: "/console" });
 		}
-		throw redirect({ to: "/console" });
-	}
-});
+	});
 
 // ──────────────────────────────────────────────
 // getConsoleOrgsServer — paginated org list for SSR loader
