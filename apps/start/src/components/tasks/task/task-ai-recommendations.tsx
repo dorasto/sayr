@@ -3,6 +3,7 @@ import { Badge } from "@repo/ui/components/badge";
 import { Button } from "@repo/ui/components/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@repo/ui/components/collapsible";
 import { headlessToast } from "@repo/ui/components/headless-toast";
+import StatusIcon from "@repo/ui/components/icons/status";
 import { Spinner } from "@repo/ui/components/spinner";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { formatTaskKey, resolveOrgAiStatus } from "@repo/util";
@@ -28,8 +29,15 @@ import { getCategoryUpdatePayload } from "@/components/tasks/actions/category";
 import { getLabelBulkUpdatePayload } from "@/components/tasks/actions/labels";
 import { getPriorityUpdatePayload } from "@/components/tasks/actions/priority";
 import { getReleaseUpdatePayload } from "@/components/tasks/actions/release";
+import { getStatusUpdatePayload } from "@/components/tasks/actions/status";
 import { useTaskFieldAction } from "@/components/tasks/actions/use-task-field-action";
-import { getTaskRecommendations, type RecommendationsResult, type RecommendedRelation } from "@/lib/fetches/ai";
+import { statusConfig as sharedStatusConfig } from "@/components/tasks/shared/config";
+import {
+	getTaskRecommendations,
+	type RecommendationsResult,
+	type RecommendedRelation,
+	type RecommendedStatus,
+} from "@/lib/fetches/ai";
 import { createTaskRelationAction } from "@/lib/fetches/task";
 import { ContextSection } from "./task-context-banner";
 
@@ -63,15 +71,18 @@ interface SuggestionChipProps {
 	 */
 	meta?: string;
 	label: string;
+	/** Optional hover tooltip — e.g. the concrete signal behind a status suggestion ("Jane linked branch feature/foo"). */
+	title?: string;
 	onApply: () => void;
 	onDismiss: () => void;
 }
 
 /** One reusable clickable chip shared by every recommendation kind — click the body to apply, the "x" to dismiss without applying. */
-function SuggestionChip({ icon, meta, label, onApply, onDismiss }: SuggestionChipProps) {
+function SuggestionChip({ icon, meta, label, title, onApply, onDismiss }: SuggestionChipProps) {
 	return (
 		<Badge
 			variant="secondary"
+			title={title}
 			className="flex items-center gap-1.5 bg-accent text-xs h-auto border border-dashed border-border rounded-2xl pl-2 pr-1 py-1 max-w-64"
 		>
 			<button type="button" onClick={onApply} className="flex items-center gap-1.5 min-w-0 cursor-pointer">
@@ -184,7 +195,8 @@ export function useAiRecommendations({
 				res.data.priority ||
 				res.data.categoryId ||
 				res.data.releaseId ||
-				res.data.relations.length > 0;
+				res.data.relations.length > 0 ||
+				res.data.status;
 
 			if (forceRefresh && !hasAny) {
 				headlessToast.info({
@@ -302,6 +314,13 @@ export function useAiRecommendations({
 				}
 		);
 
+	const applyStatus = () => {
+		if (!result?.status) return;
+		execute(getStatusUpdatePayload(task, result.status.value));
+		setResult((prev) => prev && { ...prev, status: null });
+	};
+	const dismissStatus = () => setResult((prev) => prev && { ...prev, status: null });
+
 	return {
 		recommendationsAvailable,
 		orgShortId: org?.shortId ?? "",
@@ -321,6 +340,8 @@ export function useAiRecommendations({
 		dismissRelease,
 		applyRelation,
 		dismissRelation,
+		applyStatus,
+		dismissStatus,
 	};
 }
 
@@ -363,6 +384,7 @@ function AiRecommendationsContent({
 	const suggestedCategory = r.result?.categoryId ? categories.find((c) => c.id === r.result?.categoryId) : null;
 	const suggestedRelease = r.result?.releaseId ? releases.find((rel) => rel.id === r.result?.releaseId) : null;
 	const suggestedRelations = r.result?.relations ?? [];
+	const suggestedStatus: RecommendedStatus | null = r.result?.status ?? null;
 
 	const hasContent =
 		suggestedLabels.length > 0 ||
@@ -370,7 +392,8 @@ function AiRecommendationsContent({
 		Boolean(r.result?.priority) ||
 		Boolean(suggestedCategory) ||
 		Boolean(suggestedRelease) ||
-		suggestedRelations.length > 0;
+		suggestedRelations.length > 0 ||
+		Boolean(suggestedStatus);
 
 	const regenerateButton = isPlatformAdmin && (
 		<Button
@@ -487,6 +510,26 @@ function AiRecommendationsContent({
 						</div>
 					)}
 
+					{suggestedStatus && (
+						<div className="flex flex-col gap-1.5">
+							<div className="flex flex-wrap items-center gap-2">
+								<span className="text-xs text-foreground font-semibold">Status:</span>
+								<SuggestionChip
+									icon={
+										<StatusIcon
+											status={suggestedStatus.value}
+											className={`size-3.5 shrink-0 ${sharedStatusConfig[suggestedStatus.value]?.className ?? ""}`}
+										/>
+									}
+									label={`Move to ${sharedStatusConfig[suggestedStatus.value]?.label ?? suggestedStatus.value}`}
+									title={suggestedStatus.reason}
+									onApply={r.applyStatus}
+									onDismiss={r.dismissStatus}
+								/>
+							</div>
+						</div>
+					)}
+
 					{suggestedCategory && (
 						<div className="flex flex-col gap-1.5">
 							<div className="flex flex-wrap items-center gap-2">
@@ -561,7 +604,8 @@ function hasAnyRecommendation(result: RecommendationsResult | null): boolean {
 		Boolean(result.priority) ||
 		Boolean(result.categoryId) ||
 		Boolean(result.releaseId) ||
-		result.relations.length > 0
+		result.relations.length > 0 ||
+		Boolean(result.status)
 	);
 }
 

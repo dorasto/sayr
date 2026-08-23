@@ -16,7 +16,7 @@ import {
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { cn } from "@repo/ui/lib/utils";
 import { useStore } from "@tanstack/react-store";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Loader from "@/components/loader";
 import { useTaskSelection } from "@/hooks/useTaskSelection";
 import { useTaskViewManager } from "@/hooks/useTaskViewManager";
@@ -150,12 +150,7 @@ export function UnifiedTaskView({
 	}, [tasks, filters, sortBy, sortDirection]);
 
 	const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
-
-	// Reset collapsed sections when grouping changes
-	useEffect(() => {
-		setCollapsedSections(new Set());
-		void grouping;
-	}, [grouping]);
+	const groupedTasksRef = useRef<NestedTaskGroup[]>([]);
 
 	// SSE Handlers
 	const handlers: WSMessageHandler<ServerEventMessage> = {
@@ -347,6 +342,40 @@ export function UnifiedTaskView({
 			releases,
 		});
 	}, [filteredTasks, availableUsers, effectiveShowCompleted, grouping, subGrouping, categories, releases]);
+
+	// Latest groupedTasks for use inside the grouping-change effect below, without making
+	// that effect re-fire on every task/filter change (it should only reset on `grouping`/`subGrouping`).
+	groupedTasksRef.current = groupedTasks;
+
+	// Reset collapsed sections when grouping or sub-grouping changes, defaulting any empty group/sub-group to collapsed
+	// biome-ignore lint/correctness/useExhaustiveDependencies: intentionally only reset on `grouping`/`subGrouping` change; groupedTasksRef always holds the latest value
+	useEffect(() => {
+		// Sub-group ids aren't namespaced per parent group (e.g. "priority:urgent" is reused
+		// under every status group), so collapsedSections.has(id) is shared across siblings.
+		// Sum counts per id first so a non-empty sub-group elsewhere isn't collapsed just
+		// because a same-named sub-group under a different parent happens to be empty.
+		const subGroupTaskCounts = new Map<string, number>();
+		for (const group of groupedTasksRef.current) {
+			for (const subGroup of group.subGroups ?? []) {
+				subGroupTaskCounts.set(subGroup.id, (subGroupTaskCounts.get(subGroup.id) ?? 0) + subGroup.count);
+			}
+		}
+
+		const defaultCollapsed = new Set<string>();
+		for (const group of groupedTasksRef.current) {
+			if (group.subGroups && group.subGroups.length > 0) {
+				for (const subGroup of group.subGroups) {
+					if ((subGroupTaskCounts.get(subGroup.id) ?? 0) === 0) defaultCollapsed.add(subGroup.id);
+				}
+				if (group.subGroups.every((subGroup) => (subGroupTaskCounts.get(subGroup.id) ?? 0) === 0)) {
+					defaultCollapsed.add(group.id);
+				}
+			} else if (group.count === 0) {
+				defaultCollapsed.add(group.id);
+			}
+		}
+		setCollapsedSections(defaultCollapsed);
+	}, [grouping, subGrouping]);
 
 	// Compute the IDs of tasks that are actually visible (non-collapsed groups,
 	// completed tasks filtered out per showCompletedTasks). This is what
