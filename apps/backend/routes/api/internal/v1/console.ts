@@ -489,6 +489,7 @@ apiRouteConsole.get("/system-api-keys", async (c) => {
 						createdAt: schema.apikey.createdAt,
 						lastRequest: schema.apikey.lastRequest,
 						requestCount: schema.apikey.requestCount,
+						start: schema.apikey.start,
 					})
 					.from(schema.apikey)
 					.where(eq(schema.apikey.referenceId, systemUser.id))
