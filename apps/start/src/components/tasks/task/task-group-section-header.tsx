@@ -38,7 +38,7 @@ export function TaskGroupSectionHeader({
   return (
     <div
       className={cn(
-        "z-10 select-none group",
+        "z-10 select-none group rounded-xl",
         isSubGroup ? "bg-accent z-9" : "bg-muted z-10",
         isSticky ? "sticky" : "",
         headerStyle?.rootClassName,
@@ -49,7 +49,7 @@ export function TaskGroupSectionHeader({
     >
       <div
         className={cn(
-          "flex items-center justify-between px-4 py-1 relative overflow-hidden shrink-0 rounded-lg bg-card",
+          "flex items-center justify-between px-4 py-1 relative overflow-hidden shrink-0 rounded-xl bg-card",
           compact && "px-2 py-1.5",
           headerStyle?.getItemClassName?.(group.key),
           className,
