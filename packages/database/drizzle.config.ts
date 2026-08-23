@@ -3,8 +3,7 @@ export default defineConfig({
 	dialect: "postgresql",
 	schema: "./schema/*.ts",
 	dbCredentials: {
-		url: process.env.DATABASE_URL!,
-		ssl: false
+		url: process.env.DATABASE_URL!
 	},
 	migrations: {
 		prefix: "timestamp",
