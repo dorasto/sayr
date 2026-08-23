@@ -4,6 +4,7 @@ max_runtime: 20m
 filters:
   repo: dorasto/sayr
   label: ai-summary
+  from_users: [tommerty, trent-001]
 steps:
   - id: summarize
     environment: dev
