@@ -37,21 +37,63 @@ if (edition === "community" || edition === "enterprise") {
 // -----------------------------------------------------------------------------
 // CORS
 // -----------------------------------------------------------------------------
+const isProduction = process.env.APP_ENV === "production";
+
+/** Normalises a URL to its origin (scheme + host + port), or null if unparseable. */
+function toOrigin(value: string | undefined | null): string | null {
+	if (!value) return null;
+	try {
+		return new URL(value).origin;
+	} catch {
+		return null;
+	}
+}
+
+/**
+ * Decides whether a browser origin may make credentialed cross-origin requests.
+ *
+ * This previously tested `origin.includes("localhost")` — a substring match that any
+ * attacker-controlled hostname satisfies (`https://sayr-localhost.evil.com`), in every
+ * environment. Combined with `credentials: true`, that let a hostile page issue
+ * authenticated requests as a signed-in user *and read the responses*. Now that users
+ * can mint personal API keys, that escalates to stealing a credential which outlives
+ * logout, password changes, and session revocation.
+ *
+ * So: compare the parsed hostname, never a substring, and don't trust local hosts in
+ * production. Note the first-party frontend calls the API on relative paths through the
+ * proxy, so it is same-origin and does not depend on any of this.
+ */
+function isAllowedOrigin(origin: string): boolean {
+	let parsed: URL;
+	try {
+		parsed = new URL(origin);
+	} catch {
+		return false;
+	}
+
+	// Reject exotic schemes (file:, data:, and other opaque origins).
+	if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return false;
+
+	// Local development hosts, exact-matched on hostname. Unavailable in production.
+	if (!isProduction) {
+		const { hostname } = parsed;
+		if (hostname === "localhost" || hostname.endsWith(".localhost")) return true;
+		if (hostname === "127.0.0.1" || hostname === "[::1]") return true;
+	}
+
+	// The configured frontend origin, compared normalised so a trailing slash or an
+	// explicit default port in the env var doesn't silently stop matching.
+	const configured = toOrigin(process.env.VITE_URL_ROOT);
+	return configured !== null && parsed.origin === configured;
+}
+
 app.use(
 	"*",
 	cors({
 		origin: (origin) => {
-			// Allow non-browser requests
+			// Non-browser requests (curl, server-to-server) send no Origin header.
 			if (!origin) return origin;
-			// Allow all localhost (any port, any subdomain)
-			if (origin.includes("localhost")) {
-				return origin;
-			}
-			// Allow prod frontend
-			if (origin === process.env.VITE_URL_ROOT) {
-				return origin;
-			}
-			return null;
+			return isAllowedOrigin(origin) ? origin : null;
 		},
 		allowMethods: ["GET", "POST", "PATCH", "PUT", "DELETE"],
 		allowHeaders: ["Content-Type", "Authorization"],
@@ -71,7 +113,9 @@ app.use("*", async (c, next) => {
 	return next();
 });
 app.get("/favicon.ico", (c) => c.redirect(process.env.FAVICON_URL ?? "https://files.sayr.io/favicon.ico", 302));
-app.get("/api/public/favicon.ico", (c) => c.redirect(process.env.FAVICON_URL ?? "https://files.sayr.io/favicon.ico", 302));
+app.get("/api/public/favicon.ico", (c) =>
+	c.redirect(process.env.FAVICON_URL ?? "https://files.sayr.io/favicon.ico", 302)
+);
 
 app.use("*", async (c, next) => {
 	const root = process.env.VITE_ROOT_DOMAIN;
@@ -99,7 +143,7 @@ app.use("*", async (c, next) => {
 				new Request(url.toString(), {
 					method,
 					headers: c.req.raw.headers,
-					body: c.req.raw.body
+					body: c.req.raw.body,
 				})
 			);
 		}
@@ -119,7 +163,7 @@ app.use("*", async (c, next) => {
 			new Request(url.toString(), {
 				method,
 				headers: c.req.raw.headers,
-				body: c.req.raw.body
+				body: c.req.raw.body,
 			})
 		);
 	}
@@ -130,7 +174,7 @@ app.use("*", async (c, next) => {
 // -----------------------------------------------------------------------------
 // Routes
 // -----------------------------------------------------------------------------
-app.route("/api/events", sseRoute)
+app.route("/api/events", sseRoute);
 app.get("/", serveStatic({ path: "./public/index.html" }));
 app.route("/render", renderRoute);
 app.get("/api/health", async (c) => {

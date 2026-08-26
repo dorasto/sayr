@@ -23,6 +23,27 @@ export {
 	isAiFeatureEnabled,
 } from "@repo/util";
 
+// Re-export the API key scope catalog from @repo/util (browser-safe).
+// The drift guard that keeps these scopes locked to TeamPermissions lives
+// below, next to the PermissionPath declaration.
+export {
+	ALL_API_KEY_SCOPES,
+	API_KEY_SCOPE_PRESETS,
+	API_KEY_SCOPES,
+	type ApiKeyScope,
+	type ApiKeyScopeRecord,
+	type ApiKeyScopeResource,
+	invalidScopes,
+	isApiKeyScope,
+	keyScopeAllows,
+	parseScope,
+	parseScopeRecord,
+	recordToScopes,
+	scopeDefinition,
+	scopesToRecord,
+	scopeToPermissionPath,
+} from "@repo/util";
+
 import { and, eq, inArray } from "drizzle-orm";
 import {
 	member,
@@ -34,7 +55,7 @@ import {
 	type OrganizationSettings,
 	defaultOrganizationSettings,
 } from "../schema";
-import { type OrgAiSettings } from "@repo/util";
+import { API_KEY_SCOPES, type OrgAiSettings } from "@repo/util";
 
 import { user } from "../schema/auth";
 import { db } from "./database";
@@ -87,6 +108,26 @@ type PermissionPath =
 	| `tasks.${keyof TeamPermissions["tasks"]}`
 	| `moderation.${keyof TeamPermissions["moderation"]}`
 	| "members";
+
+/**
+ * Compile-time drift guard between the API key scope catalog (@repo/util, which
+ * cannot import from here without a cycle) and this permission model.
+ *
+ * Every scope declares the `permission` it maps to. If someone adds a scope
+ * whose permission isn't a real `PermissionPath` — or renames a `TeamPermissions`
+ * flag out from under one — `pnpm check-types` fails here instead of the scope
+ * silently authorizing nothing at runtime.
+ */
+type PermissionOf<T> = T extends { permission: infer P } ? P : never;
+
+type ApiKeyScopePermissionValues = {
+	[R in keyof typeof API_KEY_SCOPES]: PermissionOf<(typeof API_KEY_SCOPES)[R][keyof (typeof API_KEY_SCOPES)[R]]>;
+}[keyof typeof API_KEY_SCOPES];
+
+type AssertIsPermissionPath<T extends PermissionPath> = T;
+// Exported so `noUnusedLocals` doesn't flag it — the type is load-bearing even
+// though nothing consumes its value.
+export type ApiKeyScopeDriftGuard = AssertIsPermissionPath<ApiKeyScopePermissionValues>;
 
 /**
  * Determines whether a user has a specific organization-level permission.
