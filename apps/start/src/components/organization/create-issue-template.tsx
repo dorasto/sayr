@@ -1,6 +1,5 @@
 "use client";
 
-import { useToastAction } from "@/lib/util";
 import type { schema } from "@repo/database";
 import {
 	AdaptiveDialog,
@@ -11,10 +10,15 @@ import {
 	AdaptiveDialogTitle,
 } from "@repo/ui/components/adaptive-dialog";
 import { Button } from "@repo/ui/components/button";
+import { Tile, TileDescription, TileHeader, TileIcon, TileTitle } from "@repo/ui/components/doras-ui/tile";
 import { Input } from "@repo/ui/components/input";
+import { Label } from "@repo/ui/components/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@repo/ui/components/popover";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@repo/ui/components/tooltip";
+import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { cn } from "@repo/ui/lib/utils";
+import { formatDateCompact } from "@repo/util";
 import {
 	IconArrowsDiagonal,
 	IconArrowsDiagonalMinimize2,
@@ -25,23 +29,19 @@ import {
 	IconTrash,
 	IconX,
 } from "@tabler/icons-react";
-import { useEffect, useMemo, useState } from "react";
 import { motion } from "motion/react";
+import type { NodeJSON } from "prosekit/core";
+import { useEffect, useMemo, useState } from "react";
+import Editor from "@/components/prosekit/editor";
+import processUploads from "@/components/prosekit/upload";
+import { TaskFieldToolbar } from "@/components/tasks/shared";
 import type { MentionContext } from "@/hooks/useMentionUsers";
 import {
 	createIssueTemplateAction,
 	deleteIssueTemplateAction,
 	editIssueTemplateAction,
 } from "@/lib/fetches/organization";
-import { TaskFieldToolbar } from "@/components/tasks/shared";
-import { Label } from "@repo/ui/components/label";
-import { Tile, TileDescription, TileHeader, TileIcon, TileTitle } from "@repo/ui/components/doras-ui/tile";
-import { formatDateCompact } from "@repo/util";
-import Editor from "@/components/prosekit/editor";
-import processUploads from "@/components/prosekit/upload";
-import type { NodeJSON } from "prosekit/core";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@repo/ui/components/tooltip";
-import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
+import { useToastAction } from "@/lib/util";
 
 // Dialog size configuration - mirrors CreateIssueDialog sizing
 const DIALOG_SIZES = {
@@ -338,24 +338,26 @@ export default function CreateIssueTemplate({
 		<>
 			{!isEditMode && disabled ? (
 				<Tooltip>
-					<TooltipTrigger asChild>
-						<div
-							className={cn(
-								"w-full text-left rounded-lg bg-card transition-colors p-0 border-0 opacity-50 cursor-not-allowed"
-							)}
-						>
-							<Tile variant={"transparent"} className="md:w-full">
-								<TileHeader className="w-full text-left">
-									<TileTitle className="flex items-center gap-2 w-full">
-										<TileIcon>
-											<IconLock />
-										</TileIcon>
-										Create new template
-									</TileTitle>
-								</TileHeader>
-							</Tile>
-						</div>
-					</TooltipTrigger>
+					<TooltipTrigger
+						render={
+							<div
+								className={cn(
+									"w-full text-left rounded-lg bg-card transition-colors p-0 border-0 opacity-50 cursor-not-allowed"
+								)}
+							>
+								<Tile variant={"transparent"} className="md:w-full">
+									<TileHeader className="w-full text-left">
+										<TileTitle className="flex items-center gap-2 w-full">
+											<TileIcon>
+												<IconLock />
+											</TileIcon>
+											Create new template
+										</TileTitle>
+									</TileHeader>
+								</Tile>
+							</div>
+						}
+					/>
 					<TooltipContent>{disabledMessage || "Plan limit reached"}</TooltipContent>
 				</Tooltip>
 			) : (
@@ -420,38 +422,40 @@ export default function CreateIssueTemplate({
 						}}
 					>
 						<AdaptiveDialogHeader className={cn(!isMobile && "pb-0!")}>
-							<AdaptiveDialogTitle asChild>
-								<div className="flex items-center gap-1 w-full">
-									<div className="flex items-center gap-2 text-sm font-medium">
-										<IconTemplate className="h-4 w-4 text-muted-foreground" />
-										{isEditMode ? "Edit template" : "Create template"}
-									</div>
-									<div className="flex items-center gap-1 ml-auto">
-										{!isMobile && (
+							<AdaptiveDialogTitle
+								render={
+									<div className="flex items-center gap-1 w-full">
+										<div className="flex items-center gap-2 text-sm font-medium">
+											<IconTemplate className="h-4 w-4 text-muted-foreground" />
+											{isEditMode ? "Edit template" : "Create template"}
+										</div>
+										<div className="flex items-center gap-1 ml-auto">
+											{!isMobile && (
+												<Button
+													variant={"ghost"}
+													size={"icon"}
+													className="h-7 w-7"
+													onClick={() => setExpand(!expand)}
+												>
+													{expand ? (
+														<IconArrowsDiagonalMinimize2 className="size-4" />
+													) : (
+														<IconArrowsDiagonal className="size-4" />
+													)}
+												</Button>
+											)}
 											<Button
 												variant={"ghost"}
 												size={"icon"}
 												className="h-7 w-7"
-												onClick={() => setExpand(!expand)}
+												onClick={() => setOpen(false)}
 											>
-												{expand ? (
-													<IconArrowsDiagonalMinimize2 className="size-4" />
-												) : (
-													<IconArrowsDiagonal className="size-4" />
-												)}
+												<IconX className="size-4" />
 											</Button>
-										)}
-										<Button
-											variant={"ghost"}
-											size={"icon"}
-											className="h-7 w-7"
-											onClick={() => setOpen(false)}
-										>
-											<IconX className="size-4" />
-										</Button>
+										</div>
 									</div>
-								</div>
-							</AdaptiveDialogTitle>
+								}
+							/>
 							<AdaptiveDialogDescription className="sr-only">
 								{isEditMode ? "Edit an existing issue template" : "Create a new issue template"}
 							</AdaptiveDialogDescription>
@@ -525,15 +529,17 @@ export default function CreateIssueTemplate({
 									{isEditMode ? (
 										<div className="flex items-center gap-1">
 											<Popover open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
-												<PopoverTrigger asChild>
-													<Button
-														variant="primary"
-														size="sm"
-														className="h-7 w-7 p-1 text-xs border-destructive/30 hover:border-destructive hover:bg-destructive/30"
-													>
-														<IconTrash className="h-4 w-4" />
-													</Button>
-												</PopoverTrigger>
+												<PopoverTrigger
+													render={
+														<Button
+															variant="primary"
+															size="sm"
+															className="h-7 w-7 p-1 text-xs border-destructive/30 hover:border-destructive hover:bg-destructive/30"
+														>
+															<IconTrash className="h-4 w-4" />
+														</Button>
+													}
+												/>
 												<PopoverContent className="p-4 w-60 flex flex-col gap-3 bg-card border border-muted shadow-md">
 													<p className="text-sm text-muted-foreground">
 														Are you sure you want to delete this template?

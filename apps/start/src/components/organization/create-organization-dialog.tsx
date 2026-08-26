@@ -21,7 +21,7 @@ import { useToastAction } from "@/lib/util";
 
 interface Props {
 	onSuccess?: (organization: { id: string; name: string; slug: string }) => void;
-	trigger?: React.ReactNode;
+	trigger?: React.ReactElement;
 }
 
 const edition = import.meta.env.VITE_SAYR_EDITION ?? "community";
@@ -118,14 +118,16 @@ export default function CreateOrganizationDialog({ onSuccess, trigger }: Props) 
 
 	return (
 		<AdaptiveDialog open={open} onOpenChange={setOpen}>
-			<AdaptiveDialogTrigger asChild>
-				{trigger || (
-					<Button variant="primary" className="w-fit text-xs p-1 h-auto rounded-lg" size="sm">
-						<IconPlus className="h-4 w-4" />
-						<span>New Organization</span>
-					</Button>
-				)}
-			</AdaptiveDialogTrigger>
+			<AdaptiveDialogTrigger
+				render={
+					trigger || (
+						<Button variant="primary" className="w-fit text-xs p-1 h-auto rounded-lg" size="sm">
+							<IconPlus className="h-4 w-4" />
+							<span>New Organization</span>
+						</Button>
+					)
+				}
+			/>
 			<AdaptiveDialogContent className="sm:max-w-md">
 				<AdaptiveDialogHeader>
 					<AdaptiveDialogTitle className="flex items-center gap-2">

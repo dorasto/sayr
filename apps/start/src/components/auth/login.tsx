@@ -1,17 +1,14 @@
-import { useEffect, useState } from "react";
-import { createServerFn } from "@tanstack/react-start";
 import {
 	authClient,
-	signInDoras,
 	signInDiscord,
+	signInDoras,
 	signInEmail,
 	signInEmailTwoFactor,
 	signInGithub,
 	signInSlack,
 } from "@repo/auth/client";
-
-import TasqIcon from "@repo/ui/components/brand-icon";
 import { Badge } from "@repo/ui/components/badge";
+import TasqIcon from "@repo/ui/components/brand-icon";
 import { Button } from "@repo/ui/components/button";
 import { Dialog, DialogContent, DialogTrigger } from "@repo/ui/components/dialog";
 import { headlessToast } from "@repo/ui/components/headless-toast";
@@ -19,7 +16,9 @@ import { Input } from "@repo/ui/components/input";
 import { Separator } from "@repo/ui/components/separator";
 import { cn } from "@repo/ui/lib/utils";
 import { IconBrandDiscordFilled, IconBrandGithubFilled, IconBrandSlack } from "@tabler/icons-react";
+import { createServerFn } from "@tanstack/react-start";
 import { ArrowRight } from "lucide-react";
+import { useEffect, useState } from "react";
 
 interface OAuthProviders {
 	github: boolean;
@@ -38,7 +37,7 @@ const getOAuthProviders = createServerFn({ method: "GET" }).handler(async (): Pr
 });
 
 interface Props {
-	trigger?: React.ReactNode;
+	trigger?: React.ReactElement;
 }
 
 export default function LoginDialog({ trigger }: Props) {
@@ -50,11 +49,8 @@ export default function LoginDialog({ trigger }: Props) {
 
 	return (
 		<Dialog>
-			<DialogTrigger asChild>{trigger || <Button variant="outline">Sign in</Button>}</DialogTrigger>
-			<DialogContent
-				onOpenAutoFocus={(e) => e.preventDefault()}
-				className="sm:max-w-sm p-0 gap-0 overflow-hidden rounded-2xl!"
-			>
+			<DialogTrigger render={trigger || <Button variant="outline">Sign in</Button>} />
+			<DialogContent className="sm:max-w-sm p-0 gap-0 overflow-hidden rounded-2xl!">
 				<LoginComponent isDialog providers={providers} />
 			</DialogContent>
 		</Dialog>
@@ -108,14 +104,14 @@ export function LoginComponent({ isDialog = false, providers }: { isDialog?: boo
 						title: "Email not verified",
 						description: "Please check your inbox and verify your email to continue.",
 					});
-					return
+					return;
 				}
 				if (e.error?.code === "INVALID_EMAIL_OR_PASSWORD") {
 					headlessToast.error({
 						title: "Invalid email or password",
 						description: "Please double‑check your login details and try again.",
 					});
-					return
+					return;
 				}
 				if (e.data) {
 					//@ts-expect-error
