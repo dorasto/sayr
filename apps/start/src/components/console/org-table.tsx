@@ -425,17 +425,19 @@ export default function OrgTable({ initialData }: OrgTableProps) {
 					</div>
 					{/* Plan filter */}
 					<Popover>
-						<PopoverTrigger asChild>
-							<Button variant="outline">
-								<FilterIcon className="-ms-1 opacity-60" size={16} aria-hidden="true" />
-								Plan
-								{planFilter && (
-									<span className="bg-background text-muted-foreground/70 -me-1 inline-flex h-5 max-h-full items-center rounded border px-1 font-[inherit] text-[0.625rem] font-medium">
-										1
-									</span>
-								)}
-							</Button>
-						</PopoverTrigger>
+						<PopoverTrigger
+							render={
+								<Button variant="outline">
+									<FilterIcon className="-ms-1 opacity-60" size={16} aria-hidden="true" />
+									Plan
+									{planFilter && (
+										<span className="bg-background text-muted-foreground/70 -me-1 inline-flex h-5 max-h-full items-center rounded border px-1 font-[inherit] text-[0.625rem] font-medium">
+											1
+										</span>
+									)}
+								</Button>
+							}
+						/>
 						<PopoverContent className="w-auto min-w-36 p-3" align="start">
 							<div className="space-y-3">
 								<div className="text-muted-foreground text-xs font-medium">Plan Filters</div>
@@ -461,12 +463,14 @@ export default function OrgTable({ initialData }: OrgTableProps) {
 					</Popover>
 					{/* Toggle column visibility */}
 					<DropdownMenu>
-						<DropdownMenuTrigger asChild>
-							<Button variant="outline">
-								<Columns3Icon className="-ms-1 opacity-60" size={16} aria-hidden="true" />
-								View
-							</Button>
-						</DropdownMenuTrigger>
+						<DropdownMenuTrigger
+							render={
+								<Button variant="outline">
+									<Columns3Icon className="-ms-1 opacity-60" size={16} aria-hidden="true" />
+									View
+								</Button>
+							}
+						/>
 						<DropdownMenuContent align="end">
 							<DropdownMenuLabel>Toggle columns</DropdownMenuLabel>
 							{table
@@ -667,20 +671,24 @@ export default function OrgTable({ initialData }: OrgTableProps) {
 function RowActions({ row }: { row: { original: ConsoleOrg } }) {
 	return (
 		<DropdownMenu>
-			<DropdownMenuTrigger asChild>
-				<div className="flex justify-end">
-					<Button size="icon" variant="ghost" className="shadow-none" aria-label="Organization actions">
-						<EllipsisIcon size={16} aria-hidden="true" />
-					</Button>
-				</div>
-			</DropdownMenuTrigger>
+			<DropdownMenuTrigger
+				render={
+					<div className="flex justify-end">
+						<Button size="icon" variant="ghost" className="shadow-none" aria-label="Organization actions">
+							<EllipsisIcon size={16} aria-hidden="true" />
+						</Button>
+					</div>
+				}
+			/>
 			<DropdownMenuContent align="end">
 				<DropdownMenuGroup>
-					<DropdownMenuItem asChild>
-						<Link to="/console/organizations/$orgId" params={{ orgId: row.original.id }}>
-							View Organization
-						</Link>
-					</DropdownMenuItem>
+					<DropdownMenuItem
+						render={
+							<Link to="/console/organizations/$orgId" params={{ orgId: row.original.id }}>
+								View Organization
+							</Link>
+						}
+					/>
 				</DropdownMenuGroup>
 			</DropdownMenuContent>
 		</DropdownMenu>

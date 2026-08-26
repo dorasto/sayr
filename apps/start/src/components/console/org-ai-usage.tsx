@@ -195,12 +195,14 @@ function AiControlsCard({
 					{/* Apply rate limit popover */}
 					{!ai.disabled && (
 						<Popover open={rateLimitOpen} onOpenChange={setRateLimitOpen}>
-							<PopoverTrigger asChild>
-								<Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" disabled={saving}>
-									<IconClock className="size-3.5" />
-									{rateLimitActive ? "Extend Rate Limit" : "Rate Limit"}
-								</Button>
-							</PopoverTrigger>
+							<PopoverTrigger
+								render={
+									<Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" disabled={saving}>
+										<IconClock className="size-3.5" />
+										{rateLimitActive ? "Extend Rate Limit" : "Rate Limit"}
+									</Button>
+								}
+							/>
 							<PopoverContent className="w-auto p-0" align="start">
 								<div className="p-3 border-b space-y-3">
 									<p className="text-xs font-medium">Set rate limit expiry</p>
@@ -482,14 +484,16 @@ export default function OrgAiUsage({ orgId, settings }: Props) {
 													<TableCell className="text-xs font-mono text-muted-foreground whitespace-nowrap">
 														<TooltipProvider>
 															<Tooltip>
-																<TooltipTrigger asChild>
-																	<span>
-																		{new Date(`${row.event_time} UTC`).toLocaleString(undefined, {
-																			dateStyle: "short",
-																			timeStyle: "short",
-																		})}
-																	</span>
-																</TooltipTrigger>
+																<TooltipTrigger
+																	render={
+																		<span>
+																			{new Date(`${row.event_time} UTC`).toLocaleString(undefined, {
+																				dateStyle: "short",
+																				timeStyle: "short",
+																			})}
+																		</span>
+																	}
+																/>
 																<TooltipContent>
 																	{new Date(`${row.event_time} UTC`).toLocaleString()}
 																</TooltipContent>

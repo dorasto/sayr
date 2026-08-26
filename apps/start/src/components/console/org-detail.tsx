@@ -120,21 +120,25 @@ function OrgHeader({ org }: { org: ConsoleOrgDetail["org"] }) {
 							<span className="font-mono">{org.shortId}</span>
 							<TooltipProvider>
 								<Tooltip>
-									<TooltipTrigger asChild>
-										<span className="flex items-center gap-1">
-											<IconCalendar className="size-3" />
-											Created {formatDateTimeFromNow(org.createdAt)}
-										</span>
-									</TooltipTrigger>
+									<TooltipTrigger
+										render={
+											<span className="flex items-center gap-1">
+												<IconCalendar className="size-3" />
+												Created {formatDateTimeFromNow(org.createdAt)}
+											</span>
+										}
+									/>
 									<TooltipContent>{formatDateTime(org.createdAt)}</TooltipContent>
 								</Tooltip>
 								<Tooltip>
-									<TooltipTrigger asChild>
-										<span className="flex items-center gap-1">
-											<IconClock className="size-3" />
-											Updated {formatDateTimeFromNow(org.updatedAt)}
-										</span>
-									</TooltipTrigger>
+									<TooltipTrigger
+										render={
+											<span className="flex items-center gap-1">
+												<IconClock className="size-3" />
+												Updated {formatDateTimeFromNow(org.updatedAt)}
+											</span>
+										}
+									/>
 									<TooltipContent>{formatDateTime(org.updatedAt)}</TooltipContent>
 								</Tooltip>
 							</TooltipProvider>

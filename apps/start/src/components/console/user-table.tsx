@@ -79,6 +79,7 @@ import {
 	UserIcon,
 } from "lucide-react";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { useLayoutData } from "@/components/admin/shell/context";
 import { useServerEventsSubscription } from "@/hooks/useServerEventsSubscription";
 import {
 	type ConsolePaginationMeta,
@@ -87,7 +88,6 @@ import {
 	consoleSetUserRoleAction,
 	getConsoleUsers,
 } from "@/lib/fetches/console";
-import { useLayoutData } from "@/components/admin/shell/context";
 
 // Props for the component
 type UserTableProps = {
@@ -102,7 +102,8 @@ const columns: ColumnDef<ConsoleUser>[] = [
 		id: "select",
 		header: ({ table }) => (
 			<Checkbox
-				checked={table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() && "indeterminate")}
+				checked={table.getIsAllPageRowsSelected()}
+				indeterminate={table.getIsSomePageRowsSelected() && !table.getIsAllPageRowsSelected()}
 				onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
 				aria-label="Select all"
 			/>
@@ -443,17 +444,19 @@ export default function UserTable({ initialData }: UserTableProps) {
 					</div>
 					{/* Status filter */}
 					<Popover>
-						<PopoverTrigger asChild>
-							<Button variant="outline">
-								<FilterIcon className="-ms-1 opacity-60" size={16} aria-hidden="true" />
-								Status
-								{statusFilter && (
-									<span className="bg-background text-muted-foreground/70 -me-1 inline-flex h-5 max-h-full items-center rounded border px-1 font-[inherit] text-[0.625rem] font-medium">
-										1
-									</span>
-								)}
-							</Button>
-						</PopoverTrigger>
+						<PopoverTrigger
+							render={
+								<Button variant="outline">
+									<FilterIcon className="-ms-1 opacity-60" size={16} aria-hidden="true" />
+									Status
+									{statusFilter && (
+										<span className="bg-background text-muted-foreground/70 -me-1 inline-flex h-5 max-h-full items-center rounded border px-1 font-[inherit] text-[0.625rem] font-medium">
+											1
+										</span>
+									)}
+								</Button>
+							}
+						/>
 						<PopoverContent className="w-auto min-w-36 p-3" align="start">
 							<div className="space-y-3">
 								<div className="text-muted-foreground text-xs font-medium">Status Filters</div>
@@ -482,17 +485,19 @@ export default function UserTable({ initialData }: UserTableProps) {
 					</Popover>
 					{/* Role filter */}
 					<Popover>
-						<PopoverTrigger asChild>
-							<Button variant="outline">
-								<FilterIcon className="-ms-1 opacity-60" size={16} aria-hidden="true" />
-								Role
-								{roleFilter && (
-									<span className="bg-background text-muted-foreground/70 -me-1 inline-flex h-5 max-h-full items-center rounded border px-1 font-[inherit] text-[0.625rem] font-medium">
-										1
-									</span>
-								)}
-							</Button>
-						</PopoverTrigger>
+						<PopoverTrigger
+							render={
+								<Button variant="outline">
+									<FilterIcon className="-ms-1 opacity-60" size={16} aria-hidden="true" />
+									Role
+									{roleFilter && (
+										<span className="bg-background text-muted-foreground/70 -me-1 inline-flex h-5 max-h-full items-center rounded border px-1 font-[inherit] text-[0.625rem] font-medium">
+											1
+										</span>
+									)}
+								</Button>
+							}
+						/>
 						<PopoverContent className="w-auto min-w-36 p-3" align="start">
 							<div className="space-y-3">
 								<div className="text-muted-foreground text-xs font-medium">Role Filters</div>
@@ -518,12 +523,14 @@ export default function UserTable({ initialData }: UserTableProps) {
 					</Popover>
 					{/* Toggle columns visibility */}
 					<DropdownMenu>
-						<DropdownMenuTrigger asChild>
-							<Button variant="outline">
-								<Columns3Icon className="-ms-1 opacity-60" size={16} aria-hidden="true" />
-								View
-							</Button>
-						</DropdownMenuTrigger>
+						<DropdownMenuTrigger
+							render={
+								<Button variant="outline">
+									<Columns3Icon className="-ms-1 opacity-60" size={16} aria-hidden="true" />
+									View
+								</Button>
+							}
+						/>
 						<DropdownMenuContent align="end">
 							<DropdownMenuLabel>Toggle columns</DropdownMenuLabel>
 							{table
@@ -549,15 +556,17 @@ export default function UserTable({ initialData }: UserTableProps) {
 					{/* Delete button */}
 					{table.getSelectedRowModel().rows.length > 0 && (
 						<AlertDialog>
-							<AlertDialogTrigger asChild>
-								<Button className="ml-auto" variant="outline">
-									<TrashIcon className="-ms-1 opacity-60" size={16} aria-hidden="true" />
-									Delete
-									<span className="bg-background text-muted-foreground/70 -me-1 inline-flex h-5 max-h-full items-center rounded border px-1 font-[inherit] text-[0.625rem] font-medium">
-										{table.getSelectedRowModel().rows.length}
-									</span>
-								</Button>
-							</AlertDialogTrigger>
+							<AlertDialogTrigger
+								render={
+									<Button className="ml-auto" variant="outline">
+										<TrashIcon className="-ms-1 opacity-60" size={16} aria-hidden="true" />
+										Delete
+										<span className="bg-background text-muted-foreground/70 -me-1 inline-flex h-5 max-h-full items-center rounded border px-1 font-[inherit] text-[0.625rem] font-medium">
+											{table.getSelectedRowModel().rows.length}
+										</span>
+									</Button>
+								}
+							/>
 							<AlertDialogContent>
 								<div className="flex flex-col gap-2 max-sm:items-center sm:flex-row sm:gap-4">
 									<div
@@ -806,21 +815,31 @@ function RowActions({ row }: { row: Row<ConsoleUser> }) {
 
 	return (
 		<DropdownMenu>
-			<DropdownMenuTrigger asChild>
-				<div className="flex justify-end">
-					<Button size="icon" variant="ghost" className="shadow-none" aria-label="Edit user" disabled={isLoading}>
-						<EllipsisIcon size={16} aria-hidden="true" />
-					</Button>
-				</div>
-			</DropdownMenuTrigger>
+			<DropdownMenuTrigger
+				render={
+					<div className="flex justify-end">
+						<Button
+							size="icon"
+							variant="ghost"
+							className="shadow-none"
+							aria-label="Edit user"
+							disabled={isLoading}
+						>
+							<EllipsisIcon size={16} aria-hidden="true" />
+						</Button>
+					</div>
+				}
+			/>
 			<DropdownMenuContent align="end">
 				<DropdownMenuGroup>
-					<DropdownMenuItem asChild>
-						<Link to="/console/users/$userId" params={{ userId: row.original.id }}>
-							<span>View Profile</span>
-							<DropdownMenuShortcut>⌘V</DropdownMenuShortcut>
-						</Link>
-					</DropdownMenuItem>
+					<DropdownMenuItem
+						render={
+							<Link to="/console/users/$userId" params={{ userId: row.original.id }}>
+								<span>View Profile</span>
+								<DropdownMenuShortcut>⌘V</DropdownMenuShortcut>
+							</Link>
+						}
+					/>
 					<DropdownMenuItem>
 						<span>Edit User</span>
 						<DropdownMenuShortcut>⌘E</DropdownMenuShortcut>

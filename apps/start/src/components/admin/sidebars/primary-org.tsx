@@ -26,9 +26,9 @@ import {
 import { Link, useLocation, useRouterState } from "@tanstack/react-router";
 import { useStore } from "@tanstack/react-store";
 import { useState } from "react";
-import { sidebarStore } from "@/lib/sidebar/sidebar-store";
-import { orgSettingsNavigation } from "@/lib/routemap";
 import { useLayoutData } from "@/components/admin/shell/context";
+import { orgSettingsNavigation } from "@/lib/routemap";
+import { sidebarStore } from "@/lib/sidebar/sidebar-store";
 
 // import UpdateOrgDialog from "@/app/components/admin/global/org/management/update/edit-org-dialog"; // TODO: Port this
 // import { useUpdateOrgDialog } from "@/app/hooks/use-update-org-dialog"; // TODO: Port this
@@ -96,28 +96,28 @@ export default function OrgSection({ organization, closeMobileSidebar }: OrgSect
 							className="w-full"
 							icon={
 								<CollapsibleTrigger
-									asChild
 									className="group/trigger data-[state=open]:group-data-[state=open]/trigger:rotate-180 cursor-pointer text-sidebar-foreground"
-								>
-									{/** biome-ignore lint/a11y/noStaticElementInteractions: required for dropdown */}
-									{/** biome-ignore lint/a11y/useKeyWithClickEvents: required for dropdown */}
-									<div
-										className="h-4 w-4 aspect-square relative flex items-center justify-center"
-										onClick={(e) => {
-											e.preventDefault();
-											e.stopPropagation();
-											setCollapsibleOpen((prev) => !prev);
-										}}
-									>
-										<IconChevronRight className="absolute inset-0 h-4 w-4 bg-transparent text-transparent hover:bg-border group-hover/coltrig:bg-sidebar-accent group-hover/coltrig:text-sidebar-foreground duration-200 group-data-[state=open]/trigger:rotate-90 transition-transform z-20 rounded-md" />
-										<Avatar className="h-4 w-4 rounded-md absolute inset-0 duration-200 transition-none select-none group-hover/coltrig:h-0 bg-accent">
-											<AvatarImage src={organization.logo || ""} alt={organization.name} className="" />
-											<AvatarFallback className="rounded-md uppercase text-xs">
-												<IconUsers className="h-4 w-4" />
-											</AvatarFallback>
-										</Avatar>
-									</div>
-								</CollapsibleTrigger>
+									render={
+										// biome-ignore lint/a11y/noStaticElementInteractions: required for dropdown
+										// biome-ignore lint/a11y/useKeyWithClickEvents: required for dropdown
+										<div
+											className="h-4 w-4 aspect-square relative flex items-center justify-center"
+											onClick={(e) => {
+												e.preventDefault();
+												e.stopPropagation();
+												setCollapsibleOpen((prev) => !prev);
+											}}
+										>
+											<IconChevronRight className="absolute inset-0 h-4 w-4 bg-transparent text-transparent hover:bg-border group-hover/coltrig:bg-sidebar-accent group-hover/coltrig:text-sidebar-foreground duration-200 group-data-[state=open]/trigger:rotate-90 transition-transform z-20 rounded-md" />
+											<Avatar className="h-4 w-4 rounded-md absolute inset-0 duration-200 transition-none select-none group-hover/coltrig:h-0 bg-accent">
+												<AvatarImage src={organization.logo || ""} alt={organization.name} className="" />
+												<AvatarFallback className="rounded-md uppercase text-xs">
+													<IconUsers className="h-4 w-4" />
+												</AvatarFallback>
+											</Avatar>
+										</div>
+									}
+								/>
 							}
 							// tooltip={item.title}
 						>
@@ -232,30 +232,32 @@ export default function OrgSection({ organization, closeMobileSidebar }: OrgSect
 	const renderDropdownView = () => <SidebarMenuItem>{renderDropdown({})}</SidebarMenuItem>;
 
 	interface DropdownProps {
-		customTrigger?: React.ReactNode;
+		customTrigger?: React.ReactElement;
 	}
 
 	const renderDropdown = (props: DropdownProps) => (
 		<DropdownMenu open={editOpen} onOpenChange={setEditOpen}>
-			<DropdownMenuTrigger asChild>
-				{props.customTrigger ? (
-					props.customTrigger
-				) : (
-					<SidebarMenuButton
-						tooltip={organization.name}
-						icon={
-							<Avatar className="h-4 w-4 rounded-md">
-								<AvatarImage src={organization.logo || ""} alt={organization.name} />
-								<AvatarFallback className="rounded-md uppercase text-xs">
-									<IconUsers className="h-4 w-4" />
-								</AvatarFallback>
-							</Avatar>
-						}
-					>
-						<span>{organization.name}</span>
-					</SidebarMenuButton>
-				)}
-			</DropdownMenuTrigger>
+			<DropdownMenuTrigger
+				render={
+					props.customTrigger ? (
+						props.customTrigger
+					) : (
+						<SidebarMenuButton
+							tooltip={organization.name}
+							icon={
+								<Avatar className="h-4 w-4 rounded-md">
+									<AvatarImage src={organization.logo || ""} alt={organization.name} />
+									<AvatarFallback className="rounded-md uppercase text-xs">
+										<IconUsers className="h-4 w-4" />
+									</AvatarFallback>
+								</Avatar>
+							}
+						>
+							<span>{organization.name}</span>
+						</SidebarMenuButton>
+					)
+				}
+			/>
 			<DropdownMenuContent
 				className={cn(
 					"w-60 rounded-lg p-0 z-[999]",
@@ -280,45 +282,52 @@ export default function OrgSection({ organization, closeMobileSidebar }: OrgSect
 				</DropdownMenuLabel>
 
 				<DropdownMenuGroup className="p-1">
-					<DropdownMenuItem asChild>
-						<Link to={`/$orgId/tasks`} params={{ orgId: organization.id }} className="flex items-center gap-2">
-							<IconProgress className="h-4 w-4" />
-							<span>Tasks</span>
-						</Link>
-					</DropdownMenuItem>
+					<DropdownMenuItem
+						render={
+							<Link to={`/$orgId/tasks`} params={{ orgId: organization.id }} className="flex items-center gap-2">
+								<IconProgress className="h-4 w-4" />
+								<span>Tasks</span>
+							</Link>
+						}
+					/>
 				</DropdownMenuGroup>
 				<DropdownMenuGroup className="p-1">
 					<Collapsible open={dropdownSettingsOpen} onOpenChange={setDropdownSettingsOpen}>
 						<div className="flex items-center">
-							<DropdownMenuItem asChild className="flex-1">
-								<Link
-									to={`/settings/org/$orgId`}
-									params={{ orgId: organization.id }}
-									className="flex items-center gap-2"
-								>
-									<IconSettings className="h-4 w-4" />
-									<span>Settings</span>
-								</Link>
-							</DropdownMenuItem>
-							<CollapsibleTrigger asChild>
-								<Button
-									variant="ghost"
-									size="sm"
-									className="h-8 aspect-square p-0"
-									onClick={(e) => {
-										e.preventDefault();
-										e.stopPropagation();
-										setDropdownSettingsOpen((prev) => !prev);
-									}}
-								>
-									<IconChevronRight
-										className={cn(
-											"h-3 w-3 transition-transform duration-200",
-											dropdownSettingsOpen && "rotate-90"
-										)}
-									/>
-								</Button>
-							</CollapsibleTrigger>
+							<DropdownMenuItem
+								className="flex-1"
+								render={
+									<Link
+										to={`/settings/org/$orgId`}
+										params={{ orgId: organization.id }}
+										className="flex items-center gap-2"
+									>
+										<IconSettings className="h-4 w-4" />
+										<span>Settings</span>
+									</Link>
+								}
+							/>
+							<CollapsibleTrigger
+								render={
+									<Button
+										variant="ghost"
+										size="sm"
+										className="h-8 aspect-square p-0"
+										onClick={(e) => {
+											e.preventDefault();
+											e.stopPropagation();
+											setDropdownSettingsOpen((prev) => !prev);
+										}}
+									>
+										<IconChevronRight
+											className={cn(
+												"h-3 w-3 transition-transform duration-200",
+												dropdownSettingsOpen && "rotate-90"
+											)}
+										/>
+									</Button>
+								}
+							/>
 						</div>
 						<CollapsibleContent className="max-h-56 overflow-auto">
 							{orgSubItems.map((item) => {
@@ -326,12 +335,16 @@ export default function OrgSection({ organization, closeMobileSidebar }: OrgSect
 								const isActive = item.matchType === "includes" ? pathname.includes(url) : pathname === url;
 								const Icon = isActive ? item.activeIcon : item.icon;
 								return (
-									<DropdownMenuItem key={item.slug} asChild className="ml-3">
-										<Link to={url} className={cn("flex items-center gap-2", isActive && "text-primary")}>
-											<Icon className="h-4 w-4" />
-											<span>{item.title}</span>
-										</Link>
-									</DropdownMenuItem>
+									<DropdownMenuItem
+										key={item.slug}
+										className="ml-3"
+										render={
+											<Link to={url} className={cn("flex items-center gap-2", isActive && "text-primary")}>
+												<Icon className="h-4 w-4" />
+												<span>{item.title}</span>
+											</Link>
+										}
+									/>
 								);
 							})}
 						</CollapsibleContent>
