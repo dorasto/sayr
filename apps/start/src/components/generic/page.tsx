@@ -194,7 +194,17 @@ export function PanelContent({
 
 	return (
 		<SidebarContext.Provider value={{ id: panelId, isCollapsed: false }}>
-			<div className={isPopover ? "flex min-h-0 flex-1 flex-col" : "flex h-full flex-col"}>
+			{/* min-h-0 is required here, not optional: without it this flex column
+			    defaults to min-height:auto and grows to fit its full content
+			    (header + content) instead of respecting the drawer's bounded
+			    height, which breaks the inner content div's own flex-1 +
+			    overflow-y-auto — it never gets a bounded height to scroll within,
+			    so it silently stops scrolling instead of just looking wrong.
+			    Confirmed live: this was masked as long as IndentDrawerContent's
+			    outer container was independently scrollable (the header-scrolls
+			    bug), and became a real "can't scroll at all" regression the
+			    moment that outer scroll was removed without this. */}
+			<div className={isPopover ? "flex min-h-0 flex-1 flex-col" : "flex h-full min-h-0 flex-col"}>
 				{hasTabs ? (
 					<>
 						{!hideHeader && (
