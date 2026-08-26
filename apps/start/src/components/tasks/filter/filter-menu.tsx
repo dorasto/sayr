@@ -291,7 +291,7 @@ export function FilterMenu(props: FilterMenuProps) {
 																			: `${formatSelectedLabels(values, options).slice(0, 2).join(", ")} +${formatSelectedLabels(values, options).length - 2}`}
 																	</span>
 																</div>
-																<IconChevronRight className="w-4 h-4 ml-auto shrink-0 transition-transform group-data-[state=open]/trigger:rotate-90" />
+																<IconChevronRight className="w-4 h-4 ml-auto shrink-0 transition-transform group-data-[panel-open]/trigger:rotate-90" />
 															</button>
 														}
 													/>

@@ -110,22 +110,24 @@ export function ContextSection({
 	return (
 		<Collapsible defaultOpen>
 			<div className={cn("flex items-center gap-1")}>
-				<CollapsibleTrigger asChild>
-					<button
-						type="button"
-						className={cn(
-							"flex items-center gap-1 group cursor-pointer",
-							leadingClassName,
-							leadingClassName && "p-1 rounded-lg"
-						)}
-					>
-						<IconChevronRight className="size-4 text-muted-foreground group-data-[state=open]:rotate-90 transition-all" />
-						{icon}
-						<Label variant={"description"} className={cn("text-xs select-none", labelClassName)}>
-							{label}
-						</Label>
-					</button>
-				</CollapsibleTrigger>
+				<CollapsibleTrigger
+					render={
+						<button
+							type="button"
+							className={cn(
+								"flex items-center gap-1 group cursor-pointer",
+								leadingClassName,
+								leadingClassName && "p-1 rounded-lg"
+							)}
+						>
+							<IconChevronRight className="size-4 text-muted-foreground group-data-[panel-open]:rotate-90 transition-all" />
+							{icon}
+							<Label variant={"description"} className={cn("text-xs select-none", labelClassName)}>
+								{label}
+							</Label>
+						</button>
+					}
+				/>
 				{trailing}
 			</div>
 			<CollapsibleContent className="py-1">

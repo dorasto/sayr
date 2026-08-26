@@ -96,7 +96,7 @@ export default function OrgSection({ organization, closeMobileSidebar }: OrgSect
 							className="w-full"
 							icon={
 								<CollapsibleTrigger
-									className="group/trigger data-[state=open]:group-data-[state=open]/trigger:rotate-180 cursor-pointer text-sidebar-foreground"
+									className="group/trigger data-[panel-open]:group-data-[panel-open]/trigger:rotate-180 cursor-pointer text-sidebar-foreground"
 									render={
 										// biome-ignore lint/a11y/noStaticElementInteractions: required for dropdown
 										// biome-ignore lint/a11y/useKeyWithClickEvents: required for dropdown
@@ -108,7 +108,7 @@ export default function OrgSection({ organization, closeMobileSidebar }: OrgSect
 												setCollapsibleOpen((prev) => !prev);
 											}}
 										>
-											<IconChevronRight className="absolute inset-0 h-4 w-4 bg-transparent text-transparent hover:bg-border group-hover/coltrig:bg-sidebar-accent group-hover/coltrig:text-sidebar-foreground duration-200 group-data-[state=open]/trigger:rotate-90 transition-transform z-20 rounded-md" />
+											<IconChevronRight className="absolute inset-0 h-4 w-4 bg-transparent text-transparent hover:bg-border group-hover/coltrig:bg-sidebar-accent group-hover/coltrig:text-sidebar-foreground duration-200 group-data-[panel-open]/trigger:rotate-90 transition-transform z-20 rounded-md" />
 											<Avatar className="h-4 w-4 rounded-md absolute inset-0 duration-200 transition-none select-none group-hover/coltrig:h-0 bg-accent">
 												<AvatarImage src={organization.logo || ""} alt={organization.name} className="" />
 												<AvatarFallback className="rounded-md uppercase text-xs">
