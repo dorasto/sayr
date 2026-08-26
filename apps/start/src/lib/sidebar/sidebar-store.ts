@@ -74,12 +74,20 @@ const STORAGE_KEY = "sidebar-state";
 // Module-level registry of imperative drawer handles, keyed by panel id —
 // populated by whatever is currently rendering a panel through the
 // IndentDrawer/float system so a close request from ANYWHERE (a panel's
-// own header X, a route's own trigger button) can route through Base
-// UI's animated close instead of just flipping the `open` field. A
-// controlled `open={false}` prop transition does NOT play the exit
-// animation on its own — only the imperative `actionsRef.current.close()`
-// does. Plain object, not store state — it's a live ref to a mounted
+// own header X, a route's own trigger button) can route through the same
+// handle. Plain object, not store state — it's a live ref to a mounted
 // component instance, not serializable data.
+//
+// NOTE, corrected: an earlier version of this comment claimed a controlled
+// `open={false}` prop transition does NOT play the exit animation and only
+// `actionsRef.current.close()` does. That's false — tested directly, both
+// race identically. The real hazard this registry exists for is a
+// DIFFERENT one: Base UI's Drawer won't play an exit transition for a
+// close requested before its own OPEN transition has settled (confirmed
+// live: closing within ~20-40ms of opening removes the popup instantly,
+// no matter which of the two mechanisms triggers it). Page's registered
+// handle is where that's actually guarded — see the settle refs and
+// `onOpenChangeComplete` wiring in apps/start/src/components/generic/page.tsx.
 interface DrawerHandle {
 	close: () => void;
 }
