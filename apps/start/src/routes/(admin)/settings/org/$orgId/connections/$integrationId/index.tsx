@@ -169,39 +169,33 @@ function RouteComponent() {
 					</Toggle>
 					{integrationDocs && (
 						<Sheet>
-							<SheetTrigger asChild>
-								<Button variant="primary" size="icon">
-									<IconQuestionMark />
-								</Button>
+							<SheetTrigger render={<Button variant="primary" size="icon" />}>
+								<IconQuestionMark />
 							</SheetTrigger>
 							<SheetContent className="flex flex-col p-0 overflow-hidden gap-0 md:max-w-1/3" showClose={false}>
 								<SheetHeader className="shrink-0 bg-card p-3 rounded-xl">
-									<SheetTitle asChild>
-										<div className="flex items-center gap-2">
-											<RenderIcon iconName={integrationIcon || "IconPlug"} size={24} raw />
-											<Label variant="heading">{integrationName}</Label>
-										</div>
+									<SheetTitle render={<div className="flex items-center gap-2" />}>
+										<RenderIcon iconName={integrationIcon || "IconPlug"} size={24} raw />
+										<Label variant="heading">{integrationName}</Label>
 									</SheetTitle>
-									<SheetDescription asChild>
-										<div className="flex flex-row gap-3 w-full justify-between">
-											<Label variant="subheading">
-												Created by{" "}
-												<a href={integrationAuthorURL} className="hover:underline text-primary">
-													{isSayr ? "Sayr" : pagesData?.data?.authorName}
-												</a>
-											</Label>
-											<Label variant="subheading">
-												<a
-													href={
-														`https://github.com/dorasto/sayr/tree/main/integrations/services/` +
-														integrationId
-													}
-													className="hover:underline text-primary"
-												>
-													Version v{integrationVersion}
-												</a>
-											</Label>
-										</div>
+									<SheetDescription render={<div className="flex flex-row gap-3 w-full justify-between" />}>
+										<Label variant="subheading">
+											Created by{" "}
+											<a href={integrationAuthorURL} className="hover:underline text-primary">
+												{isSayr ? "Sayr" : pagesData?.data?.authorName}
+											</a>
+										</Label>
+										<Label variant="subheading">
+											<a
+												href={
+													`https://github.com/dorasto/sayr/tree/main/integrations/services/` +
+													integrationId
+												}
+												className="hover:underline text-primary"
+											>
+												Version v{integrationVersion}
+											</a>
+										</Label>
 									</SheetDescription>
 								</SheetHeader>
 								<div className="flex-1 min-h-0 overflow-y-auto p-4">

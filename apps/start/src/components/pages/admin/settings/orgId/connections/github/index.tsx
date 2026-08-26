@@ -1,13 +1,3 @@
-import { useEffect, useState } from "react";
-import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
-import { Button } from "@repo/ui/components/button";
-import { Tile, TileAction, TileDescription, TileHeader, TileIcon, TileTitle } from "@repo/ui/components/doras-ui/tile";
-import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuItem,
-	DropdownMenuTrigger,
-} from "@repo/ui/components/dropdown-menu";
 import {
 	AdaptiveDialog,
 	AdaptiveDialogBody,
@@ -18,6 +8,15 @@ import {
 	AdaptiveDialogHeader,
 	AdaptiveDialogTitle,
 } from "@repo/ui/components/adaptive-dialog";
+import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
+import { Button } from "@repo/ui/components/button";
+import { Tile, TileAction, TileDescription, TileHeader, TileIcon, TileTitle } from "@repo/ui/components/doras-ui/tile";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuTrigger,
+} from "@repo/ui/components/dropdown-menu";
 import { Label } from "@repo/ui/components/label";
 import {
 	ComboBox,
@@ -33,17 +32,21 @@ import {
 } from "@repo/ui/components/tomui/combo-box-unified";
 import { formatDateTime } from "@repo/util";
 import {
+	IconBrandGithub,
+	IconCircleFilled,
 	IconDots,
 	IconExternalLink,
-	IconUsers,
-	IconCircleFilled,
 	IconPlus,
 	IconSettings,
-	IconBrandGithub,
+	IconUsers,
 	IconX,
 } from "@tabler/icons-react";
-import { useLayoutOrganizationSettings } from "@/contexts/ContextOrgSettings";
+import { useQueryClient } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
+import { useLayoutData } from "@/components/admin/shell/context";
 import RenderIcon from "@/components/generic/RenderIcon";
+import { useLayoutOrganizationSettings } from "@/contexts/ContextOrgSettings";
+import { useServerEventsSubscription } from "@/hooks/useServerEventsSubscription";
 import {
 	createGithubSyncConnectionAction,
 	deleteGithubSyncConnectionAction,
@@ -52,9 +55,6 @@ import {
 	updateGithubSyncConnectionAction,
 } from "@/lib/fetches/organization";
 import { useToastAction } from "@/lib/util";
-import { useQueryClient } from "@tanstack/react-query";
-import { useLayoutData } from "@/components/admin/shell/context";
-import { useServerEventsSubscription } from "@/hooks/useServerEventsSubscription";
 
 export type githubConnections = Array<{
 	installation: {
@@ -172,77 +172,83 @@ function InstallationsSection({
 
 				return (
 					<DropdownMenu key={connection.installation.id}>
-						<DropdownMenuTrigger asChild>
-							<Tile className="hover:bg-accent data-[state=open]:bg-accent w-full!" variant="transparent">
-								<TileHeader>
-									<TileIcon className="bg-transparent">
-										<Avatar className="h-10 w-10 rounded-md">
-											<AvatarImage src={info.account.avatar_url || ""} alt={info.account.login} />
-											<AvatarFallback>
-												<IconUsers className="h-6 w-6" />
-											</AvatarFallback>
-										</Avatar>
-									</TileIcon>
+						<DropdownMenuTrigger
+							render={
+								<Tile className="hover:bg-accent data-[state=open]:bg-accent w-full!" variant="transparent" />
+							}
+						>
+							<TileHeader>
+								<TileIcon className="bg-transparent">
+									<Avatar className="h-10 w-10 rounded-md">
+										<AvatarImage src={info.account.avatar_url || ""} alt={info.account.login} />
+										<AvatarFallback>
+											<IconUsers className="h-6 w-6" />
+										</AvatarFallback>
+									</Avatar>
+								</TileIcon>
 
-									<TileTitle>{info.account.login}</TileTitle>
+								<TileTitle>{info.account.login}</TileTitle>
 
-									<TileDescription>
-										Connected by {info.joinUserName} – {formatDateTime(new Date(info.createdAt))}
-									</TileDescription>
-								</TileHeader>
+								<TileDescription>
+									Connected by {info.joinUserName} – {formatDateTime(new Date(info.createdAt))}
+								</TileDescription>
+							</TileHeader>
 
-								<TileAction>
-									<Button variant="ghost" size="icon">
-										<IconDots />
-									</Button>
-								</TileAction>
-							</Tile>
+							<TileAction>
+								<Button variant="ghost" size="icon">
+									<IconDots />
+								</Button>
+							</TileAction>
 						</DropdownMenuTrigger>
 
 						<DropdownMenuContent align="end">
-							<DropdownMenuItem asChild>
-								<a
-									href={
-										info.target_type === "Organization"
-											? `https://github.com/organizations/${info.account.login}/settings/installations/${info.installationId}`
-											: `https://github.com/settings/installations/${info.installationId}`
-									}
-									target="_blank"
-									rel="noopener noreferrer"
-								>
-									<IconExternalLink /> Configure
-								</a>
+							<DropdownMenuItem
+								render={
+									<a
+										href={
+											info.target_type === "Organization"
+												? `https://github.com/organizations/${info.account.login}/settings/installations/${info.installationId}`
+												: `https://github.com/settings/installations/${info.installationId}`
+										}
+										target="_blank"
+										rel="noopener noreferrer"
+									/>
+								}
+							>
+								<IconExternalLink /> Configure
 							</DropdownMenuItem>
-							<DropdownMenuItem asChild>
-								<div
-									onClick={async () => {
-										const ok = window.confirm(
-											`Remove "${info.account.login}" from this organization?\n\nThis removes all linked repositories in Sayr.\n\nTo uninstall the GitHub App completely, use GitHub settings or click Configure.`
-										);
+							<DropdownMenuItem
+								render={
+									<div
+										onClick={async () => {
+											const ok = window.confirm(
+												`Remove "${info.account.login}" from this organization?\n\nThis removes all linked repositories in Sayr.\n\nTo uninstall the GitHub App completely, use GitHub settings or click Configure.`
+											);
 
-										if (!ok) return;
+											if (!ok) return;
 
-										await runWithToast(
-											"unlink-github-installation",
-											{
-												loading: { title: "Removing installation..." },
-												success: { title: "Installation removed" },
-												error: { title: "Failed to remove installation" },
-											},
-											() =>
-												unlinkGithubInstallationAction(
-													organizationId,
-													connection.installation.installationId
-												)
-										);
+											await runWithToast(
+												"unlink-github-installation",
+												{
+													loading: { title: "Removing installation..." },
+													success: { title: "Installation removed" },
+													error: { title: "Failed to remove installation" },
+												},
+												() =>
+													unlinkGithubInstallationAction(
+														organizationId,
+														connection.installation.installationId
+													)
+											);
 
-										queryClient.invalidateQueries({
-											queryKey: ["organization", organizationId, "connections", "github"],
-										});
-									}}
-								>
-									<IconX /> Remove
-								</div>
+											queryClient.invalidateQueries({
+												queryKey: ["organization", organizationId, "connections", "github"],
+											});
+										}}
+									/>
+								}
+							>
+								<IconX /> Remove
 							</DropdownMenuItem>
 						</DropdownMenuContent>
 					</DropdownMenu>
@@ -322,34 +328,30 @@ function TaskSyncSection({
 
 					return (
 						<DropdownMenu key={repo.id}>
-							<DropdownMenuTrigger asChild>
-								<Tile variant="transparent" className="hover:bg-accent w-full!">
-									<TileHeader>
-										<TileIcon className="bg-transparent">
-											<Avatar className="h-10 w-10 rounded-md">
-												<AvatarImage src={ownerAvatar || ""} alt={ownerLogin || repo.repoName} />
-												<AvatarFallback>
-													<IconBrandGithub className="h-6 w-6" />
-												</AvatarFallback>
-											</Avatar>
-										</TileIcon>
-										<TileTitle>{ownerLogin ? `${ownerLogin}/${repo.repoName}` : repo.repoName}</TileTitle>
+							<DropdownMenuTrigger render={<Tile variant="transparent" className="hover:bg-accent w-full!" />}>
+								<TileHeader>
+									<TileIcon className="bg-transparent">
+										<Avatar className="h-10 w-10 rounded-md">
+											<AvatarImage src={ownerAvatar || ""} alt={ownerLogin || repo.repoName} />
+											<AvatarFallback>
+												<IconBrandGithub className="h-6 w-6" />
+											</AvatarFallback>
+										</Avatar>
+									</TileIcon>
+									<TileTitle>{ownerLogin ? `${ownerLogin}/${repo.repoName}` : repo.repoName}</TileTitle>
 
-										<TileDescription>
-											{categories.find((e) => e.id === repo.categoryId)?.name || "All categories"} –{" "}
-											{formatDateTime(new Date(repo.createdAt))}
-										</TileDescription>
-									</TileHeader>
+									<TileDescription>
+										{categories.find((e) => e.id === repo.categoryId)?.name || "All categories"} –{" "}
+										{formatDateTime(new Date(repo.createdAt))}
+									</TileDescription>
+								</TileHeader>
 
-									<TileAction>
-										<Button variant="accent" size="sm" className="bg-transparent rounded-lg">
-											<IconCircleFilled
-												className={repo.enabled ? "text-success" : "text-muted-foreground"}
-											/>
-											{repo.enabled ? "Enabled" : "Disabled"}
-										</Button>
-									</TileAction>
-								</Tile>
+								<TileAction>
+									<Button variant="accent" size="sm" className="bg-transparent rounded-lg">
+										<IconCircleFilled className={repo.enabled ? "text-success" : "text-muted-foreground"} />
+										{repo.enabled ? "Enabled" : "Disabled"}
+									</Button>
+								</TileAction>
 							</DropdownMenuTrigger>
 
 							<DropdownMenuContent align="end">
@@ -428,10 +430,8 @@ function TaskSyncSection({
 					</AdaptiveDialogHeader>
 
 					<AdaptiveDialogFooter>
-						<AdaptiveDialogClose asChild>
-							<Button variant="outline" onClick={() => setDeleteId(null)}>
-								Cancel
-							</Button>
+						<AdaptiveDialogClose render={<Button variant="outline" onClick={() => setDeleteId(null)} />}>
+							Cancel
 						</AdaptiveDialogClose>
 
 						<Button
@@ -634,9 +634,7 @@ function SyncDialog({
 				</AdaptiveDialogBody>
 
 				<AdaptiveDialogFooter>
-					<AdaptiveDialogClose asChild>
-						<Button variant="outline">Cancel</Button>
-					</AdaptiveDialogClose>
+					<AdaptiveDialogClose render={<Button variant="outline" />}>Cancel</AdaptiveDialogClose>
 
 					<Button
 						disabled={

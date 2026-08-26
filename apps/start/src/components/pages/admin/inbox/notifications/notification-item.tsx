@@ -1,6 +1,14 @@
 import type { schema } from "@repo/database";
 import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
+import {
+	ContextMenu,
+	ContextMenuContent,
+	ContextMenuItem,
+	ContextMenuSeparator,
+	ContextMenuTrigger,
+} from "@repo/ui/context-menu";
 import { cn } from "@repo/ui/lib/utils";
+import { formatDateCompact, formatDateTimeFromNow, formatTaskKey } from "@repo/util";
 import {
 	IconArchive,
 	IconBell,
@@ -16,14 +24,6 @@ import {
 import { priorityConfig, statusConfig } from "@/components/tasks/shared/config";
 import { InlineLabel } from "@/components/tasks/shared/inlinelabel";
 import { notificationTypeConfig } from "./notification-type-config";
-import {
-	ContextMenu,
-	ContextMenuContent,
-	ContextMenuItem,
-	ContextMenuSeparator,
-	ContextMenuTrigger,
-} from "@repo/ui/context-menu";
-import { formatDateCompact, formatDateTimeFromNow, formatTaskKey } from "@repo/util";
 
 export interface NotificationItemProps {
 	notification: schema.NotificationWithDetails;
@@ -56,78 +56,81 @@ export function NotificationItem({
 
 	return (
 		<ContextMenu>
-			<ContextMenuTrigger asChild>
-				<button
-					type="button"
-					onClick={onClick}
-					className={cn(
-						"flex flex-col gap-1.5 p-3 text-left hover:bg-accent transition-colors rounded-lg text-muted-foreground group relative",
-						isSelected && "bg-secondary hover:bg-secondary text-foreground",
-						!isSelected && !notification.read && "bg-primary/5 hover:bg-primary/10 text-foreground"
-					)}
-				>
-					{/* Unread dot */}
-					{/*{!notification.read && (
+			<ContextMenuTrigger
+				render={
+					<button
+						type="button"
+						onClick={onClick}
+						className={cn(
+							"flex flex-col gap-1.5 p-3 text-left hover:bg-accent transition-colors rounded-lg text-muted-foreground group relative",
+							isSelected && "bg-secondary hover:bg-secondary text-foreground",
+							!isSelected && !notification.read && "bg-primary/5 hover:bg-primary/10 text-foreground"
+						)}
+					/>
+				}
+			>
+				{/* Unread dot */}
+				{/*{!notification.read && (
             <span className="absolute left-1 top-1/2 -translate-y-1/2 size-1.5 rounded-full bg-primary" />
           )}*/}
 
-					{/* Row 1: Org badge + shortId + type icon + status/priority + actor avatar */}
-					<div className="flex items-center flex-1 gap-1">
-						{notification.organization && (
-							<InlineLabel
-								className="shrink ps-6 truncate text-inherit"
-								icon={
-									<Avatar className="h-4 w-4">
-										<AvatarImage
-											src={notification.organization.logo || ""}
-											alt={notification.organization.name}
-										/>
-										<AvatarFallback className="rounded-md uppercase text-xs">
-											<IconUsers className="h-4 w-4" />
-										</AvatarFallback>
-									</Avatar>
-								}
-								text={notification.organization.name}
-							/>
+				{/* Row 1: Org badge + shortId + type icon + status/priority + actor avatar */}
+				<div className="flex items-center flex-1 gap-1">
+					{notification.organization && (
+						<InlineLabel
+							className="shrink ps-6 truncate text-inherit"
+							icon={
+								<Avatar className="h-4 w-4">
+									<AvatarImage
+										src={notification.organization.logo || ""}
+										alt={notification.organization.name}
+									/>
+									<AvatarFallback className="rounded-md uppercase text-xs">
+										<IconUsers className="h-4 w-4" />
+									</AvatarFallback>
+								</Avatar>
+							}
+							text={notification.organization.name}
+						/>
+					)}
+
+					{notification.task.shortId && (
+						<span className="text-xs text-muted-foreground">
+							{notification.organization
+								? formatTaskKey(notification.organization.shortId, notification.task.shortId)
+								: notification.task.shortId}
+						</span>
+					)}
+
+					{/* Meta icons pushed right */}
+					<div className="flex items-center gap-2 text-xs ml-auto shrink-0">
+						{config.icon("size-3.5 text-muted-foreground/60")}
+						{status && (
+							<div className="flex items-center gap-1">{status.icon(cn(status.className, "size-4"))}</div>
 						)}
-
-						{notification.task.shortId && (
-							<span className="text-xs text-muted-foreground">
-								{notification.organization
-									? formatTaskKey(notification.organization.shortId, notification.task.shortId)
-									: notification.task.shortId}
-							</span>
+						{priority && notification.task.priority === "urgent" && (
+							<div className="flex items-center gap-1">{priority.icon(cn(priority.className, "size-4"))}</div>
 						)}
-
-						{/* Meta icons pushed right */}
-						<div className="flex items-center gap-2 text-xs ml-auto shrink-0">
-							{config.icon("size-3.5 text-muted-foreground/60")}
-							{status && (
-								<div className="flex items-center gap-1">{status.icon(cn(status.className, "size-4"))}</div>
-							)}
-							{priority && notification.task.priority === "urgent" && (
-								<div className="flex items-center gap-1">{priority.icon(cn(priority.className, "size-4"))}</div>
-							)}
-							{!notification.read && <IconBellFilled className="size-4 text-primary" />}
-						</div>
+						{!notification.read && <IconBellFilled className="size-4 text-primary" />}
 					</div>
+				</div>
 
-					{/* Row 2: Action text + task title */}
-					<div className="flex items-center gap-1 justify-between">
-						<p className="text-xs font-medium line-clamp-1">
-							<span className="text-inherit font-normal">
-								{actorName} {config.label}
-							</span>
-						</p>
-						<p className="text-xs font-medium line-clamp-1">
-							<span className="text-inherit font-normal ml-auto">
-								{formatDateTimeFromNow(notification.createdAt as Date)}
-							</span>
-						</p>
-					</div>
+				{/* Row 2: Action text + task title */}
+				<div className="flex items-center gap-1 justify-between">
+					<p className="text-xs font-medium line-clamp-1">
+						<span className="text-inherit font-normal">
+							{actorName} {config.label}
+						</span>
+					</p>
+					<p className="text-xs font-medium line-clamp-1">
+						<span className="text-inherit font-normal ml-auto">
+							{formatDateTimeFromNow(notification.createdAt as Date)}
+						</span>
+					</p>
+				</div>
 
-					{/* Action buttons (visible on hover) */}
-					{/*<div className="absolute right-2 top-1/2 -translate-y-1/2 hidden group-hover:flex items-center gap-0.5 bg-accent rounded-md p-0.5">
+				{/* Action buttons (visible on hover) */}
+				{/*<div className="absolute right-2 top-1/2 -translate-y-1/2 hidden group-hover:flex items-center gap-0.5 bg-accent rounded-md p-0.5">
             {!notification.read && (
               <button
                 type="button"
@@ -153,7 +156,6 @@ export function NotificationItem({
               <IconArchive className="size-3.5" />
             </button>
           </div>*/}
-				</button>
 			</ContextMenuTrigger>
 			<ContextMenuContent>
 				{onOpenInNewTab && (

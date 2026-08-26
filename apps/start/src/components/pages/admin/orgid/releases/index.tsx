@@ -130,16 +130,18 @@ export default function OrganizationReleasesPage() {
 						</Button>
 					) : (
 						<Tooltip>
-							<TooltipTrigger asChild>
-								<Button
-									variant="primary"
-									size="sm"
-									className="gap-2 opacity-50 cursor-not-allowed h-8!"
-									disabled
-								>
-									<IconLock className="size-4" />
-									New Release
-								</Button>
+							<TooltipTrigger
+								render={
+									<Button
+										variant="primary"
+										size="sm"
+										className="gap-2 opacity-50 cursor-not-allowed h-8!"
+										disabled
+									/>
+								}
+							>
+								<IconLock className="size-4" />
+								New Release
 							</TooltipTrigger>
 							<TooltipContent>{releaseLimitMessage}</TooltipContent>
 						</Tooltip>
@@ -214,11 +216,18 @@ export default function OrganizationReleasesPage() {
 							</Button>
 						) : (
 							<Tooltip>
-								<TooltipTrigger asChild>
-									<Button variant="default" size="sm" className="gap-2 opacity-50 cursor-not-allowed" disabled>
-										<IconLock className="size-4" />
-										Create Your First Release
-									</Button>
+								<TooltipTrigger
+									render={
+										<Button
+											variant="default"
+											size="sm"
+											className="gap-2 opacity-50 cursor-not-allowed"
+											disabled
+										/>
+									}
+								>
+									<IconLock className="size-4" />
+									Create Your First Release
 								</TooltipTrigger>
 								<TooltipContent>{releaseLimitMessage}</TooltipContent>
 							</Tooltip>

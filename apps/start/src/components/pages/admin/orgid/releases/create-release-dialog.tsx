@@ -1,10 +1,3 @@
-import { createReleaseAction, updateReleaseAction } from "@/lib/fetches/release";
-import { updateTaskAction } from "@/lib/fetches/task";
-import { useToastAction } from "@/lib/util";
-import { useLayoutOrganization } from "@/contexts/ContextOrg";
-import { Button } from "@repo/ui/components/button";
-import { generateSlug } from "@repo/util";
-import type { OrgTaskSearchResult } from "@/lib/fetches/searchTasks";
 import {
 	AdaptiveDialog,
 	AdaptiveDialogContent,
@@ -13,22 +6,29 @@ import {
 	AdaptiveDialogHeader,
 	AdaptiveDialogTitle,
 } from "@repo/ui/components/adaptive-dialog";
+import { Button } from "@repo/ui/components/button";
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@repo/ui/components/input-group";
 import { Popover, PopoverContent, PopoverTrigger } from "@repo/ui/components/popover";
 import ColorPickerCustom from "@repo/ui/components/tomui/color-picker-custom";
+import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
-import { useState } from "react";
+import { cn } from "@repo/ui/lib/utils";
+import { generateSlug } from "@repo/util";
+import { IconArrowsDiagonal, IconArrowsDiagonalMinimize2, IconX } from "@tabler/icons-react";
 import { motion } from "motion/react";
-import RenderIcon from "@/components/generic/RenderIcon";
+import type { NodeJSON } from "prosekit/core";
+import { useState } from "react";
 import IconPicker from "@/components/generic/icon-picker";
+import RenderIcon from "@/components/generic/RenderIcon";
 import Editor from "@/components/prosekit/editor";
 import processUploads from "@/components/prosekit/upload";
-import type { NodeJSON } from "prosekit/core";
-import { IconArrowsDiagonal, IconArrowsDiagonalMinimize2, IconX } from "@tabler/icons-react";
-import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
-import { cn } from "@repo/ui/lib/utils";
 import type { ReleaseStatusKey } from "@/components/releases/config";
 import { ReleaseFieldToolbar } from "@/components/releases/release-field-toolbar";
+import { useLayoutOrganization } from "@/contexts/ContextOrg";
+import { createReleaseAction, updateReleaseAction } from "@/lib/fetches/release";
+import type { OrgTaskSearchResult } from "@/lib/fetches/searchTasks";
+import { updateTaskAction } from "@/lib/fetches/task";
+import { useToastAction } from "@/lib/util";
 
 interface CreateReleaseDialogProps {
 	open: boolean;
@@ -218,98 +218,91 @@ export function CreateReleaseDialog({
 					}}
 				>
 					<AdaptiveDialogHeader className={cn(!isMobile && "pb-0!")}>
-						<AdaptiveDialogTitle asChild>
-							<div className="flex items-center gap-1 w-full">
-								<div className="w-full flex items-center gap-1">
-									<InputGroup className="bg-transparent border-transparent w-4/5">
-										<InputGroupAddon align="inline-start" className="h-full">
-											<InputGroupButton asChild>
-												<Popover modal>
-													<PopoverTrigger asChild>
-														<Button
-															variant="accent"
-															className="h-auto w-auto p-0 border-transparent rounded-lg overflow-hidden"
-														>
-															<RenderIcon
-																iconName={icon}
-																color={color.hsla}
-																button
-																className="size-8 [&_svg]:size-5"
-															/>
-														</Button>
-													</PopoverTrigger>
-													<PopoverContent className="p-0 w-64 md:w-96">
-														<div className="flex flex-col gap-3">
-															<div className="p-3">
-																<ColorPickerCustom onChange={setColor} value={color.hex} height={100} />
-															</div>
-															<div className="px-3">
-																<IconPicker
-																	value={icon}
-																	update={(value: string): void => {
-																		setIcon(value);
-																	}}
-																/>
-															</div>
-														</div>
-													</PopoverContent>
-												</Popover>
-											</InputGroupButton>
-										</InputGroupAddon>
-										<InputGroupInput
-											placeholder="Release name"
-											value={name}
-											onChange={(e) => handleNameChange(e.target.value)}
-										/>
-									</InputGroup>
-									<InputGroup className="bg-transparent border-transparent w-1/5">
-										<InputGroupInput
-											id="release-slug"
-											placeholder="slug"
-											value={slug}
-											// Intentionally NOT generateSlug() here: this is a directly-typed field, and
-											// generateSlug() strips trailing hyphens and collapses "." / "_" into "-", which
-											// would fight the user mid-keystroke (typing "-" is immediately stripped) and
-											// mangle version-style slugs like "v1.0.0". Matches create-release.tsx's
-											// manual slug field for the same reason.
-											onChange={(e) =>
-												setSlug(
-													e.target.value
-														.toLowerCase()
-														.replace(/[^a-z0-9-_.]/g, "-")
-														.replace(/--+/g, "-")
-												)
-											}
-										/>
-									</InputGroup>
-								</div>
-								<div className="flex items-center gap-1 ml-auto">
-									{!isMobile && (
-										<Button
-											variant="ghost"
-											size="icon"
-											className="h-7 w-7"
-											onClick={() => setExpand(!expand)}
-										>
-											{expand ? (
-												<IconArrowsDiagonalMinimize2 className="size-4" />
-											) : (
-												<IconArrowsDiagonal className="size-4" />
-											)}
-										</Button>
-									)}
-									<Button
-										variant="ghost"
-										size="icon"
-										className="h-7 w-7"
-										onClick={() => {
-											resetForm();
-											onOpenChange(false);
-										}}
-									>
-										<IconX className="size-4" />
+						<AdaptiveDialogTitle render={<div className="flex items-center gap-1 w-full" />}>
+							<div className="w-full flex items-center gap-1">
+								<InputGroup className="bg-transparent border-transparent w-4/5">
+									<InputGroupAddon align="inline-start" className="h-full">
+										<InputGroupButton render={<Popover modal />}>
+											<PopoverTrigger
+												render={
+													<Button
+														variant="accent"
+														className="h-auto w-auto p-0 border-transparent rounded-lg overflow-hidden"
+													/>
+												}
+											>
+												<RenderIcon
+													iconName={icon}
+													color={color.hsla}
+													button
+													className="size-8 [&_svg]:size-5"
+												/>
+											</PopoverTrigger>
+											<PopoverContent className="p-0 w-64 md:w-96">
+												<div className="flex flex-col gap-3">
+													<div className="p-3">
+														<ColorPickerCustom onChange={setColor} value={color.hex} height={100} />
+													</div>
+													<div className="px-3">
+														<IconPicker
+															value={icon}
+															update={(value: string): void => {
+																setIcon(value);
+															}}
+														/>
+													</div>
+												</div>
+											</PopoverContent>
+										</InputGroupButton>
+									</InputGroupAddon>
+									<InputGroupInput
+										placeholder="Release name"
+										value={name}
+										onChange={(e) => handleNameChange(e.target.value)}
+									/>
+								</InputGroup>
+								<InputGroup className="bg-transparent border-transparent w-1/5">
+									<InputGroupInput
+										id="release-slug"
+										placeholder="slug"
+										value={slug}
+										// Intentionally NOT generateSlug() here: this is a directly-typed field, and
+										// generateSlug() strips trailing hyphens and collapses "." / "_" into "-", which
+										// would fight the user mid-keystroke (typing "-" is immediately stripped) and
+										// mangle version-style slugs like "v1.0.0". Matches create-release.tsx's
+										// manual slug field for the same reason.
+										onChange={(e) =>
+											setSlug(
+												e.target.value
+													.toLowerCase()
+													.replace(/[^a-z0-9-_.]/g, "-")
+													.replace(/--+/g, "-")
+											)
+										}
+									/>
+								</InputGroup>
+							</div>
+							<div className="flex items-center gap-1 ml-auto">
+								{!isMobile && (
+									<Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setExpand(!expand)}>
+										{expand ? (
+											<IconArrowsDiagonalMinimize2 className="size-4" />
+										) : (
+											<IconArrowsDiagonal className="size-4" />
+										)}
 									</Button>
-								</div>
+								)}
+								<Button
+									variant="ghost"
+									size="icon"
+									className="h-7 w-7"
+									onClick={() => {
+										resetForm();
+										onOpenChange(false);
+									}}
+								>
+									<IconX className="size-4" />
+								</Button>
 							</div>
 						</AdaptiveDialogTitle>
 						<AdaptiveDialogDescription className="sr-only">Create a new release</AdaptiveDialogDescription>
