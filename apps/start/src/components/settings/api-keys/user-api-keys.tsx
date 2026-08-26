@@ -6,7 +6,7 @@ import { Separator } from "@repo/ui/components/separator";
 import { Spinner } from "@repo/ui/components/spinner";
 import { IconAlertTriangle, IconKey, IconPlus } from "@tabler/icons-react";
 import { useApiKeys } from "@/components/settings/api-keys/context";
-import { scopeLabel, StatusBadge } from "@/components/settings/api-keys/shared";
+import { StatusBadge, scopeLabel } from "@/components/settings/api-keys/shared";
 import type { ApiKeyListItem } from "@/lib/fetches/apiKeys";
 
 /** How many scope badges a row shows before collapsing the rest into a counter. */

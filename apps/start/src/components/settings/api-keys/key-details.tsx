@@ -96,9 +96,7 @@ export function KeyDetails({ apiKey }: { apiKey: ApiKeyListItem }) {
 	return (
 		<div className="flex flex-col gap-4">
 			<div className="flex items-center justify-between gap-2">
-				<span className="font-mono text-xs text-muted-foreground">
-					{apiKey.start ? `${apiKey.start}…` : "—"}
-				</span>
+				<span className="font-mono text-xs text-muted-foreground">{apiKey.start ? `${apiKey.start}…` : "—"}</span>
 				<StatusBadge apiKey={apiKey} />
 			</div>
 

@@ -1,5 +1,7 @@
+import { IconKey } from "@tabler/icons-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createContext, type ReactNode, useCallback, useContext, useMemo, useState } from "react";
+import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { usePanel } from "@/components/generic/use-page";
 import { ApiKeyPanel } from "@/components/settings/api-keys/api-key-panel";
 import {
 	type ApiKeyListItem,
@@ -12,6 +14,20 @@ import { sidebarActions, sidebarStore } from "@/lib/sidebar/sidebar-store";
 import { useToastAction } from "@/lib/util";
 
 export const API_KEY_PANEL_ID = "settings-api-key-panel";
+
+/**
+ * `Page` only renders the native h-11 header bar (title + the built-in close
+ * button) when a panel's header is a `PanelHeaderConfig` object — a raw
+ * ReactNode header is treated as a headerless fallback and gets no close
+ * button at all. So the panel title is driven imperatively through
+ * `sidebarActions.setPanelHeader` from these click handlers, the same way the
+ * skill's toggle-button pattern drives `setOpen` — both are safe to call
+ * unguarded because they only ever fire from a click, which can't happen
+ * before Page's mount-time panel registration has already run.
+ */
+function panelHeader(title: string): { title: string; icon: ReactNode } {
+	return { title, icon: <IconKey className="h-4 w-4 shrink-0 text-muted-foreground" /> };
+}
 
 /**
  * What the side panel is currently showing. `details` stores the key id rather
@@ -58,6 +74,17 @@ export function ApiKeysProvider({ children }: { children: ReactNode }) {
 	const [panelView, setPanelView] = useState<PanelView>(null);
 	const [revealed, setRevealed] = useState<ApiKeysContextValue["revealed"]>(null);
 
+	// The panel's real open state — not just the paths we close it through.
+	// `Page`'s native header X calls sidebarActions.setOpen(id, false) directly,
+	// bypassing closePanel()/the toggle-close branch below, so panelView (and the
+	// row highlight it drives in the list) never reset on its own. Following the
+	// store's actual isOpen, rather than only resetting panelView on the calls we
+	// make ourselves, keeps the highlight correct no matter how the panel closed.
+	const panel = usePanel(API_KEY_PANEL_ID);
+	useEffect(() => {
+		if (!panel.isOpen) setPanelView(null);
+	}, [panel.isOpen]);
+
 	const keysQuery = useQuery<ApiKeyListItem[]>({
 		queryKey: ["apiKeys"],
 		queryFn: listApiKeys,
@@ -68,6 +95,7 @@ export function ApiKeysProvider({ children }: { children: ReactNode }) {
 	const openCreate = useCallback(() => {
 		setPanelView({ kind: "create" });
 		sidebarActions.setPanelContent(API_KEY_PANEL_ID, <ApiKeyPanel />);
+		sidebarActions.setPanelHeader(API_KEY_PANEL_ID, panelHeader("Create API key"));
 		sidebarActions.setOpen(API_KEY_PANEL_ID, true);
 	}, []);
 
@@ -83,11 +111,13 @@ export function ApiKeysProvider({ children }: { children: ReactNode }) {
 				return;
 			}
 
+			const name = apiKeys.find((key) => key.id === keyId)?.name ?? "Untitled key";
 			setPanelView({ kind: "details", keyId });
 			sidebarActions.setPanelContent(API_KEY_PANEL_ID, <ApiKeyPanel />);
+			sidebarActions.setPanelHeader(API_KEY_PANEL_ID, panelHeader(name));
 			sidebarActions.setOpen(API_KEY_PANEL_ID, true);
 		},
-		[panelView]
+		[panelView, apiKeys]
 	);
 
 	const closePanel = useCallback(() => {
@@ -118,6 +148,7 @@ export function ApiKeysProvider({ children }: { children: ReactNode }) {
 			await queryClient.invalidateQueries({ queryKey: ["apiKeys"] });
 			// Regenerating replaces the row, so the old id no longer resolves.
 			setPanelView({ kind: "details", keyId: result.data.id });
+			sidebarActions.setPanelHeader(API_KEY_PANEL_ID, panelHeader(result.data.name ?? "Untitled key"));
 			setRevealed({ apiKey: result.data, mode: "regenerated" });
 		},
 	});
