@@ -14,6 +14,12 @@ import type { PromptConfig } from "../types.js";
  * response-format hint listing only the enabled kinds for each call, so the
  * system prompt below stays generic across every combination.
  *
+ * Status suggestions (`recommend-status`) are a separate, deterministic kind
+ * — moving backlog/todo to in-progress or todo/in-progress to done based on
+ * linked GitHub activity (a branch/PR link, a commit, a mention, a merged
+ * PR). That's computed directly from `taskTimeline`/`githubPullRequest` in
+ * the route, not asked of this model — see `computeStatusSuggestion` there.
+ *
  * Deliberately always uses a small, cheap model (see the route's hardcoded
  * `RECOMMENDATIONS_MODEL`) — this never generates or writes prose, just
  * picks from closed candidate lists, so it doesn't need a larger model's

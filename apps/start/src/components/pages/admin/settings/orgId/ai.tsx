@@ -76,6 +76,12 @@ const RECOMMENDATION_KINDS: { id: string; label: string; description: string }[]
 		label: "Relations",
 		description: "Flag likely duplicate, blocking, or related tasks from this organization's recent tasks.",
 	},
+	{
+		id: "recommend-status",
+		label: "Status",
+		description:
+			"Suggest moving a task to In Progress or Done based on linked GitHub activity — a linked branch, commit, mention, or merged PR.",
+	},
 ];
 
 export default function AiSettingsPage({ locked }: { locked?: boolean }) {
