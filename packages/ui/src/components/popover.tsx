@@ -29,7 +29,14 @@ const PopoverContent = React.forwardRef<
 			"align" | "alignOffset" | "side" | "sideOffset" | "anchor"
 		>
 >(({ className, align = "center", alignOffset, side, sideOffset = 4, anchor, ...props }, ref) => (
-	<PopoverPrimitive.Portal>
+	// Base UI nests a Popover's portal inside the nearest ancestor Dialog's own
+	// portal by default (for focus-trap continuity) instead of `document.body`.
+	// A Dialog's Popup centers itself with a `translate` transform, which makes
+	// that ancestor a containing block for nested `position: fixed` descendants
+	// — trapping the Popover's stacking so it renders behind normal dialog
+	// content no matter its z-index. Force `document.body` (Base UI's own
+	// documented default) to escape that trap.
+	<PopoverPrimitive.Portal container={typeof document !== "undefined" ? document.body : undefined}>
 		<PopoverPrimitive.Positioner
 			align={align}
 			alignOffset={alignOffset}

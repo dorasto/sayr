@@ -752,9 +752,11 @@ export function UnifiedTaskItem({
 
 	const contextMenuContent = (
 		<ContextMenuContent className="w-56">
-			<ContextMenuLabel className="truncate">
-				{taskKey} - {task.title}
-			</ContextMenuLabel>
+			<ContextMenuGroup>
+				<ContextMenuLabel className="truncate">
+					{taskKey} - {task.title}
+				</ContextMenuLabel>
+			</ContextMenuGroup>
 			<ContextMenuSeparator />
 
 			{/* Open in */}
@@ -787,7 +789,9 @@ export function UnifiedTaskItem({
 						{priority?.icon(`h-3.5 w-3.5 ${priority?.className || ""}`)} Priority
 					</ContextMenuSubTrigger>
 					<ContextMenuSubContent className="w-44">
-						<ContextMenuLabel>Set Priority</ContextMenuLabel>
+						<ContextMenuGroup>
+							<ContextMenuLabel>Set Priority</ContextMenuLabel>
+						</ContextMenuGroup>
 						<ContextMenuSeparator />
 						<ContextMenuRadioGroup
 							value={task.priority || "none"}
@@ -817,7 +821,9 @@ export function UnifiedTaskItem({
 						{status?.icon(`h-3.5 w-3.5 ${status?.className || ""}`)} Status
 					</ContextMenuSubTrigger>
 					<ContextMenuSubContent className="w-44">
-						<ContextMenuLabel>Set Status</ContextMenuLabel>
+						<ContextMenuGroup>
+							<ContextMenuLabel>Set Status</ContextMenuLabel>
+						</ContextMenuGroup>
 						<ContextMenuSeparator />
 						<ContextMenuRadioGroup
 							value={task.status || "backlog"}
@@ -1233,9 +1239,10 @@ export function UnifiedTaskItem({
 	if (compact && viewMode === "list") {
 		return (
 			<ContextMenu>
-				<ContextMenuTrigger className="relative select-none group/context data-[state=open]:bg-accent" asChild>
-					{renderCompactListContent()}
-				</ContextMenuTrigger>
+				<ContextMenuTrigger
+					className="relative select-none group/context data-[state=open]:bg-accent"
+					render={renderCompactListContent()}
+				/>
 				{contextMenuContent}
 			</ContextMenu>
 		);
@@ -1250,7 +1257,7 @@ export function UnifiedTaskItem({
 				className="bg-accent p-2 rounded-lg border-transparent shadow-sm hover:bg-secondary transition-colors cursor-pointer flex flex-col gap-2"
 			>
 				<ContextMenu>
-					<ContextMenuTrigger asChild>{renderKanbanContent()}</ContextMenuTrigger>
+					<ContextMenuTrigger render={renderKanbanContent()} />
 					{contextMenuContent}
 				</ContextMenu>
 			</KanbanCard>
@@ -1259,9 +1266,10 @@ export function UnifiedTaskItem({
 
 	return (
 		<ContextMenu>
-			<ContextMenuTrigger className="relative select-none group/context data-[state=open]:bg-accent" asChild>
-				{renderListContent()}
-			</ContextMenuTrigger>
+			<ContextMenuTrigger
+				className="relative select-none group/context data-[state=open]:bg-accent"
+				render={renderListContent()}
+			/>
 			{contextMenuContent}
 		</ContextMenu>
 	);
