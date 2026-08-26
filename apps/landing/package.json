@@ -1,0 +1,53 @@
+{
+	"name": "landing",
+	"private": false,
+	"type": "module",
+	"scripts": {
+		"dev": "vite dev --port 3002",
+		"internal:dev": "op run --env-file .env -- pnpm run dev",
+		"build": "vite build",
+		"internal:build": "op run --env-file .env -- pnpm run build",
+		"serve": "vite preview",
+		"internal:serve": "op run --env-file .env -- pnpm run serve",
+		"start": "node .output/server/index.mjs",
+		"internal:start": "op run --env-file .env -- pnpm run start",
+		"zerops:build": "vite build",
+		"zerops:start": "node .output/server/index.mjs",
+		"lint": "biome check .",
+		"lint:fix": "biome check . --write",
+		"format": "biome format --write ."
+	},
+	"dependencies": {
+		"@repo/edition": "workspace:*",
+		"@repo/ui": "workspace:*",
+		"@repo/util": "workspace:*",
+		"@tabler/icons-react": "^3.34.1",
+		"@tailwindcss/vite": "^4.2.4",
+		"@tanstack/react-query": "^5.90.20",
+		"@tanstack/react-router": "^1.157.17",
+		"@tanstack/react-router-ssr-query": "^1.157.17",
+		"@tanstack/react-start": "^1.157.17",
+		"@tanstack/router-plugin": "^1.157.17",
+		"class-variance-authority": "^0.7.1",
+		"clsx": "^2.1.1",
+		"nitro": "latest",
+		"react": "^19.2.3",
+		"react-dom": "^19.2.3",
+		"tailwind-merge": "^3.4.0",
+		"tailwindcss": "^4.1.17",
+		"tw-animate-css": "^1.4.0",
+		"vite-tsconfig-paths": "^5.1.4"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^2.1.1",
+		"@repo/typescript-config": "workspace:*",
+		"@tanstack/devtools-vite": "^0.6.0",
+		"@types/node": "^22.19.1",
+		"@types/react": "^19.2.7",
+		"@types/react-dom": "^19.2.3",
+		"@vitejs/plugin-react": "^6.0.1",
+		"typescript": "^5.9.3",
+		"vite": "^8.0.5"
+	},
+	"version": "0.0.1"
+}
