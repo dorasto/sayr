@@ -30,7 +30,12 @@ function TooltipContent({
 }: TooltipPrimitive.Popup.Props &
 	Pick<TooltipPrimitive.Positioner.Props, "align" | "alignOffset" | "side" | "sideOffset">) {
 	return (
-		<TooltipPrimitive.Portal>
+		// See popover.tsx's PopoverContent for why this is forced to document.body:
+		// Base UI nests a floating element's portal inside the nearest ancestor
+		// Dialog/panel's own portal by default, but a transform-centered ancestor
+		// (or the side panel drawer) becomes a containing block that traps the
+		// tooltip's position:fixed positioning behind normal page content.
+		<TooltipPrimitive.Portal container={typeof document !== "undefined" ? document.body : undefined}>
 			<TooltipPrimitive.Positioner
 				side={side}
 				sideOffset={sideOffset}
