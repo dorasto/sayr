@@ -1,10 +1,9 @@
-import { Popover as PopoverPrimitive, PopoverAnchor, PopoverContent } from "@repo/ui/components/popover";
+import { PopoverContent, Popover as PopoverPrimitive } from "@repo/ui/components/popover";
 import { useStore } from "@tanstack/react-store";
 import { useCallback, useRef } from "react";
-import type { RefObject } from "react";
 import { PanelContent } from "@/components/generic/page";
-import { sidebarActions, sidebarStore } from "@/lib/sidebar/sidebar-store";
 import type { PanelHeaderConfig, PanelTabConfig } from "@/lib/sidebar/sidebar-store";
+import { sidebarActions, sidebarStore } from "@/lib/sidebar/sidebar-store";
 
 export interface PanelOptions {
 	header?: PanelHeaderConfig;
@@ -128,27 +127,32 @@ export function usePanelTrigger(panelId: string, triggerId: string) {
 	const panelPopover = isAnchored ? (
 		<PopoverPrimitive
 			open={isActive}
-			onOpenChange={(open) => {
-				if (!open) closePanel(panelId);
+			onOpenChange={(open, eventDetails) => {
+				if (open) return;
+				// Same trigger toggles the panel closed itself (see togglePanel
+				// above) — don't let an outside-press on the trigger element
+				// ALSO close it here, or the two handlers race and it flickers.
+				if (eventDetails.reason === "outside-press") {
+					const target = eventDetails.event.target as Element | null;
+					if (target?.closest(`[data-panel-trigger="${panelId}"]`)) {
+						eventDetails.cancel();
+						return;
+					}
+				}
+				closePanel(panelId);
 			}}
 		>
-			{/* Radix's `virtualRef` wants a non-nullable `RefObject<Measurable>`
-			    (a `{ getBoundingClientRect(): DOMRect }`, from `@radix-ui/rect` —
-			    not imported directly here to avoid a phantom dependency, since
-			    only `@repo/ui` actually depends on Radix). Ours starts null
-			    before the trigger mounts, same as any DOM ref; the element it
-			    holds once attached satisfies the shape structurally. */}
-			<PopoverAnchor virtualRef={triggerRef as unknown as RefObject<{ getBoundingClientRect(): DOMRect }>} />
+			{/* Base UI's Positioner takes a real anchor (element, ref, or
+			    virtual element) directly — no separate Anchor part needed.
+			    `triggerRef` starts null before the trigger mounts, same as
+			    any DOM ref. */}
 			<PopoverContent
+				anchor={triggerRef}
 				align="start"
 				sideOffset={8}
 				style={panel.width ? { width: panel.width } : undefined}
 				className="max-h-96 w-96 overflow-auto p-0!"
-				onOpenAutoFocus={(e) => e.preventDefault()}
-				onPointerDownOutside={(e) => {
-					const target = e.target as Element | null;
-					if (target?.closest(`[data-panel-trigger="${panelId}"]`)) e.preventDefault();
-				}}
+				initialFocus={false}
 			>
 				<PanelContent panelId={panelId} isPopover />
 			</PopoverContent>

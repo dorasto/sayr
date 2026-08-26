@@ -24,14 +24,18 @@ function PopoverAnchor({
 const PopoverContent = React.forwardRef<
 	React.ElementRef<typeof PopoverPrimitive.Popup>,
 	React.ComponentPropsWithoutRef<typeof PopoverPrimitive.Popup> &
-		Pick<React.ComponentProps<typeof PopoverPrimitive.Positioner>, "align" | "alignOffset" | "side" | "sideOffset">
->(({ className, align = "center", alignOffset, side, sideOffset = 4, ...props }, ref) => (
+		Pick<
+			React.ComponentProps<typeof PopoverPrimitive.Positioner>,
+			"align" | "alignOffset" | "side" | "sideOffset" | "anchor"
+		>
+>(({ className, align = "center", alignOffset, side, sideOffset = 4, anchor, ...props }, ref) => (
 	<PopoverPrimitive.Portal>
 		<PopoverPrimitive.Positioner
 			align={align}
 			alignOffset={alignOffset}
 			side={side}
 			sideOffset={sideOffset}
+			anchor={anchor}
 			className="isolate z-50"
 		>
 			<PopoverPrimitive.Popup
