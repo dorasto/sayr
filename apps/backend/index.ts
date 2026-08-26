@@ -1,20 +1,23 @@
 import { initTracing } from "@repo/opentelemetry";
+
 initTracing(`sayr-backend`);
+
 import type { auth } from "@repo/auth/index";
 import { db } from "@repo/database";
+import { getEdition } from "@repo/edition";
+import { ensureBucketExists } from "@repo/storage";
 import { sql } from "drizzle-orm";
 import { Hono } from "hono";
 import { serveStatic, websocket } from "hono/bun";
 import { cors } from "hono/cors";
 import { requestId } from "hono/request-id";
+import type { ApiKeyPrincipal } from "./lib/apiKeyAuth";
+import { rootSpanPlugin } from "@/tracing/index";
 import { apiRoute } from "./routes/api";
+import sseRoute from "./routes/events";
+import { renderRoute } from "./routes/render";
 import { webhookRoute } from "./routes/webhook";
 import { type RecordWideError, wideEventMiddleware } from "./tracing/wideEvent";
-import { rootSpanPlugin } from "@/tracing/index";
-import { renderRoute } from "./routes/render";
-import { ensureBucketExists } from "@repo/storage";
-import { getEdition } from "@repo/edition";
-import sseRoute from "./routes/events";
 // -----------------------------------------------------------------------------
 // Types
 // -----------------------------------------------------------------------------
@@ -23,6 +26,9 @@ export type AppEnv = {
 		user: typeof auth.$Infer.Session.user | null;
 		session: typeof auth.$Infer.Session.session | null;
 		recordWideError: RecordWideError;
+		// Set by requireApiKey() middleware on /v1/me routes — null everywhere
+		// else (including session-authenticated internal routes).
+		apiKeyPrincipal: ApiKeyPrincipal | null;
 	};
 };
 
@@ -119,7 +125,7 @@ app.get("/api/public/favicon.ico", (c) =>
 
 app.use("*", async (c, next) => {
 	const root = process.env.VITE_ROOT_DOMAIN;
-	let apiDomain = `api.${root}`;
+	const apiDomain = `api.${root}`;
 	const { hostname } = new URL(c.req.url);
 	const docs = `${process.env.APP_ENV === "development" ? `http://api.${process.env.VITE_ROOT_DOMAIN}:5468` : `https://api.${process.env.VITE_ROOT_DOMAIN}`}`;
 	if (hostname === apiDomain) {

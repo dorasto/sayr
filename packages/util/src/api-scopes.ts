@@ -103,9 +103,11 @@ export const API_KEY_SCOPES = {
 		manageComments: {
 			permission: "moderation.manageComments",
 			label: "Moderate comments",
-			// Deliberately not "edit or delete": the edit handler rejects anyone who
-			// isn't the comment's author, moderators and admins included. Deleting
-			// someone else's comment is the only cross-user action available.
+			// Deliberately "delete", not "edit or delete": editing an org comment only
+			// requires membership (`tasks.comment` already covers it — any member can
+			// edit any comment in the app, not just their own; there is no author-only
+			// gate on edit). Deleting SOMEONE ELSE's comment is the actual cross-user
+			// action this scope exists for; deleting your own only needs `tasks.comment`.
 			description: "Delete comments written by others.",
 		},
 	},

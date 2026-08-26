@@ -1,28 +1,4 @@
-export * as auth from "../schema/auth";
-export * as schema from "../schema/index";
-export * from "./database";
-export * from "./functions";
-
-// Re-export team permissions types for convenience
-export { type TeamPermissions, defaultTeamPermissions } from "../schema/member.schema";
-
-// Re-export organization settings types for convenience
-export {
-	type OrganizationSettings,
-	type PublicTaskFieldSettings,
-	defaultOrganizationSettings,
-	defaultPublicTaskFieldSettings,
-} from "../schema/organization.schema";
-
 // Re-export AI org types and helpers from @repo/util (browser-safe)
-export {
-	type OrgAiSettings,
-	type OrgAiRateLimit,
-	defaultOrgAiSettings,
-	resolveOrgAiStatus,
-	isAiFeatureEnabled,
-} from "@repo/util";
-
 // Re-export the API key scope catalog from @repo/util (browser-safe).
 // The drift guard that keeps these scopes locked to TeamPermissions lives
 // below, next to the PermissionPath declaration.
@@ -33,29 +9,49 @@ export {
 	type ApiKeyScope,
 	type ApiKeyScopeRecord,
 	type ApiKeyScopeResource,
+	defaultOrgAiSettings,
 	invalidScopes,
+	isAiFeatureEnabled,
 	isApiKeyScope,
 	keyScopeAllows,
+	type OrgAiRateLimit,
+	type OrgAiSettings,
 	parseScope,
 	parseScopeRecord,
 	recordToScopes,
+	resolveOrgAiStatus,
 	scopeDefinition,
 	scopesToRecord,
 	scopeToPermissionPath,
 } from "@repo/util";
+export * as auth from "../schema/auth";
+export * as schema from "../schema/index";
 
+// Re-export team permissions types for convenience
+export { defaultTeamPermissions, type TeamPermissions } from "../schema/member.schema";
+
+// Re-export organization settings types for convenience
+export {
+	defaultOrganizationSettings,
+	defaultPublicTaskFieldSettings,
+	type OrganizationSettings,
+	type PublicTaskFieldSettings,
+} from "../schema/organization.schema";
+export * from "./database";
+export * from "./functions";
+
+import type { API_KEY_SCOPES, OrgAiSettings } from "@repo/util";
 import { and, eq, inArray } from "drizzle-orm";
 import {
+	defaultOrganizationSettings,
+	defaultTeamPermissions as defaultPerms,
 	member,
 	memberTeam,
-	team,
-	defaultTeamPermissions as defaultPerms,
-	type TeamPermissions,
-	organization,
 	type OrganizationSettings,
-	defaultOrganizationSettings,
+	organization,
+	type TeamPermissions,
+	team,
 } from "../schema";
-import { API_KEY_SCOPES, type OrgAiSettings } from "@repo/util";
 
 import { user } from "../schema/auth";
 import { db } from "./database";
@@ -101,8 +97,13 @@ export async function isPlatformAdmin(userId: string): Promise<boolean> {
 /**
  * Permission path type for nested permission structure.
  * E.g., "admin.administrator", "tasks.create", "moderation.manageComments"
+ *
+ * Exported (not just used internally) so callers checking a value that
+ * originated as an API key scope's mapped permission — see
+ * `scopeToPermissionPath` in `@repo/util` and the drift guard just below —
+ * can assert it against the real type instead of casting through `any`/`never`.
  */
-type PermissionPath =
+export type PermissionPath =
 	| `admin.${keyof TeamPermissions["admin"]}`
 	| `content.${keyof TeamPermissions["content"]}`
 	| `tasks.${keyof TeamPermissions["tasks"]}`
