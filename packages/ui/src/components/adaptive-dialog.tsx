@@ -24,23 +24,40 @@ import {
 	DrawerFooter,
 	DrawerHeader,
 	DrawerTitle,
+	DrawerTrigger,
 } from "./drawer";
+
+// Every Adaptive* subcomponent needs to agree on Dialog vs Drawer with the
+// Root, in the SAME render — each calling useIsMobile() independently can
+// desync across a remount (e.g. after an error-boundary recovery), producing
+// a DialogContent mounted inside a Drawer.Root (or vice versa) and throwing
+// "DialogRootContext is missing". Read from this context instead of the hook
+// directly so the whole subtree is always consistent with the Root's choice.
+const AdaptiveDialogContext = React.createContext<boolean>(false);
 
 // Core adaptive dialog that chooses between Dialog and Drawer
 const AdaptiveDialog = ({ children, ...props }: React.ComponentProps<typeof Dialog>) => {
 	const isMobile = useIsMobile();
 
-	if (isMobile) {
-		return <Drawer {...props}>{children}</Drawer>;
-	}
-
-	return <Dialog {...props}>{children}</Dialog>;
+	return (
+		<AdaptiveDialogContext.Provider value={isMobile}>
+			{isMobile ? <Drawer {...props}>{children}</Drawer> : <Dialog {...props}>{children}</Dialog>}
+		</AdaptiveDialogContext.Provider>
+	);
 };
 
-const AdaptiveDialogTrigger = DialogTrigger;
+const AdaptiveDialogTrigger = ({ children, ...props }: React.ComponentProps<typeof DialogTrigger>) => {
+	const isMobile = React.useContext(AdaptiveDialogContext);
+
+	if (isMobile) {
+		return <DrawerTrigger {...props}>{children}</DrawerTrigger>;
+	}
+
+	return <DialogTrigger {...props}>{children}</DialogTrigger>;
+};
 
 const AdaptiveDialogClose = ({ children, ...props }: React.ComponentProps<typeof BaseDialogClose>) => {
-	const isMobile = useIsMobile();
+	const isMobile = React.useContext(AdaptiveDialogContext);
 
 	if (isMobile) {
 		return <DrawerClose {...props}>{children}</DrawerClose>;
@@ -71,7 +88,7 @@ const AdaptiveDialogContent = React.forwardRef<React.ElementRef<typeof BaseDialo
 		},
 		ref
 	) => {
-		const isMobile = useIsMobile();
+		const isMobile = React.useContext(AdaptiveDialogContext);
 
 		if (isMobile) {
 			const { className: drawerClassName, ...restDrawerProps } = drawerProps;
@@ -110,7 +127,7 @@ const AdaptiveDialogContent = React.forwardRef<React.ElementRef<typeof BaseDialo
 AdaptiveDialogContent.displayName = "AdaptiveDialogContent";
 
 const AdaptiveDialogHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => {
-	const isMobile = useIsMobile();
+	const isMobile = React.useContext(AdaptiveDialogContext);
 
 	if (isMobile) {
 		return <DrawerHeader className={className} {...props} />;
@@ -121,7 +138,7 @@ const AdaptiveDialogHeader = ({ className, ...props }: React.HTMLAttributes<HTML
 AdaptiveDialogHeader.displayName = "AdaptiveDialogHeader";
 
 const AdaptiveDialogFooter = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => {
-	const isMobile = useIsMobile();
+	const isMobile = React.useContext(AdaptiveDialogContext);
 
 	if (isMobile) {
 		return <DrawerFooter className={className} {...props} />;
@@ -135,7 +152,7 @@ const AdaptiveDialogTitle = React.forwardRef<
 	React.ElementRef<typeof BaseDialogTitle>,
 	React.ComponentPropsWithoutRef<typeof BaseDialogTitle>
 >(({ className, ...props }, ref) => {
-	const isMobile = useIsMobile();
+	const isMobile = React.useContext(AdaptiveDialogContext);
 
 	if (isMobile) {
 		return <DrawerTitle ref={ref} className={className} {...props} />;
@@ -149,7 +166,7 @@ const AdaptiveDialogDescription = React.forwardRef<
 	React.ElementRef<typeof BaseDialogDescription>,
 	React.ComponentPropsWithoutRef<typeof BaseDialogDescription>
 >(({ className, ...props }, ref) => {
-	const isMobile = useIsMobile();
+	const isMobile = React.useContext(AdaptiveDialogContext);
 
 	if (isMobile) {
 		return <DrawerDescription ref={ref} className={className} {...props} />;

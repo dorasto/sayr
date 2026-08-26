@@ -76,13 +76,15 @@ export function TaskViewDropdown() {
 
 	return (
 		<Popover>
-			<PopoverTrigger asChild>
-				<Button variant="accent" className={cn("gap-2 h-6 w-fit bg-accent border-transparent p-1")}>
-					<IconAdjustmentsHorizontal className="w-4 h-4" />
-					<span className="text-xs">View</span>
-				</Button>
-			</PopoverTrigger>
-			<PopoverContent className="max-w-96 flex flex-col gap-3 p-3" onOpenAutoFocus={(e) => e.preventDefault()}>
+			<PopoverTrigger
+				render={
+					<Button variant="accent" className={cn("gap-2 h-6 w-fit bg-accent border-transparent p-1")}>
+						<IconAdjustmentsHorizontal className="w-4 h-4" />
+						<span className="text-xs">View</span>
+					</Button>
+				}
+			/>
+			<PopoverContent className="max-w-96 flex flex-col gap-3 p-3" initialFocus={false}>
 				<RadioGroup
 					defaultValue={activeViewMode}
 					className="flex items-center gap-2"
@@ -109,12 +111,14 @@ export function TaskViewDropdown() {
 					icon={<IconLayoutRows className="h-4 w-4" />}
 					customSide={
 						<DropdownMenu>
-							<DropdownMenuTrigger asChild>
-								<Button variant="accent" className={cn("gap-2 border-transparent p-1 h-auto")}>
-									{activeGrouping.icon}
-									<span className="text-xs">{activeGrouping.label}</span>
-								</Button>
-							</DropdownMenuTrigger>
+							<DropdownMenuTrigger
+								render={
+									<Button variant="accent" className={cn("gap-2 border-transparent p-1 h-auto")}>
+										{activeGrouping.icon}
+										<span className="text-xs">{activeGrouping.label}</span>
+									</Button>
+								}
+							/>
 							<DropdownMenuContent className="w-64" side="bottom" align="end">
 								<DropdownMenuRadioGroup
 									value={grouping}
@@ -142,12 +146,14 @@ export function TaskViewDropdown() {
 					icon={<IconLayoutRows className="h-4 w-4" />}
 					customSide={
 						<DropdownMenu>
-							<DropdownMenuTrigger asChild>
-								<Button variant="accent" className={cn("gap-2 border-transparent p-1 h-auto")}>
-									{activeSubGrouping ? activeSubGrouping.icon : <IconEyeOff className="h-4 w-4" />}
-									<span className="text-xs">{activeSubGrouping ? activeSubGrouping.label : "None"}</span>
-								</Button>
-							</DropdownMenuTrigger>
+							<DropdownMenuTrigger
+								render={
+									<Button variant="accent" className={cn("gap-2 border-transparent p-1 h-auto")}>
+										{activeSubGrouping ? activeSubGrouping.icon : <IconEyeOff className="h-4 w-4" />}
+										<span className="text-xs">{activeSubGrouping ? activeSubGrouping.label : "None"}</span>
+									</Button>
+								}
+							/>
 							<DropdownMenuContent className="w-64" side="bottom" align="end">
 								<DropdownMenuRadioGroup
 									value={subGrouping ?? "none"}
@@ -179,11 +185,13 @@ export function TaskViewDropdown() {
 					customSide={
 						<div className="flex items-center gap-1">
 							<DropdownMenu>
-								<DropdownMenuTrigger asChild>
-									<Button variant="accent" className={cn("gap-2 border-transparent p-1 h-auto")}>
-										<span className="text-xs">{activeSortField ? activeSortField.label : "None"}</span>
-									</Button>
-								</DropdownMenuTrigger>
+								<DropdownMenuTrigger
+									render={
+										<Button variant="accent" className={cn("gap-2 border-transparent p-1 h-auto")}>
+											<span className="text-xs">{activeSortField ? activeSortField.label : "None"}</span>
+										</Button>
+									}
+								/>
 								<DropdownMenuContent className="w-64" side="bottom" align="end">
 									<DropdownMenuRadioGroup
 										value={sortBy ?? "none"}

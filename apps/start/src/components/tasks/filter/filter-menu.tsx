@@ -274,25 +274,27 @@ export function FilterMenu(props: FilterMenuProps) {
 										<Collapsible key={condition.id} defaultOpen={false}>
 											<div className="border rounded-lg">
 												<div className="flex items-center justify-between p-3">
-													<CollapsibleTrigger asChild>
-														<button
-															type="button"
-															className="group/trigger flex items-center gap-2 text-sm font-medium flex-1 text-left"
-														>
-															{cfg?.icon}
-															<div className="flex flex-col items-start min-w-0 flex-1">
-																<span className="text-xs text-muted-foreground">
-																	{cfg?.label} · {getOperatorLabel(condition.operator)}
-																</span>
-																<span className="truncate w-full">
-																	{formatSelectedLabels(values, options).length <= 2
-																		? formatSelectedLabels(values, options).join(", ")
-																		: `${formatSelectedLabels(values, options).slice(0, 2).join(", ")} +${formatSelectedLabels(values, options).length - 2}`}
-																</span>
-															</div>
-															<IconChevronRight className="w-4 h-4 ml-auto shrink-0 transition-transform group-data-[state=open]/trigger:rotate-90" />
-														</button>
-													</CollapsibleTrigger>
+													<CollapsibleTrigger
+														render={
+															<button
+																type="button"
+																className="group/trigger flex items-center gap-2 text-sm font-medium flex-1 text-left"
+															>
+																{cfg?.icon}
+																<div className="flex flex-col items-start min-w-0 flex-1">
+																	<span className="text-xs text-muted-foreground">
+																		{cfg?.label} · {getOperatorLabel(condition.operator)}
+																	</span>
+																	<span className="truncate w-full">
+																		{formatSelectedLabels(values, options).length <= 2
+																			? formatSelectedLabels(values, options).join(", ")
+																			: `${formatSelectedLabels(values, options).slice(0, 2).join(", ")} +${formatSelectedLabels(values, options).length - 2}`}
+																	</span>
+																</div>
+																<IconChevronRight className="w-4 h-4 ml-auto shrink-0 transition-transform group-data-[state=open]/trigger:rotate-90" />
+															</button>
+														}
+													/>
 													<button
 														type="button"
 														onClick={() => removeFilter(condition.id)}
@@ -399,12 +401,14 @@ export function FilterMenu(props: FilterMenuProps) {
 				}
 			}}
 		>
-			<DropdownMenuTrigger asChild>
-				<Button variant="primary" className={cn("gap-2 h-6 w-fit p-1", activeFiltersCount > 0 && "w-6")}>
-					<IconFilter2 className="w-4 h-4" />
-					{activeFiltersCount <= 0 && <span className="text-xs">Filter</span>}
-				</Button>
-			</DropdownMenuTrigger>
+			<DropdownMenuTrigger
+				render={
+					<Button variant="primary" className={cn("gap-2 h-6 w-fit p-1", activeFiltersCount > 0 && "w-6")}>
+						<IconFilter2 className="w-4 h-4" />
+						{activeFiltersCount <= 0 && <span className="text-xs">Filter</span>}
+					</Button>
+				}
+			/>
 			<DropdownMenuContent
 				align="start"
 				collisionPadding={16}
