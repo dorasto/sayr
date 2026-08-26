@@ -391,7 +391,7 @@ export default function CreateIssueDialog({
 							className={cn(!isMobile && "pb-0!")}
 							// className={cn("", visible === "private" && "bg-primary/15")}
 						>
-							<AdaptiveDialogTitle asChild>
+							<AdaptiveDialogTitle className="contents">
 								<div className="flex items-center gap-1 w-full">
 									{organizations && organizations.length > 0 && (
 										<ComboBox
