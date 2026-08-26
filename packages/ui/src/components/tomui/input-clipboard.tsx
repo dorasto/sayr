@@ -42,32 +42,37 @@ export default function InputClipboard({
 					>
 						{value}
 					</Button>
-					<TooltipProvider delayDuration={0}>
+					<TooltipProvider delay={0}>
 						<Tooltip>
-							<TooltipTrigger asChild>
-								<Button
-									variant={copied ? "success" : "accent"}
-									className="rounded-none shadow-none first:rounded-s-md last:rounded-e-md focus-visible:z-10"
-									size="icon"
-									onClick={handleCopy}
-									disabled={copied}
-									aria-label={copied ? copiedLabel || "Copied" : copyLabel || "Copy to clipboard"}
-								>
-									<div
-										className={cn("transition-all", copied ? "scale-100 opacity-100" : "scale-0 opacity-0")}
+							<TooltipTrigger
+								render={
+									<Button
+										variant={copied ? "success" : "accent"}
+										className="rounded-none shadow-none first:rounded-s-md last:rounded-e-md focus-visible:z-10"
+										size="icon"
+										onClick={handleCopy}
+										disabled={copied}
+										aria-label={copied ? copiedLabel || "Copied" : copyLabel || "Copy to clipboard"}
 									>
-										<CheckIcon className="stroke-success transition-all" size={16} aria-hidden="true" />
-									</div>
-									<div
-										className={cn(
-											"absolute transition-all",
-											copied ? "scale-0 opacity-0" : "scale-100 opacity-100"
-										)}
-									>
-										<CopyIcon size={16} aria-hidden="true" />
-									</div>
-								</Button>
-							</TooltipTrigger>
+										<div
+											className={cn(
+												"transition-all",
+												copied ? "scale-100 opacity-100" : "scale-0 opacity-0"
+											)}
+										>
+											<CheckIcon className="stroke-success transition-all" size={16} aria-hidden="true" />
+										</div>
+										<div
+											className={cn(
+												"absolute transition-all",
+												copied ? "scale-0 opacity-0" : "scale-100 opacity-100"
+											)}
+										>
+											<CopyIcon size={16} aria-hidden="true" />
+										</div>
+									</Button>
+								}
+							/>
 							<TooltipContent className="px-2 py-1 text-xs">
 								{copied ? copiedLabel || "Copied!" : copyLabel || "Copy to clipboard"}
 							</TooltipContent>
@@ -78,30 +83,35 @@ export default function InputClipboard({
 		);
 
 	return (
-		<TooltipProvider delayDuration={0}>
+		<TooltipProvider delay={0}>
 			<Tooltip>
-				<TooltipTrigger asChild>
-					<Button
-						variant={copied ? "success" : "accent"}
-						className={cn(
-							"rounded-none shadow-none first:rounded-s-md last:rounded-e-md focus-visible:z-10",
-							className
-						)}
-						size="icon"
-						onClick={handleCopy}
-						disabled={copied}
-						aria-label={copied ? copiedLabel || "Copied" : copyLabel || "Copy to clipboard"}
-					>
-						<div className={cn("transition-all", copied ? "scale-100 opacity-100" : "scale-0 opacity-0")}>
-							<CheckIcon className="stroke-success transition-all" size={16} aria-hidden="true" />
-						</div>
-						<div
-							className={cn("absolute transition-all", copied ? "scale-0 opacity-0" : "scale-100 opacity-100")}
+				<TooltipTrigger
+					render={
+						<Button
+							variant={copied ? "success" : "accent"}
+							className={cn(
+								"rounded-none shadow-none first:rounded-s-md last:rounded-e-md focus-visible:z-10",
+								className
+							)}
+							size="icon"
+							onClick={handleCopy}
+							disabled={copied}
+							aria-label={copied ? copiedLabel || "Copied" : copyLabel || "Copy to clipboard"}
 						>
-							<CopyIcon size={16} aria-hidden="true" />
-						</div>
-					</Button>
-				</TooltipTrigger>
+							<div className={cn("transition-all", copied ? "scale-100 opacity-100" : "scale-0 opacity-0")}>
+								<CheckIcon className="stroke-success transition-all" size={16} aria-hidden="true" />
+							</div>
+							<div
+								className={cn(
+									"absolute transition-all",
+									copied ? "scale-0 opacity-0" : "scale-100 opacity-100"
+								)}
+							>
+								<CopyIcon size={16} aria-hidden="true" />
+							</div>
+						</Button>
+					}
+				/>
 				<TooltipContent className="px-2 py-1 text-xs">
 					{copied ? copiedLabel || "Copied!" : copyLabel || "Copy to clipboard"}
 				</TooltipContent>
