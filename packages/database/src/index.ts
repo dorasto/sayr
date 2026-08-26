@@ -1,40 +1,57 @@
+// Re-export AI org types and helpers from @repo/util (browser-safe)
+// Re-export the API key scope catalog from @repo/util (browser-safe).
+// The drift guard that keeps these scopes locked to TeamPermissions lives
+// below, next to the PermissionPath declaration.
+export {
+	ALL_API_KEY_SCOPES,
+	API_KEY_SCOPE_PRESETS,
+	API_KEY_SCOPES,
+	type ApiKeyScope,
+	type ApiKeyScopeRecord,
+	type ApiKeyScopeResource,
+	defaultOrgAiSettings,
+	invalidScopes,
+	isAiFeatureEnabled,
+	isApiKeyScope,
+	keyScopeAllows,
+	type OrgAiRateLimit,
+	type OrgAiSettings,
+	parseScope,
+	parseScopeRecord,
+	recordToScopes,
+	resolveOrgAiStatus,
+	scopeDefinition,
+	scopesToRecord,
+	scopeToPermissionPath,
+} from "@repo/util";
 export * as auth from "../schema/auth";
 export * as schema from "../schema/index";
-export * from "./database";
-export * from "./functions";
 
 // Re-export team permissions types for convenience
-export { type TeamPermissions, defaultTeamPermissions } from "../schema/member.schema";
+export { defaultTeamPermissions, type TeamPermissions } from "../schema/member.schema";
 
 // Re-export organization settings types for convenience
 export {
-	type OrganizationSettings,
-	type PublicTaskFieldSettings,
 	defaultOrganizationSettings,
 	defaultPublicTaskFieldSettings,
+	type OrganizationSettings,
+	type PublicTaskFieldSettings,
 } from "../schema/organization.schema";
+export * from "./database";
+export * from "./functions";
 
-// Re-export AI org types and helpers from @repo/util (browser-safe)
-export {
-	type OrgAiSettings,
-	type OrgAiRateLimit,
-	defaultOrgAiSettings,
-	resolveOrgAiStatus,
-	isAiFeatureEnabled,
-} from "@repo/util";
-
+import type { API_KEY_SCOPES, OrgAiSettings } from "@repo/util";
 import { and, eq, inArray } from "drizzle-orm";
 import {
+	defaultOrganizationSettings,
+	defaultTeamPermissions as defaultPerms,
 	member,
 	memberTeam,
-	team,
-	defaultTeamPermissions as defaultPerms,
-	type TeamPermissions,
-	organization,
 	type OrganizationSettings,
-	defaultOrganizationSettings,
+	organization,
+	type TeamPermissions,
+	team,
 } from "../schema";
-import { type OrgAiSettings } from "@repo/util";
 
 import { user } from "../schema/auth";
 import { db } from "./database";
@@ -80,13 +97,38 @@ export async function isPlatformAdmin(userId: string): Promise<boolean> {
 /**
  * Permission path type for nested permission structure.
  * E.g., "admin.administrator", "tasks.create", "moderation.manageComments"
+ *
+ * Exported (not just used internally) so callers checking a value that
+ * originated as an API key scope's mapped permission — see
+ * `scopeToPermissionPath` in `@repo/util` and the drift guard just below —
+ * can assert it against the real type instead of casting through `any`/`never`.
  */
-type PermissionPath =
+export type PermissionPath =
 	| `admin.${keyof TeamPermissions["admin"]}`
 	| `content.${keyof TeamPermissions["content"]}`
 	| `tasks.${keyof TeamPermissions["tasks"]}`
 	| `moderation.${keyof TeamPermissions["moderation"]}`
 	| "members";
+
+/**
+ * Compile-time drift guard between the API key scope catalog (@repo/util, which
+ * cannot import from here without a cycle) and this permission model.
+ *
+ * Every scope declares the `permission` it maps to. If someone adds a scope
+ * whose permission isn't a real `PermissionPath` — or renames a `TeamPermissions`
+ * flag out from under one — `pnpm check-types` fails here instead of the scope
+ * silently authorizing nothing at runtime.
+ */
+type PermissionOf<T> = T extends { permission: infer P } ? P : never;
+
+type ApiKeyScopePermissionValues = {
+	[R in keyof typeof API_KEY_SCOPES]: PermissionOf<(typeof API_KEY_SCOPES)[R][keyof (typeof API_KEY_SCOPES)[R]]>;
+}[keyof typeof API_KEY_SCOPES];
+
+type AssertIsPermissionPath<T extends PermissionPath> = T;
+// Exported so `noUnusedLocals` doesn't flag it — the type is load-bearing even
+// though nothing consumes its value.
+export type ApiKeyScopeDriftGuard = AssertIsPermissionPath<ApiKeyScopePermissionValues>;
 
 /**
  * Determines whether a user has a specific organization-level permission.

@@ -4,7 +4,6 @@ import {
 	addLogEventTask,
 	createComment,
 	createNotification,
-	createNotifications,
 	createOrToggleCommentReaction,
 	createOrToggleTaskVote,
 	createTask,
@@ -22,7 +21,6 @@ import {
 	getTaskById,
 	getTaskRelations,
 	getTaskTimeline,
-	removeLabelFromTask,
 	removeTaskParent,
 	removeTaskRelation,
 	schema,
@@ -48,88 +46,19 @@ import {
 } from "@/routes/events";
 import type { ServerEventBaseMessage } from "@/routes/events/types";
 import { getAnonHash, getClientIP, traceOrgPermissionCheck, tracePublicOrgAccessCheck } from "@/util";
+import { notifyAssignees } from "../../../../lib/tasks/notify";
+import { updateTaskService } from "../../../../lib/tasks/updateTask";
+import {
+	TaskNotFoundError as AssigneesTaskNotFoundError,
+	updateTaskAssigneesService,
+} from "../../../../lib/tasks/updateTaskAssignees";
+import {
+	TaskNotFoundError as LabelsTaskNotFoundError,
+	updateTaskLabelsService,
+} from "../../../../lib/tasks/updateTaskLabels";
 import { errorResponse, paginatedSuccessResponse } from "../../../../responses";
 
 export const apiRouteAdminProjectTask = new Hono<AppEnv>();
-
-/**
- * Creates notifications for task assignees and broadcasts them via WebSocket.
- * Runs async (fire-and-forget) to avoid blocking the response.
- */
-async function notifyAssignees(params: {
-	taskId: string;
-	orgId: string;
-	actorId: string | undefined;
-	type: (typeof schema.notificationTypeEnum.enumValues)[number];
-	timelineEventId?: string;
-}) {
-	try {
-		const assigneeIds = await getTaskAssigneeIds(params.taskId);
-		if (assigneeIds.length === 0) return;
-
-		const notifications = await createNotifications({
-			organizationId: params.orgId,
-			userIds: assigneeIds,
-			actorId: params.actorId ?? null,
-			taskId: params.taskId,
-			timelineEventId: params.timelineEventId ?? null,
-			type: params.type,
-		});
-
-		// Broadcast to each recipient via WebSocket
-		for (const notif of notifications) {
-			sseBroadcastByUserId(notif.userId, "", params.orgId, {
-				type: "NEW_NOTIFICATION" as ServerEventBaseMessage["type"],
-				data: notif,
-				meta: { ts: Date.now() },
-			});
-		}
-	} catch {
-		// Notification failures should never break task operations
-	}
-}
-
-/**
- * Creates mention notifications by extracting @mentions from content.
- * Unlike other notification types, mentions do NOT filter out the actor —
- * if you explicitly @mention yourself, you should still receive the notification.
- */
-async function notifyMentions(params: {
-	taskId: string;
-	orgId: string;
-	actorId: string | undefined;
-	content: schema.NodeJSON | null | undefined;
-	timelineEventId?: string;
-}) {
-	try {
-		const mentionedUserIds = extractUserMentions(params.content);
-		if (mentionedUserIds.length === 0) return;
-
-		// Use individual createNotification (not bulk) to avoid actor filtering.
-		// Mentions are explicit — the user typed @someone — so self-mentions are intentional.
-		const dedupedIds = [...new Set(mentionedUserIds)];
-		for (const userId of dedupedIds) {
-			const notif = await createNotification({
-				organizationId: params.orgId,
-				userId,
-				actorId: params.actorId ?? null,
-				taskId: params.taskId,
-				timelineEventId: params.timelineEventId ?? null,
-				type: "mention",
-			});
-
-			if (notif) {
-				sseBroadcastByUserId(notif.userId, "", params.orgId, {
-					type: "NEW_NOTIFICATION" as ServerEventBaseMessage["type"],
-					data: notif,
-					meta: { ts: Date.now() },
-				});
-			}
-		}
-	} catch {
-		// Notification failures should never break task operations
-	}
-}
 
 // Create a new task
 apiRouteAdminProjectTask.post("/create", async (c) => {
@@ -656,289 +585,21 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 		}
 	}
 
-	const allowed: Partial<schema.taskType> = {};
-	["title", "description", "status", "priority", "category", "releaseId", "visible"].forEach((field) => {
-		if (updates[field] !== undefined) {
-			// @ts-expect-error dynamic field
-			allowed[field] = updates[field];
-		}
-	});
+	// Resolved once here (not inside the shared service, which never reads
+	// `updates.createdBy` itself — the service only looks at the known
+	// title/description/status/priority/category/releaseId/visible keys, so
+	// leaving `createdBy` in `updates` for this session-authenticated internal
+	// route is inert; that field is only honoured here, never for the API path).
 	const userId = updates.createdBy || session?.userId;
-	await traceAsync(
-		"task.update.save",
-		async () => {
-			if (Object.keys(allowed).length > 0) {
-				await db
-					.update(schema.task)
-					.set({ ...allowed, updatedAt: new Date() })
-					.where(and(eq(schema.task.id, taskId), eq(schema.task.organizationId, orgId)))
-					.returning();
-			}
 
-			if (updates.category && updates.category !== existingTask.category) {
-				await addLogEventTask(
-					taskId,
-					orgId,
-					"category_change",
-					existingTask.category,
-					updates.category,
-					session?.userId
-				);
-			}
-			if (updates.status && updates.status !== existingTask.status) {
-				const event = await addLogEventTask(
-					taskId,
-					orgId,
-					"status_change",
-					existingTask.status,
-					updates.status,
-					userId
-				);
-
-				notifyAssignees({
-					taskId,
-					orgId,
-					actorId: userId,
-					type: "status_change",
-					timelineEventId: event?.id,
-				});
-
-				if ((updates.status === "done" || updates.status === "in-progress") && existingTask?.githubIssue) {
-					// Derive the issue number from your stored field.
-					// Adjust this if your schema is different.
-					const issueNumber = existingTask.githubIssue.issueNumber ?? existingTask.githubIssue;
-
-					if (!issueNumber) {
-						// No issue number to close; just skip quietly
-						return;
-					}
-
-					const foundLink = await db.query.githubRepository.findFirst({
-						where: and(
-							eq(schema.githubRepository.organizationId, orgId),
-							isNull(schema.githubRepository.categoryId),
-							eq(schema.githubRepository.enabled, true)
-						),
-					});
-
-					// No linked repo? Just skip GitHub logic, but don't break the request.
-					if (!foundLink) {
-						return;
-					}
-
-					try {
-						const token = await getInstallationToken(foundLink.installationId);
-						const octokit = new Octokit({ auth: token });
-
-						// Resolve owner/repo from the repoId
-						const { data: repoInfo } = await octokit.request("GET /repositories/{repository_id}", {
-							repository_id: foundLink.repoId,
-						});
-
-						const owner = repoInfo.owner.login;
-						const repo = repoInfo.name;
-
-						await octokit.request("PATCH /repos/{owner}/{repo}/issues/{issue_number}", {
-							owner,
-							repo,
-							issue_number: issueNumber,
-							state: updates.status === "in-progress" ? "open" : "closed",
-						});
-					} catch (err) {
-						// Don't throw; just log so it doesn't affect the main task update flow
-						console.error("Failed to close GitHub issue", {
-							orgId,
-							taskId,
-							issueNumber,
-							error: err,
-						});
-					}
-				}
-			}
-			if (updates.priority && updates.priority !== existingTask.priority) {
-				const event = await addLogEventTask(
-					taskId,
-					orgId,
-					"priority_change",
-					existingTask.priority,
-					updates.priority,
-					userId
-				);
-				notifyAssignees({ taskId, orgId, actorId: userId, type: "priority_change", timelineEventId: event?.id });
-			}
-			if (updates.title && updates.title !== existingTask.title) {
-				await addLogEventTask(
-					taskId,
-					orgId,
-					"updated",
-					{ field: "title", value: existingTask.title },
-					{ field: "title", value: updates.title },
-					userId
-				);
-			}
-			if (updates.description && JSON.stringify(updates.description) !== JSON.stringify(existingTask.description)) {
-				const event = await addLogEventTask(
-					taskId,
-					orgId,
-					"updated",
-					{ field: "description", value: existingTask.description },
-					{ field: "description", value: updates.description },
-					userId,
-					updates.description
-				);
-				// Check for new @mentions in the updated description
-				notifyMentions({
-					taskId,
-					orgId,
-					actorId: userId,
-					content: updates.description,
-					timelineEventId: event?.id,
-				});
-			}
-			if (updates.releaseId !== undefined && updates.releaseId !== existingTask.releaseId) {
-				await addLogEventTask(taskId, orgId, "release_change", existingTask.releaseId, updates.releaseId, userId);
-			}
-			if (updates.visible !== undefined && updates.visible !== existingTask.visible) {
-				await addLogEventTask(
-					taskId,
-					orgId,
-					"updated",
-					{ field: "visible", value: existingTask.visible },
-					{ field: "visible", value: updates.visible },
-					userId
-				);
-			}
-		},
-		{
-			description: "Updating task and logging changes",
-			data: { orgId, taskId, fields: Object.keys(allowed), isSystemAccount },
-			onSuccess: () => ({
-				description: "Task updated successfully",
-				data: { updates: allowed },
-			}),
-		}
-	);
-
-	// Emit ClickHouse analytics events for each field change
-	if (updates.status && updates.status !== existingTask.status) {
-		emitEvent({
-			event_type: "task.status_changed",
-			actor_id: userId ?? "",
-			target_id: taskId,
-			org_id: orgId,
-			metadata: { from: existingTask.status, to: updates.status },
-		});
-	}
-	if (updates.priority && updates.priority !== existingTask.priority) {
-		emitEvent({
-			event_type: "task.priority_changed",
-			actor_id: userId ?? "",
-			target_id: taskId,
-			org_id: orgId,
-			metadata: { from: existingTask.priority, to: updates.priority },
-		});
-	}
-	if (updates.category && updates.category !== existingTask.category) {
-		emitEvent({
-			event_type: "task.category_changed",
-			actor_id: userId ?? "",
-			target_id: taskId,
-			org_id: orgId,
-			metadata: { from: existingTask.category, to: updates.category },
-		});
-	}
-	if (updates.releaseId !== undefined && updates.releaseId !== existingTask.releaseId) {
-		emitEvent({
-			event_type: "task.release_changed",
-			actor_id: userId ?? "",
-			target_id: taskId,
-			org_id: orgId,
-			metadata: { from: existingTask.releaseId, to: updates.releaseId },
-		});
-	}
-	if (updates.title && updates.title !== existingTask.title) {
-		emitEvent({
-			event_type: "task.updated",
-			actor_id: userId ?? "",
-			target_id: taskId,
-			org_id: orgId,
-			metadata: { field: "title" },
-		});
-	}
-	if (updates.description && JSON.stringify(updates.description) !== JSON.stringify(existingTask.description)) {
-		emitEvent({
-			event_type: "task.updated",
-			actor_id: userId ?? "",
-			target_id: taskId,
-			org_id: orgId,
-			metadata: { field: "description" },
-		});
-	}
-	if (updates.visible !== undefined && updates.visible !== existingTask.visible) {
-		emitEvent({
-			event_type: "task.updated",
-			actor_id: userId ?? "",
-			target_id: taskId,
-			org_id: orgId,
-			metadata: { field: "visible" },
-		});
-	}
-
-	// Fire-and-forget: only re-embed when the content that actually feeds the
-	// embedding (title/description) changed — same diffing already used for
-	// the task.updated ClickHouse events above, so an unrelated field change
-	// (status/priority/etc) doesn't trigger a wasted embedding call. Cloud-only,
-	// same as the /create enqueue above.
-	const titleChanged = updates.title !== undefined && updates.title !== existingTask.title;
-	const descriptionChanged =
-		updates.description !== undefined &&
-		JSON.stringify(updates.description) !== JSON.stringify(existingTask.description);
-	if ((titleChanged || descriptionChanged) && getEditionCapabilities().semanticSearchEnabled) {
-		enqueue("main", { type: "embed_task", payload: { orgId, taskId } }).catch((err) => {
-			console.error("[task.update] Failed to enqueue embed_task job:", err);
-		});
-	}
-
-	const taskWithData = await traceAsync("task.update.refetch", () => getTaskById(orgId, taskId), {
-		description: "Refetching updated task data",
+	const taskWithData = await updateTaskService({
+		orgId,
+		taskId,
+		existingTask,
+		updates,
+		actorUserId: userId,
+		sseClientId,
 	});
-
-	await traceAsync(
-		"task.update.broadcast",
-		async () => {
-			const found = findClientBysseId(sseClientId);
-			const data = {
-				type: "UPDATE_TASK" as ServerEventBaseMessage["type"],
-				data: taskWithData,
-			};
-
-			sseBroadcastToRoom(orgId, `tasks;task:${taskId}`, data, found?.id, true);
-			if (taskWithData?.visible === "public") {
-				sseBroadcastPublic(orgId, { ...data }, found?.id);
-			}
-
-			// If releaseId changed, broadcast release update as well
-			if (updates.releaseId !== undefined && updates.releaseId !== existingTask.releaseId) {
-				const releaseData = {
-					type: "UPDATE_RELEASES" as ServerEventBaseMessage["type"],
-					data: { taskId, releaseId: updates.releaseId },
-				};
-				sseBroadcastToRoom(orgId, "releases", releaseData, found?.id);
-			}
-
-			const members = await getOrganizationMembers(orgId);
-			members.forEach((member) => {
-				const clients = findSSEClientsByUserId(member.userId);
-				clients.forEach(
-					(client) =>
-						client.id !== sseClientId &&
-						!(client.channel === `task:${taskId}` || client.channel === "tasks") &&
-						sseBroadcastIndividual(client, data, orgId)
-				);
-			});
-		},
-		{ description: "Broadcasting task update to clients" }
-	);
 
 	return c.json({ success: true, data: taskWithData });
 });
@@ -1681,7 +1342,6 @@ apiRouteAdminProjectTask.post("/activity", async (c) => {
 
 // Update task labels
 apiRouteAdminProjectTask.post("/update-labels", async (c) => {
-	const traceAsync = createTraceAsync();
 	const recordWideError = c.get("recordWideError");
 
 	const { org_id: orgId, sseClientId, task_id: taskId, labels } = await c.req.json();
@@ -1694,23 +1354,20 @@ apiRouteAdminProjectTask.post("/update-labels", async (c) => {
 	}
 
 	try {
-		const existingTask = await traceAsync(
-			"task.labels.update.lookup",
-			() =>
-				db.query.task.findFirst({
-					where: (t) => and(eq(t.id, taskId), eq(t.organizationId, orgId)),
-					with: { labels: { with: { label: true } } },
-				}),
-			{
-				description: "Finding task with current labels",
-				data: { orgId, taskId },
-			}
-		);
+		const taskWithData = await updateTaskLabelsService({
+			orgId,
+			taskId,
+			labelIds: labels,
+			actorUserId: session?.userId,
+			sseClientId,
+		});
 
-		if (!existingTask) {
+		return c.json({ success: true, data: taskWithData });
+	} catch (err) {
+		if (err instanceof LabelsTaskNotFoundError) {
 			await recordWideError({
 				name: "task.labels.update.notfound",
-				error: new Error("Task not found"),
+				error: err,
 				code: "TASK_NOT_FOUND",
 				message: "Task not found in database",
 				contextData: { orgId, taskId },
@@ -1718,102 +1375,6 @@ apiRouteAdminProjectTask.post("/update-labels", async (c) => {
 			return c.json({ success: false, error: "Task not found" }, 404);
 		}
 
-		const currentLabelIds = existingTask.labels.map((l) => l.label.id);
-		const incomingLabelIds: string[] = labels ?? [];
-
-		await traceAsync(
-			"task.labels.update.sync",
-			async () => {
-				for (const labelId of incomingLabelIds) {
-					if (!currentLabelIds.includes(labelId)) {
-						await addLabelToTask(orgId, taskId, labelId);
-						await addLogEventTask(taskId, orgId, "label_added", null, labelId, session?.userId);
-					}
-				}
-
-				for (const labelId of currentLabelIds) {
-					if (!incomingLabelIds.includes(labelId)) {
-						await removeLabelFromTask(orgId, taskId, labelId);
-						await addLogEventTask(taskId, orgId, "label_removed", null, labelId, session?.userId);
-					}
-				}
-			},
-			{
-				description: "Syncing task labels",
-				data: {
-					orgId,
-					taskId,
-					currentCount: currentLabelIds.length,
-					incomingCount: incomingLabelIds.length,
-				},
-				onSuccess: () => ({
-					description: "Task labels synced successfully",
-					data: {
-						added: incomingLabelIds.filter((id) => !currentLabelIds.includes(id)),
-						removed: currentLabelIds.filter((id) => !incomingLabelIds.includes(id)),
-					},
-				}),
-			}
-		);
-
-		// Emit ClickHouse analytics events for label changes
-		for (const labelId of incomingLabelIds) {
-			if (!currentLabelIds.includes(labelId)) {
-				emitEvent({
-					event_type: "task.label_added",
-					actor_id: session?.userId ?? "",
-					target_id: taskId,
-					org_id: orgId,
-					metadata: { labelId },
-				});
-			}
-		}
-		for (const labelId of currentLabelIds) {
-			if (!incomingLabelIds.includes(labelId)) {
-				emitEvent({
-					event_type: "task.label_removed",
-					actor_id: session?.userId ?? "",
-					target_id: taskId,
-					org_id: orgId,
-					metadata: { labelId },
-				});
-			}
-		}
-
-		const taskWithData = await traceAsync("task.labels.update.refetch", () => getTaskById(orgId, taskId), {
-			description: "Refetching updated task data",
-		});
-
-		await traceAsync(
-			"task.labels.update.broadcast",
-			async () => {
-				const found = findClientBysseId(sseClientId);
-				const data = {
-					type: "UPDATE_TASK" as ServerEventBaseMessage["type"],
-					data: taskWithData,
-				};
-
-				sseBroadcastToRoom(orgId, `tasks;task:${taskId}`, data, found?.id, true);
-				if (taskWithData?.visible === "public") {
-					sseBroadcastPublic(orgId, { ...data }, found?.id);
-				}
-
-				const members = await getOrganizationMembers(orgId);
-				members.forEach((member) => {
-					const clients = findSSEClientsByUserId(member.userId);
-					clients.forEach(
-						(client) =>
-							client.id !== sseClientId &&
-							!(client.channel === `task:${taskId}` || client.channel === "tasks") &&
-							sseBroadcastIndividual(client, data, orgId)
-					);
-				});
-			},
-			{ description: "Broadcasting label update to clients" }
-		);
-
-		return c.json({ success: true, data: taskWithData });
-	} catch (err) {
 		await recordWideError({
 			name: "task.labels.update.error",
 			error: err,
@@ -1829,7 +1390,6 @@ apiRouteAdminProjectTask.post("/update-labels", async (c) => {
 });
 // Update task assignees
 apiRouteAdminProjectTask.post("/update-assignees", async (c) => {
-	const traceAsync = createTraceAsync();
 	const recordWideError = c.get("recordWideError");
 
 	const { org_id: orgId, sseClientId, task_id: taskId, assignees } = await c.req.json();
@@ -1848,29 +1408,20 @@ apiRouteAdminProjectTask.post("/update-assignees", async (c) => {
 	}
 
 	try {
-		const existingTask = await traceAsync(
-			"task.assignees.update.lookup",
-			() =>
-				db.query.task.findFirst({
-					where: (t) => and(eq(t.id, taskId), eq(t.organizationId, orgId)),
-					with: {
-						assignees: {
-							with: {
-								user: { columns: userSummaryColumns },
-							},
-						},
-					},
-				}),
-			{
-				description: "Finding task with current assignees",
-				data: { orgId, taskId },
-			}
-		);
+		const taskWithData = await updateTaskAssigneesService({
+			orgId,
+			taskId,
+			assigneeIds: assignees,
+			actorUserId: session?.userId,
+			sseClientId,
+		});
 
-		if (!existingTask) {
+		return c.json({ success: true, data: taskWithData });
+	} catch (err) {
+		if (err instanceof AssigneesTaskNotFoundError) {
 			await recordWideError({
 				name: "task.assignees.update.notfound",
-				error: new Error("Task not found"),
+				error: err,
 				code: "TASK_NOT_FOUND",
 				message: "Task not found in database",
 				contextData: { orgId, taskId },
@@ -1878,151 +1429,6 @@ apiRouteAdminProjectTask.post("/update-assignees", async (c) => {
 			return c.json({ success: false, error: "Task not found" }, 404);
 		}
 
-		const currentAssigneeIds = existingTask.assignees.map((a) => a.user.id);
-		const incomingAssigneeIds: string[] = assignees ?? [];
-
-		await traceAsync(
-			"task.assignees.update.sync",
-			async () => {
-				for (const userId of incomingAssigneeIds) {
-					if (!currentAssigneeIds.includes(userId)) {
-						await db
-							.insert(schema.taskAssignee)
-							.values({ taskId, organizationId: orgId, userId })
-							.onConflictDoNothing();
-						const event = await addLogEventTask(taskId, orgId, "assignee_added", null, userId, session?.userId);
-						// Notify the newly assigned user
-						createNotification({
-							organizationId: orgId,
-							userId,
-							actorId: session?.userId,
-							taskId,
-							timelineEventId: event?.id,
-							type: "assignee_added",
-						})
-							.then((notif) => {
-								if (notif && notif.userId !== session?.userId) {
-									sseBroadcastByUserId(notif.userId, "", orgId, {
-										type: "NEW_NOTIFICATION" as ServerEventBaseMessage["type"],
-										data: notif,
-										meta: { ts: Date.now() },
-									});
-								}
-							})
-							.catch(() => {});
-					}
-				}
-
-				for (const userId of currentAssigneeIds) {
-					if (!incomingAssigneeIds.includes(userId)) {
-						await db
-							.delete(schema.taskAssignee)
-							.where(
-								and(
-									eq(schema.taskAssignee.taskId, taskId),
-									eq(schema.taskAssignee.organizationId, orgId),
-									eq(schema.taskAssignee.userId, userId)
-								)
-							);
-						const event = await addLogEventTask(taskId, orgId, "assignee_removed", null, userId, session?.userId);
-						// Notify the removed user
-						createNotification({
-							organizationId: orgId,
-							userId,
-							actorId: session?.userId,
-							taskId,
-							timelineEventId: event?.id,
-							type: "assignee_removed",
-						})
-							.then((notif) => {
-								if (notif && notif.userId !== session?.userId) {
-									sseBroadcastByUserId(notif.userId, "", orgId, {
-										type: "NEW_NOTIFICATION" as ServerEventBaseMessage["type"],
-										data: notif,
-										meta: { ts: Date.now() },
-									});
-								}
-							})
-							.catch(() => {});
-					}
-				}
-			},
-			{
-				description: "Syncing task assignees",
-				data: {
-					orgId,
-					taskId,
-					currentCount: currentAssigneeIds.length,
-					incomingCount: incomingAssigneeIds.length,
-				},
-				onSuccess: () => ({
-					description: "Task assignees synced successfully",
-					data: {
-						added: incomingAssigneeIds.filter((id) => !currentAssigneeIds.includes(id)),
-						removed: currentAssigneeIds.filter((id) => !incomingAssigneeIds.includes(id)),
-					},
-				}),
-			}
-		);
-
-		// Emit ClickHouse analytics events for assignee changes
-		for (const userId of incomingAssigneeIds) {
-			if (!currentAssigneeIds.includes(userId)) {
-				emitEvent({
-					event_type: "task.assignee_added",
-					actor_id: session?.userId ?? "",
-					target_id: taskId,
-					org_id: orgId,
-					metadata: { userId },
-				});
-			}
-		}
-		for (const userId of currentAssigneeIds) {
-			if (!incomingAssigneeIds.includes(userId)) {
-				emitEvent({
-					event_type: "task.assignee_removed",
-					actor_id: session?.userId ?? "",
-					target_id: taskId,
-					org_id: orgId,
-					metadata: { userId },
-				});
-			}
-		}
-
-		const taskWithData = await traceAsync("task.assignees.update.refetch", () => getTaskById(orgId, taskId), {
-			description: "Refetching updated task data",
-		});
-
-		await traceAsync(
-			"task.assignees.update.broadcast",
-			async () => {
-				const found = findClientBysseId(sseClientId);
-				const data = {
-					type: "UPDATE_TASK" as ServerEventBaseMessage["type"],
-					data: taskWithData,
-				};
-
-				sseBroadcastToRoom(orgId, `tasks;task:${taskId}`, data, found?.id, true);
-				if (taskWithData?.visible === "public") {
-					sseBroadcastPublic(orgId, { ...data }, found?.id);
-				}
-
-				const members = await getOrganizationMembers(orgId);
-				members.forEach((member) => {
-					const clients = findSSEClientsByUserId(member.userId);
-					clients.forEach(
-						(client) =>
-							client.id !== sseClientId &&
-							!(client.channel === `task:${taskId}` || client.channel === "tasks") &&
-							sseBroadcastIndividual(client, data, orgId)
-					);
-				});
-			},
-			{ description: "Broadcasting assignee update to clients" }
-		);
-
-		return c.json({ success: true, data: taskWithData });
-	} catch (err) {
 		await recordWideError({
 			name: "task.assignees.update.error",
 			error: err,
@@ -3213,7 +2619,7 @@ apiRouteAdminProjectTask.get("/voted", async (c) => {
 	});
 });
 
-function baseTaskWhere(
+export function baseTaskWhere(
 	orgId: string,
 	categoryId?: string,
 	search?: string,

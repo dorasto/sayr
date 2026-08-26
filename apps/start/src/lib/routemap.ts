@@ -64,6 +64,15 @@ export const settingsNavigation = [
     activeClass: "fill-white",
     matchType: "exact" as const,
   },
+  {
+    title: "API keys",
+    slug: "api-keys",
+    url: "/settings/api-keys",
+    icon: Icon.IconKey,
+    activeIcon: Icon.IconKey,
+    activeClass: "fill-white",
+    matchType: "exact" as const,
+  },
 ];
 
 export type OrgSettingsNavLabel = {

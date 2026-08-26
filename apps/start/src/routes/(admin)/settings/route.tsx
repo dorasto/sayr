@@ -184,18 +184,9 @@ function SettingsHeader() {
 		);
 	}
 
-	// Account-level settings breadcrumbs
-	const isAccountSettings = pathname === "/settings";
-	const isSecuritySettings = pathname === "/settings/security";
-	const isConnectionsSettings = pathname === "/settings/connections";
-
-	const currentAccountPage = isAccountSettings
-		? settingsNavigation[0]
-		: isSecuritySettings
-			? settingsNavigation[1]
-			: isConnectionsSettings
-				? settingsNavigation[2]
-				: null;
+	// Account-level settings breadcrumbs — resolved from the nav list so new
+	// entries show up without touching this component.
+	const currentAccountPage = settingsNavigation.find((item) => item.url === pathname) ?? null;
 
 	return (
 		<PageHeader>
