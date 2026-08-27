@@ -11,3 +11,44 @@
  * you can always add it with the @source directive.
  */
 @source '../node_modules/@repo/ui';
+
+/**
+ * @repo/ui's `p { @apply leading-7; }` reset (packages/ui/src/globals.css)
+ * sits outside any @layer, and unlayered rules always beat layered ones in
+ * the CSS cascade regardless of specificity — so it beats every Tailwind
+ * utility class Fumadocs UI applies to its own compact <p> tags (e.g.
+ * `leading-none`, which lives in `@layer utilities`). That's what was
+ * blowing 14px titles and 13px descriptions out to a fixed 28px line box
+ * each, wrecking spacing in the tab dropdown.
+ *
+ * Undo it for Fumadocs UI's own elements specifically, not app-wide:
+ *  - `#nd-docs-layout` covers anything rendered inline in the docs layout.
+ *  - `.fd-scroll-container` covers popover/dropdown content (the tab
+ *    switcher, page-actions "Open" menu, etc.), which Base UI portals to
+ *    `<body>` — outside `#nd-docs-layout` — so that needs its own hook.
+ * Either way, skip `.prose p` — actual article body content still wants
+ * the generous default, supplied by Fumadocs' own typography anyway.
+ */
+.fd-scroll-container p:not(.prose p) {
+	line-height: normal;
+}
+
+#nd-docs-layout p:not(.prose p) {
+	line-height: normal;
+}
+
+/**
+ * Fumadocs UI's sidebar-tabs trigger (the closed "Documentation" pill) wraps
+ * its icon in a fixed-size box (`size-5` on desktop) but never makes that
+ * box itself `flex items-center` — so a 16px icon just sits flush at the
+ * box's top edge instead of centering inside it, reading as "too high"
+ * next to the title. (The open dropdown's list items get away with it
+ * because they additionally set `md:mb-auto`, which happens to line the
+ * box up with the title's top line instead — a top-alignment that's
+ * intentional there, unlike the single-line closed trigger.)
+ */
+[aria-haspopup="dialog"] > div:first-child:has(> svg) {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}

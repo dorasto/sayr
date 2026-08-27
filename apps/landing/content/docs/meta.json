@@ -1,0 +1,18 @@
+{
+  "title": "Documentation",
+  "root": true,
+  "description": "Using Sayr",
+  "pages": [
+    "index",
+    "quick-start",
+    "tasks",
+    "organize",
+    "visibility",
+    "account",
+    "organizations",
+    "ai",
+    "integrations",
+    "self-hosting",
+    "contributing"
+  ]
+}

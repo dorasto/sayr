@@ -15,6 +15,8 @@ import { Route as DocsChar123Char125DotmdRouteImport } from './routes/docs/{$}[.
 import { Route as DocsLlmsDottxtRouteImport } from './routes/docs/llms[.]txt'
 import { Route as DocsLlmsFullDottxtRouteImport } from './routes/docs/llms-full[.]txt'
 import { Route as DocsSplatRouteImport } from './routes/docs/$'
+import { Route as ApiSearchRouteImport } from './routes/api/search'
+import { Route as ApiOpenapiProxyRouteImport } from './routes/api/openapi-proxy'
 import { Route as MarketingPricingRouteImport } from './routes/_marketing/pricing'
 import { Route as MarketingFeaturesSlugRouteImport } from './routes/_marketing/features/$slug'
 
@@ -47,6 +49,16 @@ const DocsSplatRoute = DocsSplatRouteImport.update({
   path: '/docs/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiSearchRoute = ApiSearchRouteImport.update({
+  id: '/api/search',
+  path: '/api/search',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiOpenapiProxyRoute = ApiOpenapiProxyRouteImport.update({
+  id: '/api/openapi-proxy',
+  path: '/api/openapi-proxy',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MarketingPricingRoute = MarketingPricingRouteImport.update({
   id: '/pricing',
   path: '/pricing',
@@ -61,6 +73,8 @@ const MarketingFeaturesSlugRoute = MarketingFeaturesSlugRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof MarketingIndexRoute
   '/pricing': typeof MarketingPricingRoute
+  '/api/openapi-proxy': typeof ApiOpenapiProxyRoute
+  '/api/search': typeof ApiSearchRoute
   '/docs/$': typeof DocsSplatRoute
   '/docs/llms-full.txt': typeof DocsLlmsFullDottxtRoute
   '/docs/llms.txt': typeof DocsLlmsDottxtRoute
@@ -69,6 +83,8 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/pricing': typeof MarketingPricingRoute
+  '/api/openapi-proxy': typeof ApiOpenapiProxyRoute
+  '/api/search': typeof ApiSearchRoute
   '/docs/$': typeof DocsSplatRoute
   '/docs/llms-full.txt': typeof DocsLlmsFullDottxtRoute
   '/docs/llms.txt': typeof DocsLlmsDottxtRoute
@@ -80,6 +96,8 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_marketing': typeof MarketingRouteWithChildren
   '/_marketing/pricing': typeof MarketingPricingRoute
+  '/api/openapi-proxy': typeof ApiOpenapiProxyRoute
+  '/api/search': typeof ApiSearchRoute
   '/docs/$': typeof DocsSplatRoute
   '/docs/llms-full.txt': typeof DocsLlmsFullDottxtRoute
   '/docs/llms.txt': typeof DocsLlmsDottxtRoute
@@ -92,6 +110,8 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/pricing'
+    | '/api/openapi-proxy'
+    | '/api/search'
     | '/docs/$'
     | '/docs/llms-full.txt'
     | '/docs/llms.txt'
@@ -100,6 +120,8 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/pricing'
+    | '/api/openapi-proxy'
+    | '/api/search'
     | '/docs/$'
     | '/docs/llms-full.txt'
     | '/docs/llms.txt'
@@ -110,6 +132,8 @@ export interface FileRouteTypes {
     | '__root__'
     | '/_marketing'
     | '/_marketing/pricing'
+    | '/api/openapi-proxy'
+    | '/api/search'
     | '/docs/$'
     | '/docs/llms-full.txt'
     | '/docs/llms.txt'
@@ -120,6 +144,8 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   MarketingRoute: typeof MarketingRouteWithChildren
+  ApiOpenapiProxyRoute: typeof ApiOpenapiProxyRoute
+  ApiSearchRoute: typeof ApiSearchRoute
   DocsSplatRoute: typeof DocsSplatRoute
   DocsLlmsFullDottxtRoute: typeof DocsLlmsFullDottxtRoute
   DocsLlmsDottxtRoute: typeof DocsLlmsDottxtRoute
@@ -170,6 +196,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DocsSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/search': {
+      id: '/api/search'
+      path: '/api/search'
+      fullPath: '/api/search'
+      preLoaderRoute: typeof ApiSearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/openapi-proxy': {
+      id: '/api/openapi-proxy'
+      path: '/api/openapi-proxy'
+      fullPath: '/api/openapi-proxy'
+      preLoaderRoute: typeof ApiOpenapiProxyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_marketing/pricing': {
       id: '/_marketing/pricing'
       path: '/pricing'
@@ -205,6 +245,8 @@ const MarketingRouteWithChildren = MarketingRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   MarketingRoute: MarketingRouteWithChildren,
+  ApiOpenapiProxyRoute: ApiOpenapiProxyRoute,
+  ApiSearchRoute: ApiSearchRoute,
   DocsSplatRoute: DocsSplatRoute,
   DocsLlmsFullDottxtRoute: DocsLlmsFullDottxtRoute,
   DocsLlmsDottxtRoute: DocsLlmsDottxtRoute,

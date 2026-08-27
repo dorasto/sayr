@@ -6,7 +6,7 @@ import { DocsLayout } from "fumadocs-ui/layouts/docs";
 import { DocsBody, DocsDescription, DocsPage, DocsTitle } from "fumadocs-ui/layouts/docs/page";
 import { MarkdownCopyButton, ViewOptionsPopover } from "@/components/ai/page-actions";
 import { getMDXComponents } from "@/components/mdx";
-import { docsTabs } from "@/lib/layout.shared";
+import { baseOptions, docsTabs } from "@/lib/layout.shared";
 import { encodeMarkdownUrl } from "@/lib/shared";
 import { source } from "@/lib/source";
 
@@ -18,6 +18,15 @@ export const Route = createFileRoute("/docs/$")({
 		await clientLoader.preload(data.path);
 		return data;
 	},
+	head: ({ loaderData }) =>
+		loaderData
+			? {
+					meta: [
+						{ title: `${loaderData.title} - Sayr` },
+						{ name: "description", content: loaderData.description },
+					],
+				}
+			: {},
 });
 
 const serverLoader = createServerFn({ method: "GET" })
@@ -37,27 +46,46 @@ const serverLoader = createServerFn({ method: "GET" })
 		};
 	});
 
-const clientLoader = browserCollections.docs.createClientLoader({
-	component({ default: MDX }) {
-		return <MDX components={getMDXComponents()} />;
+// The compiled MDX module (not the server loader) is the only place `toc` is
+// safe to read from — headings with inline code/formatting compile `toc[].title`
+// to a `ReactNode`, which can't round-trip through the server-fn's serialized
+// loader payload. `title`/`description`/`markdownUrl`/`githubUrl` are plain
+// strings computed server-side above, so they're passed through as props instead.
+const clientLoader = browserCollections.docs.createClientLoader<{
+	title: string;
+	description?: string;
+	markdownUrl: string;
+	githubUrl: string;
+}>({
+	component({ default: MDX, toc }, { title, description, markdownUrl, githubUrl }) {
+		return (
+			<DocsPage toc={toc}>
+				<DocsTitle>{title}</DocsTitle>
+				<DocsDescription>{description}</DocsDescription>
+				<div className="flex flex-row gap-2 items-center border-b pt-2 pb-6">
+					<MarkdownCopyButton markdownUrl={markdownUrl} />
+					<ViewOptionsPopover markdownUrl={markdownUrl} githubUrl={githubUrl} />
+				</div>
+				<DocsBody>
+					<MDX components={getMDXComponents()} />
+				</DocsBody>
+			</DocsPage>
+		);
 	},
 });
 
 function Page() {
 	const data = useFumadocsLoader(Route.useLoaderData());
-	const content = clientLoader.useContent(data.path);
+	const content = clientLoader.useContent(data.path, {
+		title: data.title,
+		description: data.description,
+		markdownUrl: data.markdownUrl,
+		githubUrl: data.githubUrl,
+	});
 
 	return (
-		<DocsLayout tree={data.pageTree} tabs={docsTabs}>
-			<DocsPage>
-				<DocsTitle>{data.title}</DocsTitle>
-				<DocsDescription>{data.description}</DocsDescription>
-				<div className="flex flex-row gap-2 items-center border-b pt-2 pb-6">
-					<MarkdownCopyButton markdownUrl={data.markdownUrl} />
-					<ViewOptionsPopover markdownUrl={data.markdownUrl} githubUrl={data.githubUrl} />
-				</div>
-				<DocsBody>{content}</DocsBody>
-			</DocsPage>
+		<DocsLayout {...baseOptions()} tree={data.pageTree} tabs={docsTabs}>
+			{content}
 		</DocsLayout>
 	);
 }
