@@ -1,5 +1,6 @@
 import type { QueryClient } from "@tanstack/react-query";
 import { createRootRouteWithContext, HeadContent, Scripts } from "@tanstack/react-router";
+import { RootProvider } from "fumadocs-ui/provider/tanstack";
 import { ThemeProvider } from "@/components/theme-provider";
 import { getThemeServerFn } from "@/lib/theme";
 import appCss from "../styles.css?url";
@@ -27,7 +28,12 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 				<HeadContent />
 			</head>
 			<body>
-				<ThemeProvider theme={theme}>{children}</ThemeProvider>
+				<ThemeProvider theme={theme}>
+					{/* Fumadocs' own next-themes integration is disabled — dark mode is
+					    already driven by the cookie-based <html className> above, which
+					    Fumadocs' CSS keys off regardless of what sets it. */}
+					<RootProvider theme={{ enabled: false }}>{children}</RootProvider>
+				</ThemeProvider>
 				<Scripts />
 			</body>
 		</html>

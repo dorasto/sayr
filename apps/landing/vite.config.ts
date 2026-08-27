@@ -1,7 +1,9 @@
+import { fileURLToPath, URL } from "node:url";
 import tailwindcss from "@tailwindcss/vite";
 import { devtools } from "@tanstack/devtools-vite";
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import viteReact from "@vitejs/plugin-react";
+import mdx from "fumadocs-mdx/vite";
 import { nitro } from "nitro/vite";
 import { defineConfig, loadEnv } from "vite";
 import viteTsConfigPaths from "vite-tsconfig-paths";
@@ -23,6 +25,11 @@ const config = defineConfig({
 		"import.meta.env.VITE_APP_VERSION": JSON.stringify(env.VITE_APP_VERSION ?? "localhost"),
 		"import.meta.env.VITE_SAYR_EDITION": JSON.stringify(env.SAYR_EDITION_BAKED ?? env.SAYR_EDITION ?? "community"),
 	},
+	resolve: {
+		alias: {
+			collections: fileURLToPath(new URL("./.source", import.meta.url)),
+		},
+	},
 	server: {
 		allowedHosts: true,
 	},
@@ -31,6 +38,7 @@ const config = defineConfig({
 		target: "node",
 	},
 	plugins: [
+		mdx(),
 		devtools(),
 		!isDev &&
 			nitro({

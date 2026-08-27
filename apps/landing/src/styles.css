@@ -1,5 +1,7 @@
 @import "tailwindcss";
 @import "@repo/ui/globals.css";
+@import "fumadocs-ui/css/neutral.css";
+@import "fumadocs-ui/css/preset.css";
 @source "../**/*.{ts,tsx}";
 /**
  * Tailwind CSS official document:
