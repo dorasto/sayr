@@ -19,6 +19,7 @@
 	},
 	"dependencies": {
 		"@clack/prompts": "^0.9.1",
+		"@repo/util": "workspace:*",
 		"commander": "^13.1.0",
 		"picocolors": "^1.1.1"
 	},
