@@ -29,11 +29,6 @@ const serverLoader = createServerFn({ method: "GET" })
 			path: page.path,
 			title: page.data.title,
 			description: page.data.description,
-			toc: page.data.toc.map(({ depth, title, url }) => ({
-				depth,
-				title: typeof title === "string" ? title : String(title),
-				url,
-			})),
 			pageTree,
 		};
 	});
@@ -49,8 +44,8 @@ function Page() {
 	const content = clientLoader.useContent(data.path);
 
 	return (
-		<DocsLayout tree={data.pageTree} tabs={docsTabs} tabMode="top">
-			<DocsPage toc={data.toc}>
+		<DocsLayout tree={data.pageTree} tabs={docsTabs}>
+			<DocsPage>
 				<DocsTitle>{data.title}</DocsTitle>
 				<DocsDescription>{data.description}</DocsDescription>
 				<DocsBody>{content}</DocsBody>
