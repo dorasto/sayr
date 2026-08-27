@@ -4,8 +4,10 @@ import browserCollections from "collections/browser";
 import { useFumadocsLoader } from "fumadocs-core/source/client";
 import { DocsLayout } from "fumadocs-ui/layouts/docs";
 import { DocsBody, DocsDescription, DocsPage, DocsTitle } from "fumadocs-ui/layouts/docs/page";
+import { MarkdownCopyButton, ViewOptionsPopover } from "@/components/ai/page-actions";
 import { getMDXComponents } from "@/components/mdx";
 import { docsTabs } from "@/lib/layout.shared";
+import { encodeMarkdownUrl } from "@/lib/shared";
 import { source } from "@/lib/source";
 
 export const Route = createFileRoute("/docs/$")({
@@ -30,6 +32,8 @@ const serverLoader = createServerFn({ method: "GET" })
 			title: page.data.title,
 			description: page.data.description,
 			pageTree,
+			markdownUrl: encodeMarkdownUrl(page.slugs),
+			githubUrl: `https://github.com/dorasto/sayr/blob/main/apps/landing/content/docs/${page.path}`,
 		};
 	});
 
@@ -48,6 +52,10 @@ function Page() {
 			<DocsPage>
 				<DocsTitle>{data.title}</DocsTitle>
 				<DocsDescription>{data.description}</DocsDescription>
+				<div className="flex flex-row gap-2 items-center border-b pt-2 pb-6">
+					<MarkdownCopyButton markdownUrl={data.markdownUrl} />
+					<ViewOptionsPopover markdownUrl={data.markdownUrl} githubUrl={data.githubUrl} />
+				</div>
 				<DocsBody>{content}</DocsBody>
 			</DocsPage>
 		</DocsLayout>

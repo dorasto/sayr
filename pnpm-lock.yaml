@@ -145,6 +145,12 @@ importers:
       '@cap.js/widget':
         specifier: ^0.1.35
         version: 0.1.35
+      '@fuma-translate/react':
+        specifier: ^1.0.2
+        version: 1.0.2(@types/react@19.2.8)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      '@fumadocs/base-ui':
+        specifier: ^16.15.3
+        version: 16.15.3(@date-fns/tz@1.4.1)(@types/mdx@2.0.14)(@types/react@19.2.8)(date-fns@4.1.0)(fumadocs-core@16.15.2(@mdx-js/mdx@3.1.1)(@tanstack/react-router@1.157.17(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(@types/estree-jsx@1.0.5)(@types/hast@3.0.5)(@types/mdast@4.0.4)(@types/react@19.2.8)(lucide-react@0.562.0(react@19.2.3))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(zod@4.4.3))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(tailwindcss@4.2.4)
       '@repo/edition':
         specifier: workspace:*
         version: link:../../packages/edition
@@ -181,6 +187,9 @@ importers:
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
+      cnfast:
+        specifier: ^0.1.0
+        version: 0.1.0
       fumadocs-core:
         specifier: ^16.15.2
         version: 16.15.2(@mdx-js/mdx@3.1.1)(@tanstack/react-router@1.157.17(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(@types/estree-jsx@1.0.5)(@types/hast@3.0.5)(@types/mdast@4.0.4)(@types/react@19.2.8)(lucide-react@0.562.0(react@19.2.3))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(zod@4.4.3)
@@ -227,6 +236,15 @@ importers:
       '@tanstack/devtools-vite':
         specifier: ^0.6.0
         version: 0.6.0(vite@8.0.10(@types/node@22.19.1)(esbuild@0.28.2)(tsx@4.21.0)(yaml@2.9.0))
+      '@tanstack/react-devtools':
+        specifier: ^0.9.4
+        version: 0.9.4(@types/react-dom@19.2.3(@types/react@19.2.8))(@types/react@19.2.8)(csstype@3.2.3)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(solid-js@1.9.10)
+      '@tanstack/react-query-devtools':
+        specifier: ^5.91.3
+        version: 5.91.3(@tanstack/react-query@5.90.20(react@19.2.3))(react@19.2.3)
+      '@tanstack/react-router-devtools':
+        specifier: ^1.157.17
+        version: 1.157.17(@tanstack/react-router@1.157.17(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(@tanstack/router-core@1.157.16)(csstype@3.2.3)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       '@types/mdx':
         specifier: ^2.0.14
         version: 2.0.14
@@ -2858,6 +2876,26 @@ packages:
       react-dom: ^19.2.0
     peerDependenciesMeta:
       '@types/react':
+        optional: true
+
+  '@fumadocs/base-ui@16.15.3':
+    resolution: {integrity: sha512-fTGh+H8ZvMD0B64T3UGroY/FOG8aRwEDCaJOpqfvezlyDRwLVYU1+PwpMjNxhvngPsCwZ7lgrzipAtI1hEcoqw==}
+    peerDependencies:
+      '@types/mdx': '*'
+      '@types/react': '*'
+      fumadocs-core: 16.15.3
+      next: 16.x.x
+      react: ^19.2.0
+      react-dom: ^19.2.0
+      takumi-js: '*'
+    peerDependenciesMeta:
+      '@types/mdx':
+        optional: true
+      '@types/react':
+        optional: true
+      next:
+        optional: true
+      takumi-js:
         optional: true
 
   '@fumadocs/tailwind@0.1.1':
@@ -12498,7 +12536,7 @@ snapshots:
       remark-rehype: 11.1.2
       remark-smartypants: 3.0.2
       retext-smartypants: 6.2.0
-      shiki: 4.1.0
+      shiki: 4.4.3
       smol-toml: 1.6.1
       unified: 11.0.5
       unist-util-remove-position: 5.0.0
@@ -14121,6 +14159,32 @@ snapshots:
       react-dom: 19.2.3(react@19.2.3)
     optionalDependencies:
       '@types/react': 19.2.8
+
+  '@fumadocs/base-ui@16.15.3(@date-fns/tz@1.4.1)(@types/mdx@2.0.14)(@types/react@19.2.8)(date-fns@4.1.0)(fumadocs-core@16.15.2(@mdx-js/mdx@3.1.1)(@tanstack/react-router@1.157.17(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(@types/estree-jsx@1.0.5)(@types/hast@3.0.5)(@types/mdast@4.0.4)(@types/react@19.2.8)(lucide-react@0.562.0(react@19.2.3))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(zod@4.4.3))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(tailwindcss@4.2.4)':
+    dependencies:
+      '@base-ui/react': 1.7.0(@date-fns/tz@1.4.1)(@types/react@19.2.8)(date-fns@4.1.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      '@fuma-translate/react': 1.0.2(@types/react@19.2.8)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      '@fumadocs/tailwind': 0.1.1(tailwindcss@4.2.4)
+      class-variance-authority: 0.7.1
+      cnfast: 0.1.0
+      fumadocs-core: 16.15.2(@mdx-js/mdx@3.1.1)(@tanstack/react-router@1.157.17(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(@types/estree-jsx@1.0.5)(@types/hast@3.0.5)(@types/mdast@4.0.4)(@types/react@19.2.8)(lucide-react@0.562.0(react@19.2.3))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(zod@4.4.3)
+      lucide-react: 1.34.0(react@19.2.3)
+      motion: 13.1.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      next-themes: 0.4.6(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      react: 19.2.3
+      react-dom: 19.2.3(react@19.2.3)
+      react-remove-scroll: 2.7.2(@types/react@19.2.8)(react@19.2.3)
+      rehype-raw: 7.0.0
+      scroll-into-view-if-needed: 3.1.0
+      shiki: 4.4.3
+      unist-util-visit: 5.1.0
+    optionalDependencies:
+      '@types/mdx': 2.0.14
+      '@types/react': 19.2.8
+    transitivePeerDependencies:
+      - '@date-fns/tz'
+      - date-fns
+      - tailwindcss
 
   '@fumadocs/tailwind@0.1.1(tailwindcss@4.2.4)':
     optionalDependencies:
@@ -16123,7 +16187,7 @@ snapshots:
       aria-hidden: 1.2.6
       react: 19.2.3
       react-dom: 19.2.3(react@19.2.3)
-      react-remove-scroll: 2.7.1(@types/react@19.1.8)(react@19.2.3)
+      react-remove-scroll: 2.7.2(@types/react@19.1.8)(react@19.2.3)
     optionalDependencies:
       '@types/react': 19.1.8
       '@types/react-dom': 19.1.6(@types/react@19.1.8)
@@ -16145,7 +16209,7 @@ snapshots:
       aria-hidden: 1.2.6
       react: 19.2.3
       react-dom: 19.2.3(react@19.2.3)
-      react-remove-scroll: 2.7.1(@types/react@19.2.7)(react@19.2.3)
+      react-remove-scroll: 2.7.2(@types/react@19.2.7)(react@19.2.3)
     optionalDependencies:
       '@types/react': 19.2.7
       '@types/react-dom': 19.2.3(@types/react@19.2.7)
@@ -16167,7 +16231,7 @@ snapshots:
       aria-hidden: 1.2.6
       react: 19.2.3
       react-dom: 19.2.3(react@19.2.3)
-      react-remove-scroll: 2.7.1(@types/react@19.2.8)(react@19.2.3)
+      react-remove-scroll: 2.7.2(@types/react@19.2.8)(react@19.2.3)
     optionalDependencies:
       '@types/react': 19.2.8
 
@@ -16578,7 +16642,7 @@ snapshots:
       aria-hidden: 1.2.6
       react: 19.2.3
       react-dom: 19.2.3(react@19.2.3)
-      react-remove-scroll: 2.7.1(@types/react@19.1.8)(react@19.2.3)
+      react-remove-scroll: 2.7.2(@types/react@19.1.8)(react@19.2.3)
     optionalDependencies:
       '@types/react': 19.1.8
       '@types/react-dom': 19.1.6(@types/react@19.1.8)
@@ -16604,7 +16668,7 @@ snapshots:
       aria-hidden: 1.2.6
       react: 19.2.3
       react-dom: 19.2.3(react@19.2.3)
-      react-remove-scroll: 2.7.1(@types/react@19.1.8)(react@19.2.3)
+      react-remove-scroll: 2.7.2(@types/react@19.1.8)(react@19.2.3)
     optionalDependencies:
       '@types/react': 19.1.8
       '@types/react-dom': 19.1.6(@types/react@19.1.8)
@@ -16630,7 +16694,7 @@ snapshots:
       aria-hidden: 1.2.6
       react: 19.2.3
       react-dom: 19.2.3(react@19.2.3)
-      react-remove-scroll: 2.7.1(@types/react@19.2.7)(react@19.2.3)
+      react-remove-scroll: 2.7.2(@types/react@19.2.7)(react@19.2.3)
     optionalDependencies:
       '@types/react': 19.2.7
       '@types/react-dom': 19.2.3(@types/react@19.2.7)
@@ -16656,7 +16720,7 @@ snapshots:
       aria-hidden: 1.2.6
       react: 19.2.3
       react-dom: 19.2.3(react@19.2.3)
-      react-remove-scroll: 2.7.1(@types/react@19.2.8)(react@19.2.3)
+      react-remove-scroll: 2.7.2(@types/react@19.2.8)(react@19.2.3)
     optionalDependencies:
       '@types/react': 19.2.8
 
@@ -16839,7 +16903,7 @@ snapshots:
       aria-hidden: 1.2.6
       react: 19.2.3
       react-dom: 19.2.3(react@19.2.3)
-      react-remove-scroll: 2.7.1(@types/react@19.1.8)(react@19.2.3)
+      react-remove-scroll: 2.7.2(@types/react@19.1.8)(react@19.2.3)
     optionalDependencies:
       '@types/react': 19.1.8
       '@types/react-dom': 19.1.6(@types/react@19.1.8)
@@ -16862,7 +16926,7 @@ snapshots:
       aria-hidden: 1.2.6
       react: 19.2.3
       react-dom: 19.2.3(react@19.2.3)
-      react-remove-scroll: 2.7.1(@types/react@19.2.7)(react@19.2.3)
+      react-remove-scroll: 2.7.2(@types/react@19.2.7)(react@19.2.3)
     optionalDependencies:
       '@types/react': 19.2.7
       '@types/react-dom': 19.2.3(@types/react@19.2.7)
@@ -16885,7 +16949,7 @@ snapshots:
       aria-hidden: 1.2.6
       react: 19.2.3
       react-dom: 19.2.3(react@19.2.3)
-      react-remove-scroll: 2.7.1(@types/react@19.2.8)(react@19.2.3)
+      react-remove-scroll: 2.7.2(@types/react@19.2.8)(react@19.2.3)
     optionalDependencies:
       '@types/react': 19.2.8
 
@@ -17413,7 +17477,7 @@ snapshots:
       aria-hidden: 1.2.6
       react: 19.2.3
       react-dom: 19.2.3(react@19.2.3)
-      react-remove-scroll: 2.7.1(@types/react@19.1.8)(react@19.2.3)
+      react-remove-scroll: 2.7.2(@types/react@19.1.8)(react@19.2.3)
     optionalDependencies:
       '@types/react': 19.1.8
       '@types/react-dom': 19.1.6(@types/react@19.1.8)
@@ -17442,7 +17506,7 @@ snapshots:
       aria-hidden: 1.2.6
       react: 19.2.3
       react-dom: 19.2.3(react@19.2.3)
-      react-remove-scroll: 2.7.1(@types/react@19.2.7)(react@19.2.3)
+      react-remove-scroll: 2.7.2(@types/react@19.2.7)(react@19.2.3)
     optionalDependencies:
       '@types/react': 19.2.7
       '@types/react-dom': 19.2.3(@types/react@19.2.7)
@@ -17471,7 +17535,7 @@ snapshots:
       aria-hidden: 1.2.6
       react: 19.2.3
       react-dom: 19.2.3(react@19.2.3)
-      react-remove-scroll: 2.7.1(@types/react@19.2.8)(react@19.2.3)
+      react-remove-scroll: 2.7.2(@types/react@19.2.8)(react@19.2.3)
     optionalDependencies:
       '@types/react': 19.2.8
 
@@ -19774,7 +19838,7 @@ snapshots:
 
   '@tanstack/devtools-event-bus@0.4.0':
     dependencies:
-      ws: 8.18.3
+      ws: 8.20.1
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
@@ -19853,6 +19917,19 @@ snapshots:
       '@tanstack/devtools': 0.10.5(csstype@3.2.3)(solid-js@1.9.10)
       '@types/react': 19.2.7
       '@types/react-dom': 19.2.3(@types/react@19.2.7)
+      react: 19.2.3
+      react-dom: 19.2.3(react@19.2.3)
+    transitivePeerDependencies:
+      - bufferutil
+      - csstype
+      - solid-js
+      - utf-8-validate
+
+  '@tanstack/react-devtools@0.9.4(@types/react-dom@19.2.3(@types/react@19.2.8))(@types/react@19.2.8)(csstype@3.2.3)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(solid-js@1.9.10)':
+    dependencies:
+      '@tanstack/devtools': 0.10.5(csstype@3.2.3)(solid-js@1.9.10)
+      '@types/react': 19.2.8
+      '@types/react-dom': 19.2.3(@types/react@19.2.8)
       react: 19.2.3
       react-dom: 19.2.3(react@19.2.3)
     transitivePeerDependencies:
@@ -24547,6 +24624,28 @@ snapshots:
       use-sidecar: 1.1.3(@types/react@19.2.8)(react@19.2.3)
     optionalDependencies:
       '@types/react': 19.2.8
+
+  react-remove-scroll@2.7.2(@types/react@19.1.8)(react@19.2.3):
+    dependencies:
+      react: 19.2.3
+      react-remove-scroll-bar: 2.3.8(@types/react@19.1.8)(react@19.2.3)
+      react-style-singleton: 2.2.3(@types/react@19.1.8)(react@19.2.3)
+      tslib: 2.8.1
+      use-callback-ref: 1.3.3(@types/react@19.1.8)(react@19.2.3)
+      use-sidecar: 1.1.3(@types/react@19.1.8)(react@19.2.3)
+    optionalDependencies:
+      '@types/react': 19.1.8
+
+  react-remove-scroll@2.7.2(@types/react@19.2.7)(react@19.2.3):
+    dependencies:
+      react: 19.2.3
+      react-remove-scroll-bar: 2.3.8(@types/react@19.2.7)(react@19.2.3)
+      react-style-singleton: 2.2.3(@types/react@19.2.7)(react@19.2.3)
+      tslib: 2.8.1
+      use-callback-ref: 1.3.3(@types/react@19.2.7)(react@19.2.3)
+      use-sidecar: 1.1.3(@types/react@19.2.7)(react@19.2.3)
+    optionalDependencies:
+      '@types/react': 19.2.7
 
   react-remove-scroll@2.7.2(@types/react@19.2.8)(react@19.2.3):
     dependencies:

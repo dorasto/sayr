@@ -8,17 +8,17 @@ import { Navbar } from "@/components/layout/navigationbar";
 // instead of this one, since a docs sidebar shell doesn't want the marketing
 // nav/footer wrapped around it too.
 export const Route = createFileRoute("/_marketing")({
-	component: MarketingLayout,
+  component: MarketingLayout,
 });
 
 function MarketingLayout() {
-	return (
-		<div className="flex min-h-screen flex-col gap-2 p-2">
-			<Navbar />
-			<main className="flex-1">
-				<Outlet />
-			</main>
-			<Footer />
-		</div>
-	);
+  return (
+    <div className="flex min-h-screen flex-col">
+      <Navbar />
+      <main className="flex-1">
+        <Outlet />
+      </main>
+      <Footer />
+    </div>
+  );
 }

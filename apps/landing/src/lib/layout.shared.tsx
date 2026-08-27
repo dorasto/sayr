@@ -8,28 +8,29 @@ import type { BaseLayoutProps } from "fumadocs-ui/layouts/shared";
  * this was ported from.
  */
 export function baseOptions(): BaseLayoutProps {
-	return {
-		nav: {
-			title: "Sayr",
-		},
-		githubUrl: "https://github.com/dorasto/sayr",
-	};
+  return {
+    nav: {
+      title: "Sayr",
+      transparentMode: "top",
+    },
+    githubUrl: "https://github.com/dorasto/sayr",
+  };
 }
 
 export const docsTabs = [
-	{
-		title: "Documentation",
-		description: "Guides and references",
-		url: "/docs",
-	},
-	{
-		title: "API",
-		description: "REST API reference",
-		url: "/docs/api",
-	},
-	{
-		title: "Knowledge Base",
-		description: "Common questions answered",
-		url: "/docs/knowledge-base",
-	},
+  {
+    title: "Documentation",
+    description: "Guides and references",
+    url: "/docs",
+  },
+  {
+    title: "API",
+    description: "REST API reference",
+    url: "/docs/api",
+  },
+  {
+    title: "Knowledge Base",
+    description: "Common questions answered",
+    url: "/docs/knowledge-base",
+  },
 ];

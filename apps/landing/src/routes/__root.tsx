@@ -1,5 +1,8 @@
+import { TanStackDevtools } from "@tanstack/react-devtools";
 import type { QueryClient } from "@tanstack/react-query";
+import { ReactQueryDevtoolsPanel } from "@tanstack/react-query-devtools";
 import { createRootRouteWithContext, HeadContent, Scripts } from "@tanstack/react-router";
+import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import { RootProvider } from "fumadocs-ui/provider/tanstack";
 import { ThemeProvider } from "@/components/theme-provider";
 import { getThemeServerFn } from "@/lib/theme";
@@ -34,6 +37,20 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 					    Fumadocs' CSS keys off regardless of what sets it. */}
 					<RootProvider theme={{ enabled: false }}>{children}</RootProvider>
 				</ThemeProvider>
+				<TanStackDevtools
+					plugins={[
+						{
+							name: "TanStack Query",
+							render: <ReactQueryDevtoolsPanel />,
+							defaultOpen: true,
+						},
+						{
+							name: "TanStack Router",
+							render: <TanStackRouterDevtoolsPanel />,
+							defaultOpen: false,
+						},
+					]}
+				/>
 				<Scripts />
 			</body>
 		</html>

@@ -11,8 +11,12 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as MarketingRouteImport } from './routes/_marketing'
 import { Route as MarketingIndexRouteImport } from './routes/_marketing/index'
+import { Route as DocsChar123Char125DotmdRouteImport } from './routes/docs/{$}[.]md'
+import { Route as DocsLlmsDottxtRouteImport } from './routes/docs/llms[.]txt'
+import { Route as DocsLlmsFullDottxtRouteImport } from './routes/docs/llms-full[.]txt'
 import { Route as DocsSplatRouteImport } from './routes/docs/$'
 import { Route as MarketingPricingRouteImport } from './routes/_marketing/pricing'
+import { Route as MarketingFeaturesSlugRouteImport } from './routes/_marketing/features/$slug'
 
 const MarketingRoute = MarketingRouteImport.update({
   id: '/_marketing',
@@ -22,6 +26,21 @@ const MarketingIndexRoute = MarketingIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => MarketingRoute,
+} as any)
+const DocsChar123Char125DotmdRoute = DocsChar123Char125DotmdRouteImport.update({
+  id: '/docs/{$}.md',
+  path: '/docs/{$}.md',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DocsLlmsDottxtRoute = DocsLlmsDottxtRouteImport.update({
+  id: '/docs/llms.txt',
+  path: '/docs/llms.txt',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DocsLlmsFullDottxtRoute = DocsLlmsFullDottxtRouteImport.update({
+  id: '/docs/llms-full.txt',
+  path: '/docs/llms-full.txt',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const DocsSplatRoute = DocsSplatRouteImport.update({
   id: '/docs/$',
@@ -33,40 +52,78 @@ const MarketingPricingRoute = MarketingPricingRouteImport.update({
   path: '/pricing',
   getParentRoute: () => MarketingRoute,
 } as any)
+const MarketingFeaturesSlugRoute = MarketingFeaturesSlugRouteImport.update({
+  id: '/features/$slug',
+  path: '/features/$slug',
+  getParentRoute: () => MarketingRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof MarketingIndexRoute
   '/pricing': typeof MarketingPricingRoute
   '/docs/$': typeof DocsSplatRoute
+  '/docs/llms-full.txt': typeof DocsLlmsFullDottxtRoute
+  '/docs/llms.txt': typeof DocsLlmsDottxtRoute
+  '/docs/{$}.md': typeof DocsChar123Char125DotmdRoute
+  '/features/$slug': typeof MarketingFeaturesSlugRoute
 }
 export interface FileRoutesByTo {
   '/pricing': typeof MarketingPricingRoute
   '/docs/$': typeof DocsSplatRoute
+  '/docs/llms-full.txt': typeof DocsLlmsFullDottxtRoute
+  '/docs/llms.txt': typeof DocsLlmsDottxtRoute
+  '/docs/{$}.md': typeof DocsChar123Char125DotmdRoute
   '/': typeof MarketingIndexRoute
+  '/features/$slug': typeof MarketingFeaturesSlugRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_marketing': typeof MarketingRouteWithChildren
   '/_marketing/pricing': typeof MarketingPricingRoute
   '/docs/$': typeof DocsSplatRoute
+  '/docs/llms-full.txt': typeof DocsLlmsFullDottxtRoute
+  '/docs/llms.txt': typeof DocsLlmsDottxtRoute
+  '/docs/{$}.md': typeof DocsChar123Char125DotmdRoute
   '/_marketing/': typeof MarketingIndexRoute
+  '/_marketing/features/$slug': typeof MarketingFeaturesSlugRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/pricing' | '/docs/$'
+  fullPaths:
+    | '/'
+    | '/pricing'
+    | '/docs/$'
+    | '/docs/llms-full.txt'
+    | '/docs/llms.txt'
+    | '/docs/{$}.md'
+    | '/features/$slug'
   fileRoutesByTo: FileRoutesByTo
-  to: '/pricing' | '/docs/$' | '/'
+  to:
+    | '/pricing'
+    | '/docs/$'
+    | '/docs/llms-full.txt'
+    | '/docs/llms.txt'
+    | '/docs/{$}.md'
+    | '/'
+    | '/features/$slug'
   id:
     | '__root__'
     | '/_marketing'
     | '/_marketing/pricing'
     | '/docs/$'
+    | '/docs/llms-full.txt'
+    | '/docs/llms.txt'
+    | '/docs/{$}.md'
     | '/_marketing/'
+    | '/_marketing/features/$slug'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   MarketingRoute: typeof MarketingRouteWithChildren
   DocsSplatRoute: typeof DocsSplatRoute
+  DocsLlmsFullDottxtRoute: typeof DocsLlmsFullDottxtRoute
+  DocsLlmsDottxtRoute: typeof DocsLlmsDottxtRoute
+  DocsChar123Char125DotmdRoute: typeof DocsChar123Char125DotmdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -85,6 +142,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MarketingIndexRouteImport
       parentRoute: typeof MarketingRoute
     }
+    '/docs/{$}.md': {
+      id: '/docs/{$}.md'
+      path: '/docs/{$}.md'
+      fullPath: '/docs/{$}.md'
+      preLoaderRoute: typeof DocsChar123Char125DotmdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/docs/llms.txt': {
+      id: '/docs/llms.txt'
+      path: '/docs/llms.txt'
+      fullPath: '/docs/llms.txt'
+      preLoaderRoute: typeof DocsLlmsDottxtRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/docs/llms-full.txt': {
+      id: '/docs/llms-full.txt'
+      path: '/docs/llms-full.txt'
+      fullPath: '/docs/llms-full.txt'
+      preLoaderRoute: typeof DocsLlmsFullDottxtRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/docs/$': {
       id: '/docs/$'
       path: '/docs/$'
@@ -99,17 +177,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MarketingPricingRouteImport
       parentRoute: typeof MarketingRoute
     }
+    '/_marketing/features/$slug': {
+      id: '/_marketing/features/$slug'
+      path: '/features/$slug'
+      fullPath: '/features/$slug'
+      preLoaderRoute: typeof MarketingFeaturesSlugRouteImport
+      parentRoute: typeof MarketingRoute
+    }
   }
 }
 
 interface MarketingRouteChildren {
   MarketingPricingRoute: typeof MarketingPricingRoute
   MarketingIndexRoute: typeof MarketingIndexRoute
+  MarketingFeaturesSlugRoute: typeof MarketingFeaturesSlugRoute
 }
 
 const MarketingRouteChildren: MarketingRouteChildren = {
   MarketingPricingRoute: MarketingPricingRoute,
   MarketingIndexRoute: MarketingIndexRoute,
+  MarketingFeaturesSlugRoute: MarketingFeaturesSlugRoute,
 }
 
 const MarketingRouteWithChildren = MarketingRoute._addFileChildren(
@@ -119,6 +206,9 @@ const MarketingRouteWithChildren = MarketingRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   MarketingRoute: MarketingRouteWithChildren,
   DocsSplatRoute: DocsSplatRoute,
+  DocsLlmsFullDottxtRoute: DocsLlmsFullDottxtRoute,
+  DocsLlmsDottxtRoute: DocsLlmsDottxtRoute,
+  DocsChar123Char125DotmdRoute: DocsChar123Char125DotmdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
