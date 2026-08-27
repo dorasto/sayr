@@ -19,6 +19,7 @@
 	},
 	"dependencies": {
 		"@base-ui/react": "^1.7.0",
+		"@cap.js/widget": "^0.1.35",
 		"@repo/edition": "workspace:*",
 		"@repo/ui": "workspace:*",
 		"@repo/util": "workspace:*",
@@ -32,6 +33,7 @@
 		"class-variance-authority": "^0.7.1",
 		"clsx": "^2.1.1",
 		"lucide-react": "^0.562.0",
+		"motion": "^12.34.3",
 		"nitro": "latest",
 		"react": "^19.2.3",
 		"react-dom": "^19.2.3",
