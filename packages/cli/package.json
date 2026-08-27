@@ -1,0 +1,31 @@
+{
+	"name": "@sayrio/cli",
+	"version": "0.0.1",
+	"description": "Sayr.io command-line interface — manage tasks and comments from your terminal",
+	"license": "MIT",
+	"type": "module",
+	"bin": {
+		"sayr": "dist/index.js"
+	},
+	"files": [
+		"dist"
+	],
+	"engines": {
+		"node": ">=18"
+	},
+	"scripts": {
+		"build": "tsup",
+		"dev": "tsup --watch --onSuccess \"node dist/index.js\""
+	},
+	"dependencies": {
+		"@clack/prompts": "^0.9.1",
+		"commander": "^13.1.0",
+		"picocolors": "^1.1.1"
+	},
+	"devDependencies": {
+		"@repo/typescript-config": "workspace:*",
+		"@types/node": "^24.0.14",
+		"tsup": "^8.0.0",
+		"typescript": "^5.8.3"
+	}
+}
