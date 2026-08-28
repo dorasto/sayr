@@ -55,6 +55,12 @@ export function requireApiKey(): MiddlewareHandler<AppEnv> {
 
 		if (!result?.valid || !result.key || !result.key.enabled || !result.key.referenceId) {
 			if (result?.error?.code === "RATE_LIMITED") {
+				//@ts-ignore
+				const retryAfterMs = result?.error?.details?.tryAgainIn;
+				const retryAfterSeconds = retryAfterMs
+					? Math.ceil(retryAfterMs / 1000)
+					: undefined;
+				c.header("Retry-After", String(retryAfterSeconds));
 				return c.json(
 					errorResponse("Rate limit exceeded", "This API key has hit its rate limit. Try again shortly."),
 					429
