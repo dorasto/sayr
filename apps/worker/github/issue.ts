@@ -1,6 +1,9 @@
+import { Octokit } from "@octokit/rest";
 import { db, schema } from "@repo/database";
 import { createTraceAsync } from "@repo/opentelemetry/trace";
 import type { JobGroups } from "@repo/queue";
+import { formatTaskKey } from "@repo/util";
+import { getInstallationToken } from "@repo/util/github/auth";
 import { and, eq } from "drizzle-orm";
 import { findLinkedSayrUser } from "./comment";
 import { markdownToProsekitJSON } from "./markdownToProsekit";
@@ -133,6 +136,7 @@ export async function handleIssueOpened(job: JobGroups["github"] & { type: "issu
 					description,
 					category: categoryId ?? undefined,
 					visible: "public",
+					status: "backlog",
 					skipGithubSync: true,
 					createdBy: linkedUserId,
 				}),
@@ -143,7 +147,7 @@ export async function handleIssueOpened(job: JobGroups["github"] & { type: "issu
 				return;
 			}
 
-			const created = (await res.json()) as { success: boolean; data?: { id: string } };
+			const created = (await res.json()) as { success: boolean; data?: { id: string; shortId: number } };
 			if (!created.success || !created.data?.id) {
 				console.error(`❌ Task creation for GitHub issue #${number} returned no task id.`);
 				return;
@@ -176,6 +180,30 @@ export async function handleIssueOpened(job: JobGroups["github"] & { type: "issu
 			}
 
 			console.log(`✅ Created Sayr task ${created.data.id} from GitHub issue #${number}.`);
+
+			// Announce the new task back on the issue, mirroring the ack comment
+			// keyword-triggered actions already post (postGithubComment). Never
+			// fatal — the task's already created and linked either way.
+			try {
+				const org = await db.query.organization.findFirst({
+					where: eq(schema.organization.id, organizationId),
+				});
+				if (org) {
+					const sayrTaskUrl = `https://${org.slug}.${process.env.VITE_ROOT_DOMAIN}/${created.data.shortId}`;
+					const taskKey = formatTaskKey(org.shortId, created.data.shortId);
+					const token = await getInstallationToken(job.payload.installationId);
+					const octokit = new Octokit({ auth: token });
+
+					await octokit.issues.createComment({
+						owner,
+						repo,
+						issue_number: number,
+						body: `✅ Created Sayr task **${taskKey}**: ${sayrTaskUrl}`,
+					});
+				}
+			} catch (err) {
+				console.error(`❌ Failed to post task-created acknowledgment on GitHub issue #${number}:`, err);
+			}
 		},
 		{
 			description: "Creating a Sayr task from a newly opened GitHub issue",

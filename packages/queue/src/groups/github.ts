@@ -31,6 +31,7 @@ export type GithubIssueOpenedPayload = GithubRepoContext & {
 	user: string;
 	userId?: number;
 	categoryId?: string | null;
+	installationId: number;
 };
 
 export type GithubIssueCommentPayload = GithubRepoContext & {

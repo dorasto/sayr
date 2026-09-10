@@ -283,6 +283,7 @@ async function handleContentEvents(
 								repo_private: repository.private,
 								organizationId: linked.organizationId,
 								categoryId: linked.categoryId,
+								installationId,
 								number: payload.issue.number,
 								title: payload.issue.title ?? "",
 								body: issueBody,
