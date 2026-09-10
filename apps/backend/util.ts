@@ -29,9 +29,7 @@ export async function getOrganization(orgId: string, userId: string): Promise<{ 
 }
 
 export async function safeGetOrganization(orgId: string, userId: string, ms = 5000) {
-	const timeoutPromise = new Promise<null>((_, reject) =>
-		setTimeout(() => reject(new Error("Timeout")), ms)
-	);
+	const timeoutPromise = new Promise<null>((_, reject) => setTimeout(() => reject(new Error("Timeout")), ms));
 
 	try {
 		return await Promise.race([getOrganization(orgId, userId), timeoutPromise]);
@@ -39,13 +37,22 @@ export async function safeGetOrganization(orgId: string, userId: string, ms = 50
 		const isTimeout = err instanceof Error && err.message === "Timeout";
 		console.warn(
 			`[safeGetOrganization] ${isTimeout ? "TIMEOUT" : "ERROR"} for org=${orgId} user=${userId}:`,
-			isTimeout ? `exceeded ${ms}ms` : err,
+			isTimeout ? `exceeded ${ms}ms` : err
 		);
 		return null;
 	}
 }
 
 // biome-ignore lint/suspicious/noExplicitAny: <need for the cursor>
+// Invisible marker appended to every comment Sayr pushes to GitHub — HTML
+// comments don't render, so it's not visible to anyone reading the issue.
+// Its only job is loop prevention: when the resulting `issue_comment` webhook
+// fires back at us (unavoidable even when posting via a linked user's own
+// GitHub token, since that comment then has a real, non-bot `user.login`),
+// the webhook handler checks for this marker and skips re-processing it as a
+// brand-new inbound comment.
+export const SAYR_COMMENT_SYNC_MARKER = "<!-- sayr-comment-sync -->";
+
 export function encodeCursor(obj: Record<string, any>): string {
 	return Buffer.from(JSON.stringify(obj)).toString("base64url");
 }
@@ -107,34 +114,20 @@ export async function traceOrgPermissionCheck(
 		return false;
 	}
 
-	return traceAsync(
-		"hasOrgPermission",
-		() =>
-			hasOrgPermission(
-				userId,
-				organizationId,
-				permission
-			),
-		{
-			description: "Checking organization permissions",
-			data: {
-				user: { id: userId },
-				organization: { id: organizationId },
-				permission,
-			},
-			onSuccess: (result) => ({
-				outcome: result
-					? "Permission granted"
-					: "Permission denied",
-			}),
-		}
-	);
+	return traceAsync("hasOrgPermission", () => hasOrgPermission(userId, organizationId, permission), {
+		description: "Checking organization permissions",
+		data: {
+			user: { id: userId },
+			organization: { id: organizationId },
+			permission,
+		},
+		onSuccess: (result) => ({
+			outcome: result ? "Permission granted" : "Permission denied",
+		}),
+	});
 }
 
-type PublicAccessCheck =
-	| "enablePublicPage"
-	| "publicActions"
-	| "both";
+type PublicAccessCheck = "enablePublicPage" | "publicActions" | "both";
 
 export async function tracePublicOrgAccessCheck(
 	organizationId: string,
@@ -146,22 +139,16 @@ export async function tracePublicOrgAccessCheck(
 		return false;
 	}
 
-	return traceAsync(
-		"canPublicAccessOrg",
-		() => canPublicAccessOrg(organizationId, check),
-		{
-			description: "Checking public organization access",
-			data: {
-				organization: { id: organizationId },
-				check,
-			},
-			onSuccess: (result) => ({
-				outcome: result
-					? "Public access allowed"
-					: "Public access denied",
-			}),
-		}
-	);
+	return traceAsync("canPublicAccessOrg", () => canPublicAccessOrg(organizationId, check), {
+		description: "Checking public organization access",
+		data: {
+			organization: { id: organizationId },
+			check,
+		},
+		onSuccess: (result) => ({
+			outcome: result ? "Public access allowed" : "Public access denied",
+		}),
+	});
 }
 
 export async function refreshGitHubTokenIfNeeded(githubAccount: schema.accountType) {
@@ -170,11 +157,7 @@ export async function refreshGitHubTokenIfNeeded(githubAccount: schema.accountTy
 	const now = new Date();
 
 	// still valid → no refresh
-	if (
-		githubAccount.accessToken &&
-		githubAccount.accessTokenExpiresAt &&
-		githubAccount.accessTokenExpiresAt > now
-	) {
+	if (githubAccount.accessToken && githubAccount.accessTokenExpiresAt && githubAccount.accessTokenExpiresAt > now) {
 		return githubAccount;
 	}
 
@@ -199,9 +182,7 @@ export async function refreshGitHubTokenIfNeeded(githubAccount: schema.accountTy
 			throw new Error("Failed refresh GitHub token");
 		}
 
-		const expiresAt = data.expires_in
-			? new Date(Date.now() + data.expires_in * 1000)
-			: null;
+		const expiresAt = data.expires_in ? new Date(Date.now() + data.expires_in * 1000) : null;
 
 		const refreshExpiresAt = data.refresh_token_expires_in
 			? new Date(Date.now() + data.refresh_token_expires_in * 1000)

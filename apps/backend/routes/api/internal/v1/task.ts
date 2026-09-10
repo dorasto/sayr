@@ -47,7 +47,14 @@ import {
 	sseBroadcastToRoom,
 } from "@/routes/events";
 import type { ServerEventBaseMessage } from "@/routes/events/types";
-import { getAnonHash, getClientIP, traceOrgPermissionCheck, tracePublicOrgAccessCheck } from "@/util";
+import {
+	getAnonHash,
+	getClientIP,
+	refreshGitHubTokenIfNeeded,
+	SAYR_COMMENT_SYNC_MARKER,
+	traceOrgPermissionCheck,
+	tracePublicOrgAccessCheck,
+} from "@/util";
 import { notifyAssignees } from "../../../../lib/tasks/notify";
 import { updateTaskService } from "../../../../lib/tasks/updateTask";
 import {
@@ -1451,11 +1458,11 @@ apiRouteAdminProjectTask.post("/update-assignees", async (c) => {
 	}
 });
 
-// Prefixes an outbound (Sayr → GitHub) comment body with who actually wrote
-// it on Sayr. The GitHub App can only ever post as its own bot identity
-// (there's no way to post "as" the real GitHub-linked user via an
-// installation token), so without this every synced comment shows up on
-// GitHub as an anonymous-looking bot post with no indication of the author.
+// Fallback for outbound (Sayr → GitHub) comments whose author has no linked
+// GitHub account (or whose linked token can't be used — see
+// getUserGithubToken below): prefixes the body with who actually wrote it on
+// Sayr, since a bot-posted comment otherwise shows up on GitHub with no
+// indication of the real author.
 async function buildSyncedCommentBody(authorId: string | null | undefined, markdown: string): Promise<string> {
 	let authorLabel = "A Sayr user";
 	if (authorId) {
@@ -1465,7 +1472,31 @@ async function buildSyncedCommentBody(authorId: string | null | undefined, markd
 		});
 		if (author) authorLabel = author.displayName || author.name || authorLabel;
 	}
-	return `**${authorLabel}** commented via Sayr:\n\n${markdown}`;
+	return `**${authorLabel}** commented via Sayr:\n\n${markdown}\n\n${SAYR_COMMENT_SYNC_MARKER}`;
+}
+
+// Attempts to get a valid GitHub user-to-server access token for the given
+// Sayr user, so an outbound comment can be posted as literally them instead
+// of the App's bot identity. Returns null (caller falls back to the bot) if
+// the user has no linked GitHub account, or the token can't be obtained —
+// e.g. they revoked Sayr's GitHub authorization, or their linked account
+// simply doesn't have access to this particular repo (GitHub App user
+// tokens are scoped to the intersection of the App's configured permissions
+// and what the user themselves can do). Reuses the same refresh helper the
+// `/organization` installation routes already rely on for this exact thing.
+async function getUserGithubToken(authorId: string | null | undefined): Promise<string | null> {
+	if (!authorId) return null;
+	try {
+		const account = await db.query.account.findFirst({
+			where: (a) => and(eq(a.userId, authorId), eq(a.providerId, "github")),
+		});
+		if (!account?.accessToken) return null;
+
+		const refreshed = await refreshGitHubTokenIfNeeded(account);
+		return refreshed.accessToken ?? null;
+	} catch {
+		return null;
+	}
 }
 
 // Create a comment on a task
@@ -1634,14 +1665,25 @@ apiRouteAdminProjectTask.post("/create-comment", async (c) => {
 						const owner = repoInfo.owner.login;
 						const repo = repoInfo.name;
 						const effectiveCreatedBy = source === "github" ? bodyCreatedBy : (bodyCreatedBy ?? session?.userId);
+						const markdown = prosekitJSONToMarkdown(content);
 
-						const { data: ghComment } = await octokit.request(
+						// Prefer posting as the actual author via their own linked GitHub
+						// token — shows up as a genuine comment from them, no bot involved.
+						// Falls back to the App's bot identity (with a text attribution
+						// line) when they have no linked account, or the token's unusable.
+						const userToken = await getUserGithubToken(effectiveCreatedBy);
+						const postingOctokit = userToken ? new Octokit({ auth: userToken }) : octokit;
+						const body = userToken
+							? `${markdown}\n\n${SAYR_COMMENT_SYNC_MARKER}`
+							: await buildSyncedCommentBody(effectiveCreatedBy, markdown);
+
+						const { data: ghComment } = await postingOctokit.request(
 							"POST /repos/{owner}/{repo}/issues/{issue_number}/comments",
 							{
 								owner,
 								repo,
 								issue_number: syncTask.githubIssue.issueNumber,
-								body: await buildSyncedCommentBody(effectiveCreatedBy, prosekitJSONToMarkdown(content)),
+								body,
 							}
 						);
 
@@ -1870,12 +1912,19 @@ apiRouteAdminProjectTask.put("/edit-comment", async (c) => {
 					if (!repoInfo.private) {
 						const owner = repoInfo.owner.login;
 						const repo = repoInfo.name;
+						const markdown = prosekitJSONToMarkdown(content);
 
-						await octokit.request("PATCH /repos/{owner}/{repo}/issues/comments/{comment_id}", {
+						const userToken = await getUserGithubToken(comment.createdBy);
+						const postingOctokit = userToken ? new Octokit({ auth: userToken }) : octokit;
+						const body = userToken
+							? `${markdown}\n\n${SAYR_COMMENT_SYNC_MARKER}`
+							: await buildSyncedCommentBody(comment.createdBy, markdown);
+
+						await postingOctokit.request("PATCH /repos/{owner}/{repo}/issues/comments/{comment_id}", {
 							owner,
 							repo,
 							comment_id: comment.externalCommentId,
-							body: await buildSyncedCommentBody(comment.createdBy, prosekitJSONToMarkdown(content)),
+							body,
 						});
 					}
 				}

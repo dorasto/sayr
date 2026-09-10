@@ -5,6 +5,7 @@ import { enqueue } from "@repo/queue";
 import { verifySignature } from "@repo/util/github/verify";
 import { and, eq, or } from "drizzle-orm";
 import { Hono } from "hono";
+import { SAYR_COMMENT_SYNC_MARKER } from "@/util";
 
 const app = new Hono<AppEnv>();
 app.post("/", async (c) => {
@@ -297,6 +298,10 @@ async function handleContentEvents(
 
 				if (!body) return;
 				if (commenter.endsWith("[bot]")) return;
+				// A comment Sayr just pushed via a linked user's own GitHub token has a
+				// real (non-bot) `user.login`, so the check above alone won't catch it —
+				// the marker does. See SAYR_COMMENT_SYNC_MARKER for why.
+				if (body.includes(SAYR_COMMENT_SYNC_MARKER)) return;
 
 				const keywordMatches = extractSayrKeywords(body);
 
@@ -352,6 +357,7 @@ async function handleContentEvents(
 				// double-closing/relinking tasks from the same keyword.
 				const commenter = payload.comment?.user?.login ?? "unknown";
 				if (commenter.endsWith("[bot]")) return;
+				if (payload.comment?.body?.includes(SAYR_COMMENT_SYNC_MARKER)) return;
 
 				await enqueue("github", {
 					type: "issue_comment_edited",
