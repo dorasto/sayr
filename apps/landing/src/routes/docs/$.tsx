@@ -6,7 +6,7 @@ import { DocsLayout } from "fumadocs-ui/layouts/docs";
 import { DocsBody, DocsDescription, DocsPage, DocsTitle } from "fumadocs-ui/layouts/docs/page";
 import { MarkdownCopyButton, ViewOptionsPopover } from "@/components/ai/page-actions";
 import { getMDXComponents } from "@/components/mdx";
-import { baseOptions, docsTabs } from "@/lib/layout.shared";
+import { baseOptions, getDocsTabs } from "@/lib/layout.shared";
 import { encodeMarkdownUrl } from "@/lib/shared";
 import { source } from "@/lib/source";
 
@@ -84,7 +84,7 @@ function Page() {
 	});
 
 	return (
-		<DocsLayout {...baseOptions()} tree={data.pageTree} tabs={docsTabs}>
+		<DocsLayout {...baseOptions()} tree={data.pageTree} tabs={getDocsTabs(data.pageTree)}>
 			{content}
 		</DocsLayout>
 	);
