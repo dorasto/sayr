@@ -2,6 +2,7 @@ import { db, schema } from "@repo/database";
 import { createTraceAsync } from "@repo/opentelemetry/trace";
 import type { JobGroups } from "@repo/queue";
 import { and, eq } from "drizzle-orm";
+import { findLinkedSayrUser } from "./comment";
 import { markdownToProsekitJSON } from "./markdownToProsekit";
 
 const API_URL =
@@ -82,6 +83,102 @@ export async function handleIssueEdited(job: JobGroups["github"] & { type: "issu
 		},
 		{
 			description: "Syncing edited GitHub issue title/body into the linked Sayr task",
+			data: { organizationId, repoId, number },
+		}
+	);
+}
+
+/**
+ * Inbound sync: a brand-new GitHub issue was opened with no Sayr keyword
+ * referencing an existing task (that case is handled separately by
+ * `sayr_keyword_parse` / `handleLinkKeyword`) — create a new task for it and
+ * link the two, mirroring the outbound task→issue creation this pipeline
+ * already does in reverse.
+ *
+ * Uses `skipGithubSync: true` on the internal create call, same reasoning as
+ * `handleIssueEdited`: without it, creating the task would immediately try
+ * to open a *second*, duplicate GitHub issue for it.
+ */
+export async function handleIssueOpened(job: JobGroups["github"] & { type: "issue_opened" }) {
+	const traceAsync = createTraceAsync();
+	const { organizationId, categoryId, repoId, repo_private, owner, repo, number, title, body, userId } = job.payload;
+
+	if (!organizationId) return;
+	if (repo_private) return;
+
+	await traceAsync(
+		"github.issue_opened.process",
+		async () => {
+			// Attribute the task to the issue's author if they've linked their
+			// GitHub account to Sayr; otherwise fall back to a text note, the
+			// same shape as the comment-sync bot fallback — `task` has no
+			// `externalAuthorLogin`-style columns the way `taskComment` does.
+			const linkedUserId = await findLinkedSayrUser(userId);
+			const markdown = linkedUserId ? body : `_Originally opened by @${job.payload.user} on GitHub_\n\n${body}`;
+			const description = markdownToProsekitJSON(markdown);
+
+			const res = await fetch(`${API_URL}/v1/admin/organization/task/create`, {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+					cookie: `sayr_internal=${process.env.INTERNAL_SECRET};`,
+					"user-agent": "Sayr-Worker/1.0",
+					"x-internal-secret": process.env.INTERNAL_SECRET!,
+					"x-internal-service": "sayr-worker",
+					"x-internal-timestamp": new Date().toISOString(),
+				},
+				body: JSON.stringify({
+					org_id: organizationId,
+					title,
+					description,
+					category: categoryId ?? undefined,
+					visible: "public",
+					skipGithubSync: true,
+					createdBy: linkedUserId,
+				}),
+			});
+
+			if (!res.ok) {
+				console.error(`❌ Failed to create Sayr task for GitHub issue #${number}: ${res.statusText}`);
+				return;
+			}
+
+			const created = (await res.json()) as { success: boolean; data?: { id: string } };
+			if (!created.success || !created.data?.id) {
+				console.error(`❌ Task creation for GitHub issue #${number} returned no task id.`);
+				return;
+			}
+
+			const linkRes = await fetch(`${API_URL}/v1/admin/organization/task/github-link`, {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+					cookie: `sayr_internal=${process.env.INTERNAL_SECRET};`,
+					"user-agent": "Sayr-Worker/1.0",
+					"x-internal-secret": process.env.INTERNAL_SECRET!,
+					"x-internal-service": "sayr-worker",
+					"x-internal-timestamp": new Date().toISOString(),
+				},
+				body: JSON.stringify({
+					org_id: organizationId,
+					task_id: created.data.id,
+					repo_id: repoId,
+					issue_number: number,
+					issue_url: `https://github.com/${owner}/${repo}/issues/${number}`,
+				}),
+			});
+
+			if (!linkRes.ok) {
+				console.error(
+					`❌ Created task ${created.data.id} for GitHub issue #${number} but failed to link it: ${linkRes.statusText}`
+				);
+				return;
+			}
+
+			console.log(`✅ Created Sayr task ${created.data.id} from GitHub issue #${number}.`);
+		},
+		{
+			description: "Creating a Sayr task from a newly opened GitHub issue",
 			data: { organizationId, repoId, number },
 		}
 	);

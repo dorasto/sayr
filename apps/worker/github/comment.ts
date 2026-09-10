@@ -31,7 +31,7 @@ export type PostSayrCommentContext = {
  * Attempts to find a Sayr user linked to the given GitHub numeric ID.
  * Returns the Sayr user ID if found, otherwise undefined.
  */
-async function findLinkedSayrUser(githubId?: number): Promise<string | undefined> {
+export async function findLinkedSayrUser(githubId?: number): Promise<string | undefined> {
 	if (!githubId) return undefined;
 
 	const linked = await db.query.account.findFirst({

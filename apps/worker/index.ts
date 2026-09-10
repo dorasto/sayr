@@ -11,7 +11,7 @@ import { insertSnapshots, type SnapshotRow } from "./clickhouse";
 import { handleComment, handleSayrKeywordParse } from "./github";
 import { handleCommentDeleted, handleCommentEdited } from "./github/comment";
 import { handleGithubCommitRef } from "./github/commitRef";
-import { handleIssueEdited } from "./github/issue";
+import { handleIssueEdited, handleIssueOpened } from "./github/issue";
 import {
 	handleGithubBranchDelete,
 	handleGithubBranchLink,
@@ -238,6 +238,9 @@ async function processGithubJob(job: JobGroups["github"]) {
 		case "issue_edited":
 			return handleIssueEdited(job);
 
+		case "issue_opened":
+			return handleIssueOpened(job);
+
 		case "issue_comment_edited":
 			return handleCommentEdited(job);
 
@@ -263,7 +266,9 @@ async function processGithubJob(job: JobGroups["github"]) {
 			return handleGithubBranchDelete(job);
 
 		default:
-			console.warn(`⚠️ Unhandled GitHub job type: ${job.type}`);
+			// The switch above is exhaustive over `GithubJob`, so `job` narrows to
+			// `never` here — cast back just to log the (should-be-impossible) case.
+			console.warn(`⚠️ Unhandled GitHub job type: ${(job as JobGroups["github"]).type}`);
 	}
 }
 

@@ -52,6 +52,7 @@ import {
 	getClientIP,
 	refreshGitHubTokenIfNeeded,
 	SAYR_COMMENT_SYNC_MARKER,
+	SAYR_TASK_LINK_MARKER_PREFIX,
 	traceOrgPermissionCheck,
 	tracePublicOrgAccessCheck,
 } from "@/util";
@@ -87,11 +88,15 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 		category,
 		releaseId,
 		parentId,
+		skipGithubSync,
+		createdBy: bodyCreatedBy,
 	} = body;
 	let { visible } = body as {
 		visible?: "public" | "private";
 	};
 	const session = c.get("session");
+	const user = c.get("user");
+	const isSystemAccount = user?.role === "system";
 
 	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "tasks.create");
 
@@ -107,13 +112,18 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 		// If public is allowed, respect request (default to private if undefined)
 		visible = visible === "public" ? "public" : "private";
 	}
+	// Only the internal system account may attribute a task to someone other
+	// than the requesting session — used when the GitHub sync worker creates a
+	// task for an issue opened by a Sayr-linked GitHub user, so the task shows
+	// them as the creator instead of the system account.
+	const effectiveCreatedBy = isSystemAccount && bodyCreatedBy ? bodyCreatedBy : session?.userId;
 	const task = await traceAsync(
 		"task.create.insert",
 		() =>
 			createTask(
 				orgId,
 				{ title, description, status, priority, category, releaseId, visible, parentId },
-				session?.userId
+				effectiveCreatedBy
 			),
 		{
 			description: "Creating task record",
@@ -156,7 +166,7 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 				"created",
 				null,
 				{ status, priority, title, labels, assignees },
-				session?.userId,
+				effectiveCreatedBy,
 				description
 			);
 		},
@@ -233,6 +243,12 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 	await traceAsync(
 		"task.create.github_sync",
 		async () => {
+			// Set when this task was itself created FROM a GitHub issue (see the
+			// worker's `issue_opened` handler) — without this, creating the task
+			// would immediately try to create a second, duplicate GitHub issue
+			// for it.
+			if (skipGithubSync) return;
+
 			let foundLink = null;
 
 			// 1️⃣ Try exact category match (if category provided)
@@ -277,7 +293,7 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 			const description = taskWithData.description ? prosekitJSONToMarkdown(taskWithData.description) : "";
 			const body =
 				`↪ From Sayr task ${sayrTaskUrl}\n\n` +
-				`<!-- sayr-task:${taskWithData.id} -->\n\n` +
+				`${SAYR_TASK_LINK_MARKER_PREFIX}${taskWithData.id} -->\n\n` +
 				`---\n\n` +
 				description;
 			const { data: issue } = await octokit.request("POST /repos/{owner}/{repo}/issues", {

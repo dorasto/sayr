@@ -5,7 +5,7 @@ import { enqueue } from "@repo/queue";
 import { verifySignature } from "@repo/util/github/verify";
 import { and, eq, or } from "drizzle-orm";
 import { Hono } from "hono";
-import { SAYR_COMMENT_SYNC_MARKER } from "@/util";
+import { SAYR_COMMENT_SYNC_MARKER, SAYR_TASK_LINK_MARKER_PREFIX } from "@/util";
 
 const app = new Hono<AppEnv>();
 app.post("/", async (c) => {
@@ -215,28 +215,83 @@ async function handleContentEvents(
 		case "issues":
 			if (payload.action === "opened") {
 				if (payload.issue.user.login.endsWith("[bot]")) return;
+
+				const issueBody = payload.issue.body ?? "";
+				// An issue Sayr itself opened (from a public task) carries this
+				// marker in its body — never treat it as new, or we'd spin up a
+				// second, duplicate task for it.
+				if (issueBody.includes(SAYR_TASK_LINK_MARKER_PREFIX)) return;
+
+				const keywordMatches = extractSayrKeywords(issueBody);
+
+				// ---------------------------
+				// CASE 1: KEYWORDS → link to the existing task they reference,
+				// same as `issue_comment`. Don't also create a new task.
+				// ---------------------------
+				if (keywordMatches.length > 0) {
+					await traceAsync(
+						"webhook.github.issue.enqueue",
+						() =>
+							enqueue("github", {
+								type: "sayr_keyword_parse",
+								traceContext,
+								payload: {
+									text: issueBody,
+									title: payload.issue.title ?? "",
+									owner: repository.owner.login,
+									repoId: repository.id,
+									repo: repository.name,
+									repo_private: repository.private,
+									number: payload.issue.number,
+									installationId,
+									eventType: "issue",
+									organizationId: linked.organizationId,
+									categoryId: linked.categoryId,
+								},
+							}),
+						{
+							description: "Enqueueing issue for processing",
+							data: {
+								issueNumber: payload.issue.number,
+								repoId,
+								organizationId: linked.organizationId,
+								traceId: traceContext?.traceId,
+							},
+							onSuccess: () => ({
+								outcome: "Issue enqueued successfully",
+								data: { issueNumber: payload.issue.number },
+							}),
+						}
+					);
+					return;
+				}
+
+				// ---------------------------
+				// CASE 2: NO KEYWORDS → this is a brand-new issue with no
+				// existing task to link to. Create one.
+				// ---------------------------
 				await traceAsync(
-					"webhook.github.issue.enqueue",
+					"webhook.github.issue_opened.enqueue",
 					() =>
 						enqueue("github", {
-							type: "sayr_keyword_parse",
+							type: "issue_opened",
 							traceContext,
 							payload: {
-								text: payload.issue.body ?? "",
-								title: payload.issue.title ?? "",
 								owner: repository.owner.login,
 								repoId: repository.id,
 								repo: repository.name,
 								repo_private: repository.private,
-								number: payload.issue.number,
-								installationId,
-								eventType: "issue",
 								organizationId: linked.organizationId,
 								categoryId: linked.categoryId,
+								number: payload.issue.number,
+								title: payload.issue.title ?? "",
+								body: issueBody,
+								user: payload.issue.user.login,
+								userId: payload.issue.user.id,
 							},
 						}),
 					{
-						description: "Enqueueing issue for processing",
+						description: "Enqueueing new issue for task creation",
 						data: {
 							issueNumber: payload.issue.number,
 							repoId,
@@ -244,7 +299,7 @@ async function handleContentEvents(
 							traceId: traceContext?.traceId,
 						},
 						onSuccess: () => ({
-							outcome: "Issue enqueued successfully",
+							outcome: "Issue enqueued for task creation",
 							data: { issueNumber: payload.issue.number },
 						}),
 					}

@@ -53,6 +53,13 @@ export async function safeGetOrganization(orgId: string, userId: string, ms = 50
 // brand-new inbound comment.
 export const SAYR_COMMENT_SYNC_MARKER = "<!-- sayr-comment-sync -->";
 
+// Prefix of the invisible marker embedded in every GitHub issue body Sayr
+// creates (see the `task.create.github_sync` block). Checking for it on
+// inbound `issues` webhooks is what stops an issue Sayr itself just opened
+// from being mistaken for a brand-new external issue and turned into a
+// second, duplicate task.
+export const SAYR_TASK_LINK_MARKER_PREFIX = "<!-- sayr-task:";
+
 export function encodeCursor(obj: Record<string, any>): string {
 	return Buffer.from(JSON.stringify(obj)).toString("base64url");
 }
