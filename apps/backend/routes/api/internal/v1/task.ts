@@ -1451,6 +1451,23 @@ apiRouteAdminProjectTask.post("/update-assignees", async (c) => {
 	}
 });
 
+// Prefixes an outbound (Sayr → GitHub) comment body with who actually wrote
+// it on Sayr. The GitHub App can only ever post as its own bot identity
+// (there's no way to post "as" the real GitHub-linked user via an
+// installation token), so without this every synced comment shows up on
+// GitHub as an anonymous-looking bot post with no indication of the author.
+async function buildSyncedCommentBody(authorId: string | null | undefined, markdown: string): Promise<string> {
+	let authorLabel = "A Sayr user";
+	if (authorId) {
+		const author = await db.query.user.findFirst({
+			where: (t) => eq(t.id, authorId),
+			columns: { displayName: true, name: true },
+		});
+		if (author) authorLabel = author.displayName || author.name || authorLabel;
+	}
+	return `**${authorLabel}** commented via Sayr:\n\n${markdown}`;
+}
+
 // Create a comment on a task
 apiRouteAdminProjectTask.post("/create-comment", async (c) => {
 	const traceAsync = createTraceAsync();
@@ -1616,6 +1633,7 @@ apiRouteAdminProjectTask.post("/create-comment", async (c) => {
 					if (!repoInfo.private) {
 						const owner = repoInfo.owner.login;
 						const repo = repoInfo.name;
+						const effectiveCreatedBy = source === "github" ? bodyCreatedBy : (bodyCreatedBy ?? session?.userId);
 
 						const { data: ghComment } = await octokit.request(
 							"POST /repos/{owner}/{repo}/issues/{issue_number}/comments",
@@ -1623,7 +1641,7 @@ apiRouteAdminProjectTask.post("/create-comment", async (c) => {
 								owner,
 								repo,
 								issue_number: syncTask.githubIssue.issueNumber,
-								body: prosekitJSONToMarkdown(content),
+								body: await buildSyncedCommentBody(effectiveCreatedBy, prosekitJSONToMarkdown(content)),
 							}
 						);
 
@@ -1857,7 +1875,7 @@ apiRouteAdminProjectTask.put("/edit-comment", async (c) => {
 							owner,
 							repo,
 							comment_id: comment.externalCommentId,
-							body: prosekitJSONToMarkdown(content),
+							body: await buildSyncedCommentBody(comment.createdBy, prosekitJSONToMarkdown(content)),
 						});
 					}
 				}
