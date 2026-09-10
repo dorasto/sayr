@@ -17,6 +17,10 @@ export type PostSayrCommentContext = {
 	repo: string;
 	repo_private: boolean;
 	number: number;
+	// The linked githubIssue/githubPullRequest row's internal repositoryId —
+	// callers already have this from the lookup that found the task in the
+	// first place, so it's threaded through rather than re-derived here.
+	repositoryId: string;
 
 	// Attribution
 	authorLogin?: string;
@@ -63,13 +67,10 @@ export async function postSayrComment(ctx: PostSayrCommentContext, body: string)
 			// Look up linked Sayr user from GitHub account
 			const linkedUserId = await findLinkedSayrUser(ctx.authorGithubId);
 
-			const repository = await db.query.githubRepository.findFirst({
-				where: (r) => and(eq(r.organizationId, ctx.orgId), eq(r.repoName, `${ctx.owner}/${ctx.repo}`)),
+			const prosekitContent = await markdownToProsekitJSON(body, {
+				organizationId: ctx.orgId,
+				repositoryId: ctx.repositoryId,
 			});
-			const prosekitContent = await markdownToProsekitJSON(
-				body,
-				repository ? { organizationId: ctx.orgId, repositoryId: repository.id } : undefined
-			);
 			const issueUrl = ctx.pull_request
 				? `https://github.com/${ctx.owner}/${ctx.repo}/pull/${ctx.number}`
 				: `https://github.com/${ctx.owner}/${ctx.repo}/issues/${ctx.number}`;
