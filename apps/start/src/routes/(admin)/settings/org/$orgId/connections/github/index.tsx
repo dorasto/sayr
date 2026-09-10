@@ -109,9 +109,7 @@ function RouteComponent() {
 					</SheetTrigger>
 					<SheetContent className="h-full overflow-auto">
 						<SheetHeader className="pb-4">
-							<SheetTitle asChild>
-								<Label variant={"heading"}>Overview</Label>
-							</SheetTitle>
+							<SheetTitle render={<Label variant={"heading"} />}>Overview</SheetTitle>
 						</SheetHeader>
 
 						<MarkdownContent content={githubSummaryMd} />

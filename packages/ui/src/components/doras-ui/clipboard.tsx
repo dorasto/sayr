@@ -100,9 +100,9 @@ export default function Clipboard({
 	}
 
 	return (
-		<TooltipProvider delayDuration={tooltipDelayDuration}>
+		<TooltipProvider delay={tooltipDelayDuration}>
 			<Tooltip>
-				<TooltipTrigger asChild>{triggerElement}</TooltipTrigger>
+				<TooltipTrigger render={triggerElement} />
 				<TooltipContent className="px-2 py-1 text-xs">{copied ? tooltipCopiedText : tooltipText}</TooltipContent>
 			</Tooltip>
 		</TooltipProvider>

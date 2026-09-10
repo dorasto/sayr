@@ -1,4 +1,4 @@
-import { Slot } from "@radix-ui/react-slot";
+import { Button as ButtonPrimitive } from "@base-ui/react/button";
 import { cn } from "@repo/ui/lib/utils";
 import { cva, type VariantProps } from "class-variance-authority";
 import * as React from "react";
@@ -35,41 +35,26 @@ const buttonVariants = cva(
 	}
 );
 
-export interface ButtonProps
-	extends React.ButtonHTMLAttributes<HTMLButtonElement>,
-		VariantProps<typeof buttonVariants> {
-	asChild?: boolean;
+export interface ButtonProps extends ButtonPrimitive.Props, VariantProps<typeof buttonVariants> {
 	tooltipText?: string;
 	tooltipDelayDuration?: number;
 	tooltipSide?: "top" | "bottom" | "left" | "right";
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-	(
-		{
-			className,
-			variant,
-			size,
-			asChild = false,
-			tooltipText,
-			tooltipDelayDuration = 0,
-			tooltipSide = "top",
-			...props
-		},
-		ref
-	) => {
-		const Comp = asChild ? Slot : "button";
-
-		const buttonElement = <Comp className={cn(buttonVariants({ variant, size, className }))} ref={ref} {...props} />;
+	({ className, variant, size, tooltipText, tooltipDelayDuration = 0, tooltipSide = "top", ...props }, ref) => {
+		const buttonElement = (
+			<ButtonPrimitive className={cn(buttonVariants({ variant, size, className }))} ref={ref} {...props} />
+		);
 
 		if (!tooltipText) {
 			return buttonElement;
 		}
 
 		return (
-			<TooltipProvider delayDuration={tooltipDelayDuration}>
+			<TooltipProvider delay={tooltipDelayDuration}>
 				<Tooltip>
-					<TooltipTrigger asChild>{buttonElement}</TooltipTrigger>
+					<TooltipTrigger render={buttonElement} />
 					<TooltipContent className="px-2 py-1 text-xs" side={tooltipSide}>
 						{tooltipText}
 					</TooltipContent>

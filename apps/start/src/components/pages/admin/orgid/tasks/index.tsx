@@ -13,6 +13,7 @@ import {
 import { Separator } from "@repo/ui/components/separator";
 import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
 import { useStateManagementKey } from "@repo/ui/hooks/useStateManagement.ts";
+import { sendWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
 import { cn } from "@repo/ui/lib/utils";
 import { ensureCdnUrl } from "@repo/util";
 import {
@@ -25,24 +26,23 @@ import {
 	IconUsers,
 } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
-import { useEffect, useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { TasksPanelContent, TasksPanelHeader } from "@/components/admin/panels/tasks";
 import { useLayoutData } from "@/components/admin/shell/context";
-import { Page } from "@/components/generic/page";
 import { PageHeader } from "@/components/generic/PageHeader";
+import { Page } from "@/components/generic/page";
 import RenderIcon from "@/components/generic/RenderIcon";
 import { usePage, usePanel } from "@/components/generic/use-page";
-import { TasksPanelHeader, TasksPanelContent } from "@/components/admin/panels/tasks";
-import { TaskFilterDropdown, serializeFilters } from "@/components/tasks/filter";
+import { serializeFilters, TaskFilterDropdown } from "@/components/tasks/filter";
 import CreateIssueDialog from "@/components/tasks/task/creator";
-import { useTaskViewManager, type FilterState } from "@/hooks/useTaskViewManager";
 import { TaskViewDropdown, UnifiedTaskView } from "@/components/tasks/views";
 import { useLayoutOrganization } from "@/contexts/ContextOrg";
 import { useLayoutTasks } from "@/contexts/ContextOrgTasks";
-import { useServerEventsSubscription } from "@/hooks/useServerEventsSubscription";
-import { useWSMessageHandler, type WSMessageHandler } from "@/hooks/useWSMessageHandler";
 import { usePlanLimits } from "@/hooks/usePlanLimits";
+import { useServerEventsSubscription } from "@/hooks/useServerEventsSubscription";
+import { type FilterState, useTaskViewManager } from "@/hooks/useTaskViewManager";
+import { useWSMessageHandler, type WSMessageHandler } from "@/hooks/useWSMessageHandler";
 import type { ServerEventMessage } from "@/lib/serverEvents";
-import { sendWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
 import { sidebarActions } from "@/lib/sidebar/sidebar-store";
 
 const TASKS_LIST_PANEL_ID = "tasks-list-panel";
@@ -316,16 +316,18 @@ export default function OrganizationTasksHomePage() {
 					</>
 				)}
 				<DropdownMenu>
-					<DropdownMenuTrigger asChild>
-						<Button
-							variant={"primary"}
-							className="w-fit text-xs p-1 h-auto rounded-lg bg-transparent gap-1 max-w-40"
-							size={"sm"}
-						>
-							{CurrentViewIcon}
-							<span className="truncate">{currentViewName}</span>
-							<IconChevronDown className="size-3 text-muted-foreground shrink-0" />
-						</Button>
+					<DropdownMenuTrigger
+						render={
+							<Button
+								variant={"primary"}
+								className="w-fit text-xs p-1 h-auto rounded-lg bg-transparent gap-1 max-w-40"
+								size={"sm"}
+							/>
+						}
+					>
+						{CurrentViewIcon}
+						<span className="truncate">{currentViewName}</span>
+						<IconChevronDown className="size-3 text-muted-foreground shrink-0" />
 					</DropdownMenuTrigger>
 					<DropdownMenuContent align="start" className="w-56">
 						<DropdownMenuItem onClick={() => clearView()}>

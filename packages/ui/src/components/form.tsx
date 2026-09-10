@@ -1,7 +1,7 @@
 "use client";
 
-import type * as LabelPrimitive from "@radix-ui/react-label";
-import { Slot } from "@radix-ui/react-slot";
+import { mergeProps } from "@base-ui/react/merge-props";
+import { useRender } from "@base-ui/react/use-render";
 import { Label } from "@repo/ui/components/label";
 import { cn } from "@repo/ui/lib/utils";
 import * as React from "react";
@@ -80,31 +80,34 @@ const FormItem = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivEl
 );
 FormItem.displayName = "FormItem";
 
-const FormLabel = React.forwardRef<
-	React.ElementRef<typeof LabelPrimitive.Root>,
-	React.ComponentPropsWithoutRef<typeof LabelPrimitive.Root>
->(({ className, ...props }, ref) => {
-	const { error, formItemId } = useFormField();
+const FormLabel = React.forwardRef<React.ElementRef<typeof Label>, React.ComponentPropsWithoutRef<typeof Label>>(
+	({ className, ...props }, ref) => {
+		const { error, formItemId } = useFormField();
 
-	return <Label ref={ref} className={cn(error && "text-destructive", className)} htmlFor={formItemId} {...props} />;
-});
-FormLabel.displayName = "FormLabel";
-
-const FormControl = React.forwardRef<React.ElementRef<typeof Slot>, React.ComponentPropsWithoutRef<typeof Slot>>(
-	({ ...props }, ref) => {
-		const { error, formItemId, formDescriptionId, formMessageId } = useFormField();
-
-		return (
-			<Slot
-				ref={ref}
-				id={formItemId}
-				aria-describedby={!error ? `${formDescriptionId}` : `${formDescriptionId} ${formMessageId}`}
-				aria-invalid={!!error}
-				{...props}
-			/>
-		);
+		return <Label ref={ref} className={cn(error && "text-destructive", className)} htmlFor={formItemId} {...props} />;
 	}
 );
+FormLabel.displayName = "FormLabel";
+
+const FormControl = React.forwardRef<
+	HTMLElement,
+	React.ComponentPropsWithoutRef<"div"> & { children: React.ReactElement }
+>(({ children, ...props }, ref) => {
+	const { error, formItemId, formDescriptionId, formMessageId } = useFormField();
+
+	return useRender({
+		render: children,
+		ref,
+		props: mergeProps<"div">(
+			{
+				id: formItemId,
+				"aria-describedby": !error ? `${formDescriptionId}` : `${formDescriptionId} ${formMessageId}`,
+				"aria-invalid": !!error,
+			} as React.ComponentProps<"div">,
+			props
+		),
+	});
+});
 FormControl.displayName = "FormControl";
 
 const FormDescription = React.forwardRef<HTMLParagraphElement, React.HTMLAttributes<HTMLParagraphElement>>(

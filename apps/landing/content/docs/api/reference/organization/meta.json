@@ -1,0 +1,16 @@
+{
+  "title": "Organization",
+  "pages": [
+    "getOrganizationByOrgSlug",
+    "getOrganizationByOrgSlugLabels",
+    "getOrganizationByOrgSlugCategories",
+    "getOrganizationByOrgSlugTasks",
+    "getOrganizationByOrgSlugTasksByTaskShortId",
+    "getOrganizationByOrgSlugTasksByTaskShortIdComments",
+    "getOrganizationByOrgSlugReleases",
+    "getOrganizationByOrgSlugReleasesByReleaseSlug",
+    "getOrganizationByOrgSlugReleasesByReleaseSlugStatusUpdates",
+    "getOrganizationByOrgSlugReleasesByReleaseSlugComments",
+    "getOrganizationByOrgSlugReleasesByReleaseSlugCommentsByCommentIdReplies"
+  ]
+}

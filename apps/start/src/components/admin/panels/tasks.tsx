@@ -270,36 +270,45 @@ function TasksPanelContent() {
 			<Tabs defaultValue="views" className="w-full p-1 relative bg-card rounded-lg">
 				<div className="flex items-center gap-2 shrink-0 sticky top-0 w-full bg-card z-50 p-1">
 					<TabsList className="justify-start w-full p-0 sticky top-0 bg-card transition-colors gap-2 h-auto overflow-x-scroll">
-						<TabsTrigger asChild value="views">
-							<Button
-								variant={"accent"}
-								className="data-[state=active]:bg-accent bg-transparent rounded-lg border-transparent text-xs w-auto px-2 py-1 h-auto"
-								size={"sm"}
-							>
-								<IconStack2 className="w-3! h-3!" />
-								Saved views
-							</Button>
-						</TabsTrigger>
-						<TabsTrigger asChild value="release">
-							<Button
-								variant={"accent"}
-								className="data-[state=active]:bg-accent bg-transparent rounded-lg border-transparent text-xs w-auto px-2 py-1 h-auto"
-								size={"sm"}
-							>
-								<IconRocket className="w-3! h-3!" />
-								Releases
-							</Button>
-						</TabsTrigger>
-						<TabsTrigger asChild value="priority">
-							<Button
-								variant={"accent"}
-								className="data-[state=active]:bg-accent bg-transparent rounded-lg border-transparent text-xs w-auto px-2 py-1 h-auto"
-								size={"sm"}
-							>
-								<IconStack2 className="w-3! h-3!" />
-								Priority
-							</Button>
-						</TabsTrigger>
+						<TabsTrigger
+							value="views"
+							render={
+								<Button
+									variant={"accent"}
+									className="data-[state=active]:bg-accent bg-transparent rounded-lg border-transparent text-xs w-auto px-2 py-1 h-auto"
+									size={"sm"}
+								>
+									<IconStack2 className="w-3! h-3!" />
+									Saved views
+								</Button>
+							}
+						/>
+						<TabsTrigger
+							value="release"
+							render={
+								<Button
+									variant={"accent"}
+									className="data-[state=active]:bg-accent bg-transparent rounded-lg border-transparent text-xs w-auto px-2 py-1 h-auto"
+									size={"sm"}
+								>
+									<IconRocket className="w-3! h-3!" />
+									Releases
+								</Button>
+							}
+						/>
+						<TabsTrigger
+							value="priority"
+							render={
+								<Button
+									variant={"accent"}
+									className="data-[state=active]:bg-accent bg-transparent rounded-lg border-transparent text-xs w-auto px-2 py-1 h-auto"
+									size={"sm"}
+								>
+									<IconStack2 className="w-3! h-3!" />
+									Priority
+								</Button>
+							}
+						/>
 					</TabsList>
 				</div>
 
@@ -494,16 +503,20 @@ function TasksPanelContent() {
 				<SheetContent className="sm:max-w-xl w-full overflow-y-auto p-0">
 					<SheetHeader className="sticky top-0 bg-background p-3 z-50 border-b">
 						<div className="flex items-center justify-between mb-0">
-							<SheetTitle asChild>
-								<Label variant={"heading"} className="mb-0">
-									{editingView?.name}
-								</Label>
-							</SheetTitle>
-							<SheetClose asChild>
-								<Button variant="ghost" size="icon" className="h-6 w-6">
-									<IconX className="size-5" />
-								</Button>
-							</SheetClose>
+							<SheetTitle
+								render={
+									<Label variant={"heading"} className="mb-0">
+										{editingView?.name}
+									</Label>
+								}
+							/>
+							<SheetClose
+								render={
+									<Button variant="ghost" size="icon" className="h-6 w-6">
+										<IconX className="size-5" />
+									</Button>
+								}
+							/>
 						</div>
 						<SheetDescription className="sr-only">Manage settings for this saved view.</SheetDescription>
 					</SheetHeader>

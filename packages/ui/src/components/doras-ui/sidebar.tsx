@@ -222,7 +222,7 @@ export function Sidebar({
 	// Client: render full sidebar with content
 	return (
 		<SidebarContext.Provider value={{ id, isCollapsed }}>
-			<TooltipProvider delayDuration={0}>
+			<TooltipProvider delay={0}>
 				<div className={cn(variantRootStyles[variant], rootClassName)}>
 					<aside
 						data-sidebar-id={id}
@@ -385,7 +385,7 @@ export function SidebarMenuButton({
 	if (isCollapsed && tooltip) {
 		return (
 			<Tooltip>
-				<TooltipTrigger asChild>{button}</TooltipTrigger>
+				<TooltipTrigger render={button} />
 				<TooltipContent side="right">{tooltip}</TooltipContent>
 			</Tooltip>
 		);
@@ -440,13 +440,11 @@ export function SidebarSubmenu({
 			<Popover open={isOpen} onOpenChange={setIsOpen}>
 				{isCollapsed ? (
 					<Tooltip>
-						<TooltipTrigger asChild>
-							<PopoverTrigger asChild>{trigger}</PopoverTrigger>
-						</TooltipTrigger>
+						<TooltipTrigger render={<PopoverTrigger render={trigger} />} />
 						<TooltipContent side="right">{label}</TooltipContent>
 					</Tooltip>
 				) : (
-					<PopoverTrigger asChild>{trigger}</PopoverTrigger>
+					<PopoverTrigger render={trigger} />
 				)}
 
 				<PopoverContent side="right" align="start" className="w-48 p-0">

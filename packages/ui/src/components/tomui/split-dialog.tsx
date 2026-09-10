@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@repo/ui/
 import { cn } from "@repo/ui/lib/utils";
 import { IconArrowDown } from "@tabler/icons-react";
 import { CircleQuestionMark } from "lucide-react";
-import type { ReactNode } from "react";
+import type { ReactElement, ReactNode } from "react";
 import { Children, isValidElement, useEffect, useRef, useState } from "react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../tooltip";
 
@@ -149,15 +149,17 @@ export function SplitDialog({
 				{/* Header - Always sticky and above both content areas */}
 				<div className="flex-shrink-0 p-4 w-full border-b">
 					<div className="flex items-center w-full gap-3">
-						<DialogTitle asChild>{title}</DialogTitle>
+						<DialogTitle render={title as ReactElement} />
 						{description && (
-							<TooltipProvider delayDuration={0}>
+							<TooltipProvider delay={0}>
 								<Tooltip>
-									<TooltipTrigger asChild>
-										<Button variant="outline" className="h-2 w-2 p-1">
-											<CircleQuestionMark />
-										</Button>
-									</TooltipTrigger>
+									<TooltipTrigger
+										render={
+											<Button variant="outline" className="h-2 w-2 p-1">
+												<CircleQuestionMark />
+											</Button>
+										}
+									/>
 									<TooltipContent className="">
 										<div className="space-y-1">
 											<p className="text-[13px] font-semibold">{title}</p>

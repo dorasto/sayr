@@ -424,15 +424,17 @@ function AiRecommendationsContent({
 		>
 			{isPlatformAdmin && r.promptDebug && (
 				<Collapsible className="bg-accent p-3 rounded-lg max-w-prose w-fit">
-					<CollapsibleTrigger asChild>
-						<div className="flex items-center gap-1 group cursor-pointer w-fit">
-							<IconChevronRight
-								size={12}
-								className="text-muted-foreground group-data-[state=open]:rotate-90 transition-transform"
-							/>
-							<span className="text-xs text-muted-foreground select-none">View prompt</span>
-						</div>
-					</CollapsibleTrigger>
+					<CollapsibleTrigger
+						render={
+							<div className="flex items-center gap-1 group cursor-pointer w-fit">
+								<IconChevronRight
+									size={12}
+									className="text-muted-foreground group-data-[panel-open]:rotate-90 transition-transform"
+								/>
+								<span className="text-xs text-muted-foreground select-none">View prompt</span>
+							</div>
+						}
+					/>
 					<CollapsibleContent>
 						<div className="flex flex-col gap-2 mt-1.5 max-h-48 overflow-y-auto">
 							<pre className="text-xs text-muted-foreground whitespace-pre-wrap font-mono rounded-md px-3 py-2 leading-relaxed">

@@ -1,0 +1,8 @@
+{
+  "title": "Tasks",
+  "pages": [
+    "postMeTask",
+    "postMeTimelineEvent",
+    "postMeCreateComment"
+  ]
+}

@@ -1,5 +1,4 @@
 "use client";
-import { useToastAction } from "@/lib/util";
 import type { schema } from "@repo/database";
 import { Button } from "@repo/ui/components/button";
 import { ButtonGroup } from "@repo/ui/components/button-group";
@@ -12,9 +11,10 @@ import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { cn } from "@repo/ui/lib/utils";
 import { IconDeviceFloppy, IconTrash } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
-import RenderIcon from "../generic/RenderIcon";
-import IconPicker from "../generic/icon-picker";
 import { createCategoryAction, deleteCategoryAction, editCategoryAction } from "@/lib/fetches/organization";
+import { useToastAction } from "@/lib/util";
+import IconPicker from "../generic/icon-picker";
+import RenderIcon from "../generic/RenderIcon";
 
 interface Props {
 	orgId: string;
@@ -67,38 +67,42 @@ export default function CreateCategory({
 				)}
 			>
 				<InputGroupAddon align="inline-start" className="h-full">
-					<InputGroupButton asChild>
-						<Popover modal>
-							<PopoverTrigger asChild>
-								<Button
-									variant={"accent"}
-									className="h-auto w-auto p-0 border-transparent rounded-lg overflow-hidden"
-								>
-									<RenderIcon
-										iconName={icon}
-										color={color.hsla}
-										button
-										className={cn(settingsUI && "size-8 [&_svg]:size-5")}
-									/>
-								</Button>
-							</PopoverTrigger>
-							<PopoverContent className="p-0 w-64 md:w-96">
-								<div className="flex flex-col gap-3">
-									<div className="p-3">
-										<ColorPickerCustom onChange={setColor} defaultValue={color.hex} height={100} />
+					<InputGroupButton
+						render={
+							<Popover modal>
+								<PopoverTrigger
+									render={
+										<Button
+											variant={"accent"}
+											className="h-auto w-auto p-0 border-transparent rounded-lg overflow-hidden"
+										>
+											<RenderIcon
+												iconName={icon}
+												color={color.hsla}
+												button
+												className={cn(settingsUI && "size-8 [&_svg]:size-5")}
+											/>
+										</Button>
+									}
+								/>
+								<PopoverContent className="p-0 w-64 md:w-96">
+									<div className="flex flex-col gap-3">
+										<div className="p-3">
+											<ColorPickerCustom onChange={setColor} defaultValue={color.hex} height={100} />
+										</div>
+										<div className="px-3">
+											<IconPicker
+												value={icon}
+												update={(value: string): void => {
+													setIcon(value);
+												}}
+											/>
+										</div>
 									</div>
-									<div className="px-3">
-										<IconPicker
-											value={icon}
-											update={(value: string): void => {
-												setIcon(value);
-											}}
-										/>
-									</div>
-								</div>
-							</PopoverContent>
-						</Popover>
-					</InputGroupButton>
+								</PopoverContent>
+							</Popover>
+						}
+					/>
 				</InputGroupAddon>
 
 				<InputGroupInput
@@ -239,17 +243,19 @@ export default function CreateCategory({
 							</InputGroupButton>
 						) : (
 							<Popover open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
-								<PopoverTrigger asChild>
-									<InputGroupButton
-										variant="ghost"
-										className={cn(
-											"h-full",
-											settingsUI && "opacity-0 group-hover/group:opacity-100 transition-all"
-										)}
-									>
-										<IconTrash />
-									</InputGroupButton>
-								</PopoverTrigger>
+								<PopoverTrigger
+									render={
+										<InputGroupButton
+											variant="ghost"
+											className={cn(
+												"h-full",
+												settingsUI && "opacity-0 group-hover/group:opacity-100 transition-all"
+											)}
+										>
+											<IconTrash />
+										</InputGroupButton>
+									}
+								/>
 								<PopoverContent className="p-0 flex flex-col gap-3">
 									<Tile className="md:w-full p-3 bg-accent">
 										<TileHeader>

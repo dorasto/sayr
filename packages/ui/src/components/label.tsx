@@ -1,6 +1,5 @@
 "use client";
 
-import * as LabelPrimitive from "@radix-ui/react-label";
 import { cn } from "@repo/ui/lib/utils";
 import { cva, type VariantProps } from "class-variance-authority";
 import * as React from "react";
@@ -20,11 +19,22 @@ const labelVariants = cva("font-medium leading-none peer-disabled:cursor-not-all
 });
 
 const Label = React.forwardRef<
-	React.ElementRef<typeof LabelPrimitive.Root>,
-	React.ComponentPropsWithoutRef<typeof LabelPrimitive.Root> & VariantProps<typeof labelVariants>
->(({ className, variant, ...props }, ref) => (
-	<LabelPrimitive.Root ref={ref} className={cn(labelVariants({ variant, className }))} {...props} />
+	HTMLLabelElement,
+	React.ComponentPropsWithoutRef<"label"> & VariantProps<typeof labelVariants>
+>(({ className, variant, onMouseDown, ...props }, ref) => (
+	// biome-ignore lint/a11y/noLabelWithoutControl: htmlFor/children/nested control are forwarded via ...props, this is a generic wrapper
+	<label
+		ref={ref}
+		className={cn(labelVariants({ variant, className }))}
+		onMouseDown={(event) => {
+			const target = event.target as HTMLElement;
+			if (target.closest("button, input, select, textarea")) return;
+			onMouseDown?.(event);
+			if (!event.defaultPrevented && event.detail > 1) event.preventDefault();
+		}}
+		{...props}
+	/>
 ));
-Label.displayName = LabelPrimitive.Root.displayName;
+Label.displayName = "Label";
 
 export { Label };
