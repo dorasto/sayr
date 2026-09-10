@@ -48,7 +48,10 @@ export async function handleIssueEdited(job: JobGroups["github"] & { type: "issu
 			if (!issue?.task) return;
 			if (issue.task.visible !== "public") return;
 
-			const description = markdownToProsekitJSON(body);
+			const description = await markdownToProsekitJSON(body, {
+				organizationId,
+				repositoryId: repository.id,
+			});
 
 			const res = await fetch(`${API_URL}/v1/admin/organization/task/update`, {
 				method: "PATCH",
@@ -118,7 +121,14 @@ export async function handleIssueOpened(job: JobGroups["github"] & { type: "issu
 			// `externalAuthorLogin`-style columns the way `taskComment` does.
 			const linkedUserId = await findLinkedSayrUser(userId);
 			const markdown = linkedUserId ? body : `_Originally opened by @${job.payload.user} on GitHub_\n\n${body}`;
-			const description = markdownToProsekitJSON(markdown);
+
+			const repository = await db.query.githubRepository.findFirst({
+				where: eq(schema.githubRepository.repoId, repoId),
+			});
+			const description = await markdownToProsekitJSON(
+				markdown,
+				repository ? { organizationId, repositoryId: repository.id } : undefined
+			);
 
 			const res = await fetch(`${API_URL}/v1/admin/organization/task/create`, {
 				method: "POST",

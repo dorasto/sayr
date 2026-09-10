@@ -22,6 +22,7 @@ import {
 import { embedTaskWorker } from "./main/embed-task";
 import { gdprExportWorker } from "./main/gdpr";
 import { prosekitJSONToMarkdown } from "./prosekit/markdown";
+import { resolveMentionLinksForGithub } from "./prosekit/resolveMentions";
 
 /* ============================================================
    Environment
@@ -61,6 +62,7 @@ async function runGithubDescriptionSync() {
 			taskId: schema.task.id,
 			taskTitle: schema.task.title,
 			taskDescription: schema.task.description,
+			organizationId: schema.task.organizationId,
 			repoId: schema.githubRepository.repoId,
 			installationId: schema.githubRepository.installationId,
 		})
@@ -92,7 +94,10 @@ async function runGithubDescriptionSync() {
 
 			const owner = repoInfo.owner.login;
 			const repo = repoInfo.name;
-			const body = candidate.taskDescription ? prosekitJSONToMarkdown(candidate.taskDescription) : "";
+			const resolvedDescription = candidate.taskDescription
+				? await resolveMentionLinksForGithub(candidate.taskDescription, candidate.organizationId)
+				: null;
+			const body = resolvedDescription ? prosekitJSONToMarkdown(resolvedDescription) : "";
 
 			await octokit.request("PATCH /repos/{owner}/{repo}/issues/{issue_number}", {
 				owner,

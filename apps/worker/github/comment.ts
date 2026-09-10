@@ -1,6 +1,6 @@
 import { createTraceAsync } from "@repo/opentelemetry/trace";
 import { and, eq } from "drizzle-orm";
-import { db } from "@repo/database";
+import { db, schema } from "@repo/database";
 import type { JobGroups } from "@repo/queue";
 import { markdownToProsekitJSON } from "./markdownToProsekit";
 
@@ -63,7 +63,13 @@ export async function postSayrComment(ctx: PostSayrCommentContext, body: string)
 			// Look up linked Sayr user from GitHub account
 			const linkedUserId = await findLinkedSayrUser(ctx.authorGithubId);
 
-			const prosekitContent = markdownToProsekitJSON(body);
+			const repository = await db.query.githubRepository.findFirst({
+				where: (r) => and(eq(r.organizationId, ctx.orgId), eq(r.repoName, `${ctx.owner}/${ctx.repo}`)),
+			});
+			const prosekitContent = await markdownToProsekitJSON(
+				body,
+				repository ? { organizationId: ctx.orgId, repositoryId: repository.id } : undefined
+			);
 			const issueUrl = ctx.pull_request
 				? `https://github.com/${ctx.owner}/${ctx.repo}/pull/${ctx.number}`
 				: `https://github.com/${ctx.owner}/${ctx.repo}/issues/${ctx.number}`;
@@ -129,7 +135,7 @@ export async function postSayrComment(ctx: PostSayrCommentContext, body: string)
  */
 export async function handleCommentEdited(job: JobGroups["github"] & { type: "issue_comment_edited" }) {
 	const traceAsync = createTraceAsync();
-	const { organizationId, commentId, commentBody } = job.payload;
+	const { organizationId, commentId, commentBody, repoId } = job.payload;
 
 	if (!organizationId) return;
 
@@ -143,7 +149,13 @@ export async function handleCommentEdited(job: JobGroups["github"] & { type: "is
 
 			if (!comment) return;
 
-			const content = markdownToProsekitJSON(commentBody);
+			const repository = await db.query.githubRepository.findFirst({
+				where: eq(schema.githubRepository.repoId, repoId),
+			});
+			const content = await markdownToProsekitJSON(
+				commentBody,
+				repository ? { organizationId, repositoryId: repository.id } : undefined
+			);
 
 			const res = await fetch(`${API_URL}/v1/admin/organization/task/edit-comment`, {
 				method: "PUT",

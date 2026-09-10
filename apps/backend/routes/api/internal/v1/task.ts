@@ -38,6 +38,7 @@ import { Hono } from "hono";
 import { emitEvent, type PlatformEventType } from "@/clickhouse";
 import type { AppEnv } from "@/index";
 import { prosekitJSONToMarkdown } from "@/prosekit/markdown";
+import { resolveMentionLinksForGithub } from "@/prosekit/resolveMentions";
 import {
 	findClientBysseId,
 	findSSEClientsByUserId,
@@ -290,7 +291,10 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 			const owner = repoInfo.owner.login;
 			const repo = repoInfo.name;
 
-			const description = taskWithData.description ? prosekitJSONToMarkdown(taskWithData.description) : "";
+			const resolvedDescription = taskWithData.description
+				? await resolveMentionLinksForGithub(taskWithData.description, orgId)
+				: null;
+			const description = resolvedDescription ? prosekitJSONToMarkdown(resolvedDescription) : "";
 			const body =
 				`↪ From Sayr task ${sayrTaskUrl}\n\n` +
 				`${SAYR_TASK_LINK_MARKER_PREFIX}${taskWithData.id} -->\n\n` +
@@ -1681,7 +1685,8 @@ apiRouteAdminProjectTask.post("/create-comment", async (c) => {
 						const owner = repoInfo.owner.login;
 						const repo = repoInfo.name;
 						const effectiveCreatedBy = source === "github" ? bodyCreatedBy : (bodyCreatedBy ?? session?.userId);
-						const markdown = prosekitJSONToMarkdown(content);
+						const resolvedContent = await resolveMentionLinksForGithub(content, orgId);
+						const markdown = prosekitJSONToMarkdown(resolvedContent);
 
 						// Prefer posting as the actual author via their own linked GitHub
 						// token — shows up as a genuine comment from them, no bot involved.
@@ -1928,7 +1933,8 @@ apiRouteAdminProjectTask.put("/edit-comment", async (c) => {
 					if (!repoInfo.private) {
 						const owner = repoInfo.owner.login;
 						const repo = repoInfo.name;
-						const markdown = prosekitJSONToMarkdown(content);
+						const resolvedContent = await resolveMentionLinksForGithub(content, orgId);
+						const markdown = prosekitJSONToMarkdown(resolvedContent);
 
 						const userToken = await getUserGithubToken(comment.createdBy);
 						const postingOctokit = userToken ? new Octokit({ auth: userToken }) : octokit;
