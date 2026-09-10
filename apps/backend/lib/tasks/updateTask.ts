@@ -1,10 +1,17 @@
 import { Octokit } from "@octokit/rest";
-import { addLogEventTask, db, getOrganizationMembers, getTaskById, schema } from "@repo/database";
+import {
+	addLogEventTask,
+	db,
+	findSyncEligibleGithubRepo,
+	getOrganizationMembers,
+	getTaskById,
+	schema,
+} from "@repo/database";
 import { getEditionCapabilities } from "@repo/edition";
 import { createTraceAsync } from "@repo/opentelemetry/trace";
 import { enqueue } from "@repo/queue";
 import { getInstallationToken } from "@repo/util/github/auth";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { emitEvent } from "@/clickhouse";
 import {
 	findClientBysseId,
@@ -40,10 +47,17 @@ export interface UpdateTaskServiceParams {
 	actorUserId: string;
 	/** Optional SSE client id to exclude from the broadcast (the caller's own already-applied client). `undefined` for API callers, so every connected client — including the caller's own future SSE connections — receives the broadcast. */
 	sseClientId?: string;
+	/**
+	 * When `true`, skip the outbound GitHub sync paths below (currently: the
+	 * status-close push). Set by inbound GitHub→Sayr updates (e.g. `handleIssueEdited`)
+	 * so that applying a change that originated on GitHub doesn't immediately
+	 * queue a redundant outbound push back to GitHub.
+	 */
+	skipGithubSync?: boolean;
 }
 
 export async function updateTaskService(params: UpdateTaskServiceParams) {
-	const { orgId, taskId, existingTask, updates, actorUserId, sseClientId } = params;
+	const { orgId, taskId, existingTask, updates, actorUserId, sseClientId, skipGithubSync } = params;
 	const traceAsync = createTraceAsync();
 	const userId = actorUserId;
 
@@ -87,7 +101,19 @@ export async function updateTaskService(params: UpdateTaskServiceParams) {
 					timelineEventId: event?.id,
 				});
 
-				if ((updates.status === "done" || updates.status === "in-progress") && existingTask?.githubIssue) {
+				if (
+					!skipGithubSync &&
+					(updates.status === "done" || updates.status === "in-progress") &&
+					existingTask?.githubIssue
+				) {
+					// A task that is (or is becoming) private is never synced to GitHub —
+					// same gate `/create` and the description/comment sync paths use.
+					const effectiveVisible =
+						(updates.visible as schema.taskType["visible"] | undefined) ?? existingTask.visible;
+					if (effectiveVisible === "private") {
+						return;
+					}
+
 					// Derive the issue number from your stored field.
 					// Adjust this if your schema is different.
 					const issueNumber = existingTask.githubIssue.issueNumber ?? existingTask.githubIssue;
@@ -97,13 +123,7 @@ export async function updateTaskService(params: UpdateTaskServiceParams) {
 						return;
 					}
 
-					const foundLink = await db.query.githubRepository.findFirst({
-						where: and(
-							eq(schema.githubRepository.organizationId, orgId),
-							isNull(schema.githubRepository.categoryId),
-							eq(schema.githubRepository.enabled, true)
-						),
-					});
+					const foundLink = await findSyncEligibleGithubRepo(orgId, existingTask.category);
 
 					// No linked repo? Just skip GitHub logic, but don't break the request.
 					if (!foundLink) {

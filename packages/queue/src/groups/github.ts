@@ -40,6 +40,30 @@ export type GithubIssueCommentPayload = GithubRepoContext & {
 	pull_request?: boolean;
 };
 
+export type GithubIssueEditedPayload = GithubRepoContext & {
+	number: number;
+	title: string;
+	body: string;
+	user: string;
+};
+
+export type GithubIssueCommentEditedPayload = GithubRepoContext & {
+	number: number;
+	commentId: number;
+	commentBody: string;
+	user: string;
+	userId?: number;
+	pull_request?: boolean;
+};
+
+export type GithubIssueCommentDeletedPayload = GithubRepoContext & {
+	number: number;
+	commentId: number;
+	user: string;
+	userId?: number;
+	pull_request?: boolean;
+};
+
 /* ============================================================
    Keyword Parsing (Issues / PRs / Comments)
    ============================================================ */
@@ -100,7 +124,7 @@ export type GithubPullRequestLinkPayload = GithubRepoContext & {
 	userId?: number;
 	author: string;
 	draft: boolean;
-	state: "open" | "closed" | "all"
+	state: "open" | "closed" | "all";
 
 	matches: {
 		keyword: string;
@@ -145,45 +169,62 @@ export type GithubBranchCreatePayload = GithubRepoContext & {
 
 export type GithubJob =
 	| {
-		type: "issue_opened";
-		traceContext?: TraceContext;
-		payload: GithubIssueOpenedPayload;
-	}
+			type: "issue_opened";
+			traceContext?: TraceContext;
+			payload: GithubIssueOpenedPayload;
+	  }
 	| {
-		type: "issue_comment";
-		traceContext?: TraceContext;
-		payload: GithubIssueCommentPayload;
-	}
+			type: "issue_comment";
+			traceContext?: TraceContext;
+			payload: GithubIssueCommentPayload;
+	  }
 	| {
-		type: "sayr_keyword_parse";
-		traceContext?: TraceContext;
-		payload: GithubSayrKeywordParsePayload;
-	}
+			type: "issue_edited";
+			traceContext?: TraceContext;
+			payload: GithubIssueEditedPayload;
+	  }
 	| {
-		type: "github_commit_ref";
-		traceContext?: TraceContext;
-		payload: GithubCommitRefPayload;
-	}
+			type: "issue_comment_edited";
+			traceContext?: TraceContext;
+			payload: GithubIssueCommentEditedPayload;
+	  }
 	| {
-		type: "pull_request_link";
-		traceContext?: TraceContext;
-		payload: GithubPullRequestLinkPayload;
-	}
+			type: "issue_comment_deleted";
+			traceContext?: TraceContext;
+			payload: GithubIssueCommentDeletedPayload;
+	  }
 	| {
-		type: "pull_request_sync";
-		traceContext?: TraceContext;
-		payload: GithubPullRequestSyncPayload;
-	}
+			type: "sayr_keyword_parse";
+			traceContext?: TraceContext;
+			payload: GithubSayrKeywordParsePayload;
+	  }
 	| {
-		type: "pull_request_closed";
-		traceContext?: TraceContext;
-		payload: GithubPullRequestClosedPayload;
-	} | {
-		type: "branch_create";
-		traceContext?: TraceContext;
-		payload: GithubBranchCreatePayload;
-	} | {
-		type: "branch_delete";
-		traceContext?: TraceContext;
-		payload: GithubBranchCreatePayload;
-	};
+			type: "github_commit_ref";
+			traceContext?: TraceContext;
+			payload: GithubCommitRefPayload;
+	  }
+	| {
+			type: "pull_request_link";
+			traceContext?: TraceContext;
+			payload: GithubPullRequestLinkPayload;
+	  }
+	| {
+			type: "pull_request_sync";
+			traceContext?: TraceContext;
+			payload: GithubPullRequestSyncPayload;
+	  }
+	| {
+			type: "pull_request_closed";
+			traceContext?: TraceContext;
+			payload: GithubPullRequestClosedPayload;
+	  }
+	| {
+			type: "branch_create";
+			traceContext?: TraceContext;
+			payload: GithubBranchCreatePayload;
+	  }
+	| {
+			type: "branch_delete";
+			traceContext?: TraceContext;
+			payload: GithubBranchCreatePayload;
+	  };
