@@ -92,7 +92,7 @@ export async function handleSayrKeywordParse(job: JobGroups["github"] & { type: 
 		);
 	}
 	if (!summaryLines.length) {
-		await traceAsync("github.comment.skip", async () => { }, {
+		await traceAsync("github.comment.skip", async () => {}, {
 			description: "No actionable Sayr keywords found",
 			data: { repo, number },
 		});
@@ -128,29 +128,14 @@ export async function postGithubComment(ctx: Omit<KeywordContext, "taskKey" | "m
 	});
 }
 
-export async function handleComment(
-	job: JobGroups["github"] & { type: "issue_comment" }
-) {
+export async function handleComment(job: JobGroups["github"] & { type: "issue_comment" }) {
 	const traceAsync = createTraceAsync();
-	const {
-		owner,
-		organizationId,
-		number,
-		repo,
-		commentId,
-		commentBody,
-		user,
-		userId,
-		repo_private
-	} = job.payload;
+	const { owner, organizationId, number, repo, commentId, commentBody, user, userId, repo_private } = job.payload;
 
 	// --------------------
 	// Sanitize content (no uploads)
 	// --------------------
-	const sanitizedBody = commentBody.replace(
-		/<(img|video|iframe|object|embed)[^>]*>/gi,
-		""
-	);
+	const sanitizedBody = commentBody.replace(/<(img|video|iframe|object|embed)[^>]*>/gi, "");
 
 	if (!sanitizedBody.trim()) {
 		return;
@@ -163,11 +148,7 @@ export async function handleComment(
 		"github.issue.link.lookup",
 		() =>
 			db.query.githubIssue.findFirst({
-				where: (gi) =>
-					and(
-						eq(gi.organizationId, organizationId || ""),
-						eq(gi.issueNumber, number)
-					),
+				where: (gi) => and(eq(gi.organizationId, organizationId || ""), eq(gi.issueNumber, number)),
 				with: { task: true },
 			}),
 		{
@@ -181,11 +162,7 @@ export async function handleComment(
 			"github.pull_request.lookup",
 			() =>
 				db.query.githubPullRequest.findFirst({
-					where: (gi) =>
-						and(
-							eq(gi.organizationId, organizationId || ""),
-							eq(gi.prNumber, number)
-						),
+					where: (gi) => and(eq(gi.organizationId, organizationId || ""), eq(gi.prNumber, number)),
 					with: { task: true },
 				}),
 			{
@@ -211,6 +188,7 @@ export async function handleComment(
 						repo_private,
 						externalCommentId: commentId,
 						pull_request: true,
+						repositoryId: githubPullRequest.repositoryId,
 					},
 					sanitizedBody
 				),
@@ -243,7 +221,8 @@ export async function handleComment(
 					authorLogin: user,
 					authorGithubId: userId,
 					repo_private,
-					externalCommentId: commentId
+					externalCommentId: commentId,
+					repositoryId: githubIssue.repositoryId,
 				},
 				sanitizedBody
 			),

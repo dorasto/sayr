@@ -11,6 +11,7 @@ import {
 	db,
 	extractTaskMentions,
 	extractUserMentions,
+	findSyncEligibleGithubRepo,
 	getBlockedUserIds,
 	getCommentReplies,
 	getCommentReplyCountBatch,
@@ -36,6 +37,8 @@ import { and, desc, eq, ilike, isNull, notInArray, or, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import { emitEvent, type PlatformEventType } from "@/clickhouse";
 import type { AppEnv } from "@/index";
+import { prosekitJSONToMarkdown } from "@/prosekit/markdown";
+import { resolveMentionLinksForGithub } from "@/prosekit/resolveMentions";
 import {
 	findClientBysseId,
 	findSSEClientsByUserId,
@@ -45,7 +48,15 @@ import {
 	sseBroadcastToRoom,
 } from "@/routes/events";
 import type { ServerEventBaseMessage } from "@/routes/events/types";
-import { getAnonHash, getClientIP, traceOrgPermissionCheck, tracePublicOrgAccessCheck } from "@/util";
+import {
+	getAnonHash,
+	getClientIP,
+	refreshGitHubTokenIfNeeded,
+	SAYR_COMMENT_SYNC_MARKER,
+	SAYR_TASK_LINK_MARKER_PREFIX,
+	traceOrgPermissionCheck,
+	tracePublicOrgAccessCheck,
+} from "@/util";
 import { notifyAssignees } from "../../../../lib/tasks/notify";
 import { updateTaskService } from "../../../../lib/tasks/updateTask";
 import {
@@ -78,11 +89,15 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 		category,
 		releaseId,
 		parentId,
+		skipGithubSync,
+		createdBy: bodyCreatedBy,
 	} = body;
 	let { visible } = body as {
 		visible?: "public" | "private";
 	};
 	const session = c.get("session");
+	const user = c.get("user");
+	const isSystemAccount = user?.role === "system";
 
 	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "tasks.create");
 
@@ -98,13 +113,18 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 		// If public is allowed, respect request (default to private if undefined)
 		visible = visible === "public" ? "public" : "private";
 	}
+	// Only the internal system account may attribute a task to someone other
+	// than the requesting session — used when the GitHub sync worker creates a
+	// task for an issue opened by a Sayr-linked GitHub user, so the task shows
+	// them as the creator instead of the system account.
+	const effectiveCreatedBy = isSystemAccount && bodyCreatedBy ? bodyCreatedBy : session?.userId;
 	const task = await traceAsync(
 		"task.create.insert",
 		() =>
 			createTask(
 				orgId,
 				{ title, description, status, priority, category, releaseId, visible, parentId },
-				session?.userId
+				effectiveCreatedBy
 			),
 		{
 			description: "Creating task record",
@@ -147,7 +167,7 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 				"created",
 				null,
 				{ status, priority, title, labels, assignees },
-				session?.userId,
+				effectiveCreatedBy,
 				description
 			);
 		},
@@ -224,6 +244,12 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 	await traceAsync(
 		"task.create.github_sync",
 		async () => {
+			// Set when this task was itself created FROM a GitHub issue (see the
+			// worker's `issue_opened` handler) — without this, creating the task
+			// would immediately try to create a second, duplicate GitHub issue
+			// for it.
+			if (skipGithubSync) return;
+
 			let foundLink = null;
 
 			// 1️⃣ Try exact category match (if category provided)
@@ -265,7 +291,15 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 			const owner = repoInfo.owner.login;
 			const repo = repoInfo.name;
 
-			const body = `↪ From Sayr task ${sayrTaskUrl}\n\n` + `<!-- sayr-task:${taskWithData.id} -->\n\n` + `---\n\n`;
+			const resolvedDescription = taskWithData.description
+				? await resolveMentionLinksForGithub(taskWithData.description, orgId)
+				: null;
+			const description = resolvedDescription ? prosekitJSONToMarkdown(resolvedDescription) : "";
+			const body =
+				`↪ From Sayr task ${sayrTaskUrl}\n\n` +
+				`${SAYR_TASK_LINK_MARKER_PREFIX}${taskWithData.id} -->\n\n` +
+				`---\n\n` +
+				description;
 			const { data: issue } = await octokit.request("POST /repos/{owner}/{repo}/issues", {
 				owner,
 				repo,
@@ -517,7 +551,7 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 	const traceAsync = createTraceAsync();
 	const recordWideError = c.get("recordWideError");
 
-	const { org_id: orgId, sseClientId, task_id: taskId, ...updates } = await c.req.json();
+	const { org_id: orgId, sseClientId, task_id: taskId, skipGithubSync, ...updates } = await c.req.json();
 	const session = c.get("session");
 	const user = c.get("user");
 	const isSystemAccount = user?.role === "system";
@@ -599,6 +633,7 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 		updates,
 		actorUserId: userId,
 		sseClientId,
+		skipGithubSync: skipGithubSync === true,
 	});
 
 	return c.json({ success: true, data: taskWithData });
@@ -1443,9 +1478,51 @@ apiRouteAdminProjectTask.post("/update-assignees", async (c) => {
 	}
 });
 
+// Fallback for outbound (Sayr → GitHub) comments whose author has no linked
+// GitHub account (or whose linked token can't be used — see
+// getUserGithubToken below): prefixes the body with who actually wrote it on
+// Sayr, since a bot-posted comment otherwise shows up on GitHub with no
+// indication of the real author.
+async function buildSyncedCommentBody(authorId: string | null | undefined, markdown: string): Promise<string> {
+	let authorLabel = "A Sayr user";
+	if (authorId) {
+		const author = await db.query.user.findFirst({
+			where: (t) => eq(t.id, authorId),
+			columns: { displayName: true, name: true },
+		});
+		if (author) authorLabel = author.displayName || author.name || authorLabel;
+	}
+	return `**${authorLabel}** commented via Sayr:\n\n${markdown}\n\n${SAYR_COMMENT_SYNC_MARKER}`;
+}
+
+// Attempts to get a valid GitHub user-to-server access token for the given
+// Sayr user, so an outbound comment can be posted as literally them instead
+// of the App's bot identity. Returns null (caller falls back to the bot) if
+// the user has no linked GitHub account, or the token can't be obtained —
+// e.g. they revoked Sayr's GitHub authorization, or their linked account
+// simply doesn't have access to this particular repo (GitHub App user
+// tokens are scoped to the intersection of the App's configured permissions
+// and what the user themselves can do). Reuses the same refresh helper the
+// `/organization` installation routes already rely on for this exact thing.
+async function getUserGithubToken(authorId: string | null | undefined): Promise<string | null> {
+	if (!authorId) return null;
+	try {
+		const account = await db.query.account.findFirst({
+			where: (a) => and(eq(a.userId, authorId), eq(a.providerId, "github")),
+		});
+		if (!account?.accessToken) return null;
+
+		const refreshed = await refreshGitHubTokenIfNeeded(account);
+		return refreshed.accessToken ?? null;
+	} catch {
+		return null;
+	}
+}
+
 // Create a comment on a task
 apiRouteAdminProjectTask.post("/create-comment", async (c) => {
 	const traceAsync = createTraceAsync();
+	const recordWideError = c.get("recordWideError");
 
 	const {
 		org_id: orgId,
@@ -1552,7 +1629,7 @@ apiRouteAdminProjectTask.post("/create-comment", async (c) => {
 		resolvedVisibility = parentComment.visibility;
 	}
 
-	await traceAsync(
+	const newComment = await traceAsync(
 		"task.comment.create.insert",
 		() => {
 			// For GitHub-sourced comments, only set createdBy if explicitly provided (linked Sayr user).
@@ -1582,6 +1659,75 @@ apiRouteAdminProjectTask.post("/create-comment", async (c) => {
 			}),
 		}
 	);
+
+	// Outbound sync: a new public, Sayr-authored comment on a task linked to a
+	// public GitHub issue gets mirrored to GitHub too. Never fatal — a
+	// GitHub-side failure must never break comment creation on Sayr.
+	if ((source === "sayr" || !source) && resolvedVisibility === "public" && newComment) {
+		try {
+			const syncTask = await db.query.task.findFirst({
+				where: (t) => and(eq(t.id, taskId), eq(t.organizationId, orgId)),
+				with: { githubIssue: true },
+			});
+
+			if (syncTask?.visible === "public" && syncTask.githubIssue) {
+				const repoLink = await findSyncEligibleGithubRepo(orgId, syncTask.category);
+
+				if (repoLink) {
+					const token = await getInstallationToken(repoLink.installationId);
+					const octokit = new Octokit({ auth: token });
+
+					const { data: repoInfo } = await octokit.request("GET /repositories/{repository_id}", {
+						repository_id: repoLink.repoId,
+					});
+
+					if (!repoInfo.private) {
+						const owner = repoInfo.owner.login;
+						const repo = repoInfo.name;
+						const effectiveCreatedBy = source === "github" ? bodyCreatedBy : (bodyCreatedBy ?? session?.userId);
+						const resolvedContent = await resolveMentionLinksForGithub(content, orgId);
+						const markdown = prosekitJSONToMarkdown(resolvedContent);
+
+						// Prefer posting as the actual author via their own linked GitHub
+						// token — shows up as a genuine comment from them, no bot involved.
+						// Falls back to the App's bot identity (with a text attribution
+						// line) when they have no linked account, or the token's unusable.
+						const userToken = await getUserGithubToken(effectiveCreatedBy);
+						const postingOctokit = userToken ? new Octokit({ auth: userToken }) : octokit;
+						const body = userToken
+							? `${markdown}\n\n${SAYR_COMMENT_SYNC_MARKER}`
+							: await buildSyncedCommentBody(effectiveCreatedBy, markdown);
+
+						const { data: ghComment } = await postingOctokit.request(
+							"POST /repos/{owner}/{repo}/issues/{issue_number}/comments",
+							{
+								owner,
+								repo,
+								issue_number: syncTask.githubIssue.issueNumber,
+								body,
+							}
+						);
+
+						await db
+							.update(schema.taskComment)
+							.set({
+								externalCommentId: ghComment.id,
+								externalCommentUrl: ghComment.html_url,
+							})
+							.where(eq(schema.taskComment.id, newComment.id));
+					}
+				}
+			}
+		} catch (err) {
+			await recordWideError({
+				name: "task.comment.create.github_sync.failed",
+				error: err,
+				code: "GITHUB_COMMENT_SYNC_FAILED",
+				message: "Failed to sync new comment to GitHub",
+				contextData: { orgId, taskId, commentId: newComment.id },
+			});
+		}
+	}
 
 	// Notify assignees and mentioned users about the new comment.
 	// Users who are both assigned AND mentioned only receive one notification (the "comment" type).
@@ -1761,6 +1907,61 @@ apiRouteAdminProjectTask.put("/edit-comment", async (c) => {
 		}
 	);
 
+	// Outbound sync: push the new content to the mirrored GitHub comment, if
+	// this Sayr-authored comment was previously pushed there and is (still,
+	// or now) public. Never fatal — a GitHub-side failure must never break
+	// editing the comment on Sayr.
+	const effectiveVisibility = visibility ?? comment.visibility;
+	if (comment.source === "sayr" && comment.externalCommentId && effectiveVisibility === "public" && comment.taskId) {
+		try {
+			const syncTask = await db.query.task.findFirst({
+				where: (t) => and(eq(t.id, comment.taskId as string), eq(t.organizationId, orgId)),
+				with: { githubIssue: true },
+			});
+
+			if (syncTask?.visible === "public" && syncTask.githubIssue) {
+				const repoLink = await findSyncEligibleGithubRepo(orgId, syncTask.category);
+
+				if (repoLink) {
+					const token = await getInstallationToken(repoLink.installationId);
+					const octokit = new Octokit({ auth: token });
+
+					const { data: repoInfo } = await octokit.request("GET /repositories/{repository_id}", {
+						repository_id: repoLink.repoId,
+					});
+
+					if (!repoInfo.private) {
+						const owner = repoInfo.owner.login;
+						const repo = repoInfo.name;
+						const resolvedContent = await resolveMentionLinksForGithub(content, orgId);
+						const markdown = prosekitJSONToMarkdown(resolvedContent);
+
+						const userToken = await getUserGithubToken(comment.createdBy);
+						const postingOctokit = userToken ? new Octokit({ auth: userToken }) : octokit;
+						const body = userToken
+							? `${markdown}\n\n${SAYR_COMMENT_SYNC_MARKER}`
+							: await buildSyncedCommentBody(comment.createdBy, markdown);
+
+						await postingOctokit.request("PATCH /repos/{owner}/{repo}/issues/comments/{comment_id}", {
+							owner,
+							repo,
+							comment_id: comment.externalCommentId,
+							body,
+						});
+					}
+				}
+			}
+		} catch (err) {
+			await recordWideError({
+				name: "task.comment.edit.github_sync.failed",
+				error: err,
+				code: "GITHUB_COMMENT_SYNC_FAILED",
+				message: "Failed to sync edited comment to GitHub",
+				contextData: { orgId, commentId, externalCommentId: comment.externalCommentId },
+			});
+		}
+	}
+
 	await traceAsync(
 		"task.comment.edit.broadcast",
 		async () => {
@@ -1850,6 +2051,49 @@ apiRouteAdminProjectTask.delete("/delete-comment", async (c) => {
 
 		if (!task) {
 			return c.json({ success: false, error: "Task not found or is not public." }, 404);
+		}
+	}
+
+	// Outbound sync: delete the mirrored GitHub comment too, if this comment
+	// was previously pushed to (or pulled from) GitHub. Never fatal — a
+	// GitHub-side failure must never block deleting the comment on Sayr.
+	if (comment.source === "sayr" && comment.externalCommentId) {
+		try {
+			const syncTask = comment.taskId
+				? await db.query.task.findFirst({
+						where: (t) => and(eq(t.id, comment.taskId as string), eq(t.organizationId, orgId)),
+						with: { githubIssue: true },
+					})
+				: null;
+
+			if (syncTask?.visible === "public" && syncTask.githubIssue) {
+				const repoLink = await findSyncEligibleGithubRepo(orgId, syncTask.category);
+
+				if (repoLink) {
+					const token = await getInstallationToken(repoLink.installationId);
+					const octokit = new Octokit({ auth: token });
+
+					const { data: repoInfo } = await octokit.request("GET /repositories/{repository_id}", {
+						repository_id: repoLink.repoId,
+					});
+
+					if (!repoInfo.private) {
+						await octokit.request("DELETE /repos/{owner}/{repo}/issues/comments/{comment_id}", {
+							owner: repoInfo.owner.login,
+							repo: repoInfo.name,
+							comment_id: comment.externalCommentId,
+						});
+					}
+				}
+			}
+		} catch (err) {
+			await recordWideError({
+				name: "task.comment.delete.github_sync.failed",
+				error: err,
+				code: "GITHUB_COMMENT_SYNC_FAILED",
+				message: "Failed to sync comment deletion to GitHub",
+				contextData: { orgId, commentId, externalCommentId: comment.externalCommentId },
+			});
 		}
 	}
 
@@ -1952,6 +2196,54 @@ apiRouteAdminProjectTask.patch("/update-comment-visibility", async (c) => {
 		return c.json({ success: false, error: "You don't have permission to change this comment's visibility." }, 403);
 	}
 
+	// Outbound sync: flipping a previously-synced public comment to internal
+	// deletes its mirrored GitHub copy (per decision — internal comments are
+	// never visible on GitHub). Never fatal — a GitHub-side failure must
+	// never block the visibility change on Sayr.
+	const externalCommentId = comment.externalCommentId;
+	const isFlippingToInternal =
+		comment.source === "sayr" && comment.visibility === "public" && visibility === "internal" && !!externalCommentId;
+
+	if (isFlippingToInternal && externalCommentId) {
+		try {
+			const syncTask = comment.taskId
+				? await db.query.task.findFirst({
+						where: (t) => and(eq(t.id, comment.taskId as string), eq(t.organizationId, orgId)),
+						with: { githubIssue: true },
+					})
+				: null;
+
+			if (syncTask?.visible === "public" && syncTask.githubIssue) {
+				const repoLink = await findSyncEligibleGithubRepo(orgId, syncTask.category);
+
+				if (repoLink) {
+					const token = await getInstallationToken(repoLink.installationId);
+					const octokit = new Octokit({ auth: token });
+
+					const { data: repoInfo } = await octokit.request("GET /repositories/{repository_id}", {
+						repository_id: repoLink.repoId,
+					});
+
+					if (!repoInfo.private) {
+						await octokit.request("DELETE /repos/{owner}/{repo}/issues/comments/{comment_id}", {
+							owner: repoInfo.owner.login,
+							repo: repoInfo.name,
+							comment_id: externalCommentId,
+						});
+					}
+				}
+			}
+		} catch (err) {
+			await recordWideError({
+				name: "task.comment.visibility.github_sync.failed",
+				error: err,
+				code: "GITHUB_COMMENT_SYNC_FAILED",
+				message: "Failed to sync comment visibility flip to GitHub",
+				contextData: { orgId, commentId, externalCommentId },
+			});
+		}
+	}
+
 	// Update the comment visibility
 	await traceAsync(
 		"task.comment.visibility.update",
@@ -1961,6 +2253,13 @@ apiRouteAdminProjectTask.patch("/update-comment-visibility", async (c) => {
 				.set({
 					visibility,
 					updatedAt: new Date(),
+					// Clear the external linkage so a later flip back to public
+					// creates a fresh GitHub comment rather than trying to
+					// resurrect the one just deleted above.
+					...(isFlippingToInternal && {
+						externalCommentId: null,
+						externalCommentUrl: null,
+					}),
 				})
 				.where(eq(schema.taskComment.id, commentId)),
 		{

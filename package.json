@@ -18,8 +18,10 @@
     "check-types": "turbo check-types",
     "docker": "docker-compose down --remove-orphans --volumes && docker container prune -f && docker-compose up --build -d",
     "docker:build": "docker-compose -f docker-compose.yml build",
-    "env:all": "bash -c 'failed=0; bash ./gen.sh Sayr sayr-dev-local ./apps/worker/.env || failed=1; bash ./gen.sh Sayr sayr-dev-local ./apps/backend/.env || failed=1; bash ./gen.sh Sayr sayr-dev-local ./apps/start/.env || failed=1; bash ./gen.sh Sayr sayr-marketing-dev ./apps/marketing/.env || failed=1; exit $failed'",
-    "env:ps:all": "powershell -Command \"./gen.ps1 Sayr sayr-dev-local ./apps/worker/.env; ./gen.ps1 Sayr sayr-dev-local ./apps/backend/.env; ./gen.ps1 Sayr sayr-dev-local ./apps/start/.env; ./gen.ps1 Sayr sayr-marketing-dev ./apps/marketing/.env\"",
+    "env:all": "bash -c 'failed=0; bash ./gen.sh Sayr sayr-dev-local ./apps/worker/.env || failed=1; bash ./gen.sh Sayr sayr-dev-local ./apps/backend/.env || failed=1; bash ./gen.sh Sayr sayr-dev-local ./apps/start/.env || failed=1; bash ./gen.sh Sayr sayr-dev-local ./packages/database/.env || failed=1; bash ./gen.sh Sayr sayr-marketing-dev ./apps/marketing/.env || failed=1; exit $failed'",
+    "env:ps:all": "powershell -Command \"./gen.ps1 Sayr sayr-dev-local ./apps/worker/.env; ./gen.ps1 Sayr sayr-dev-local ./apps/backend/.env; ./gen.ps1 Sayr sayr-dev-local ./apps/start/.env; ./gen.ps1 Sayr sayr-dev-local ./packages/database/.env; ./gen.ps1 Sayr sayr-marketing-dev ./apps/marketing/.env\"",
+    "env:local:all": "bash -c '[ -s .env.local ] || { echo \"root .env.local is missing or empty\" >&2; exit 1; }; for d in apps/worker apps/backend apps/start apps/marketing packages/database; do cp .env.local \"$d/.env.local\"; done'",
+    "env:local:ps:all": "powershell -Command \"if (-not (Test-Path .env.local) -or (Get-Item .env.local).Length -eq 0) { Write-Error 'root .env.local is missing or empty'; exit 1 }; foreach ($d in 'apps/worker','apps/backend','apps/start','apps/marketing','packages/database') { Copy-Item .env.local (Join-Path $d '.env.local') -Force }\"",
     "create-integration": "pnpm -F @repo/create-integration start"
   },
   "devDependencies": {
