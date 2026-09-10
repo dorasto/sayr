@@ -1,18 +1,21 @@
 # see https://docs.zerops.io/zerops-yml/specification for full reference
 zerops:
   # ===============================
-  # MARKETING (Astro SSR)
+  # MARKETING (landing, TanStack Start / Node SSR)
   # ===============================
   - setup: marketing
     build:
       base: nodejs@22
+      prepareCommands:
+        # corepack ships with Node.js 22 — use it instead of npm install -g pnpm
+        - corepack enable && corepack prepare pnpm@latest --activate
       buildCommands:
         - pnpm i
-        - pnpm -F marketing build
+        - pnpm -F landing zerops:build
       deployFiles:
-        - apps/marketing/dist
-        - apps/marketing/package.json
-        - apps/marketing/node_modules
+        # Strip apps/landing/ prefix so .output/ lands at container root
+        - apps/landing/~.output
+        - apps/landing/~package.json
         - node_modules
     deploy:
       readinessCheck:
@@ -27,7 +30,7 @@ zerops:
       envVariables:
         PORT: 3000
         HOST: 0.0.0.0
-      start: node apps/marketing/dist/server/entry.mjs
+      start: node .output/server/index.mjs
 
   # ===============================
   # BACKEND (Hono on Bun)
