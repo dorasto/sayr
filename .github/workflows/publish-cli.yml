@@ -1,0 +1,154 @@
+name: Publish CLI
+
+# Runs only when a merged PR to main actually touched packages/cli — most
+# PRs never trigger this at all. Fully automatic by default: a plain merge
+# with no label publishes a patch release. Labels are optional overrides for
+# the rarer cases (a bigger bump, or skipping a release entirely) — unlike
+# release-on-merge.yml's release:* labels, they are never required.
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - main
+    paths:
+      - "packages/cli/**"
+
+concurrency: publish-cli
+
+jobs:
+  detect:
+    name: Detect CLI release
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      version: ${{ steps.bump.outputs.version }}
+      publish: ${{ steps.bump.outputs.publish }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Determine bump from labels
+        id: bump
+        env:
+          PR_LABELS: ${{ toJson(github.event.pull_request.labels.*.name) }}
+        run: |
+          echo "Labels: $PR_LABELS"
+
+          # No label at all is the common case and defaults to "patch" — the
+          # whole point is that merging needs no extra step. cli-release:major
+          # /minor/skip are optional overrides for the rarer cases.
+          BUMP_TYPE="patch"
+          if echo "$PR_LABELS" | grep -q '"cli-release:major"'; then
+            BUMP_TYPE="major"
+          elif echo "$PR_LABELS" | grep -q '"cli-release:minor"'; then
+            BUMP_TYPE="minor"
+          elif echo "$PR_LABELS" | grep -q '"cli-release:skip"'; then
+            BUMP_TYPE="skip"
+          fi
+
+          if [ "$BUMP_TYPE" = "skip" ]; then
+            echo "cli-release:skip — no version bump."
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Versioned off cli-v* tags (not packages/cli/package.json) — same
+          # reasoning as release-on-merge.yml versioning off v* tags: it
+          # avoids the workflow needing to push a version-bump commit back to
+          # a possibly branch-protected main.
+          LATEST_TAG=$(git tag --list 'cli-v*' --sort=-v:refname | head -n 1)
+          LATEST_TAG=${LATEST_TAG:-cli-v0.0.0}
+          CURRENT_VERSION=${LATEST_TAG#cli-v}
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
+
+          if [ "$BUMP_TYPE" = "major" ]; then
+            MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0
+          elif [ "$BUMP_TYPE" = "minor" ]; then
+            MINOR=$((MINOR + 1)); PATCH=0
+          elif [ "$BUMP_TYPE" = "patch" ]; then
+            PATCH=$((PATCH + 1))
+          fi
+
+          NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}"
+          echo "Latest: $LATEST_TAG -> New: cli-v${NEW_VERSION} (${BUMP_TYPE})"
+          echo "version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
+          echo "publish=true" >> "$GITHUB_OUTPUT"
+
+  publish:
+    name: Build, publish to npm, and tag
+    needs: detect
+    if: needs.detect.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build CLI
+        run: pnpm -F @sayrio/cli build
+
+      - name: Guard against republishing an existing version
+        run: |
+          if npm view "@sayrio/cli@${{ needs.detect.outputs.version }}" version 2>/dev/null; then
+            echo "::error::@sayrio/cli@${{ needs.detect.outputs.version }} is already on npm — refusing to overwrite. Check for a stale/duplicate cli-release label or a missing tag push from a previous run."
+            exit 1
+          fi
+
+      - name: Set package version for publish
+        working-directory: packages/cli
+        run: npm version "${{ needs.detect.outputs.version }}" --no-git-tag-version --allow-same-version
+
+      - name: Publish to npm
+        working-directory: packages/cli
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Tag release
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag "cli-v${{ needs.detect.outputs.version }}"
+          git push origin "cli-v${{ needs.detect.outputs.version }}"
+
+      - name: Create GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          VERSION: ${{ needs.detect.outputs.version }}
+        run: |
+          cat > release_notes.md <<EOF
+          ${PR_BODY}
+
+          ---
+
+          **Full Changelog**: https://github.com/${{ github.repository }}/pull/${PR_NUMBER}
+          EOF
+
+          gh release create "cli-v${VERSION}" \
+            --title "CLI v${VERSION} - ${PR_TITLE}" \
+            --notes-file release_notes.md

@@ -7,18 +7,14 @@ description: Manage Sayr tasks and comments from your terminal with the sayr com
 
 The Sayr CLI (`@sayrio/cli`, binary `sayr`) wraps the same personal-access-token-authenticated API surface (`/v1/me/*`) that powers integrations and bots — list, create, and update tasks, manage labels and assignees, and post comments, all without opening a browser.
 
-<Callout type="warn" title="Not yet published">
-The CLI lives in this repo at `packages/cli` and hasn't been published to npm yet — for now, run it from source. See [Installation](#installation).
-</Callout>
-
 ## Installation
 
 ```bash
-pnpm -F @sayrio/cli build
-node packages/cli/dist/index.js --help
+npm install -g @sayrio/cli
+sayr --help
 ```
 
-Once published, this will collapse to a single `npm install -g @sayrio/cli` — until then, alias `sayr` to the command above if you want to use it like a regular binary.
+Prefer a one-off run without a global install? `npx @sayrio/cli --help` works the same way.
 
 ## Authentication
 

@@ -1,6 +1,6 @@
 {
 	"name": "@sayrio/cli",
-	"version": "0.0.1",
+	"version": "0.1.0",
 	"description": "Sayr.io command-line interface — manage tasks and comments from your terminal",
 	"license": "MIT",
 	"type": "module",
@@ -10,6 +10,9 @@
 	"files": [
 		"dist"
 	],
+	"publishConfig": {
+		"access": "public"
+	},
 	"engines": {
 		"node": ">=18"
 	},
