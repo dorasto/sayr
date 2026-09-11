@@ -1,8 +1,9 @@
 import { auth } from "@repo/auth";
-import type { PermissionPath } from "@repo/database";
+import { db, type PermissionPath } from "@repo/database";
 import { createTraceAsync } from "@repo/opentelemetry/trace";
 import type { ApiKeyScope, ApiKeyScopeRecord } from "@repo/util";
 import { keyScopeAllows, scopeToPermissionPath } from "@repo/util";
+import { eq } from "drizzle-orm";
 import type { Context, MiddlewareHandler } from "hono";
 import type { AppEnv } from "@/index";
 import { traceOrgPermissionCheck } from "@/util";
@@ -57,9 +58,7 @@ export function requireApiKey(): MiddlewareHandler<AppEnv> {
 			if (result?.error?.code === "RATE_LIMITED") {
 				//@ts-ignore
 				const retryAfterMs = result?.error?.details?.tryAgainIn;
-				const retryAfterSeconds = retryAfterMs
-					? Math.ceil(retryAfterMs / 1000)
-					: undefined;
+				const retryAfterSeconds = retryAfterMs ? Math.ceil(retryAfterMs / 1000) : undefined;
 				c.header("Retry-After", String(retryAfterSeconds));
 				return c.json(
 					errorResponse("Rate limit exceeded", "This API key has hit its rate limit. Try again shortly."),
@@ -67,6 +66,21 @@ export function requireApiKey(): MiddlewareHandler<AppEnv> {
 				);
 			}
 			return c.json(errorResponse("Invalid API key", "The provided API key is invalid, disabled, or expired."), 401);
+		}
+
+		// verifyApiKey only checks the key itself (valid/enabled) — it never creates
+		// a session, so Better Auth's own ban enforcement (wired to the
+		// session.create hook) never runs for API-key traffic. Without this, banning
+		// a user has no effect on their existing keys. Mirrors the ban-expiry
+		// handling the admin plugin itself applies (an expired banExpires means the
+		// user is no longer actually banned).
+		const ownerId = result.key.referenceId;
+		const owner = await db.query.user.findFirst({
+			where: (u) => eq(u.id, ownerId),
+			columns: { banned: true, banExpires: true },
+		});
+		if (owner?.banned && (!owner.banExpires || owner.banExpires.getTime() > Date.now())) {
+			return c.json(errorResponse("Forbidden", "This account has been banned."), 403);
 		}
 
 		// The plugin's own verifyApiKey response already JSON-parses `permissions`

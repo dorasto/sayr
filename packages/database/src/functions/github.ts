@@ -26,6 +26,29 @@ import { db, schema } from "..";
  * if (!repoLink) return; // nothing to sync to
  * ```
  */
+/**
+ * Resolves the GitHub repository a task's *existing* linked issue actually
+ * lives in, by the issue's own `repositoryId` — authoritative for any sync
+ * path operating on a task that already has a `githubIssue` row.
+ *
+ * Deliberately distinct from `findSyncEligibleGithubRepo`: that one re-derives
+ * a repo from the task's *current* category, which is only correct when
+ * there's no existing issue yet (initial creation). Reusing it for an
+ * already-linked task means changing the task's category later silently
+ * redirects every subsequent sync (comments, description) to a different
+ * repository while still reusing the *original* issue number from the old
+ * repo — posting/editing/deleting an unrelated issue in the new repo.
+ *
+ * @param repositoryId - `githubIssue.repositoryId` from the task's existing link.
+ * @returns The repo row, or `null` if it's been disabled/removed since the issue was linked.
+ */
+export async function getGithubIssueRepository(repositoryId: string): Promise<schema.githubRepositoryType | null> {
+	const repo = await db.query.githubRepository.findFirst({
+		where: and(eq(schema.githubRepository.id, repositoryId), eq(schema.githubRepository.enabled, true)),
+	});
+	return repo ?? null;
+}
+
 export async function findSyncEligibleGithubRepo(
 	orgId: string,
 	categoryId?: string | null

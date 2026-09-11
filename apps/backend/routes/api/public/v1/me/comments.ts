@@ -79,7 +79,7 @@ commentsRoute.post(
 			);
 		}
 
-		const { userId, invalidProvider } = await resolveActorId(createdBy, principal.userId);
+		const { userId, invalidProvider } = await resolveActorId(createdBy, principal.userId, orgId);
 		if (invalidProvider) {
 			return c.json(errorResponse("Invalid CreatedBy type", "The provided CreatedBy type is invalid"), 400);
 		}

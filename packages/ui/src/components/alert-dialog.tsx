@@ -71,12 +71,18 @@ const AlertDialogDescription = React.forwardRef<
 ));
 AlertDialogDescription.displayName = "AlertDialogDescription";
 
-// Base UI has no Action primitive (unlike Radix). Render a plain styled button;
-// close the dialog via controlled `open`, `AlertDialogPrimitive.Root`'s `actionsRef`,
-// or by running the close logic inside this button's own `onClick`.
-const AlertDialogAction = React.forwardRef<HTMLButtonElement, React.ComponentPropsWithoutRef<"button">>(
-	({ className, ...props }, ref) => <button ref={ref} className={cn(buttonVariants(), className)} {...props} />
-);
+// Base UI has no Action primitive (unlike Radix, which auto-closed on click).
+// Build it on the same Close primitive AlertDialogCancel uses below — Base UI
+// merges a caller's own `onClick` with Close's internal close handler rather
+// than overriding it, so a call site's action still runs (e.g. a delete
+// mutation) and the dialog still closes afterward, matching the old Radix
+// behavior without every call site needing to close it manually.
+const AlertDialogAction = React.forwardRef<
+	React.ElementRef<typeof AlertDialogPrimitive.Close>,
+	React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Close>
+>(({ className, ...props }, ref) => (
+	<AlertDialogPrimitive.Close ref={ref} className={cn(buttonVariants(), className)} {...props} />
+));
 AlertDialogAction.displayName = "AlertDialogAction";
 
 const AlertDialogCancel = React.forwardRef<

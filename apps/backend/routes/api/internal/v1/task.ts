@@ -11,10 +11,10 @@ import {
 	db,
 	extractTaskMentions,
 	extractUserMentions,
-	findSyncEligibleGithubRepo,
 	getBlockedUserIds,
 	getCommentReplies,
 	getCommentReplyCountBatch,
+	getGithubIssueRepository,
 	getIssueTemplateById,
 	getOrganizationMembers,
 	getSubtasks,
@@ -1536,10 +1536,18 @@ apiRouteAdminProjectTask.post("/create-comment", async (c) => {
 		externalIssueNumber,
 		externalCommentId,
 		externalCommentUrl,
-		createdBy: bodyCreatedBy,
 		parentId,
 	} = await c.req.json();
 	const session = c.get("session");
+	// This is a session-authenticated HTTP route — nothing in this codebase calls it with
+	// a trustworthy client-supplied actor, so the comment's author/sync identity is always
+	// whoever the request is actually authenticated as. A client-supplied `createdBy` was
+	// previously trusted here (regardless of `source`), letting any caller attribute a
+	// comment to an arbitrary other user — and, for public GitHub-linked tasks, get that
+	// user's real linked GitHub OAuth token used to post on their behalf. Inbound
+	// GitHub-authored comments are created by the webhook handler via a direct DB call,
+	// never through this route, so there's no legitimate case for trusting a body value here.
+	const actorId = session?.userId;
 
 	const isOrgMember = await traceOrgPermissionCheck(session?.userId || "", orgId, "members");
 
@@ -1592,13 +1600,10 @@ apiRouteAdminProjectTask.post("/create-comment", async (c) => {
 			);
 		}
 	}
-	// Determine the actor attempting to create the comment
-	const commentActorIdCheck = source === "github" ? bodyCreatedBy : (bodyCreatedBy ?? session?.userId);
-
 	// Blocked users cannot post at all
-	if (commentActorIdCheck) {
+	if (actorId) {
 		const blockedIds = await getBlockedUserIds(orgId);
-		if (blockedIds.includes(commentActorIdCheck)) {
+		if (blockedIds.includes(actorId)) {
 			return c.json(
 				{
 					success: false,
@@ -1632,15 +1637,12 @@ apiRouteAdminProjectTask.post("/create-comment", async (c) => {
 	const newComment = await traceAsync(
 		"task.comment.create.insert",
 		() => {
-			// For GitHub-sourced comments, only set createdBy if explicitly provided (linked Sayr user).
-			// Otherwise leave it null so unlinked GitHub users show their GitHub identity, not the system account.
-			const effectiveCreatedBy = source === "github" ? bodyCreatedBy : (bodyCreatedBy ?? session?.userId);
 			return createComment(
 				orgId,
 				taskId,
 				content,
 				resolvedVisibility,
-				effectiveCreatedBy,
+				actorId,
 				source,
 				externalAuthorLogin,
 				externalAuthorUrl,
@@ -1671,7 +1673,10 @@ apiRouteAdminProjectTask.post("/create-comment", async (c) => {
 			});
 
 			if (syncTask?.visible === "public" && syncTask.githubIssue) {
-				const repoLink = await findSyncEligibleGithubRepo(orgId, syncTask.category);
+				// Authoritative repo for a task that already has a linked issue is
+				// the repo that issue actually lives in — not whatever the task's
+				// *current* category happens to map to (see getGithubIssueRepository).
+				const repoLink = await getGithubIssueRepository(syncTask.githubIssue.repositoryId);
 
 				if (repoLink) {
 					const token = await getInstallationToken(repoLink.installationId);
@@ -1684,7 +1689,6 @@ apiRouteAdminProjectTask.post("/create-comment", async (c) => {
 					if (!repoInfo.private) {
 						const owner = repoInfo.owner.login;
 						const repo = repoInfo.name;
-						const effectiveCreatedBy = source === "github" ? bodyCreatedBy : (bodyCreatedBy ?? session?.userId);
 						const resolvedContent = await resolveMentionLinksForGithub(content, orgId);
 						const markdown = prosekitJSONToMarkdown(resolvedContent);
 
@@ -1692,11 +1696,11 @@ apiRouteAdminProjectTask.post("/create-comment", async (c) => {
 						// token — shows up as a genuine comment from them, no bot involved.
 						// Falls back to the App's bot identity (with a text attribution
 						// line) when they have no linked account, or the token's unusable.
-						const userToken = await getUserGithubToken(effectiveCreatedBy);
+						const userToken = await getUserGithubToken(actorId);
 						const postingOctokit = userToken ? new Octokit({ auth: userToken }) : octokit;
 						const body = userToken
 							? `${markdown}\n\n${SAYR_COMMENT_SYNC_MARKER}`
-							: await buildSyncedCommentBody(effectiveCreatedBy, markdown);
+							: await buildSyncedCommentBody(actorId, markdown);
 
 						const { data: ghComment } = await postingOctokit.request(
 							"POST /repos/{owner}/{repo}/issues/{issue_number}/comments",
@@ -1731,12 +1735,11 @@ apiRouteAdminProjectTask.post("/create-comment", async (c) => {
 
 	// Notify assignees and mentioned users about the new comment.
 	// Users who are both assigned AND mentioned only receive one notification (the "comment" type).
-	const commentActorId = source === "github" ? bodyCreatedBy : (bodyCreatedBy ?? session?.userId);
 	const assigneeIds = await getTaskAssigneeIds(taskId);
 	const mentionedUserIds = extractUserMentions(content);
 
 	// Send "comment" notifications to all assignees (filtered by actor inside createNotifications)
-	notifyAssignees({ taskId, orgId, actorId: commentActorId, type: "comment" });
+	notifyAssignees({ taskId, orgId, actorId, type: "comment" });
 
 	// Send "mention" notifications only to mentioned users who are NOT assignees.
 	// Assignees already receive a "comment" notification above, so skip them to avoid duplicates.
@@ -1748,7 +1751,7 @@ apiRouteAdminProjectTask.post("/create-comment", async (c) => {
 				const notif = await createNotification({
 					organizationId: orgId,
 					userId,
-					actorId: commentActorId ?? null,
+					actorId: actorId ?? null,
 					taskId,
 					timelineEventId: null,
 					type: "mention",
@@ -1780,7 +1783,7 @@ apiRouteAdminProjectTask.post("/create-comment", async (c) => {
 						"task_mentioned",
 						null,
 						{ sourceTaskId: taskId },
-						commentActorId ?? undefined
+						actorId ?? undefined
 					).catch(
 						() => {} // never let timeline failures break comment creation
 					)
@@ -1920,7 +1923,10 @@ apiRouteAdminProjectTask.put("/edit-comment", async (c) => {
 			});
 
 			if (syncTask?.visible === "public" && syncTask.githubIssue) {
-				const repoLink = await findSyncEligibleGithubRepo(orgId, syncTask.category);
+				// Authoritative repo for a task that already has a linked issue is
+				// the repo that issue actually lives in — not whatever the task's
+				// *current* category happens to map to (see getGithubIssueRepository).
+				const repoLink = await getGithubIssueRepository(syncTask.githubIssue.repositoryId);
 
 				if (repoLink) {
 					const token = await getInstallationToken(repoLink.installationId);
@@ -2067,7 +2073,10 @@ apiRouteAdminProjectTask.delete("/delete-comment", async (c) => {
 				: null;
 
 			if (syncTask?.visible === "public" && syncTask.githubIssue) {
-				const repoLink = await findSyncEligibleGithubRepo(orgId, syncTask.category);
+				// Authoritative repo for a task that already has a linked issue is
+				// the repo that issue actually lives in — not whatever the task's
+				// *current* category happens to map to (see getGithubIssueRepository).
+				const repoLink = await getGithubIssueRepository(syncTask.githubIssue.repositoryId);
 
 				if (repoLink) {
 					const token = await getInstallationToken(repoLink.installationId);
@@ -2214,7 +2223,10 @@ apiRouteAdminProjectTask.patch("/update-comment-visibility", async (c) => {
 				: null;
 
 			if (syncTask?.visible === "public" && syncTask.githubIssue) {
-				const repoLink = await findSyncEligibleGithubRepo(orgId, syncTask.category);
+				// Authoritative repo for a task that already has a linked issue is
+				// the repo that issue actually lives in — not whatever the task's
+				// *current* category happens to map to (see getGithubIssueRepository).
+				const repoLink = await getGithubIssueRepository(syncTask.githubIssue.repositoryId);
 
 				if (repoLink) {
 					const token = await getInstallationToken(repoLink.installationId);

@@ -2,7 +2,7 @@ import { Octokit } from "@octokit/rest";
 import {
 	addLogEventTask,
 	db,
-	findSyncEligibleGithubRepo,
+	getGithubIssueRepository,
 	getOrganizationMembers,
 	getTaskById,
 	schema,
@@ -123,7 +123,10 @@ export async function updateTaskService(params: UpdateTaskServiceParams) {
 						return;
 					}
 
-					const foundLink = await findSyncEligibleGithubRepo(orgId, existingTask.category);
+					// Authoritative repo for a task that already has a linked issue is the
+					// repo that issue actually lives in — not whatever the task's *current*
+					// category happens to map to (see getGithubIssueRepository).
+					const foundLink = await getGithubIssueRepository(existingTask.githubIssue.repositoryId);
 
 					// No linked repo? Just skip GitHub logic, but don't break the request.
 					if (!foundLink) {

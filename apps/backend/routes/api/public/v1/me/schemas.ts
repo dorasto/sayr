@@ -105,12 +105,21 @@ export const CreatedBySchema = {
  * lived inline in each handler (`me.ts`'s own `resolveCreatedBy` was defined
  * but never actually called — this is that logic, finally wired up once).
  *
+ * The account lookup itself is global (a GitHub/Doras/etc account id isn't
+ * scoped to an org), so the resolved user is only trusted once they're
+ * confirmed to actually be a member of `orgId` — otherwise any API key
+ * holder could attribute content to an arbitrary real user (discoverable via
+ * their public provider id) regardless of whether that user has anything to
+ * do with this organization.
+ *
  * Returns `fallbackUserId` (normally the key owner) unchanged when `createdBy`
- * is absent, its provider isn't recognised, or no linked account is found.
+ * is absent, its provider isn't recognised, no linked account is found, or
+ * the resolved user isn't a member of `orgId`.
  */
 export async function resolveActorId(
 	createdBy: { type: string; userId: string; name?: string; profileUrl?: string } | null | undefined,
-	fallbackUserId: string
+	fallbackUserId: string,
+	orgId: string
 ): Promise<{ userId: string; invalidProvider: boolean }> {
 	if (!createdBy) return { userId: fallbackUserId, invalidProvider: false };
 
@@ -127,5 +136,12 @@ export async function resolveActorId(
 		where: and(eq(authSchema.account.accountId, providerId), eq(authSchema.account.providerId, provider)),
 	});
 
-	return { userId: account?.userId ?? fallbackUserId, invalidProvider: false };
+	if (!account?.userId) return { userId: fallbackUserId, invalidProvider: false };
+
+	const membership = await db.query.member.findFirst({
+		where: and(eq(schema.member.organizationId, orgId), eq(schema.member.userId, account.userId)),
+		columns: { userId: true },
+	});
+
+	return { userId: membership ? account.userId : fallbackUserId, invalidProvider: false };
 }
