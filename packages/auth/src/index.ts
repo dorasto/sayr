@@ -4,19 +4,16 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { admin, genericOAuth, lastLoginMethod, twoFactor } from "better-auth/plugins";
 import { passkey } from "@better-auth/passkey";
-import {
-	polar,
-	checkout,
-} from "@polar-sh/better-auth";
+import { polar, checkout } from "@polar-sh/better-auth";
 import { Polar } from "@polar-sh/sdk";
-import { validateEvent } from '@polar-sh/sdk/webhooks'
+import { validateEvent } from "@polar-sh/sdk/webhooks";
 import { Subscription } from "@polar-sh/sdk/models/components/subscription.js";
 import { CustomerSeat } from "@polar-sh/sdk/models/components/customerseat.js";
 import { getEditionCapabilities, isCloud, isSelfHosted } from "@repo/edition";
 import { eq, sql } from "drizzle-orm";
 import { sendEmail } from "@repo/util";
 import { addContactToContactBook, deleteContactByEmail } from "@repo/util/email";
-import { apiKey } from "@better-auth/api-key"
+import { apiKey } from "@better-auth/api-key";
 import { getSessionCookie } from "better-auth/cookies";
 export { Polar, validateEvent };
 export type { Subscription, CustomerSeat };
@@ -32,14 +29,26 @@ const { polarBillingEnabled } = getEditionCapabilities();
 
 export const polarClient = polarBillingEnabled
 	? new Polar({
-		accessToken: process.env.POLAR_ACCESS_TOKEN,
-	})
+			accessToken: process.env.POLAR_ACCESS_TOKEN,
+		})
 	: null;
 const plugins = [
 	lastLoginMethod({
-		storeInDatabase: true
+		storeInDatabase: true,
 	}),
-	apiKey({ configId: "default", enableMetadata: true, defaultPrefix: "api_", defaultKeyLength: 64 }),
+	apiKey({
+		configId: "default",
+		enableMetadata: true,
+		defaultPrefix: "api_",
+		defaultKeyLength: 64,
+		// The plugin's built-in fallback is 10 requests per 24h, which is unusable for a
+		// real API key. Set an explicit default so keys created without an override get a
+		// sane budget. Note the window is idle-reset, not rolling: the counter only resets
+		// after `timeWindow` of silence, so this means "120 requests, then blocked until a
+		// quiet minute". Per-key values passed to createApiKey still take precedence, so
+		// the console's system keys (rateLimitEnabled: false) are unaffected.
+		rateLimit: { enabled: true, timeWindow: 60_000, maxRequests: 120 },
+	}),
 	admin(),
 	genericOAuth({
 		config: [
@@ -74,13 +83,13 @@ const plugins = [
 		],
 	}),
 	twoFactor({
-		issuer: "sayr.io"
+		issuer: "sayr.io",
 	}),
 	passkey({
 		rpID: rootUrl || "localhost",
 		rpName: "sayr.io",
 	}),
-]
+];
 if (polarBillingEnabled) {
 	if (!process.env.POLAR_PRODUCT_ID) {
 		throw new Error("POLAR_PRODUCT_ID is required for cloud edition");
@@ -99,14 +108,15 @@ if (polarBillingEnabled) {
 					products: [
 						{
 							productId: process.env.POLAR_PRODUCT_ID || "",
-							slug: "sayr-pro" // Custom slug for easy reference in Checkout URL, e.g.
-						}
+							slug: "sayr-pro", // Custom slug for easy reference in Checkout URL, e.g.
+						},
 					],
-					successUrl: isProd ? "https://admin.sayr.io/success?checkout_id={CHECKOUT_ID}" : "http://admin.app.localhost:3000/success?checkout_id={CHECKOUT_ID}",
+					successUrl: isProd
+						? "https://admin.sayr.io/success?checkout_id={CHECKOUT_ID}"
+						: "http://admin.app.localhost:3000/success?checkout_id={CHECKOUT_ID}",
 					authenticatedUsersOnly: true,
 					returnUrl: isProd ? "https://admin.sayr.io/" : "http://admin.app.localhost:3000/",
-				})
-				,
+				}),
 			],
 		})
 	);
@@ -160,11 +170,12 @@ export const auth = betterAuth({
 			enabled: true,
 			afterDelete: async (user, request) => {
 				if (isCloud()) {
-					await deleteContactByEmail(user.email)
+					await deleteContactByEmail(user.email);
 				}
-				polarClient && await polarClient.customers.deleteExternal({
-					externalId: user.id,
-				});
+				polarClient &&
+					(await polarClient.customers.deleteExternal({
+						externalId: user.id,
+					}));
 			},
 		},
 	},
@@ -182,7 +193,7 @@ export const auth = betterAuth({
 	emailVerification: {
 		autoSignInAfterVerification: true,
 		sendVerificationEmail: async ({ user, url }) => {
-			url = url.replace("&callbackURL=%2F", `&callbackURL=${encodeURI("/auth/auth-check")}`)
+			url = url.replace("&callbackURL=%2F", `&callbackURL=${encodeURI("/auth/auth-check")}`);
 			void sendEmail({
 				to: user.email,
 				subject: "Verify your email address",
@@ -208,7 +219,7 @@ export const auth = betterAuth({
 			});
 		},
 		onExistingUserSignUp: async (ctx: any) => {
-			ctx.user
+			ctx.user;
 			void sendEmail({
 				to: ctx.user.email,
 				subject: "Sign-up attempt with your email",
@@ -238,7 +249,7 @@ export const auth = betterAuth({
 			redirectURI: `${authCallbackUrl}/api/auth/callback/discord`,
 			mapProfileToUser: (profile) => ({
 				name: profile.username.toLowerCase(),
-				displayName: profile.username
+				displayName: profile.username,
 			}),
 		},
 		slack: {
@@ -247,8 +258,8 @@ export const auth = betterAuth({
 			redirectURI: `${authCallbackUrl}/api/auth/callback/slack`,
 			mapProfileToUser: (profile) => ({
 				displayName: profile.name,
-				name: profile.name.toLowerCase()
-			})
+				name: profile.name.toLowerCase(),
+			}),
 		},
 	},
 	account: {
@@ -271,7 +282,7 @@ export const auth = betterAuth({
 								properties: {
 									user_id: user.id,
 								},
-							})
+							});
 						}
 					}
 					// Emit user.registered event to ClickHouse (cloud only, fire-and-forget)
@@ -288,15 +299,18 @@ export const auth = betterAuth({
 								org_id: "",
 								metadata: "{}",
 							});
-							fetch(`${chUrl}/?database=${chDb}&query=${encodeURIComponent(`INSERT INTO platform_events FORMAT JSONEachRow`)}`, {
-								method: "POST",
-								headers: {
-									"X-ClickHouse-User": chUser,
-									"X-ClickHouse-Key": chPassword,
-									"Content-Type": "application/json",
-								},
-								body: row,
-							}).catch((err) => {
+							fetch(
+								`${chUrl}/?database=${chDb}&query=${encodeURIComponent(`INSERT INTO platform_events FORMAT JSONEachRow`)}`,
+								{
+									method: "POST",
+									headers: {
+										"X-ClickHouse-User": chUser,
+										"X-ClickHouse-Key": chPassword,
+										"Content-Type": "application/json",
+									},
+									body: row,
+								}
+							).catch((err) => {
 								console.error("[clickhouse] Failed to emit user.registered:", err);
 							});
 						}
@@ -305,23 +319,18 @@ export const auth = betterAuth({
 					// On self-hosted editions, automatically promote the first user to platform admin
 					if (!isSelfHosted()) return;
 
-					const result = await db
-						.select({ count: sql<number>`count(*)::int` })
-						.from(schema.auth.user);
+					const result = await db.select({ count: sql<number>`count(*)::int` }).from(schema.auth.user);
 
 					if (result[0]?.count === 1) {
-						await db
-							.update(schema.auth.user)
-							.set({ role: "admin" })
-							.where(eq(schema.auth.user.id, user.id));
+						await db.update(schema.auth.user).set({ role: "admin" }).where(eq(schema.auth.user.id, user.id));
 						await db.insert(schema.auth.user).values({
 							id: crypto.randomUUID(),
 							name: "sayr",
 							email: "",
 							emailVerified: true,
 							image: "https://files.sayr.io/sayr.webp",
-							role: "system"
-						})
+							role: "system",
+						});
 					}
 				},
 			},
@@ -335,7 +344,7 @@ export const auth = betterAuth({
 								properties: {
 									user_id: user.id,
 								},
-							})
+							});
 						}
 					}
 				},

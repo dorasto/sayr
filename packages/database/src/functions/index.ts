@@ -9,6 +9,7 @@ export * from "./release";
 export * from "./notification";
 export * from "./integrations";
 export * from "./user";
+export * from "./github";
 
 /**
  * Standard columns for user summary in Drizzle relation queries.

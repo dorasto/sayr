@@ -161,10 +161,10 @@ function CommentHistoryDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-2xl max-h-[80vh] flex flex-col overflow-hidden p-0 gap-0">
         <DialogHeader className="p-3 border-b">
-          <DialogTitle asChild>
+          <DialogTitle>
             <Label variant={"heading"}>Comment history</Label>
           </DialogTitle>
-          <DialogDescription asChild>
+          <DialogDescription>
             <Label variant={"description"}>
               {history.length} {history.length === 1 ? "edit" : "edits"}
             </Label>
@@ -736,7 +736,7 @@ export function TimelineComment({
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle asChild>
+            <AlertDialogTitle>
               <Label variant={"heading"}>Delete comment?</Label>
             </AlertDialogTitle>
             <AlertDialogDescription>
@@ -763,7 +763,7 @@ export function TimelineComment({
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle asChild>
+            <AlertDialogTitle>
               <Label variant={"heading"}>
                 Change to {item.visibility === "public" ? "internal" : "public"}
               </Label>

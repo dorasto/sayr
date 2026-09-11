@@ -1,6 +1,7 @@
 "use client";
 
-import { Slot } from "radix-ui";
+import { mergeProps } from "@base-ui/react/merge-props";
+import { useRender } from "@base-ui/react/use-render";
 import * as React from "react";
 import { cn } from "../../lib/utils";
 
@@ -72,23 +73,21 @@ function TimelineContent({ className, ...props }: React.HTMLAttributes<HTMLDivEl
 }
 
 // TimelineDate
-interface TimelineDateProps extends React.HTMLAttributes<HTMLTimeElement> {
-	asChild?: boolean;
-}
-
-function TimelineDate({ asChild = false, className, ...props }: TimelineDateProps) {
-	const Comp = asChild ? Slot.Root : "time";
-
-	return (
-		<Comp
-			data-slot="timeline-date"
-			className={cn(
-				"text-muted-foreground mb-1 block text-xs font-medium group-data-[orientation=vertical]/timeline:max-sm:h-4",
-				className
-			)}
-			{...props}
-		/>
-	);
+function TimelineDate({ className, render, ...props }: useRender.ComponentProps<"time">) {
+	return useRender({
+		defaultTagName: "time",
+		render,
+		props: mergeProps<"time">(
+			{
+				"data-slot": "timeline-date",
+				className: cn(
+					"text-muted-foreground mb-1 block text-xs font-medium group-data-[orientation=vertical]/timeline:max-sm:h-4",
+					className
+				),
+			} as React.ComponentProps<"time">,
+			props
+		),
+	});
 }
 
 // TimelineHeader

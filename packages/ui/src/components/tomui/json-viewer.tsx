@@ -66,12 +66,12 @@ export const JsonViewer = ({ data, name = "root", open, onOpenChange }: JsonView
 
 			return (
 				<Collapsible className="border-b border-slate-700">
-					<CollapsibleTrigger className="flex items-center gap-2 py-2 w-full text-left data-[state=open]:[&_svg]:rotate-90 hover:bg-muted p-2 data-[state=open]:hover:bg-muted data-[state=open]:bg-accent">
+					<CollapsibleTrigger className="flex items-center gap-2 py-2 w-full text-left data-[panel-open]:[&_svg]:rotate-90 hover:bg-muted p-2 data-[panel-open]:hover:bg-muted data-[panel-open]:bg-accent">
 						<span className="font-mono text-sm">{key}:</span>
 						<Badge variant="outline" className="text-xs">
 							Array[{value.length}]
 						</Badge>
-						<ChevronRight className="h-4 w-4 shrink-0 transition-transform duration-200 [&[data-state=open]]:rotate-90 ml-auto" />
+						<ChevronRight className="h-4 w-4 shrink-0 transition-transform duration-200 [&[data-panel-open]]:rotate-90 ml-auto" />
 					</CollapsibleTrigger>
 					<CollapsibleContent className="pl-6 border-l border-slate-700 ml-2 pb-2">
 						{value.map((item, index) => {
@@ -105,7 +105,7 @@ export const JsonViewer = ({ data, name = "root", open, onOpenChange }: JsonView
 
 			return (
 				<Collapsible className="group/collapse">
-					<CollapsibleTrigger className="flex items-center gap-2 py-2 w-full text-left data-[state=open]:[&_svg]:rotate-90 hover:bg-muted p-2 data-[state=open]:hover:bg-muted data-[state=open]:bg-accent">
+					<CollapsibleTrigger className="flex items-center gap-2 py-2 w-full text-left data-[panel-open]:[&_svg]:rotate-90 hover:bg-muted p-2 data-[panel-open]:hover:bg-muted data-[panel-open]:bg-accent">
 						<span className="font-mono">{key}:</span>
 						<Badge variant="outline">Object({entries.length})</Badge>
 						<ChevronRight className="h-4 w-4 shrink-0 transition-transform duration-200 ml-auto" />

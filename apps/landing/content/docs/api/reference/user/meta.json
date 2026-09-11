@@ -1,0 +1,7 @@
+{
+  "title": "User",
+  "pages": [
+    "getMe",
+    "getMeOrganizations"
+  ]
+}

@@ -170,21 +170,25 @@ function UserHeader({ user }: { user: ConsoleUserDetail["user"] }) {
 						<div className="flex items-center gap-4 text-xs text-muted-foreground pt-1">
 							<TooltipProvider>
 								<Tooltip>
-									<TooltipTrigger asChild>
-										<span className="flex items-center gap-1">
-											<IconCalendar className="size-3" />
-											Joined {formatDateTimeFromNow(user.createdAt)}
-										</span>
-									</TooltipTrigger>
+									<TooltipTrigger
+										render={
+											<span className="flex items-center gap-1">
+												<IconCalendar className="size-3" />
+												Joined {formatDateTimeFromNow(user.createdAt)}
+											</span>
+										}
+									/>
 									<TooltipContent>{formatDateTime(user.createdAt)}</TooltipContent>
 								</Tooltip>
 								<Tooltip>
-									<TooltipTrigger asChild>
-										<span className="flex items-center gap-1">
-											<IconClock className="size-3" />
-											Updated {formatDateTimeFromNow(user.updatedAt)}
-										</span>
-									</TooltipTrigger>
+									<TooltipTrigger
+										render={
+											<span className="flex items-center gap-1">
+												<IconClock className="size-3" />
+												Updated {formatDateTimeFromNow(user.updatedAt)}
+											</span>
+										}
+									/>
 									<TooltipContent>{formatDateTime(user.updatedAt)}</TooltipContent>
 								</Tooltip>
 							</TooltipProvider>
@@ -368,11 +372,13 @@ function RecentEventRow({ event }: { event: ConsoleRecentActivity }) {
 			{event.createdAt && (
 				<TooltipProvider>
 					<Tooltip>
-						<TooltipTrigger asChild>
-							<span className="text-xs text-muted-foreground shrink-0">
-								{formatDateTimeFromNow(event.createdAt)}
-							</span>
-						</TooltipTrigger>
+						<TooltipTrigger
+							render={
+								<span className="text-xs text-muted-foreground shrink-0">
+									{formatDateTimeFromNow(event.createdAt)}
+								</span>
+							}
+						/>
 						<TooltipContent>{formatDateTime(event.createdAt)}</TooltipContent>
 					</Tooltip>
 				</TooltipProvider>
@@ -435,9 +441,9 @@ function SessionsSection({ sessions }: { sessions: ConsoleUserSession[] }) {
 										<TableCell className="text-sm">
 											<TooltipProvider>
 												<Tooltip>
-													<TooltipTrigger asChild>
-														<span>{formatDateTimeFromNow(session.createdAt)}</span>
-													</TooltipTrigger>
+													<TooltipTrigger
+														render={<span>{formatDateTimeFromNow(session.createdAt)}</span>}
+													/>
 													<TooltipContent>{formatDateTime(session.createdAt)}</TooltipContent>
 												</Tooltip>
 											</TooltipProvider>

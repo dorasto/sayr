@@ -1,3 +1,20 @@
+export {
+	ALL_API_KEY_SCOPES,
+	API_KEY_SCOPE_PRESETS,
+	API_KEY_SCOPES,
+	type ApiKeyScope,
+	type ApiKeyScopeRecord,
+	type ApiKeyScopeResource,
+	invalidScopes,
+	isApiKeyScope,
+	keyScopeAllows,
+	parseScope,
+	parseScopeRecord,
+	recordToScopes,
+	scopeDefinition,
+	scopesToRecord,
+	scopeToPermissionPath,
+} from "./api-scopes";
 export { BANNED_SLUGS, isSlugBanned } from "./bannedSlugs";
 export {
 	defaultOrgAiSettings,

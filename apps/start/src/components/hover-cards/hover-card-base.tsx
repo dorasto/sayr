@@ -54,14 +54,8 @@ export function HoverCardBase({
 	if (disabled) return <>{trigger}</>;
 
 	return (
-		<HoverCard
-			open={forceClose ? false : open}
-			onOpenChange={setOpen}
-			openDelay={openDelay}
-			closeDelay={closeDelay}
-			defaultOpen={defaultOpen}
-		>
-			<HoverCardTrigger asChild>{trigger}</HoverCardTrigger>
+		<HoverCard open={forceClose ? false : open} onOpenChange={setOpen} defaultOpen={defaultOpen}>
+			<HoverCardTrigger render={trigger as React.ReactElement} delay={openDelay} closeDelay={closeDelay} />
 			<HoverCardContent
 				side={side}
 				align={align}

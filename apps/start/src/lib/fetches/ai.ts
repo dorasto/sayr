@@ -204,6 +204,17 @@ export interface RecommendedRelation {
 	shortId: number | null;
 }
 
+/**
+ * A suggested status change, derived from linked GitHub activity rather than
+ * the model — see `computeStatusSuggestion` in the backend route. `reason`
+ * is a ready-to-display timeline-style sentence (e.g. "Jane linked branch
+ * feature/foo" or "Linked PR #42 was merged").
+ */
+export interface RecommendedStatus {
+	value: "in-progress" | "done";
+	reason: string;
+}
+
 export interface RecommendationsResult {
 	labelIds: string[];
 	assigneeIds: string[];
@@ -211,6 +222,7 @@ export interface RecommendationsResult {
 	categoryId: string | null;
 	releaseId: string | null;
 	relations: RecommendedRelation[];
+	status: RecommendedStatus | null;
 	reasoning?: string;
 	/** Echoed back for the admin-only "View prompt" debug affordance — omitted when no AI call was made (e.g. every enabled kind had nothing to offer). */
 	systemPrompt?: string;

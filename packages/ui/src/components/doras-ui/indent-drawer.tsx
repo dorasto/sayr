@@ -436,7 +436,18 @@ export function IndentDrawerContent({
 							className="mx-auto mt-2 hidden h-1.5 w-10 shrink-0 rounded-full bg-muted max-md:block"
 							aria-hidden
 						/>
-						<DrawerPrimitive.Content className="flex h-full min-h-0 flex-1 flex-col overflow-y-auto p-0">
+						{/* overflow-hidden, NOT overflow-y-auto: `children` (Page's PanelContent)
+						    already splits into a shrink-0 header + its own inner flex-1
+						    overflow-y-auto content region, specifically so the header can stay
+						    put while only the content below it scrolls. Making THIS container
+						    independently scrollable too means whichever one ends up taller than
+						    the available space wins, and in practice that's this outer one —
+						    confirmed live: on a height-capped mobile sheet the header was
+						    dragged along with the scroll because IT was the element scrolling,
+						    while the inner content div sat well within its own bounds the whole
+						    time. min-h-0 is still required so the child's own flex-1 correctly
+						    computes a bounded (not content-grown) height to scroll within. */}
+						<DrawerPrimitive.Content className="flex h-full min-h-0 flex-1 flex-col overflow-hidden p-0">
 							{children}
 						</DrawerPrimitive.Content>
 					</DrawerPrimitive.Popup>

@@ -16,17 +16,25 @@ export const describeOkNotFound = <T extends z.ZodTypeAny, B extends JsonSchema 
 	parameters?: any[];
 	tags?: string[];
 	security?: Record<string, string[]>[];
+	/**
+	 * Extra status-code entries merged into `responses`, additive to the
+	 * standard 200/404. `/v1/me/*` routes use this for 401 (bad/disabled key),
+	 * 403 (scope or org-permission denied), and 429 (rate limited) — scope
+	 * denial in particular is a defining failure mode there, not an edge case
+	 * worth omitting from the docs.
+	 */
+	extraResponses?: Record<string, unknown>;
 }) => {
 	const bodyContent = opts.bodySchema
 		? {
-			required: true,
-			content: {
-				"application/json": {
-					schema: opts.bodySchema,
-					example: opts.bodyExample,
+				required: true,
+				content: {
+					"application/json": {
+						schema: opts.bodySchema,
+						example: opts.bodyExample,
+					},
 				},
-			},
-		}
+			}
 		: undefined;
 
 	return describeRoute({
@@ -53,8 +61,25 @@ export const describeOkNotFound = <T extends z.ZodTypeAny, B extends JsonSchema 
 					},
 				},
 			},
+			...opts.extraResponses,
 		},
 	});
+};
+
+/** Shared 401/403/429 trio for `/v1/me/*` routes — see `extraResponses` above. */
+export const bearerAuthResponses = {
+	401: {
+		description: "Missing, invalid, disabled, or expired API key",
+		content: { "application/json": { schema: resolver(ApiErrorResponse) } },
+	},
+	403: {
+		description: "The key's scopes, or its owner's permissions in this organization, don't allow this",
+		content: { "application/json": { schema: resolver(ApiErrorResponse) } },
+	},
+	429: {
+		description: "This API key has hit its rate limit",
+		content: { "application/json": { schema: resolver(ApiErrorResponse) } },
+	},
 };
 
 /**

@@ -31,24 +31,28 @@ export default function UserDropdown() {
 		<>
 			<SidebarMenuItem className="min-h-auto">
 				<DropdownMenu>
-					<DropdownMenuTrigger asChild>
-						<SidebarMenuButton
-							size="small"
-							icon={
-								<Avatar className="h-4 w-4 rounded-lg">
-									<AvatarImage src={account.image || ""} alt={account.name} />
-									<AvatarFallback className="rounded-lg uppercase">{getInitials(account.name)}</AvatarFallback>
-								</Avatar>
-							}
-							className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground cursor-pointer"
-							tooltip={"Your account"}
-						>
-							<div className="flex items-center justify-between">
-								<span className="truncate font-medium">{getDisplayName(account)}</span>
-								<ChevronsUpDown className="ml-auto size-4 shrink-0" />
-							</div>
-						</SidebarMenuButton>
-					</DropdownMenuTrigger>
+					<DropdownMenuTrigger
+						render={
+							<SidebarMenuButton
+								size="small"
+								icon={
+									<Avatar className="h-4 w-4 rounded-lg">
+										<AvatarImage src={account.image || ""} alt={account.name} />
+										<AvatarFallback className="rounded-lg uppercase">
+											{getInitials(account.name)}
+										</AvatarFallback>
+									</Avatar>
+								}
+								className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground cursor-pointer"
+								tooltip={"Your account"}
+							>
+								<div className="flex items-center justify-between">
+									<span className="truncate font-medium">{getDisplayName(account)}</span>
+									<ChevronsUpDown className="ml-auto size-4 shrink-0" />
+								</div>
+							</SidebarMenuButton>
+						}
+					/>
 					<DropdownMenuContent
 						className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg z-[999]"
 						side={isMobile ? "bottom" : "top"}

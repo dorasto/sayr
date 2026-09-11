@@ -1,11 +1,4 @@
 "use client";
-import {
-	createReleaseAction,
-	deleteReleaseAction,
-	updateReleaseAction,
-	markReleaseAsReleasedAction,
-} from "@/lib/fetches/release";
-import { useToastAction } from "@/lib/util";
 import type { schema } from "@repo/database";
 import { Button } from "@repo/ui/components/button";
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@repo/ui/components/input-group";
@@ -14,10 +7,17 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectVa
 import ColorPickerCustom from "@repo/ui/components/tomui/color-picker-custom";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { cn } from "@repo/ui/lib/utils";
-import { IconDeviceFloppy, IconTrash, IconCheck } from "@tabler/icons-react";
+import { IconCheck, IconDeviceFloppy, IconTrash } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
-import RenderIcon from "../generic/RenderIcon";
+import {
+	createReleaseAction,
+	deleteReleaseAction,
+	markReleaseAsReleasedAction,
+	updateReleaseAction,
+} from "@/lib/fetches/release";
+import { useToastAction } from "@/lib/util";
 import IconPicker from "../generic/icon-picker";
+import RenderIcon from "../generic/RenderIcon";
 
 interface Props {
 	orgId: string;
@@ -82,38 +82,42 @@ export default function CreateRelease({
 				)}
 			>
 				<InputGroupAddon align="inline-start" className="h-full">
-					<InputGroupButton asChild>
-						<Popover modal>
-							<PopoverTrigger asChild>
-								<Button
-									variant={"accent"}
-									className="h-auto w-auto p-0 border-transparent rounded-lg overflow-hidden"
-								>
-									<RenderIcon
-										iconName={icon}
-										color={color.hsla}
-										button
-										className={cn(settingsUI && "size-8 [&_svg]:size-5")}
-									/>
-								</Button>
-							</PopoverTrigger>
-							<PopoverContent className="p-0 w-64 md:w-96">
-								<div className="flex flex-col gap-3">
-									<div className="p-3">
-										<ColorPickerCustom onChange={setColor} defaultValue={color.hex} height={100} />
+					<InputGroupButton
+						render={
+							<Popover modal>
+								<PopoverTrigger
+									render={
+										<Button
+											variant={"accent"}
+											className="h-auto w-auto p-0 border-transparent rounded-lg overflow-hidden"
+										>
+											<RenderIcon
+												iconName={icon}
+												color={color.hsla}
+												button
+												className={cn(settingsUI && "size-8 [&_svg]:size-5")}
+											/>
+										</Button>
+									}
+								/>
+								<PopoverContent className="p-0 w-64 md:w-96">
+									<div className="flex flex-col gap-3">
+										<div className="p-3">
+											<ColorPickerCustom onChange={setColor} defaultValue={color.hex} height={100} />
+										</div>
+										<div className="px-3">
+											<IconPicker
+												value={icon}
+												update={(value: string): void => {
+													setIcon(value);
+												}}
+											/>
+										</div>
 									</div>
-									<div className="px-3">
-										<IconPicker
-											value={icon}
-											update={(value: string): void => {
-												setIcon(value);
-											}}
-										/>
-									</div>
-								</div>
-							</PopoverContent>
-						</Popover>
-					</InputGroupButton>
+								</PopoverContent>
+							</Popover>
+						}
+					/>
 				</InputGroupAddon>
 
 				<InputGroupInput
@@ -276,17 +280,19 @@ export default function CreateRelease({
 								{/* Mark as Released Button (only for non-released statuses) */}
 								{status !== "released" && status !== "archived" && (
 									<Popover open={confirmReleaseOpen} onOpenChange={setConfirmReleaseOpen}>
-										<PopoverTrigger asChild>
-											<InputGroupButton
-												variant="ghost"
-												className={cn(
-													"h-full",
-													settingsUI && "opacity-0 group-hover/group:opacity-100 transition-all"
-												)}
-											>
-												<IconCheck />
-											</InputGroupButton>
-										</PopoverTrigger>
+										<PopoverTrigger
+											render={
+												<InputGroupButton
+													variant="ghost"
+													className={cn(
+														"h-full",
+														settingsUI && "opacity-0 group-hover/group:opacity-100 transition-all"
+													)}
+												>
+													<IconCheck />
+												</InputGroupButton>
+											}
+										/>
 										<PopoverContent className="w-80">
 											<div className="flex flex-col gap-4">
 												<div className="space-y-2">
@@ -345,17 +351,19 @@ export default function CreateRelease({
 
 								{/* Delete Button */}
 								<Popover open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
-									<PopoverTrigger asChild>
-										<InputGroupButton
-											variant="ghost"
-											className={cn(
-												"h-full",
-												settingsUI && "opacity-0 group-hover/group:opacity-100 transition-all"
-											)}
-										>
-											<IconTrash />
-										</InputGroupButton>
-									</PopoverTrigger>
+									<PopoverTrigger
+										render={
+											<InputGroupButton
+												variant="ghost"
+												className={cn(
+													"h-full",
+													settingsUI && "opacity-0 group-hover/group:opacity-100 transition-all"
+												)}
+											>
+												<IconTrash />
+											</InputGroupButton>
+										}
+									/>
 									<PopoverContent className="w-80">
 										<div className="flex flex-col gap-4">
 											<div className="space-y-2">

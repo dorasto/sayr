@@ -1,13 +1,17 @@
+import { Octokit } from "@octokit/rest";
 import { auth, db, schema } from "@repo/database";
 import { isCloud } from "@repo/edition";
 import { initTracing } from "@repo/opentelemetry";
 import { withTraceContext } from "@repo/opentelemetry/trace";
 import { dequeue, type JobGroups } from "@repo/queue";
+import { getInstallationToken } from "@repo/util/github/auth";
 import { CronJob } from "cron";
-import { eq, lt, sql } from "drizzle-orm";
+import { and, eq, gt, lt, sql } from "drizzle-orm";
 import { insertSnapshots, type SnapshotRow } from "./clickhouse";
 import { handleComment, handleSayrKeywordParse } from "./github";
+import { handleCommentDeleted, handleCommentEdited } from "./github/comment";
 import { handleGithubCommitRef } from "./github/commitRef";
+import { handleIssueEdited, handleIssueOpened } from "./github/issue";
 import {
 	handleGithubBranchDelete,
 	handleGithubBranchLink,
@@ -17,6 +21,8 @@ import {
 } from "./github/pullRequest";
 import { embedTaskWorker } from "./main/embed-task";
 import { gdprExportWorker } from "./main/gdpr";
+import { prosekitJSONToMarkdown } from "./prosekit/markdown";
+import { resolveMentionLinksForGithub } from "./prosekit/resolveMentions";
 
 /* ============================================================
    Environment
@@ -38,6 +44,90 @@ process.on("SIGTERM", () => initiateShutdown("SIGTERM"));
 process.on("SIGINT", () => initiateShutdown("SIGINT"));
 
 /* ============================================================
+   GitHub Description Sync Sweep (Main Worker Only)
+   ============================================================
+   Outbound half of SAY-41's two-way sync: public tasks linked to a public
+   GitHub issue get their title/description pushed to GitHub on a batched
+   interval rather than in real time (see plan §4 — decoupled from the
+   per-save debounce on purpose). `task.updatedAt > githubIssue.updatedAt`
+   is a simple "changed since last GitHub push" heuristic reusing the
+   existing `githubIssue.updatedAt` column; an unrelated field change
+   (status/priority/etc) can trigger one redundant-but-harmless PATCH — an
+   accepted trade-off over adding a dedicated dirty-flag column. */
+async function runGithubDescriptionSync() {
+	const candidates = await db
+		.select({
+			issueId: schema.githubIssue.id,
+			issueNumber: schema.githubIssue.issueNumber,
+			taskId: schema.task.id,
+			taskTitle: schema.task.title,
+			taskDescription: schema.task.description,
+			organizationId: schema.task.organizationId,
+			repoId: schema.githubRepository.repoId,
+			installationId: schema.githubRepository.installationId,
+		})
+		.from(schema.githubIssue)
+		.innerJoin(schema.task, eq(schema.githubIssue.taskId, schema.task.id))
+		.innerJoin(schema.githubRepository, eq(schema.githubIssue.repositoryId, schema.githubRepository.id))
+		.where(
+			and(
+				eq(schema.task.visible, "public"),
+				eq(schema.githubRepository.enabled, true),
+				gt(schema.task.updatedAt, schema.githubIssue.updatedAt)
+			)
+		)
+		.limit(50); // cap the batch so one slow tick can't block indefinitely
+
+	for (const candidate of candidates) {
+		try {
+			const token = await getInstallationToken(candidate.installationId);
+			const octokit = new Octokit({ auth: token });
+
+			// Resolve owner/repo AND re-check privacy live — a task's own
+			// visibility isn't enough on its own, the repo's current privacy
+			// has to be gated too, and it can change after the repo was linked.
+			const { data: repoInfo } = await octokit.request("GET /repositories/{repository_id}", {
+				repository_id: candidate.repoId,
+			});
+
+			if (repoInfo.private) continue;
+
+			const owner = repoInfo.owner.login;
+			const repo = repoInfo.name;
+			const resolvedDescription = candidate.taskDescription
+				? await resolveMentionLinksForGithub(candidate.taskDescription, candidate.organizationId)
+				: null;
+			const body = resolvedDescription ? prosekitJSONToMarkdown(resolvedDescription) : "";
+
+			await octokit.request("PATCH /repos/{owner}/{repo}/issues/{issue_number}", {
+				owner,
+				repo,
+				issue_number: candidate.issueNumber,
+				...(candidate.taskTitle ? { title: candidate.taskTitle } : {}),
+				body,
+			});
+
+			// Bump updatedAt so this row falls out of the next sweep.
+			await db
+				.update(schema.githubIssue)
+				.set({ updatedAt: new Date() })
+				.where(eq(schema.githubIssue.id, candidate.issueId));
+		} catch (err) {
+			// Non-fatal — a GitHub-side failure on one row must never block the
+			// rest of the batch (or the next tick).
+			console.error(
+				`❌ Failed to sync task ${candidate.taskId} description to GitHub issue #${candidate.issueNumber}:`,
+				err
+			);
+		}
+	}
+
+	if (candidates.length > 0) {
+		console.log(`📤 GitHub description sync: pushed ${candidates.length} task(s) to GitHub.`);
+	}
+}
+
+/* ============================================================
    Cron Jobs (Main Worker Only)
    ============================================================ */
 function initMainCronJobs() {
@@ -55,6 +145,20 @@ function initMainCronJobs() {
 				console.log("🧹 Cleaned expired invites (older than 24h)");
 			} catch (err) {
 				console.error("❌ Cron error deleting invites:", err);
+			}
+		},
+		null,
+		true
+	);
+
+	// Outbound GitHub description sync — batched, roughly every minute (see SAY-41)
+	new CronJob(
+		"* * * * *",
+		async () => {
+			try {
+				await runGithubDescriptionSync();
+			} catch (err) {
+				console.error("❌ Cron error syncing task descriptions to GitHub:", err);
 			}
 		},
 		null,
@@ -136,6 +240,18 @@ async function processGithubJob(job: JobGroups["github"]) {
 		case "issue_comment":
 			return handleComment(job);
 
+		case "issue_edited":
+			return handleIssueEdited(job);
+
+		case "issue_opened":
+			return handleIssueOpened(job);
+
+		case "issue_comment_edited":
+			return handleCommentEdited(job);
+
+		case "issue_comment_deleted":
+			return handleCommentDeleted(job);
+
 		case "github_commit_ref":
 			return handleGithubCommitRef(job);
 
@@ -155,7 +271,9 @@ async function processGithubJob(job: JobGroups["github"]) {
 			return handleGithubBranchDelete(job);
 
 		default:
-			console.warn(`⚠️ Unhandled GitHub job type: ${job.type}`);
+			// The switch above is exhaustive over `GithubJob`, so `job` narrows to
+			// `never` here — cast back just to log the (should-be-impossible) case.
+			console.warn(`⚠️ Unhandled GitHub job type: ${(job as JobGroups["github"]).type}`);
 	}
 }
 

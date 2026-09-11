@@ -16,6 +16,7 @@
 		"index.ts",
 		"queue.ts",
 		"github",
+		"prosekit",
 		"worker.ts",
 		"tracing.ts"
 	],

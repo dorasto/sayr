@@ -8,6 +8,7 @@ import {
 	getReleases,
 	getTaskById,
 	getTaskLabelCategorySummaries,
+	getTaskTimeline,
 	type schema,
 	searchTasksByOrganization,
 } from "@repo/database";
@@ -17,6 +18,7 @@ import { Hono } from "hono";
 import { z } from "zod";
 import type { AppEnv } from "@/index";
 import { checkAiFeatureAccess } from "../../../../../lib/ai/gate";
+import { buildTimelineLine } from "../../../../../lib/ai/format-timeline";
 import { runAiStructuredFeature } from "../../../../../lib/ai/structured-runner";
 import { errorResponse } from "../../../../../responses";
 
@@ -52,6 +54,11 @@ const requestSchema = z.object({
 	forceRefresh: z.boolean().optional(),
 });
 
+interface RecommendedStatus {
+	value: "in-progress" | "done";
+	reason: string;
+}
+
 interface RecommendationsResult {
 	labelIds: string[];
 	assigneeIds: string[];
@@ -59,13 +66,96 @@ interface RecommendationsResult {
 	categoryId: string | null;
 	releaseId: string | null;
 	relations: { taskId: string; type: string; title: string; shortId: number | null }[];
+	status: RecommendedStatus | null;
 	reasoning?: string;
 	systemPrompt?: string;
 	userPrompt?: string;
 }
 
 function emptyResult(): RecommendationsResult {
-	return { labelIds: [], assigneeIds: [], priority: null, categoryId: null, releaseId: null, relations: [] };
+	return {
+		labelIds: [],
+		assigneeIds: [],
+		priority: null,
+		categoryId: null,
+		releaseId: null,
+		relations: [],
+		status: null,
+	};
+}
+
+/**
+ * GitHub timeline events that count as "work has actually started" signal —
+ * everything except an unlink (see the `github_branch_linked` special-case
+ * below, which only counts a *link*, not a branch being removed).
+ */
+const IN_PROGRESS_SIGNAL_EVENTS = new Set<schema.taskTimelineType["eventType"]>([
+	"github_branch_linked",
+	"github_pr_linked",
+	"github_pr_commit",
+	"github_commit_ref",
+	"task_mentioned",
+]);
+
+function isInProgressSignal(item: Awaited<ReturnType<typeof getTaskTimeline>>[number]): boolean {
+	if (!IN_PROGRESS_SIGNAL_EVENTS.has(item.eventType)) return false;
+	if (item.eventType === "github_branch_linked") {
+		const d = item.toValue as { branch?: { deleted?: boolean } } | null;
+		return !d?.branch?.deleted;
+	}
+	return true;
+}
+
+function isPrMergedSignal(item: Awaited<ReturnType<typeof getTaskTimeline>>[number]): boolean {
+	if (item.eventType !== "github_pr_merged") return false;
+	const d = item.toValue as { pullRequest?: { merged?: boolean } } | null;
+	return d?.pullRequest?.merged !== false;
+}
+
+/**
+ * Deterministic, rule-based status suggestion — not the LLM's job. Whether a
+ * branch got linked, a commit landed, or a PR merged is a fact already
+ * sitting in `taskTimeline`/`githubPullRequest`, not something worth
+ * spending a model call (or risking a hallucinated "yes") to re-derive from
+ * prose. Only ever looks at tasks sitting in a status where GitHub activity
+ * is actually informative: backlog/todo → in-progress (work started
+ * somewhere but the status hasn't caught up), todo/in-progress → done (the
+ * linked PR merged).
+ */
+async function computeStatusSuggestion(
+	orgId: string,
+	taskId: string,
+	task: NonNullable<Awaited<ReturnType<typeof getTaskById>>>
+): Promise<RecommendedStatus | null> {
+	const suggestsInProgress = task.status === "backlog" || task.status === "todo";
+	const suggestsDone = task.status === "todo" || task.status === "in-progress";
+	if (!suggestsInProgress && !suggestsDone) return null;
+
+	// Cheap out on the "done" case when the task's directly linked PR is
+	// already known to be merged — no need to touch the timeline at all.
+	if (suggestsDone && task.githubPullRequest?.merged) {
+		const pr = task.githubPullRequest;
+		return { value: "done", reason: `Linked PR #${pr.prNumber} ("${pr.title}") was merged` };
+	}
+
+	const timeline = await getTaskTimeline(orgId, taskId);
+	const labelMap = new Map<string, string>();
+	const assigneeMap = new Map<string, string>();
+	// Timeline is oldest → newest; walk newest-first so the reported reason
+	// is the most recent signal, not the first one that ever happened.
+	const reversed = [...timeline].reverse();
+
+	if (suggestsDone) {
+		const merged = reversed.find(isPrMergedSignal);
+		if (merged) return { value: "done", reason: buildTimelineLine(merged, labelMap, assigneeMap) };
+	}
+
+	if (suggestsInProgress) {
+		const activity = reversed.find(isInProgressSignal);
+		if (activity) return { value: "in-progress", reason: buildTimelineLine(activity, labelMap, assigneeMap) };
+	}
+
+	return null;
 }
 
 const STOPWORDS = new Set([
@@ -175,6 +265,7 @@ recommendationsRoute.post("/", async (c) => {
 		category: isAiFeatureEnabled(access.org.settings, "recommend-category"),
 		release: isAiFeatureEnabled(access.org.settings, "recommend-release"),
 		relations: isAiFeatureEnabled(access.org.settings, "recommend-relations"),
+		status: isAiFeatureEnabled(access.org.settings, "recommend-status"),
 	};
 
 	if (!Object.values(enabled).some(Boolean)) {
@@ -199,6 +290,9 @@ recommendationsRoute.post("/", async (c) => {
 	}
 
 	const descriptionText = task.description ? extractPlainText(task.description) : "No description provided.";
+
+	// ---- Status: rule-based, computed independently of the LLM call below ----
+	const statusSuggestion = enabled.status ? await computeStatusSuggestion(orgId, taskId, task) : null;
 
 	// ---- Nearest-neighbor tasks: relation candidates + label/category evidence ----
 	// Computed once, up front — both the relations kind and the evidence lines
@@ -344,9 +438,11 @@ recommendationsRoute.post("/", async (c) => {
 	}
 
 	if (hintParts.length === 0) {
-		// Every enabled kind had nothing to offer (no labels/other members/releases/etc. in this org) —
-		// nothing to ask the model, skip the call entirely.
-		return c.json({ success: true, data: emptyResult() });
+		// Every LLM-backed kind had nothing to offer (no labels/other
+		// members/releases/etc. in this org) — nothing to ask the model, skip
+		// the call entirely. Status is computed separately above and still
+		// applies here since it never depended on the LLM.
+		return c.json({ success: true, data: { ...emptyResult(), status: statusSuggestion } });
 	}
 
 	shape.reasoning = z.string().optional();
@@ -420,6 +516,7 @@ recommendationsRoute.post("/", async (c) => {
 		categoryId,
 		releaseId,
 		relations,
+		status: statusSuggestion,
 		reasoning: data.reasoning as string | undefined,
 		systemPrompt: recommendationsPrompt.systemPrompt,
 		userPrompt,
