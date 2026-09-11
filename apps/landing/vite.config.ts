@@ -36,6 +36,7 @@ const config = defineConfig({
 	ssr: {
 		noExternal: isDev ? [] : true,
 		target: "node",
+		external: ["shiki"],
 	},
 	plugins: [
 		mdx(),
