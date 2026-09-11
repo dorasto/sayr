@@ -297,14 +297,33 @@ export function Page({ children, header, toolbar, panels, className }: PageProps
 		)
 	);
 
-	const isLeftOpen = panels?.left ? (leftPanelState?.open ?? panels.left.defaultOpen ?? false) : false;
-	const isRightOpen = panels?.right ? (rightPanelState?.open ?? panels.right.defaultOpen ?? false) : false;
-	const leftLastTriggerId = leftPanelState?.lastTriggerId as string | undefined;
-	const rightLastTriggerId = rightPanelState?.lastTriggerId as string | undefined;
-
 	// Used below both to default `modal` on mobile and to force-close a panel
 	// that's open when we detect mobile (see that effect further down).
 	const isMobile = useIsMobile();
+
+	// Before a panel has ever been registered in the store (a brand-new
+	// visitor, or a cleared/expired localStorage entry — exactly the case
+	// `defaultOpen` exists for, since a returning visitor already has a
+	// persisted `open` value), these fall back straight to `defaultOpen` with
+	// no mobile awareness of their own. On a mobile viewport that briefly
+	// renders (and, via registerSidebar below, PERSISTS) the panel open
+	// before the force-close effect further down ever gets a chance to run —
+	// that effect can only correct an *existing* store entry (setOpen no-ops
+	// otherwise), and it doesn't re-fire once `isMobile` stops changing, so a
+	// first-ever mobile visit to a `defaultOpen: true` panel stayed open with
+	// no later correction. Folding the mobile check in here, at the one
+	// place `defaultOpen` actually feeds into "is this panel open", fixes it
+	// at the source instead of relying on a corrective effect timing out
+	// right — see also the matching guards on registerSidebar's initial
+	// `open` and the `!shouldPersist` reset below.
+	const isLeftOpen = panels?.left
+		? (leftPanelState?.open ?? (isMobile ? false : (panels.left.defaultOpen ?? false)))
+		: false;
+	const isRightOpen = panels?.right
+		? (rightPanelState?.open ?? (isMobile ? false : (panels.right.defaultOpen ?? false)))
+		: false;
+	const leftLastTriggerId = leftPanelState?.lastTriggerId as string | undefined;
+	const rightLastTriggerId = rightPanelState?.lastTriggerId as string | undefined;
 	// A route's explicit `modal` choice always wins. Left unset, a panel
 	// defaults to non-modal on desktop (unchanged) but MODAL on mobile: a
 	// non-modal panel is a push, and on a narrow screen the push has nowhere
@@ -370,8 +389,12 @@ export function Page({ children, header, toolbar, panels, className }: PageProps
 			const shouldPersist = panels.left.persistOpenState ?? true;
 
 			if (!existing) {
+				// See isLeftOpen/isRightOpen's own comment above — same mobile
+				// guard, applied here too so a first-ever registration never
+				// PERSISTS `open: true` for a panel that must never have
+				// auto-opened in the first place.
 				sidebarActions.registerSidebar(panels.left.id, {
-					open: panels.left.defaultOpen ?? false,
+					open: isMobile ? false : (panels.left.defaultOpen ?? false),
 					side: "left",
 					variant: "panel",
 					anchored: panels.left.anchored,
@@ -388,7 +411,8 @@ export function Page({ children, header, toolbar, panels, className }: PageProps
 					height: panels.left.height,
 					mobileZoom: panels.left.mobileZoom,
 				});
-				if (!shouldPersist) sidebarActions.setOpen(panels.left.id, panels.left.defaultOpen ?? false);
+				if (!shouldPersist)
+					sidebarActions.setOpen(panels.left.id, isMobile ? false : (panels.left.defaultOpen ?? false));
 			}
 			if (panels.left.tabs) sidebarActions.setTabs(panels.left.id, panels.left.tabs);
 			if (panels.left.defaultTab) sidebarActions.setActiveTab(panels.left.id, panels.left.defaultTab);
@@ -401,7 +425,7 @@ export function Page({ children, header, toolbar, panels, className }: PageProps
 
 			if (!existing) {
 				sidebarActions.registerSidebar(panels.right.id, {
-					open: panels.right.defaultOpen ?? false,
+					open: isMobile ? false : (panels.right.defaultOpen ?? false),
 					side: "right",
 					variant: "panel",
 					anchored: panels.right.anchored,
@@ -416,13 +440,14 @@ export function Page({ children, header, toolbar, panels, className }: PageProps
 					height: panels.right.height,
 					mobileZoom: panels.right.mobileZoom,
 				});
-				if (!shouldPersist) sidebarActions.setOpen(panels.right.id, panels.right.defaultOpen ?? false);
+				if (!shouldPersist)
+					sidebarActions.setOpen(panels.right.id, isMobile ? false : (panels.right.defaultOpen ?? false));
 			}
 			if (panels.right.tabs) sidebarActions.setTabs(panels.right.id, panels.right.tabs);
 			if (panels.right.defaultTab) sidebarActions.setActiveTab(panels.right.id, panels.right.defaultTab);
 			hasRegistered.current.right = true;
 		}
-	}, [isClient, panels]);
+	}, [isClient, panels, isMobile]);
 
 	// Register/unregister this panel's imperative drawer-close handle —
 	// skipped for anchored panels, which never mount an IndentDrawer here.
