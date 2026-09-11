@@ -1,30 +1,40 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": [
-    "config:recommended"
-  ],
-    "enabledManagers": ["github-actions", "npm"],
-    "packageRules": [
+  "extends": ["config:recommended"],
+  "enabledManagers": ["github-actions", "npm"],
+  "schedule": ["before 6am on monday"],
+  "prConcurrentLimit": 8,
+  "labels": ["dependencies"],
+  "ignorePaths": ["apps/marketing/**"],
+  "vulnerabilityAlerts": {
+    "labels": ["dependencies", "security"]
+  },
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["before 6am on the first day of the month"]
+  },
+  "packageRules": [
     {
-      "groupName": "all non-major dependencies",
-      "groupSlug": "all-minor-patch",
-      "matchPackageNames": [
-        "*"
-      ],
-      "matchUpdateTypes": [
-        "minor",
-        "patch"
-      ]
+      "description": "Patch bumps grouped per workspace package (apps/start, apps/backend, packages/ui, etc.) rather than either extreme: one PR per dependency (too much noise across ~20 package.json files) or one PR for the whole monorepo (unreviewable, and one bad bump blocks every other update behind it).",
+      "matchUpdateTypes": ["patch"],
+      "groupName": "{{packageFileDir}} - patch",
+      "labels": ["dependencies", "release:patch"]
     },
     {
-      "matchPackageNames": ["*"],
-      "labels": ["release:patch"]
+      "description": "Minor bumps get their own group per workspace package, separate from patch — kept apart so a single PR's release label is never ambiguous between the two.",
+      "matchUpdateTypes": ["minor"],
+      "groupName": "{{packageFileDir}} - minor",
+      "labels": ["dependencies", "release:minor"]
+    },
+    {
+      "description": "Majors are never grouped — each carries real breaking-change risk and deserves its own review. This mirrors today's behavior, just with a correct release label instead of the previous config's blanket release:patch on every update type regardless of size.",
+      "matchUpdateTypes": ["major"],
+      "labels": ["dependencies", "release:major"]
     },
     {
       "matchManagers": ["github-actions"],
       "groupName": "GitHub Actions",
       "groupSlug": "github-actions"
     }
-  ],
-  "labels": ["dependencies"]
+  ]
 }

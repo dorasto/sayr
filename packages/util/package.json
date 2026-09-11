@@ -16,11 +16,13 @@
 	"scripts": {
 		"lint": "biome check .",
 		"lint:fix": "biome check . --write",
-		"format": "biome format --write ."
+		"format": "biome format --write .",
+		"test": "vitest run"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.1.1",
 		"@repo/typescript-config": "workspace:*",
-		"@types/node": "^24.0.14"
+		"@types/node": "^24.0.14",
+		"vitest": "^3.2.6"
 	}
 }

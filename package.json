@@ -16,6 +16,7 @@
     "lint": "turbo lint",
     "lint:fix": "turbo lint:fix",
     "check-types": "turbo check-types",
+    "test": "turbo test",
     "docker": "docker-compose down --remove-orphans --volumes && docker container prune -f && docker-compose up --build -d",
     "docker:build": "docker-compose -f docker-compose.yml build",
     "env:all": "bash -c 'failed=0; bash ./gen.sh Sayr sayr-dev-local ./apps/worker/.env || failed=1; bash ./gen.sh Sayr sayr-dev-local ./apps/backend/.env || failed=1; bash ./gen.sh Sayr sayr-dev-local ./apps/start/.env || failed=1; bash ./gen.sh Sayr sayr-dev-local ./packages/database/.env || failed=1; bash ./gen.sh Sayr sayr-marketing-dev ./apps/marketing/.env || failed=1; exit $failed'",
