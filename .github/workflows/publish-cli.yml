@@ -86,6 +86,11 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      # Lets npm exchange this run's OIDC identity for a short-lived publish
+      # token via Trusted Publishing — no NPM_TOKEN secret needed. Requires
+      # @sayrio/cli to have a Trusted Publisher configured on npmjs.com
+      # (package Settings) pointing at this repo + this workflow filename.
+      id-token: write
 
     steps:
       - name: Checkout repository
@@ -106,6 +111,12 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Ensure npm supports Trusted Publishing
+        # Trusted Publishing (OIDC) needs npm CLI >=11.5.1 — newer than what
+        # some Node 22 setups bundle, so upgrade explicitly rather than
+        # relying on whatever ships with the runner's Node install.
+        run: npm install -g npm@latest
+
       - name: Build CLI
         run: pnpm -F @sayrio/cli build
 
@@ -122,9 +133,9 @@ jobs:
 
       - name: Publish to npm
         working-directory: packages/cli
-        run: npm publish --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        # No NODE_AUTH_TOKEN — npm authenticates via this job's OIDC token
+        # against the package's configured Trusted Publisher instead.
+        run: npm publish --access public --provenance
 
       - name: Tag release
         run: |
