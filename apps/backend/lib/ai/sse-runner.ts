@@ -14,6 +14,13 @@ export interface RunAiSseFeatureOptions {
 	targetId?: string;
 	tags?: string[];
 	requestyExtra?: RequestyMetadata["extra"];
+	/**
+	 * Extra text folded into the user message alongside `userPrompt` — e.g.
+	 * text extracted from URLs fetched server-side (see `fetchUrlAsText`).
+	 * Forwarded straight through to `streamText`, which appends it under its
+	 * own "Additional context from linked URLs" section.
+	 */
+	extraContext?: string;
 	/** When provided, enables a Redis cache check before generating and a cache write on success. */
 	cacheKey?: string;
 	cacheTtlSeconds?: number;
@@ -68,6 +75,7 @@ export function runAiSseFeature(opts: RunAiSseFeatureOptions): Response {
 		buildClickhouseMetadata,
 		onSuccess,
 		buildFinalEvent,
+		extraContext,
 	} = opts;
 
 	const traceAsync = createTraceAsync();
@@ -119,7 +127,7 @@ export function runAiSseFeature(opts: RunAiSseFeatureOptions): Response {
 							extra: { org_id: orgId, ...(targetId ? { target_id: targetId } : {}), ...requestyExtra },
 						};
 
-						const tokenStream = streamText({ model, systemPrompt, userPrompt, requestyMetadata });
+						const tokenStream = streamText({ model, systemPrompt, userPrompt, extraContext, requestyMetadata });
 
 						for await (const item of tokenStream) {
 							if (item.type === "chunk") {
