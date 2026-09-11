@@ -1,0 +1,12 @@
+environments:
+  dev:
+    kind: daemon
+    daemon: lunlab
+    cwd: /home/paseo/workspace/sayr
+agents:
+  pr-summarizer:
+    provider: claude
+    model: claude-sonnet-5
+    mode: bypassPermissions
+    options:
+      disallowedTools: [Edit, Write, NotebookEdit]
