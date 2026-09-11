@@ -22,12 +22,12 @@
 	},
 	"dependencies": {
 		"@clack/prompts": "^0.9.1",
-		"@repo/util": "workspace:*",
 		"commander": "^13.1.0",
 		"picocolors": "^1.1.1"
 	},
 	"devDependencies": {
 		"@repo/typescript-config": "workspace:*",
+		"@repo/util": "workspace:*",
 		"@types/node": "^24.0.14",
 		"tsup": "^8.0.0",
 		"typescript": "^5.8.3"

@@ -13,7 +13,15 @@ on:
     paths:
       - "packages/cli/**"
 
-concurrency: publish-cli
+# queue: max — GitHub's default (without this) cancels not just an in-progress
+# run's rival but any *pending* run in the group as soon as a newer one queues
+# behind it. With multiple packages/cli merges close together that silently
+# drops a queued release (and its intended version bump) with no error
+# surfaced anywhere. queue: max lets runs queue up instead of being canceled.
+concurrency:
+  group: publish-cli
+  cancel-in-progress: false
+  queue: max
 
 jobs:
   detect:
@@ -63,7 +71,17 @@ jobs:
           # a possibly branch-protected main.
           LATEST_TAG=$(git tag --list 'cli-v*' --sort=-v:refname | head -n 1)
           LATEST_TAG=${LATEST_TAG:-cli-v0.0.0}
-          CURRENT_VERSION=${LATEST_TAG#cli-v}
+          TAG_VERSION=${LATEST_TAG#cli-v}
+
+          # Cross-check against what's actually live on npm — a version can
+          # exist there without a matching tag (e.g. a manual bootstrap
+          # publish). Without this, a missing tag would understate the
+          # baseline and risk publishing a lower version, which would move
+          # npm's `latest` dist-tag backward. Take whichever is higher.
+          NPM_VERSION=$(npm view @sayrio/cli version 2>/dev/null || echo "0.0.0")
+          CURRENT_VERSION=$(printf '%s\n%s\n' "$TAG_VERSION" "$NPM_VERSION" | sort -V | tail -n 1)
+          echo "Tag baseline: $TAG_VERSION, npm baseline: $NPM_VERSION -> using $CURRENT_VERSION"
+
           IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
 
           if [ "$BUMP_TYPE" = "major" ]; then
@@ -75,7 +93,7 @@ jobs:
           fi
 
           NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}"
-          echo "Latest: $LATEST_TAG -> New: cli-v${NEW_VERSION} (${BUMP_TYPE})"
+          echo "Baseline: $CURRENT_VERSION -> New: cli-v${NEW_VERSION} (${BUMP_TYPE})"
           echo "version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
           echo "publish=true" >> "$GITHUB_OUTPUT"
 
