@@ -2,7 +2,7 @@ import type { GeneratedPageProps } from "fumadocs-openapi";
 import { createOpenAPIPage, type OpenAPIPageProps_Spec } from "fumadocs-openapi/ui";
 import defaultMdxComponents from "fumadocs-ui/mdx";
 import type { MDXComponents } from "mdx/types";
-import { Callout } from "@/components/features/callout";
+import { FeatureCallout } from "@/components/features/callout";
 import { ComparisonCallout } from "@/components/features/comparison-callout";
 import { FeatureStep } from "@/components/features/feature-step";
 import openapiDocument from "@/data/openapi-public.json";
@@ -32,7 +32,7 @@ function APIPage(props: GeneratedPageProps) {
 export function getMDXComponents(components?: MDXComponents) {
 	return {
 		...defaultMdxComponents,
-		Callout,
+		FeatureCallout,
 		ComparisonCallout,
 		FeatureStep,
 		APIPage,
