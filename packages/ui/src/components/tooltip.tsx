@@ -1,7 +1,7 @@
 "use client";
 
 import { Tooltip as TooltipPrimitive } from "@base-ui/react/tooltip";
-import { cn } from "../lib/utils";
+import { cn, overlayPortalContainer } from "../lib/utils";
 
 function TooltipProvider({ delay = 0, ...props }: TooltipPrimitive.Provider.Props) {
 	return <TooltipPrimitive.Provider data-slot="tooltip-provider" delay={delay} {...props} />;
@@ -35,7 +35,7 @@ function TooltipContent({
 		// Dialog/panel's own portal by default, but a transform-centered ancestor
 		// (or the side panel drawer) becomes a containing block that traps the
 		// tooltip's position:fixed positioning behind normal page content.
-		<TooltipPrimitive.Portal container={typeof document !== "undefined" ? document.body : undefined}>
+		<TooltipPrimitive.Portal container={overlayPortalContainer}>
 			<TooltipPrimitive.Positioner
 				side={side}
 				sideOffset={sideOffset}

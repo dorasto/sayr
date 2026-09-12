@@ -1,5 +1,5 @@
 import { NavigationMenu as NavigationMenuPrimitive } from "@base-ui/react/navigation-menu";
-import { cn } from "@repo/ui/lib/utils";
+import { cn, overlayPortalContainer } from "@repo/ui/lib/utils";
 import { cva } from "class-variance-authority";
 import { ChevronDown } from "lucide-react";
 
@@ -58,7 +58,7 @@ const NavigationMenuLink = NavigationMenuPrimitive.Link;
 
 function NavigationMenuViewport({ className, ...props }: NavigationMenuPrimitive.Popup.Props) {
 	return (
-		<NavigationMenuPrimitive.Portal>
+		<NavigationMenuPrimitive.Portal container={overlayPortalContainer}>
 			<NavigationMenuPrimitive.Positioner className="isolate z-50" side="bottom" align="center" sideOffset={6}>
 				<NavigationMenuPrimitive.Popup
 					className={cn(

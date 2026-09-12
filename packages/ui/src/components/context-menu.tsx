@@ -1,8 +1,7 @@
 "use client";
 
 import { ContextMenu as ContextMenuPrimitive } from "@base-ui/react/context-menu";
-import { cn } from "@repo/ui/lib/utils";
-import { s } from "framer-motion/client";
+import { cn, overlayPortalContainer } from "@repo/ui/lib/utils";
 import { Check, ChevronRight, Circle } from "lucide-react";
 import type * as React from "react";
 
@@ -43,7 +42,7 @@ function ContextMenuSubTrigger({
 
 function ContextMenuSubContent({ className, ...props }: ContextMenuPrimitive.Popup.Props) {
 	return (
-		<ContextMenuPrimitive.Portal>
+		<ContextMenuPrimitive.Portal container={overlayPortalContainer}>
 			<ContextMenuPrimitive.Positioner
 				className="isolate z-50 outline-none"
 				align="start"
@@ -69,7 +68,7 @@ function ContextMenuContent({
 	...props
 }: ContextMenuPrimitive.Popup.Props & Pick<ContextMenuPrimitive.Positioner.Props, "alignOffset">) {
 	return (
-		<ContextMenuPrimitive.Portal>
+		<ContextMenuPrimitive.Portal container={overlayPortalContainer}>
 			<ContextMenuPrimitive.Positioner className="isolate z-50 outline-none" alignOffset={alignOffset}>
 				<ContextMenuPrimitive.Popup
 					className={cn(

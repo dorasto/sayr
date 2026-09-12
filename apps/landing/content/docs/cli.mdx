@@ -14,6 +14,13 @@ npm install -g @sayrio/cli
 sayr --help
 ```
 
+<Callout type="warning" title="Windows users">
+  Running `npm install -g @sayrio/cli` may appear to run successfully but when
+  attempting to run `sayr` commands you may get some errors. The workaround is
+  to run the install command via an admin privillaged terminal. Usual Sayr
+  commands should work in non-admin terminals there after.
+</Callout>
+
 Prefer a one-off run without a global install? `npx @sayrio/cli --help` works the same way.
 
 ## Authentication
@@ -44,21 +51,21 @@ sayr config set-base-url http://localhost:5468
 
 ## Commands
 
-| Command | What it does |
-|---|---|
-| `sayr login [--token] [--base-url]` | Authenticate and store credentials |
-| `sayr logout` | Clear stored credentials |
-| `sayr whoami` | Show the authenticated user |
-| `sayr orgs list` | List organizations you belong to |
-| `sayr task create <title>` | Create a task |
-| `sayr task list` | List tasks — search, filter, sort, paginate |
-| `sayr task view <taskId>` | Show a single task |
-| `sayr task update <taskId>` | Update title, status, priority, category, release, or visibility |
-| `sayr task label <taskId> --set <ids>` | Replace a task's full set of labels |
-| `sayr task assign <taskId> --set <ids>` | Replace a task's full set of assignees |
-| `sayr comment create <taskId> <content>` | Post a comment on a task |
-| `sayr comment update <commentId> <content>` | Edit a comment |
-| `sayr comment delete <commentId>` | Delete a comment |
+| Command                                     | What it does                                                     |
+| ------------------------------------------- | ---------------------------------------------------------------- |
+| `sayr login [--token] [--base-url]`         | Authenticate and store credentials                               |
+| `sayr logout`                               | Clear stored credentials                                         |
+| `sayr whoami`                               | Show the authenticated user                                      |
+| `sayr orgs list`                            | List organizations you belong to                                 |
+| `sayr task create <title>`                  | Create a task                                                    |
+| `sayr task list`                            | List tasks — search, filter, sort, paginate                      |
+| `sayr task view <taskId>`                   | Show a single task                                               |
+| `sayr task update <taskId>`                 | Update title, status, priority, category, release, or visibility |
+| `sayr task label <taskId> --set <ids>`      | Replace a task's full set of labels                              |
+| `sayr task assign <taskId> --set <ids>`     | Replace a task's full set of assignees                           |
+| `sayr comment create <taskId> <content>`    | Post a comment on a task                                         |
+| `sayr comment update <commentId> <content>` | Edit a comment                                                   |
+| `sayr comment delete <commentId>`           | Delete a comment                                                 |
 
 Every command accepts `--json` for scriptable output, and `sayr <command> --help` prints its full flag list.
 
@@ -89,7 +96,10 @@ sayr comment create 123 "Deploy finished successfully." --json
 The CLI can only do what your personal access token's scopes — and your own role in the organization — allow. Reading tasks needs `tasks.read`, creating them needs `tasks.create`, commenting needs `tasks.comment`, and so on down to `content.manageLabels`, `tasks.assign`, `tasks.changeStatus`, `tasks.changePriority`, and `tasks.editAny`. A key is always a ceiling, never a grant — it can never do more than its owner can, and it can never touch member, team, or billing management no matter what scopes it's given.
 
 <Callout type="info" title="Plain text on updates">
-`task update --description` and `comment update` accept plain text only, not Markdown. Creating a task or comment accepts Markdown (converted server-side); the update endpoints expect an already-parsed document instead, which the CLI can't produce from Markdown yet.
+  `task update --description` and `comment update` accept plain text only, not
+  Markdown. Creating a task or comment accepts Markdown (converted server-side);
+  the update endpoints expect an already-parsed document instead, which the CLI
+  can't produce from Markdown yet.
 </Callout>
 
 ## Related
