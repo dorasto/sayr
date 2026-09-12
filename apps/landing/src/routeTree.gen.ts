@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as MarketingRouteImport } from './routes/_marketing'
 import { Route as MarketingIndexRouteImport } from './routes/_marketing/index'
 import { Route as DocsChar123Char125DotmdRouteImport } from './routes/docs/{$}[.]md'
@@ -17,12 +18,18 @@ import { Route as DocsLlmsFullDottxtRouteImport } from './routes/docs/llms-full[
 import { Route as DocsSplatRouteImport } from './routes/docs/$'
 import { Route as ApiSearchRouteImport } from './routes/api/search'
 import { Route as ApiOpenapiProxyRouteImport } from './routes/api/openapi-proxy'
+import { Route as ApiOgRouteImport } from './routes/api/og'
 import { Route as MarketingPricingRouteImport } from './routes/_marketing/pricing'
 import { Route as MarketingLegalTermsRouteImport } from './routes/_marketing/legal/terms'
 import { Route as MarketingLegalSubprocessorsRouteImport } from './routes/_marketing/legal/subprocessors'
 import { Route as MarketingLegalPrivacyRouteImport } from './routes/_marketing/legal/privacy'
 import { Route as MarketingFeaturesSlugRouteImport } from './routes/_marketing/features/$slug'
 
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MarketingRoute = MarketingRouteImport.update({
   id: '/_marketing',
   getParentRoute: () => rootRouteImport,
@@ -62,6 +69,11 @@ const ApiOpenapiProxyRoute = ApiOpenapiProxyRouteImport.update({
   path: '/api/openapi-proxy',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiOgRoute = ApiOgRouteImport.update({
+  id: '/api/og',
+  path: '/api/og',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MarketingPricingRoute = MarketingPricingRouteImport.update({
   id: '/pricing',
   path: '/pricing',
@@ -91,7 +103,9 @@ const MarketingFeaturesSlugRoute = MarketingFeaturesSlugRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof MarketingIndexRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/pricing': typeof MarketingPricingRoute
+  '/api/og': typeof ApiOgRoute
   '/api/openapi-proxy': typeof ApiOpenapiProxyRoute
   '/api/search': typeof ApiSearchRoute
   '/docs/$': typeof DocsSplatRoute
@@ -104,7 +118,9 @@ export interface FileRoutesByFullPath {
   '/legal/terms': typeof MarketingLegalTermsRoute
 }
 export interface FileRoutesByTo {
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/pricing': typeof MarketingPricingRoute
+  '/api/og': typeof ApiOgRoute
   '/api/openapi-proxy': typeof ApiOpenapiProxyRoute
   '/api/search': typeof ApiSearchRoute
   '/docs/$': typeof DocsSplatRoute
@@ -120,7 +136,9 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_marketing': typeof MarketingRouteWithChildren
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/_marketing/pricing': typeof MarketingPricingRoute
+  '/api/og': typeof ApiOgRoute
   '/api/openapi-proxy': typeof ApiOpenapiProxyRoute
   '/api/search': typeof ApiSearchRoute
   '/docs/$': typeof DocsSplatRoute
@@ -137,7 +155,9 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/sitemap.xml'
     | '/pricing'
+    | '/api/og'
     | '/api/openapi-proxy'
     | '/api/search'
     | '/docs/$'
@@ -150,7 +170,9 @@ export interface FileRouteTypes {
     | '/legal/terms'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/sitemap.xml'
     | '/pricing'
+    | '/api/og'
     | '/api/openapi-proxy'
     | '/api/search'
     | '/docs/$'
@@ -165,7 +187,9 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/_marketing'
+    | '/sitemap.xml'
     | '/_marketing/pricing'
+    | '/api/og'
     | '/api/openapi-proxy'
     | '/api/search'
     | '/docs/$'
@@ -181,6 +205,8 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   MarketingRoute: typeof MarketingRouteWithChildren
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  ApiOgRoute: typeof ApiOgRoute
   ApiOpenapiProxyRoute: typeof ApiOpenapiProxyRoute
   ApiSearchRoute: typeof ApiSearchRoute
   DocsSplatRoute: typeof DocsSplatRoute
@@ -191,6 +217,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_marketing': {
       id: '/_marketing'
       path: ''
@@ -245,6 +278,13 @@ declare module '@tanstack/react-router' {
       path: '/api/openapi-proxy'
       fullPath: '/api/openapi-proxy'
       preLoaderRoute: typeof ApiOpenapiProxyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/og': {
+      id: '/api/og'
+      path: '/api/og'
+      fullPath: '/api/og'
+      preLoaderRoute: typeof ApiOgRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_marketing/pricing': {
@@ -309,6 +349,8 @@ const MarketingRouteWithChildren = MarketingRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   MarketingRoute: MarketingRouteWithChildren,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
+  ApiOgRoute: ApiOgRoute,
   ApiOpenapiProxyRoute: ApiOpenapiProxyRoute,
   ApiSearchRoute: ApiSearchRoute,
   DocsSplatRoute: DocsSplatRoute,

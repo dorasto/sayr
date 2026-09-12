@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Fragment } from "react";
 import subprocessorsData from "@/data/subprocessors.json";
+import { seoMeta } from "@/lib/seo";
 
 interface Subprocessor {
 	name: string;
@@ -27,12 +28,12 @@ const formattedLastUpdated = (() => {
 
 export const Route = createFileRoute("/_marketing/legal/subprocessors")({
 	component: SubprocessorsPage,
-	head: () => ({
-		meta: [
-			{ title: "Subprocessors - Sayr" },
-			{ name: "description", content: "List of third-party subprocessors that process data on behalf of Sayr." },
-		],
-	}),
+	head: () =>
+		seoMeta({
+			title: "Subprocessors",
+			description: "List of third-party subprocessors that process data on behalf of Sayr.",
+			path: "/legal/subprocessors",
+		}),
 });
 
 function SubprocessorsPage() {

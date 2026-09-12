@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { seoMeta } from "@/lib/seo";
 
 const lastUpdated = "2026-02-16";
 // Construct as a local calendar date, not `new Date(lastUpdated)` — that parses
@@ -17,12 +18,12 @@ const formattedDate = new Date(lastUpdatedYear, lastUpdatedMonth - 1, lastUpdate
 
 export const Route = createFileRoute("/_marketing/legal/terms")({
 	component: TermsPage,
-	head: () => ({
-		meta: [
-			{ title: "Terms of Service - Sayr" },
-			{ name: "description", content: "Terms of Service for using the Sayr platform." },
-		],
-	}),
+	head: () =>
+		seoMeta({
+			title: "Terms of Service",
+			description: "Terms of Service for using the Sayr platform.",
+			path: "/legal/terms",
+		}),
 });
 
 function TermsPage() {

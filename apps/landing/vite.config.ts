@@ -36,7 +36,9 @@ const config = defineConfig({
 	ssr: {
 		noExternal: isDev ? [] : true,
 		target: "node",
-		external: ["shiki"],
+		// shiki uses onig.wasm which cannot be bundled — keep it external
+		// sharp is a native module — keep it external
+		external: ["shiki", "sharp"],
 	},
 	plugins: [
 		mdx(),

@@ -7,6 +7,7 @@ import { DocsBody, DocsDescription, DocsPage, DocsTitle } from "fumadocs-ui/layo
 import { MarkdownCopyButton, ViewOptionsPopover } from "@/components/ai/page-actions";
 import { getMDXComponents } from "@/components/mdx";
 import { baseOptions, getDocsTabs } from "@/lib/layout.shared";
+import { seoMeta } from "@/lib/seo";
 import { encodeMarkdownUrl } from "@/lib/shared";
 import { source } from "@/lib/source";
 
@@ -20,12 +21,11 @@ export const Route = createFileRoute("/docs/$")({
 	},
 	head: ({ loaderData }) =>
 		loaderData
-			? {
-					meta: [
-						{ title: `${loaderData.title} - Sayr` },
-						{ name: "description", content: loaderData.description },
-					],
-				}
+			? seoMeta({
+					title: loaderData.title,
+					description: loaderData.description ?? "Sayr documentation.",
+					path: loaderData.url,
+				})
 			: {},
 });
 
@@ -38,6 +38,7 @@ const serverLoader = createServerFn({ method: "GET" })
 		const pageTree = await source.serializePageTree(source.getPageTree());
 		return {
 			path: page.path,
+			url: page.url,
 			title: page.data.title,
 			description: page.data.description,
 			pageTree,
