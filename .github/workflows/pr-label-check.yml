@@ -67,6 +67,61 @@ jobs:
             echo "next_version=" >> $GITHUB_OUTPUT
           fi
 
+      - name: Check CLI changes and compute next CLI version
+        id: check-cli
+        env:
+          PR_LABELS: ${{ toJson(github.event.pull_request.labels.*.name) }}
+        run: |
+          # Only relevant if this PR touches packages/cli/** — mirrors the
+          # path filter on publish-cli.yml, which is what actually publishes
+          # once this merges. This step only previews that outcome; it never
+          # bumps or publishes anything itself.
+          if ! git diff --name-only "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}" | grep -q '^packages/cli/'; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+
+          echo "Labels: $PR_LABELS"
+
+          # Same default-patch/override logic as publish-cli.yml's detect job —
+          # no label at all defaults to a patch release.
+          BUMP_TYPE="patch"
+          if echo "$PR_LABELS" | grep -q '"cli-release:major"'; then
+            BUMP_TYPE="major"
+          elif echo "$PR_LABELS" | grep -q '"cli-release:minor"'; then
+            BUMP_TYPE="minor"
+          elif echo "$PR_LABELS" | grep -q '"cli-release:skip"'; then
+            BUMP_TYPE="skip"
+          fi
+          echo "bump_type=$BUMP_TYPE" >> "$GITHUB_OUTPUT"
+
+          if [ "$BUMP_TYPE" = "skip" ]; then
+            echo "next_version=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Same tag+npm cross-check as publish-cli.yml, so this preview can't
+          # drift from what the post-merge workflow will actually compute.
+          LATEST_TAG=$(git tag --list 'cli-v*' --sort=-v:refname | head -n 1)
+          LATEST_TAG=${LATEST_TAG:-cli-v0.0.0}
+          TAG_VERSION=${LATEST_TAG#cli-v}
+
+          NPM_VERSION=$(npm view @sayrio/cli version 2>/dev/null || echo "0.0.0")
+          CURRENT_VERSION=$(printf '%s\n%s\n' "$TAG_VERSION" "$NPM_VERSION" | sort -V | tail -n 1)
+
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
+
+          if [ "$BUMP_TYPE" = "major" ]; then
+            MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0
+          elif [ "$BUMP_TYPE" = "minor" ]; then
+            MINOR=$((MINOR + 1)); PATCH=0
+          elif [ "$BUMP_TYPE" = "patch" ]; then
+            PATCH=$((PATCH + 1))
+          fi
+
+          echo "next_version=cli-v${MAJOR}.${MINOR}.${PATCH}" >> "$GITHUB_OUTPUT"
+
       - name: Comment on PR - Missing Label
         if: steps.check-label.outputs.has_label == 'false'
         uses: actions/github-script@v9
@@ -83,16 +138,29 @@ jobs:
               (comment.body.includes('Release Label Required') || comment.body.includes('Release Label Added'))
             );
 
-            const body = `## Release Label Required
-            
+            let body = `## Release Label Required
+
             This PR needs a release label to indicate the type of change:
-            
+
             - \`release:major\` - Breaking changes (bumps major version, e.g., 1.0.0 -> 2.0.0)
             - \`release:minor\` - New features (bumps minor version, e.g., 1.0.0 -> 1.1.0)
             - \`release:patch\` - Bug fixes (bumps patch version, e.g., 1.0.0 -> 1.0.1)
             - \`release:skip\` - No release needed (docs, tests, CI changes)
-            
+
             Please add **exactly one** release label before merging.`;
+
+            const cliChanged = '${{ steps.check-cli.outputs.changed }}' === 'true';
+            const cliBumpType = '${{ steps.check-cli.outputs.bump_type }}';
+            const cliNextVersion = '${{ steps.check-cli.outputs.next_version }}';
+
+            if (cliChanged) {
+              if (cliBumpType === 'skip') {
+                body += '\n\n---\n\nThis PR also touches `packages/cli/**`. You added `cli-release:skip` — no CLI version bump will occur when this PR is merged.';
+              } else if (cliNextVersion) {
+                const note = cliBumpType === 'patch' ? ' (default patch bump — add `cli-release:major`, `cli-release:minor`, or `cli-release:skip` to override)' : '';
+                body += `\n\n---\n\nThis PR also touches \`packages/cli/**\`. The CLI will be published as **${cliNextVersion}**${note} once merged.`;
+              }
+            }
 
             if (botComment) {
               await github.rest.issues.updateComment({
@@ -136,6 +204,19 @@ jobs:
               body = `## Release Label Added\n\nYou added \`release:${bumpType}\`. The next version once merged will be **${nextVersion}**.`;
             } else {
               body = '## Release Label Added\n\nYou added a release label.';
+            }
+
+            const cliChanged = '${{ steps.check-cli.outputs.changed }}' === 'true';
+            const cliBumpType = '${{ steps.check-cli.outputs.bump_type }}';
+            const cliNextVersion = '${{ steps.check-cli.outputs.next_version }}';
+
+            if (cliChanged) {
+              if (cliBumpType === 'skip') {
+                body += '\n\n---\n\nThis PR also touches `packages/cli/**`. You added `cli-release:skip` — no CLI version bump will occur when this PR is merged.';
+              } else if (cliNextVersion) {
+                const note = cliBumpType === 'patch' ? ' (default patch bump — add `cli-release:major`, `cli-release:minor`, or `cli-release:skip` to override)' : '';
+                body += `\n\n---\n\nThis PR also touches \`packages/cli/**\`. The CLI will be published as **${cliNextVersion}**${note} once merged.`;
+              }
             }
 
             if (botComment) {
