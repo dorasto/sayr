@@ -9,6 +9,34 @@ import { DEFAULT_BASE_URL, readConfig } from "./config";
  */
 const ME_PREFIX = "/api/public/v1/me";
 
+// Node's fetch (undici) throws a generic `TypeError: fetch failed` for every
+// connection-level failure — the actual reason (a corporate TLS-inspecting
+// proxy's untrusted cert, a system proxy Node's fetch doesn't pick up the way
+// a browser does, DNS, a dropped connection, ...) is nested on `.cause`
+// (sometimes an AggregateError with its own `.errors`) and gets silently
+// dropped if only `err.message` is shown. That's the exact dead end reported
+// in practice: "Failed to reach https://api.sayr.io (fetch failed)" with no
+// way to tell a proxy/cert issue from anything else.
+function describeFetchError(err: unknown): string {
+	if (!(err instanceof Error)) return String(err);
+	const parts = [err.message];
+	let cause: unknown = err.cause;
+	while (cause) {
+		if (cause instanceof AggregateError) {
+			parts.push(...cause.errors.map((e) => (e instanceof Error ? e.message : String(e))));
+			break;
+		}
+		if (cause instanceof Error) {
+			parts.push(cause.message);
+			cause = cause.cause;
+		} else {
+			parts.push(String(cause));
+			break;
+		}
+	}
+	return [...new Set(parts)].join(" — caused by: ");
+}
+
 export class ApiClientError extends Error {
 	readonly code: string;
 	readonly status: number;
@@ -80,11 +108,7 @@ async function rawRequest<T>(path: string, opts: RequestInput): Promise<ApiSucce
 			body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
 		});
 	} catch (err) {
-		throw new ApiClientError(
-			"NETWORK_ERROR",
-			`Failed to reach ${baseUrl} (${err instanceof Error ? err.message : String(err)})`,
-			0
-		);
+		throw new ApiClientError("NETWORK_ERROR", `Failed to reach ${baseUrl} (${describeFetchError(err)})`, 0);
 	}
 
 	let json: ApiSuccessEnvelope<T> | ApiErrorEnvelope;
