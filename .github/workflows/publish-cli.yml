@@ -114,6 +114,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
         with:
+          # Pin to the actual merge commit landing on main. actions/checkout's
+          # default ref for a `pull_request` event is the synthetic
+          # refs/pull/<PR>/merge test-merge ref, which can reflect a stale
+          # snapshot of the PR (e.g. missing a last-minute commit) rather than
+          # what actually merged — this bit us once already, publishing a
+          # package.json that predated the PR's final commit.
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
           fetch-depth: 0
 
       - name: Install pnpm
