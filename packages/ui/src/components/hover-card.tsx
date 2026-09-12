@@ -1,7 +1,7 @@
 "use client";
 
 import { PreviewCard as HoverCardPrimitive } from "@base-ui/react/preview-card";
-import { cn } from "@repo/ui/lib/utils";
+import { cn, overlayPortalContainer } from "@repo/ui/lib/utils";
 import * as React from "react";
 
 const HoverCard = HoverCardPrimitive.Root;
@@ -15,7 +15,7 @@ const HoverCardContent = React.forwardRef<
 	React.ComponentPropsWithoutRef<typeof HoverCardPrimitive.Popup> &
 		Pick<React.ComponentProps<typeof HoverCardPrimitive.Positioner>, "align" | "alignOffset" | "side" | "sideOffset">
 >(({ className, align = "center", alignOffset, side, sideOffset = 4, ...props }, ref) => (
-	<HoverCardPortal>
+	<HoverCardPortal container={overlayPortalContainer}>
 		<HoverCardPrimitive.Positioner
 			align={align}
 			alignOffset={alignOffset}

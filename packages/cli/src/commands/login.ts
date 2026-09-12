@@ -36,9 +36,18 @@ export function registerLoginCommand(program: Command): void {
 				token = answer;
 			}
 
+			// Resolved here rather than left to apiRequest's own fallback chain —
+			// that chain prefers a previously *persisted* config.baseUrl over
+			// DEFAULT_BASE_URL, so a stale local-dev override (e.g. from an
+			// earlier --base-url http://localhost:5468) would otherwise keep
+			// silently redirecting every future plain `login` back to it. login
+			// always means "connect to this URL, or production" — never "whatever
+			// I happened to set last time."
+			const baseUrl = opts.baseUrl ?? DEFAULT_BASE_URL;
+
 			try {
-				const me = await apiRequest<Me>("", { clientOptions: { token, baseUrl: opts.baseUrl } });
-				await updateConfig({ token, ...(opts.baseUrl ? { baseUrl: opts.baseUrl } : {}) });
+				const me = await apiRequest<Me>("", { clientOptions: { token, baseUrl } });
+				await updateConfig({ token, baseUrl });
 				console.log(`${pc.green("✓")} Logged in as ${pc.bold(me.name ?? me.email ?? me.id)}`);
 			} catch (err) {
 				printError(err);

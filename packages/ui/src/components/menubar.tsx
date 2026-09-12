@@ -2,7 +2,7 @@
 
 import { Menu as MenubarPrimitive } from "@base-ui/react/menu";
 import { Menubar as MenubarRootPrimitive } from "@base-ui/react/menubar";
-import { cn } from "@repo/ui/lib/utils";
+import { cn, overlayPortalContainer } from "@repo/ui/lib/utils";
 import { Check, ChevronRight, Circle } from "lucide-react";
 import type * as React from "react";
 
@@ -72,7 +72,7 @@ function MenubarSubTrigger({
 
 function MenubarSubContent({ className, ...props }: MenubarPrimitive.Popup.Props) {
 	return (
-		<MenubarPrimitive.Portal>
+		<MenubarPrimitive.Portal container={overlayPortalContainer}>
 			<MenubarPrimitive.Positioner
 				className="isolate z-50 outline-none"
 				align="start"
@@ -102,7 +102,7 @@ function MenubarContent({
 }: MenubarPrimitive.Popup.Props &
 	Pick<MenubarPrimitive.Positioner.Props, "align" | "alignOffset" | "side" | "sideOffset">) {
 	return (
-		<MenubarPrimitive.Portal>
+		<MenubarPrimitive.Portal container={overlayPortalContainer}>
 			<MenubarPrimitive.Positioner
 				className="isolate z-50 outline-none"
 				align={align}

@@ -1,9 +1,8 @@
 "use client";
 
 import { Select as SelectPrimitive } from "@base-ui/react/select";
+import { cn, overlayPortalContainer } from "@repo/ui/lib/utils";
 import { CheckIcon, ChevronDownIcon, ChevronUpIcon } from "lucide-react";
-
-import { cn } from "@repo/ui/lib/utils";
 
 const Select = SelectPrimitive.Root;
 
@@ -47,7 +46,7 @@ function SelectContent({
 	...props
 }: SelectPrimitive.Popup.Props & Pick<SelectPrimitive.Positioner.Props, "align" | "alignItemWithTrigger">) {
 	return (
-		<SelectPrimitive.Portal>
+		<SelectPrimitive.Portal container={overlayPortalContainer}>
 			<SelectPrimitive.Positioner className="isolate z-50" align={align} alignItemWithTrigger={alignItemWithTrigger}>
 				<SelectPrimitive.Popup
 					data-slot="select-content"

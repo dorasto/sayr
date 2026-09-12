@@ -1,7 +1,7 @@
 "use client";
 
 import { Menu as DropdownMenuPrimitive } from "@base-ui/react/menu";
-import { cn } from "@repo/ui/lib/utils";
+import { cn, overlayPortalContainer } from "@repo/ui/lib/utils";
 import { Check, ChevronRight, Circle } from "lucide-react";
 import type * as React from "react";
 
@@ -47,7 +47,7 @@ function DropdownMenuSubTrigger({
 
 function DropdownMenuSubContent({ className, ...props }: DropdownMenuPrimitive.Popup.Props) {
 	return (
-		<DropdownMenuPrimitive.Portal>
+		<DropdownMenuPrimitive.Portal container={overlayPortalContainer}>
 			<DropdownMenuPrimitive.Positioner
 				className="isolate z-50 outline-none"
 				align="start"
@@ -77,7 +77,7 @@ function DropdownMenuContent({
 }: DropdownMenuPrimitive.Popup.Props &
 	Pick<DropdownMenuPrimitive.Positioner.Props, "align" | "alignOffset" | "side" | "sideOffset">) {
 	return (
-		<DropdownMenuPrimitive.Portal>
+		<DropdownMenuPrimitive.Portal container={overlayPortalContainer}>
 			<DropdownMenuPrimitive.Positioner
 				className="isolate z-50 outline-none"
 				align={align}
