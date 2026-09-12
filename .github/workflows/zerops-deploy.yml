@@ -8,6 +8,15 @@
 # a digit, so cli-v* tags never match) and streams the Zerops build/deploy
 # log straight into the job output.
 #
+# The push.tags trigger only fires for a tag pushed with real user
+# credentials — release-on-merge.yml pushes its v* tag using the default
+# GITHUB_TOKEN, and GitHub deliberately suppresses downstream workflow
+# triggers from GITHUB_TOKEN-authored pushes (anti-recursion guard), so that
+# tag alone never reaches this workflow. The workflow_call trigger below is
+# what actually fires on a real release — release-on-merge.yml invokes this
+# workflow directly as a job, the same way it already does for
+# build-and-deploy.yml.
+#
 # Separate from build-and-deploy.yml, which builds the CE/self-host Docker
 # images for ghcr.io and has no relation to the Zerops project.
 #
@@ -34,6 +43,9 @@ on:
   push:
     tags:
       - "v[0-9]+.[0-9]+.[0-9]+"
+  # Invoked directly by release-on-merge.yml right after it tags a release —
+  # see the header comment above for why the tag push alone can't do this.
+  workflow_call: {}
   workflow_dispatch:
     inputs:
       marketing:
@@ -76,7 +88,7 @@ permissions:
 jobs:
   marketing:
     name: Deploy marketing
-    if: github.event_name == 'push' || inputs.marketing
+    if: github.event_name != 'workflow_dispatch' || inputs.marketing
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -87,7 +99,7 @@ jobs:
 
   backend:
     name: Deploy backend
-    if: github.event_name == 'push' || inputs.backend
+    if: github.event_name != 'workflow_dispatch' || inputs.backend
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -98,7 +110,7 @@ jobs:
 
   start:
     name: Deploy start
-    if: github.event_name == 'push' || inputs.start
+    if: github.event_name != 'workflow_dispatch' || inputs.start
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -109,7 +121,7 @@ jobs:
 
   workermain:
     name: Deploy workermain
-    if: github.event_name == 'push' || inputs.workermain
+    if: github.event_name != 'workflow_dispatch' || inputs.workermain
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -120,7 +132,7 @@ jobs:
 
   workergithub:
     name: Deploy workergithub
-    if: github.event_name == 'push' || inputs.workergithub
+    if: github.event_name != 'workflow_dispatch' || inputs.workergithub
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -131,7 +143,7 @@ jobs:
 
   integrations:
     name: Deploy integrations
-    if: github.event_name == 'push' || inputs.integrations
+    if: github.event_name != 'workflow_dispatch' || inputs.integrations
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
