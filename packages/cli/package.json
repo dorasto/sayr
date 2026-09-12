@@ -4,6 +4,11 @@
 	"description": "Sayr.io command-line interface — manage tasks and comments from your terminal",
 	"license": "MIT",
 	"type": "module",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/dorasto/sayr.git",
+		"directory": "packages/cli"
+	},
 	"bin": {
 		"sayr": "dist/index.js"
 	},
