@@ -1,7 +1,7 @@
 import type { PluginHostProps, PluginSurfaceProps } from "@getpaseo/plugin/client";
 import { usePaseo, useRpc } from "@getpaseo/plugin/client";
-import { Modal, TextInput, useToast } from "@getpaseo/plugin/client/react-native";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Icon, Modal, TextInput, useToast } from "@getpaseo/plugin/client/react-native";
+import { type UseQueryResult, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { extractPlainText, type ProsekitNode } from "../shared/prosekit";
@@ -12,11 +12,16 @@ import {
 	listCommentsRpc,
 	listOrgsRpc,
 	listRepliesRpc,
+	PRIORITY_COLORS,
+	PRIORITY_LABELS,
+	STATUS_COLORS,
+	STATUS_LABELS,
 	setAssigneesRpc,
 	TASK_PRIORITIES,
 	TASK_STATUSES,
 	type Task,
 	type TaskComment,
+	type TaskDetail,
 	updateTaskPriorityRpc,
 	updateTaskStatusRpc,
 } from "../shared/task";
@@ -31,7 +36,7 @@ function buildAgentPrompt(task: Task & { comments: TaskComment[] }): string {
 	const description = task.description ? extractPlainText(task.description as ProsekitNode) : "";
 	const lines = [
 		`Sayr task ${key}: ${task.title ?? "(untitled)"}`,
-		`Status: ${task.status} | Priority: ${task.priority}`,
+		`Status: ${STATUS_LABELS[task.status]} | Priority: ${PRIORITY_LABELS[task.priority]}`,
 	];
 	if (description) lines.push("", description);
 	if (task.comments.length > 0) {
@@ -50,24 +55,45 @@ export function TaskDetailSheet({
 	layout,
 	navigation,
 	selected,
+	bodyWidth,
+	panelWidth,
+	onPanelWidthChange,
 	onClose,
 }: {
 	theme: Theme;
 	layout: Layout;
 	navigation: Navigation;
 	selected: { taskId: string; orgSlug: string } | null;
+	bodyWidth: number | null;
+	panelWidth: number | null;
+	onPanelWidthChange: (width: number) => void;
 	onClose: () => void;
 }) {
+	const getTask = useRpc(getTaskRpc);
+	const taskQuery = useQuery({
+		queryKey: ["sayr", "task", selected?.orgSlug, selected?.taskId],
+		queryFn: () => getTask({ taskId: selected?.taskId ?? "", orgSlug: selected?.orgSlug ?? "" }),
+		enabled: selected !== null,
+	});
+
 	return (
-		<Sheet open={selected !== null} onClose={onClose} title="Task" theme={theme} compact={layout.compact}>
+		<Sheet
+			open={selected !== null}
+			onClose={onClose}
+			title={taskQuery.data?.title ?? "Task"}
+			theme={theme}
+			compact={layout.compact}
+			bodyWidth={bodyWidth}
+			width={panelWidth}
+			onWidthChange={onPanelWidthChange}
+		>
 			{selected && (
 				<TaskDetailBody
 					theme={theme}
-					layout={layout}
 					navigation={navigation}
 					taskId={selected.taskId}
 					orgSlug={selected.orgSlug}
-					onClose={onClose}
+					query={taskQuery}
 				/>
 			)}
 		</Sheet>
@@ -76,20 +102,17 @@ export function TaskDetailSheet({
 
 function TaskDetailBody({
 	theme,
-	layout,
 	navigation,
 	taskId,
 	orgSlug,
-	onClose: _onClose,
+	query,
 }: {
 	theme: Theme;
-	layout: Layout;
 	navigation: Navigation;
 	taskId: string;
 	orgSlug: string;
-	onClose: () => void;
+	query: UseQueryResult<TaskDetail>;
 }) {
-	const getTask = useRpc(getTaskRpc);
 	const updateStatus = useRpc(updateTaskStatusRpc);
 	const updatePriority = useRpc(updateTaskPriorityRpc);
 	const setAssignees = useRpc(setAssigneesRpc);
@@ -99,12 +122,8 @@ function TaskDetailBody({
 	const [sendOpen, setSendOpen] = useState(false);
 	const [savingField, setSavingField] = useState<"status" | "priority" | "assignees" | null>(null);
 
-	const taskQuery = useQuery({
-		queryKey: ["sayr", "task", orgSlug, taskId],
-		queryFn: () => getTask({ taskId, orgSlug }),
-	});
 	const orgsQuery = useQuery({ queryKey: ["sayr", "orgs"], queryFn: () => listOrgsFn({}) });
-	const data = taskQuery.data;
+	const data = query.data;
 
 	async function refresh() {
 		await Promise.all([
@@ -137,14 +156,10 @@ function TaskDetailBody({
 		}
 	}
 
-	async function onToggleAssignee(userId: string) {
-		if (!data) return;
-		const current = new Set((data.assignees ?? []).map((a) => a?.id).filter((id): id is string => Boolean(id)));
-		if (current.has(userId)) current.delete(userId);
-		else current.add(userId);
+	async function onSetAssignees(userIds: string[]) {
 		setSavingField("assignees");
 		try {
-			await setAssignees({ taskId, orgSlug, userIds: [...current] });
+			await setAssignees({ taskId, orgSlug, userIds });
 			await refresh();
 		} catch (err) {
 			toast.error(err instanceof Error ? err.message : "Failed to update assignees.");
@@ -156,21 +171,9 @@ function TaskDetailBody({
 	const styles = useMemo(
 		() => ({
 			meta: { color: theme.colors.foregroundMuted, fontSize: 13 },
-			taskTitle: { color: theme.colors.foreground, fontSize: 17, fontWeight: "600" as const },
-			section: { marginTop: 16, gap: 8 },
+			section: { marginTop: 16, gap: 6 },
 			sectionTitle: { color: theme.colors.foregroundMuted, fontSize: 12, fontWeight: "600" as const },
 			body: { color: theme.colors.foreground, fontSize: 14, lineHeight: 20 },
-			pillRow: { flexDirection: "row" as const, flexWrap: "wrap" as const, gap: 6 },
-			pill: {
-				borderWidth: 1,
-				borderColor: theme.colors.border,
-				borderRadius: 999,
-				paddingVertical: 4,
-				paddingHorizontal: 10,
-			},
-			pillActive: { backgroundColor: theme.colors.accent, borderColor: theme.colors.accent },
-			pillText: { color: theme.colors.foreground, fontSize: 12 },
-			pillTextActive: { color: theme.colors.accentForeground, fontSize: 12, fontWeight: "600" as const },
 			button: {
 				alignSelf: "flex-start" as const,
 				backgroundColor: theme.colors.accent,
@@ -186,60 +189,54 @@ function TaskDetailBody({
 	);
 
 	const orgMembers = orgsQuery.data?.orgs.find((org) => org.slug === orgSlug)?.members ?? [];
-	const assigneeIds = new Set((data?.assignees ?? []).map((a) => a?.id).filter(Boolean));
 
 	return (
 		<ScrollView>
-			{taskQuery.isLoading && <Text style={styles.meta}>Loading…</Text>}
-			{taskQuery.isError && (
+			{query.isLoading && <Text style={styles.meta}>Loading…</Text>}
+			{query.isError && (
 				<Text style={styles.errorText}>
-					{taskQuery.error instanceof Error ? taskQuery.error.message : "Failed to load."}
+					{query.error instanceof Error ? query.error.message : "Failed to load."}
 				</Text>
 			)}
 			{data && (
 				<View>
-					<Text style={styles.taskTitle}>{data.title ?? "(untitled)"}</Text>
-					<Text style={[styles.meta, { marginTop: 4 }]}>
+					<Text style={styles.meta}>
 						#{data.shortId ?? "?"}
 						{categoryName(data.category) ? ` · ${categoryName(data.category)}` : ""}
 					</Text>
 
 					<View style={styles.section}>
 						<Text style={styles.sectionTitle}>STATUS</Text>
-						<View style={styles.pillRow}>
-							{TASK_STATUSES.map((status) => (
-								<Pressable
-									key={status}
-									accessibilityRole="button"
-									disabled={savingField === "status"}
-									style={[styles.pill, status === data.status && styles.pillActive]}
-									onPress={() => onSetStatus(status)}
-								>
-									<Text style={status === data.status ? styles.pillTextActive : styles.pillText}>
-										{status}
-									</Text>
-								</Pressable>
-							))}
-						</View>
+						<Dropdown
+							theme={theme}
+							disabled={savingField === "status"}
+							currentLabel={STATUS_LABELS[data.status]}
+							currentColor={STATUS_COLORS[data.status]}
+							options={TASK_STATUSES.map((status) => ({
+								value: status,
+								label: STATUS_LABELS[status],
+								color: STATUS_COLORS[status],
+							}))}
+							selectedValue={data.status}
+							onSelect={(value) => onSetStatus(value as (typeof TASK_STATUSES)[number])}
+						/>
 					</View>
 
 					<View style={styles.section}>
 						<Text style={styles.sectionTitle}>PRIORITY</Text>
-						<View style={styles.pillRow}>
-							{TASK_PRIORITIES.map((priority) => (
-								<Pressable
-									key={priority}
-									accessibilityRole="button"
-									disabled={savingField === "priority"}
-									style={[styles.pill, priority === data.priority && styles.pillActive]}
-									onPress={() => onSetPriority(priority)}
-								>
-									<Text style={priority === data.priority ? styles.pillTextActive : styles.pillText}>
-										{priority}
-									</Text>
-								</Pressable>
-							))}
-						</View>
+						<Dropdown
+							theme={theme}
+							disabled={savingField === "priority"}
+							currentLabel={PRIORITY_LABELS[data.priority]}
+							currentColor={PRIORITY_COLORS[data.priority]}
+							options={TASK_PRIORITIES.map((priority) => ({
+								value: priority,
+								label: PRIORITY_LABELS[priority],
+								color: PRIORITY_COLORS[priority],
+							}))}
+							selectedValue={data.priority}
+							onSelect={(value) => onSetPriority(value as (typeof TASK_PRIORITIES)[number])}
+						/>
 					</View>
 
 					{data.labels.length > 0 && (
@@ -251,28 +248,13 @@ function TaskDetailBody({
 
 					<View style={styles.section}>
 						<Text style={styles.sectionTitle}>ASSIGNEES</Text>
-						{orgMembers.length === 0 ? (
-							<Text style={styles.meta}>No other members in this org.</Text>
-						) : (
-							<View style={styles.pillRow}>
-								{orgMembers.map((member) => {
-									const active = assigneeIds.has(member.userId);
-									return (
-										<Pressable
-											key={member.userId}
-											accessibilityRole="button"
-											disabled={savingField === "assignees"}
-											style={[styles.pill, active && styles.pillActive]}
-											onPress={() => onToggleAssignee(member.userId)}
-										>
-											<Text style={active ? styles.pillTextActive : styles.pillText}>
-												{member.user.name ?? member.userId}
-											</Text>
-										</Pressable>
-									);
-								})}
-							</View>
-						)}
+						<AssigneeDropdown
+							theme={theme}
+							disabled={savingField === "assignees"}
+							members={orgMembers}
+							selectedIds={(data.assignees ?? []).map((a) => a?.id).filter((id): id is string => Boolean(id))}
+							onChange={onSetAssignees}
+						/>
 					</View>
 
 					{data.description ? (
@@ -312,15 +294,196 @@ function TaskDetailBody({
 				</View>
 			)}
 			{sendOpen && data && (
-				<SendToAgentModal
-					theme={theme}
-					layout={layout}
-					navigation={navigation}
-					task={data}
-					onClose={() => setSendOpen(false)}
-				/>
+				<SendToAgentModal theme={theme} navigation={navigation} task={data} onClose={() => setSendOpen(false)} />
 			)}
 		</ScrollView>
+	);
+}
+
+/** A single-select "current value, tap to expand a list below it" control — this repo's own version of `github-board`'s floating `ChoicePopover`, simplified to an inline accordion instead of a `measureInWindow`-positioned overlay. */
+function Dropdown({
+	theme,
+	disabled,
+	currentLabel,
+	currentColor,
+	options,
+	selectedValue,
+	onSelect,
+}: {
+	theme: Theme;
+	disabled: boolean;
+	currentLabel: string;
+	currentColor: string;
+	options: { value: string; label: string; color: string }[];
+	selectedValue: string;
+	onSelect: (value: string) => void;
+}) {
+	const [open, setOpen] = useState(false);
+	const styles = useMemo(
+		() => ({
+			trigger: {
+				flexDirection: "row" as const,
+				alignItems: "center" as const,
+				gap: 8,
+				borderWidth: 1,
+				borderColor: theme.colors.border,
+				borderRadius: 6,
+				paddingVertical: 8,
+				paddingHorizontal: 10,
+				alignSelf: "flex-start" as const,
+				minWidth: 160,
+			},
+			dot: { width: 8, height: 8, borderRadius: 4 },
+			label: { color: theme.colors.foreground, fontSize: 13, flex: 1 },
+			menu: {
+				marginTop: 4,
+				borderWidth: 1,
+				borderColor: theme.colors.border,
+				borderRadius: 6,
+				backgroundColor: theme.colors.surface1,
+				overflow: "hidden" as const,
+			},
+			row: { flexDirection: "row" as const, alignItems: "center" as const, gap: 8, padding: 10 },
+			rowLabel: { color: theme.colors.foreground, fontSize: 13, flex: 1 },
+		}),
+		[theme]
+	);
+
+	return (
+		<View>
+			<Pressable
+				accessibilityRole="button"
+				disabled={disabled}
+				style={[styles.trigger, disabled ? { opacity: 0.6 } : null]}
+				onPress={() => setOpen((v) => !v)}
+			>
+				<View style={[styles.dot, { backgroundColor: currentColor }]} />
+				<Text style={styles.label}>{currentLabel}</Text>
+				<Icon name={open ? "ChevronUp" : "ChevronDown"} size={14} color={theme.colors.foregroundMuted} />
+			</Pressable>
+			{open && (
+				<View style={styles.menu}>
+					{options.map((option) => (
+						<Pressable
+							key={option.value}
+							accessibilityRole="button"
+							style={styles.row}
+							onPress={() => {
+								setOpen(false);
+								if (option.value !== selectedValue) onSelect(option.value);
+							}}
+						>
+							<View style={[styles.dot, { backgroundColor: option.color }]} />
+							<Text style={styles.rowLabel}>{option.label}</Text>
+							{option.value === selectedValue && (
+								<Icon name="Check" size={14} color={theme.colors.foregroundMuted} />
+							)}
+						</Pressable>
+					))}
+				</View>
+			)}
+		</View>
+	);
+}
+
+function AssigneeDropdown({
+	theme,
+	disabled,
+	members,
+	selectedIds,
+	onChange,
+}: {
+	theme: Theme;
+	disabled: boolean;
+	members: { userId: string; user: { name?: string | null } }[];
+	selectedIds: string[];
+	onChange: (userIds: string[]) => void;
+}) {
+	const [open, setOpen] = useState(false);
+	const selected = new Set(selectedIds);
+	const label =
+		selectedIds.length === 0
+			? "Unassigned"
+			: members
+					.filter((m) => selected.has(m.userId))
+					.map((m) => m.user.name ?? m.userId)
+					.join(", ") || `${selectedIds.length} assigned`;
+
+	const styles = useMemo(
+		() => ({
+			trigger: {
+				flexDirection: "row" as const,
+				alignItems: "center" as const,
+				gap: 8,
+				borderWidth: 1,
+				borderColor: theme.colors.border,
+				borderRadius: 6,
+				paddingVertical: 8,
+				paddingHorizontal: 10,
+				alignSelf: "flex-start" as const,
+				minWidth: 160,
+			},
+			label: { color: theme.colors.foreground, fontSize: 13, flex: 1 },
+			menu: {
+				marginTop: 4,
+				borderWidth: 1,
+				borderColor: theme.colors.border,
+				borderRadius: 6,
+				backgroundColor: theme.colors.surface1,
+				overflow: "hidden" as const,
+			},
+			row: { flexDirection: "row" as const, alignItems: "center" as const, gap: 8, padding: 10 },
+			rowLabel: { color: theme.colors.foreground, fontSize: 13, flex: 1 },
+			empty: { color: theme.colors.foregroundMuted, fontSize: 13, padding: 10 },
+		}),
+		[theme]
+	);
+
+	if (members.length === 0) {
+		return <Text style={{ color: theme.colors.foregroundMuted, fontSize: 13 }}>No other members in this org.</Text>;
+	}
+
+	return (
+		<View>
+			<Pressable
+				accessibilityRole="button"
+				disabled={disabled}
+				style={[styles.trigger, disabled ? { opacity: 0.6 } : null]}
+				onPress={() => setOpen((v) => !v)}
+			>
+				<Text style={styles.label} numberOfLines={1}>
+					{label}
+				</Text>
+				<Icon name={open ? "ChevronUp" : "ChevronDown"} size={14} color={theme.colors.foregroundMuted} />
+			</Pressable>
+			{open && (
+				<View style={styles.menu}>
+					{members.map((member) => {
+						const active = selected.has(member.userId);
+						return (
+							<Pressable
+								key={member.userId}
+								accessibilityRole="button"
+								style={styles.row}
+								onPress={() => {
+									const next = new Set(selected);
+									if (active) next.delete(member.userId);
+									else next.add(member.userId);
+									onChange([...next]);
+								}}
+							>
+								<Icon
+									name={active ? "SquareCheck" : "Square"}
+									size={16}
+									color={active ? theme.colors.accent : theme.colors.foregroundMuted}
+								/>
+								<Text style={styles.rowLabel}>{member.user.name ?? member.userId}</Text>
+							</Pressable>
+						);
+					})}
+				</View>
+			)}
+		</View>
 	);
 }
 
@@ -490,13 +653,11 @@ function CommentRow({ theme, comment }: { theme: Theme; comment: TaskComment }) 
 
 function SendToAgentModal({
 	theme,
-	layout: _layout,
 	navigation,
 	task,
 	onClose,
 }: {
 	theme: Theme;
-	layout: Layout;
 	navigation: Navigation;
 	task: Task & { comments: TaskComment[] };
 	onClose: () => void;

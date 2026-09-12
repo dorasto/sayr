@@ -1,0 +1,10 @@
+{
+  "metadataGeneration": {
+    "commitMessage": {
+      "instructions": "If a commit is in reference to a sayr task and the branch isn't linked to it yet, include the magic word to link it such as Sayr 42."
+    },
+    "pullRequest": {
+      "instructions": "Link any relevant Sayr public task and release URLs if available and found"
+    }
+  }
+}

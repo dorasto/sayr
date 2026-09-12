@@ -7,6 +7,45 @@ import { z } from "zod";
 export const TASK_STATUSES = ["backlog", "todo", "in-progress", "done", "canceled"] as const;
 export const TASK_PRIORITIES = ["none", "low", "medium", "high", "urgent"] as const;
 
+/**
+ * Mirrors `apps/start/src/components/tasks/shared/config.tsx`'s `statusConfig`/
+ * `priorityConfig` exactly (labels and hex colors) — not a re-derived
+ * approximation — so this plugin reads as the same product, not a reskin.
+ * Not imported directly: that file pulls in `@repo/ui` icon components and
+ * Tailwind classNames, neither meaningful in a React Native client bundle.
+ */
+export const STATUS_LABELS: Record<(typeof TASK_STATUSES)[number], string> = {
+	backlog: "Backlog",
+	todo: "Todo",
+	"in-progress": "In Progress",
+	done: "Done",
+	canceled: "Canceled",
+};
+
+export const STATUS_COLORS: Record<(typeof TASK_STATUSES)[number], string> = {
+	backlog: "#6B7280",
+	todo: "#3B82F6",
+	"in-progress": "#F59E0B",
+	done: "#10B981",
+	canceled: "#EF4444",
+};
+
+export const PRIORITY_LABELS: Record<(typeof TASK_PRIORITIES)[number], string> = {
+	none: "No Priority",
+	low: "Low",
+	medium: "Medium",
+	high: "High",
+	urgent: "Urgent",
+};
+
+export const PRIORITY_COLORS: Record<(typeof TASK_PRIORITIES)[number], string> = {
+	none: "#9CA3AF",
+	low: "#6B7280",
+	medium: "#F59E0B",
+	high: "#EF4444",
+	urgent: "#DC2626",
+};
+
 const PersonSchema = z
 	.looseObject({
 		id: z.string(),
@@ -141,16 +180,20 @@ export const listTasksRpc = defineRpc({
 // Flat, not `{ task, comments }` nested — matches `sayr task view --json`'s
 // own shape (`{ ...task, comments, commentsTotal }`) exactly, so the server
 // handler is mostly a passthrough rather than a reshaping step.
+const TaskDetailSchema = TaskSchema.extend({
+	aiSummary: AiSummarySchema,
+	comments: z.array(CommentSchema).default([]),
+	commentsTotal: z.number().default(0),
+});
+/** What a client actually receives back from `getTaskRpc` (post-parse, defaults applied) — use this client-side, not `RpcOutput<typeof getTaskRpc>` (that's the *input* side of the schema, i.e. what the server handler must return pre-validation). */
+export type TaskDetail = z.output<typeof TaskDetailSchema>;
+
 export const getTaskRpc = defineRpc({
 	name: "sayr.task.get",
 	// `orgSlug` disambiguates: task short ids are only unique per org, and a
 	// bare taskId (a real uuid) doesn't tell the CLI which org's `--org` to pass.
 	input: z.object({ taskId: z.string(), orgSlug: z.string() }),
-	output: TaskSchema.extend({
-		aiSummary: AiSummarySchema,
-		comments: z.array(CommentSchema).default([]),
-		commentsTotal: z.number().default(0),
-	}),
+	output: TaskDetailSchema,
 });
 
 export const listCommentsRpc = defineRpc({
