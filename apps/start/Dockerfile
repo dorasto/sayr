@@ -1,10 +1,16 @@
-FROM node:22.19.0-alpine AS base
+# Debian (not Alpine) throughout — apps/start externalizes native deps (e.g.
+# sharp, used by src/routes/api/og.tsx) at build time, so whatever libc they
+# resolve against in the installer stage has to match the runner stage that
+# actually executes them. Mixing Alpine's musl with a Debian-based install
+# stage silently breaks those at runtime even though the image builds fine.
+# Matches the fix already applied to apps/backend and apps/worker's
+# Dockerfiles for the same pnpm 10 + musl incompatibility (see
+# ERR_PNPM_PNPM_ENGINE_NO_NATIVE_BINARY: pnpm's packageManager
+# self-management downloads a native @pnpm/exe binary for the pinned version,
+# which pnpm doesn't ship for linux-x64-musl).
+FROM node:22-trixie-slim AS base
 
 FROM base AS builder
-# Check https://github.com/nodejs/docker-node/tree/b4117f9333da4138b03a546ec926ef50a31506c3#nodealpine to understand why libc6-compat might be needed.
-RUN apk update
-RUN apk add --no-cache libc6-compat
-# Set working directory
 WORKDIR /app
 RUN npm install -g turbo
 RUN npm install -g pnpm
@@ -16,12 +22,12 @@ COPY . .
 RUN turbo prune start --docker
 
 FROM base AS installer
-RUN apk update
-RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
-# Install pnpm
-RUN npm install -g pnpm
+# Install pnpm via corepack (ships with Node) — matches apps/backend and
+# apps/worker's Dockerfiles, and avoids the native-binary lookup that
+# `npm install -g pnpm` triggers.
+RUN corepack enable && corepack prepare pnpm@latest --activate
 
 # First install the dependencies (as they change less often)
 COPY --from=builder /app/out/json/ .
