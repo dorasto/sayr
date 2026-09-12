@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as MarketingRouteImport } from './routes/_marketing'
 import { Route as MarketingIndexRouteImport } from './routes/_marketing/index'
 import { Route as DocsChar123Char125DotmdRouteImport } from './routes/docs/{$}[.]md'
@@ -17,9 +18,18 @@ import { Route as DocsLlmsFullDottxtRouteImport } from './routes/docs/llms-full[
 import { Route as DocsSplatRouteImport } from './routes/docs/$'
 import { Route as ApiSearchRouteImport } from './routes/api/search'
 import { Route as ApiOpenapiProxyRouteImport } from './routes/api/openapi-proxy'
+import { Route as ApiOgRouteImport } from './routes/api/og'
 import { Route as MarketingPricingRouteImport } from './routes/_marketing/pricing'
+import { Route as MarketingLegalTermsRouteImport } from './routes/_marketing/legal/terms'
+import { Route as MarketingLegalSubprocessorsRouteImport } from './routes/_marketing/legal/subprocessors'
+import { Route as MarketingLegalPrivacyRouteImport } from './routes/_marketing/legal/privacy'
 import { Route as MarketingFeaturesSlugRouteImport } from './routes/_marketing/features/$slug'
 
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MarketingRoute = MarketingRouteImport.update({
   id: '/_marketing',
   getParentRoute: () => rootRouteImport,
@@ -59,9 +69,30 @@ const ApiOpenapiProxyRoute = ApiOpenapiProxyRouteImport.update({
   path: '/api/openapi-proxy',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiOgRoute = ApiOgRouteImport.update({
+  id: '/api/og',
+  path: '/api/og',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MarketingPricingRoute = MarketingPricingRouteImport.update({
   id: '/pricing',
   path: '/pricing',
+  getParentRoute: () => MarketingRoute,
+} as any)
+const MarketingLegalTermsRoute = MarketingLegalTermsRouteImport.update({
+  id: '/legal/terms',
+  path: '/legal/terms',
+  getParentRoute: () => MarketingRoute,
+} as any)
+const MarketingLegalSubprocessorsRoute =
+  MarketingLegalSubprocessorsRouteImport.update({
+    id: '/legal/subprocessors',
+    path: '/legal/subprocessors',
+    getParentRoute: () => MarketingRoute,
+  } as any)
+const MarketingLegalPrivacyRoute = MarketingLegalPrivacyRouteImport.update({
+  id: '/legal/privacy',
+  path: '/legal/privacy',
   getParentRoute: () => MarketingRoute,
 } as any)
 const MarketingFeaturesSlugRoute = MarketingFeaturesSlugRouteImport.update({
@@ -72,7 +103,9 @@ const MarketingFeaturesSlugRoute = MarketingFeaturesSlugRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof MarketingIndexRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/pricing': typeof MarketingPricingRoute
+  '/api/og': typeof ApiOgRoute
   '/api/openapi-proxy': typeof ApiOpenapiProxyRoute
   '/api/search': typeof ApiSearchRoute
   '/docs/$': typeof DocsSplatRoute
@@ -80,9 +113,14 @@ export interface FileRoutesByFullPath {
   '/docs/llms.txt': typeof DocsLlmsDottxtRoute
   '/docs/{$}.md': typeof DocsChar123Char125DotmdRoute
   '/features/$slug': typeof MarketingFeaturesSlugRoute
+  '/legal/privacy': typeof MarketingLegalPrivacyRoute
+  '/legal/subprocessors': typeof MarketingLegalSubprocessorsRoute
+  '/legal/terms': typeof MarketingLegalTermsRoute
 }
 export interface FileRoutesByTo {
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/pricing': typeof MarketingPricingRoute
+  '/api/og': typeof ApiOgRoute
   '/api/openapi-proxy': typeof ApiOpenapiProxyRoute
   '/api/search': typeof ApiSearchRoute
   '/docs/$': typeof DocsSplatRoute
@@ -91,11 +129,16 @@ export interface FileRoutesByTo {
   '/docs/{$}.md': typeof DocsChar123Char125DotmdRoute
   '/': typeof MarketingIndexRoute
   '/features/$slug': typeof MarketingFeaturesSlugRoute
+  '/legal/privacy': typeof MarketingLegalPrivacyRoute
+  '/legal/subprocessors': typeof MarketingLegalSubprocessorsRoute
+  '/legal/terms': typeof MarketingLegalTermsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_marketing': typeof MarketingRouteWithChildren
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/_marketing/pricing': typeof MarketingPricingRoute
+  '/api/og': typeof ApiOgRoute
   '/api/openapi-proxy': typeof ApiOpenapiProxyRoute
   '/api/search': typeof ApiSearchRoute
   '/docs/$': typeof DocsSplatRoute
@@ -104,12 +147,17 @@ export interface FileRoutesById {
   '/docs/{$}.md': typeof DocsChar123Char125DotmdRoute
   '/_marketing/': typeof MarketingIndexRoute
   '/_marketing/features/$slug': typeof MarketingFeaturesSlugRoute
+  '/_marketing/legal/privacy': typeof MarketingLegalPrivacyRoute
+  '/_marketing/legal/subprocessors': typeof MarketingLegalSubprocessorsRoute
+  '/_marketing/legal/terms': typeof MarketingLegalTermsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/sitemap.xml'
     | '/pricing'
+    | '/api/og'
     | '/api/openapi-proxy'
     | '/api/search'
     | '/docs/$'
@@ -117,9 +165,14 @@ export interface FileRouteTypes {
     | '/docs/llms.txt'
     | '/docs/{$}.md'
     | '/features/$slug'
+    | '/legal/privacy'
+    | '/legal/subprocessors'
+    | '/legal/terms'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/sitemap.xml'
     | '/pricing'
+    | '/api/og'
     | '/api/openapi-proxy'
     | '/api/search'
     | '/docs/$'
@@ -128,10 +181,15 @@ export interface FileRouteTypes {
     | '/docs/{$}.md'
     | '/'
     | '/features/$slug'
+    | '/legal/privacy'
+    | '/legal/subprocessors'
+    | '/legal/terms'
   id:
     | '__root__'
     | '/_marketing'
+    | '/sitemap.xml'
     | '/_marketing/pricing'
+    | '/api/og'
     | '/api/openapi-proxy'
     | '/api/search'
     | '/docs/$'
@@ -140,10 +198,15 @@ export interface FileRouteTypes {
     | '/docs/{$}.md'
     | '/_marketing/'
     | '/_marketing/features/$slug'
+    | '/_marketing/legal/privacy'
+    | '/_marketing/legal/subprocessors'
+    | '/_marketing/legal/terms'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   MarketingRoute: typeof MarketingRouteWithChildren
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  ApiOgRoute: typeof ApiOgRoute
   ApiOpenapiProxyRoute: typeof ApiOpenapiProxyRoute
   ApiSearchRoute: typeof ApiSearchRoute
   DocsSplatRoute: typeof DocsSplatRoute
@@ -154,6 +217,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_marketing': {
       id: '/_marketing'
       path: ''
@@ -210,11 +280,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiOpenapiProxyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/og': {
+      id: '/api/og'
+      path: '/api/og'
+      fullPath: '/api/og'
+      preLoaderRoute: typeof ApiOgRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_marketing/pricing': {
       id: '/_marketing/pricing'
       path: '/pricing'
       fullPath: '/pricing'
       preLoaderRoute: typeof MarketingPricingRouteImport
+      parentRoute: typeof MarketingRoute
+    }
+    '/_marketing/legal/terms': {
+      id: '/_marketing/legal/terms'
+      path: '/legal/terms'
+      fullPath: '/legal/terms'
+      preLoaderRoute: typeof MarketingLegalTermsRouteImport
+      parentRoute: typeof MarketingRoute
+    }
+    '/_marketing/legal/subprocessors': {
+      id: '/_marketing/legal/subprocessors'
+      path: '/legal/subprocessors'
+      fullPath: '/legal/subprocessors'
+      preLoaderRoute: typeof MarketingLegalSubprocessorsRouteImport
+      parentRoute: typeof MarketingRoute
+    }
+    '/_marketing/legal/privacy': {
+      id: '/_marketing/legal/privacy'
+      path: '/legal/privacy'
+      fullPath: '/legal/privacy'
+      preLoaderRoute: typeof MarketingLegalPrivacyRouteImport
       parentRoute: typeof MarketingRoute
     }
     '/_marketing/features/$slug': {
@@ -231,12 +329,18 @@ interface MarketingRouteChildren {
   MarketingPricingRoute: typeof MarketingPricingRoute
   MarketingIndexRoute: typeof MarketingIndexRoute
   MarketingFeaturesSlugRoute: typeof MarketingFeaturesSlugRoute
+  MarketingLegalPrivacyRoute: typeof MarketingLegalPrivacyRoute
+  MarketingLegalSubprocessorsRoute: typeof MarketingLegalSubprocessorsRoute
+  MarketingLegalTermsRoute: typeof MarketingLegalTermsRoute
 }
 
 const MarketingRouteChildren: MarketingRouteChildren = {
   MarketingPricingRoute: MarketingPricingRoute,
   MarketingIndexRoute: MarketingIndexRoute,
   MarketingFeaturesSlugRoute: MarketingFeaturesSlugRoute,
+  MarketingLegalPrivacyRoute: MarketingLegalPrivacyRoute,
+  MarketingLegalSubprocessorsRoute: MarketingLegalSubprocessorsRoute,
+  MarketingLegalTermsRoute: MarketingLegalTermsRoute,
 }
 
 const MarketingRouteWithChildren = MarketingRoute._addFileChildren(
@@ -245,6 +349,8 @@ const MarketingRouteWithChildren = MarketingRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   MarketingRoute: MarketingRouteWithChildren,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
+  ApiOgRoute: ApiOgRoute,
   ApiOpenapiProxyRoute: ApiOpenapiProxyRoute,
   ApiSearchRoute: ApiSearchRoute,
   DocsSplatRoute: DocsSplatRoute,

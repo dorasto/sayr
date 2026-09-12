@@ -736,11 +736,11 @@ export function HeroSection() {
             className="rounded-full py-1.5 px-4 border-border mb-8"
             render={
               <a
-                href="https://platform.sayr.io/releases/0.4.0"
+                href="https://platform.sayr.io/releases/0.5.0"
                 target="_blank"
                 rel="noreferrer"
               >
-                v0.4 - AI improvements & more
+                v0.5 - CLI tools and more
                 <ArrowUpRight className="ml-1 size-3.5" />
               </a>
             }

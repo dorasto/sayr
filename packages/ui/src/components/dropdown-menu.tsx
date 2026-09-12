@@ -167,11 +167,15 @@ function DropdownMenuLabel({
 }: DropdownMenuPrimitive.GroupLabel.Props & {
 	inset?: boolean;
 }) {
+	// Base UI's GroupLabel requires a Menu.Group ancestor (unlike Radix's standalone Label),
+	// so wrap it here to keep DropdownMenuLabel usable on its own at call sites.
 	return (
-		<DropdownMenuPrimitive.GroupLabel
-			className={cn("px-2 py-1.5 text-sm font-semibold", inset && "pl-8", className)}
-			{...props}
-		/>
+		<DropdownMenuPrimitive.Group>
+			<DropdownMenuPrimitive.GroupLabel
+				className={cn("px-2 py-1.5 text-sm font-semibold", inset && "pl-8", className)}
+				{...props}
+			/>
+		</DropdownMenuPrimitive.Group>
 	);
 }
 

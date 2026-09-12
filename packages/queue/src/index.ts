@@ -10,16 +10,11 @@ import type { MainJob } from "./groups/main";
 // -----------------------
 
 const APP_ENV = process.env.APP_ENV;
-const env =
-	APP_ENV === "production" || APP_ENV === "development"
-		? APP_ENV
-		: "development";
+const env = APP_ENV === "production" || APP_ENV === "development" ? APP_ENV : "development";
 
-const MODE: "redis" | "file" =
-	env === "production" ? "redis" : "file";
+const MODE: "redis" | "file" = env === "production" ? "redis" : "file";
 
-const REDIS_URL =
-	process.env.REDIS_URL ?? "redis://127.0.0.1:6379";
+const REDIS_URL = process.env.REDIS_URL ?? "redis://127.0.0.1:6379";
 
 const BASE_KEY = "sayr_jobs";
 
@@ -52,9 +47,7 @@ export function getRedis(): Redis {
 		enableReadyCheck: true,
 		retryStrategy(times) {
 			const delay = Math.min(times * 200, 5000);
-			console.error(
-				`[queue] Redis reconnect attempt #${times}, retrying in ${delay}ms`
-			);
+			console.error(`[queue] Redis reconnect attempt #${times}, retrying in ${delay}ms`);
 			return delay;
 		},
 	});
@@ -67,10 +60,8 @@ export function getRedis(): Redis {
 		console.log("[queue] Redis connection ready");
 	});
 
-	redis.on("reconnecting", (delay: any) => {
-		console.warn(
-			`[queue] Redis reconnecting in ${delay}ms`
-		);
+	redis.on("reconnecting", (delay: number) => {
+		console.warn(`[queue] Redis reconnecting in ${delay}ms`);
 	});
 
 	redis.on("end", () => {
@@ -96,9 +87,7 @@ function filePathFor(group: string): string {
 	return path.join(FILE_DIR, `queue_${group}.json`);
 }
 
-async function readFileQueue<G extends keyof JobGroups>(
-	group: G
-): Promise<JobGroups[G][]> {
+async function readFileQueue<G extends keyof JobGroups>(group: G): Promise<JobGroups[G][]> {
 	try {
 		await ensureFileDir();
 
@@ -109,35 +98,22 @@ async function readFileQueue<G extends keyof JobGroups>(
 
 		return JSON.parse(raw) as JobGroups[G][];
 	} catch (err) {
-		console.error(
-			`[queue] Failed to read queue file (${String(group)}):`,
-			err
-		);
+		console.error(`[queue] Failed to read queue file (${String(group)}):`, err);
 		return [];
 	}
 }
 
-async function writeFileQueue<G extends keyof JobGroups>(
-	group: G,
-	data: JobGroups[G][]
-) {
+async function writeFileQueue<G extends keyof JobGroups>(group: G, data: JobGroups[G][]) {
 	try {
 		await ensureFileDir();
 
 		const filePath = filePathFor(group as string);
 
 		const tmp = `${filePath}.tmp`;
-		await fs.writeFile(
-			tmp,
-			JSON.stringify(data, null, 2),
-			"utf8"
-		);
+		await fs.writeFile(tmp, JSON.stringify(data, null, 2), "utf8");
 		await fs.rename(tmp, filePath);
 	} catch (err) {
-		console.error(
-			`[queue] Failed to write queue file (${String(group)}):`,
-			err
-		);
+		console.error(`[queue] Failed to write queue file (${String(group)}):`, err);
 	}
 }
 
@@ -145,10 +121,7 @@ async function writeFileQueue<G extends keyof JobGroups>(
 // Enqueue
 // -----------------------
 
-export async function enqueue<G extends keyof JobGroups>(
-	group: G,
-	job: JobGroups[G]
-) {
+export async function enqueue<G extends keyof JobGroups>(group: G, job: JobGroups[G]) {
 	if (!job?.type) {
 		throw new Error("Job must include a 'type' field");
 	}
@@ -156,9 +129,7 @@ export async function enqueue<G extends keyof JobGroups>(
 	if (MODE === "redis") {
 		const key = `${BASE_KEY}:${group}`;
 		await getRedis().lpush(key, JSON.stringify(job));
-		console.log(
-			`[queue] Enqueued (${MODE}:${key}) → ${job.type}`
-		);
+		console.log(`[queue] Enqueued (${MODE}:${key}) → ${job.type}`);
 		return;
 	}
 
@@ -166,18 +137,14 @@ export async function enqueue<G extends keyof JobGroups>(
 	queue.push(job);
 	await writeFileQueue(group, queue);
 
-	console.log(
-		`[queue] Enqueued (${MODE}:${String(group)}) → ${job.type}`
-	);
+	console.log(`[queue] Enqueued (${MODE}:${String(group)}) → ${job.type}`);
 }
 
 // -----------------------
 // Dequeue
 // -----------------------
 
-export async function dequeue<G extends keyof JobGroups>(
-	group: G
-): Promise<JobGroups[G] | undefined> {
+export async function dequeue<G extends keyof JobGroups>(group: G): Promise<JobGroups[G] | undefined> {
 	if (MODE === "redis") {
 		const key = `${BASE_KEY}:${group}`;
 		try {

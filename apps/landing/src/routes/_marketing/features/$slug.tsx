@@ -5,6 +5,7 @@ import { ArrowUpRight } from "lucide-react";
 import { RelatedFeatures } from "@/components/features/related-features";
 import { getMDXComponents } from "@/components/mdx";
 import { getFeature } from "@/data/features";
+import { seoMeta } from "@/lib/seo";
 
 export const Route = createFileRoute("/_marketing/features/$slug")({
 	component: Page,
@@ -16,9 +17,14 @@ export const Route = createFileRoute("/_marketing/features/$slug")({
 	head: ({ params }) => {
 		const meta = getFeature(params.slug);
 		if (!meta) return {};
-		return {
-			meta: [{ title: `${meta.title} - Sayr` }, { name: "description", content: meta.description }],
-		};
+		return seoMeta({
+			title: meta.title,
+			description: meta.description,
+			path: `/features/${meta.slug}`,
+			// headerImage doubles as the OG image when a feature has one;
+			// otherwise fall back to the title-based generated image.
+			image: meta.headerImage,
+		});
 	},
 });
 
