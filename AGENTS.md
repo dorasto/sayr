@@ -149,7 +149,7 @@ pnpm -F start test -- path/to/file.test.ts          # Run specific test file
 ### Formatting
 - **Indentation**: Tabs, width 3
 - **Line width**: 120 characters
-- **Line endings**: CRLF
+- **Line endings**: LF
 - **Quotes**: Double quotes
 - **Semicolons**: Always required
 - **Trailing commas**: ES5 style

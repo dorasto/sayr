@@ -10,7 +10,7 @@
 		"indentStyle": "tab",
 		"indentWidth": 3,
 		"lineWidth": 120,
-		"lineEnding": "crlf"
+		"lineEnding": "lf"
 	},
 	"linter": {
 		"enabled": true,
