@@ -462,6 +462,10 @@ apiPublicRouteV1.get(
 					const rows = await db.query.task.findMany({
 						orderBy: (tC, { asc, desc }) => (order === "asc" ? asc(tC.createdAt) : desc(tC.createdAt)),
 						where: (t) => and(eq(t.organizationId, organization.id), eq(t.visible, "public")),
+						// Exclude the 1024-dim pgvector embedding — this is an
+						// unauthenticated endpoint, so shipping an internal ML feature
+						// representation here would be a leak, not just bandwidth waste.
+						columns: { embedding: false },
 						limit,
 						offset,
 						with: {

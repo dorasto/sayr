@@ -1,9 +1,20 @@
-import { addLogEventTask, createTask, db, getOrganizationMembers, getTaskById, schema } from "@repo/database";
+import {
+	addLogEventTask,
+	createTask,
+	db,
+	getOrganizationMembers,
+	getTaskById,
+	getTaskComments,
+	schema,
+} from "@repo/database";
+import { isAiEnabled } from "@repo/edition";
 import { createTraceAsync } from "@repo/opentelemetry/trace";
 import { and, eq, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import z from "zod";
 import type { AppEnv } from "@/index";
+import { prosekitJSONToHTML } from "@/prosekit/html";
+import { prosekitJSONToMarkdown } from "@/prosekit/markdown";
 import { markdownToProsekitJSON } from "@/prosekit/parser";
 import {
 	findSSEClientsByUserId,
@@ -12,6 +23,7 @@ import {
 	sseBroadcastToRoom,
 } from "@/routes/events";
 import type { ServerEventBaseMessage } from "@/routes/events/types";
+import { checkTaskSummaryAccess, getTaskAiSummary } from "../../../../../lib/ai/task-summary";
 import { assertApiAccess } from "../../../../../lib/apiKeyAuth";
 import { resolveOrganizationId, resolveTaskId } from "../../../../../lib/apiRefs";
 import { updateTaskService } from "../../../../../lib/tasks/updateTask";
@@ -26,7 +38,9 @@ import {
 import { bearerAuthResponses, describeOkNotFound } from "../../../../../openapi/helpers";
 import { errorResponse, paginatedSuccessResponse, successResponse } from "../../../../../responses";
 import { baseTaskWhere } from "../../../internal/v1/task";
-import { CreatedBySchema, resolveActorId, TaskSchema } from "./schemas";
+import { CommentSchema, CreatedBySchema, resolveActorId, TaskSchema } from "./schemas";
+
+const COMMENTS_MAX_LIMIT = 30;
 
 export const tasksRoute = new Hono<AppEnv>();
 
@@ -444,6 +458,10 @@ tasksRoute.get(
 			async () =>
 				db.query.task.findMany({
 					where: baseTaskWhere(orgId, categoryId, searchQuery, includeClosed, false),
+					// Exclude the 1024-dim pgvector embedding — this list response has
+					// no consumer that needs it (unlike getTaskById, used by similarity
+					// search elsewhere), so there's no reason to fetch or ship it here.
+					columns: { embedding: false },
 					orderBy: isTrending
 						? undefined
 						: (t, { desc }) => {
@@ -579,7 +597,116 @@ tasksRoute.get(
 			return c.json(errorResponse("Task not found", "No task found with the provided id in the organization"), 404);
 		}
 
-		return c.json(successResponse(task));
+		// `embedding` is a 1024-dim pgvector used only for internal similarity
+		// search (see recommendations.ts) — never meant to leave the API.
+		// biome-ignore lint/correctness/noUnusedVariables: destructured only to strip it from the response
+		const { embedding, ...taskWithoutEmbedding } = task;
+
+		// Best-effort: an unavailable/disallowed/never-generated summary just
+		// omits the field rather than failing the whole task fetch — unlike the
+		// dedicated internal task-summary-status endpoint, this route's job is
+		// "get the task," not "get the summary."
+		let aiSummary: Awaited<ReturnType<typeof getTaskAiSummary>> | null = null;
+		if (isAiEnabled()) {
+			const access = await checkTaskSummaryAccess(orgId, principal.userId);
+			if (access.ok) {
+				aiSummary = await getTaskAiSummary(orgId, taskId);
+			}
+		}
+
+		return c.json(successResponse({ ...taskWithoutEmbedding, aiSummary }));
+	}
+);
+
+tasksRoute.get(
+	"/tasks/:taskId/comments",
+	describeOkNotFound({
+		summary: "List Task Comments",
+		description:
+			"List top-level comments on a task, with reply-thread metadata (paginated). Requires org membership — unlike the unauthenticated /v1/organization/:slug/tasks/:task_short_id/comments endpoint, this includes both public and internal-visibility comments, matching what a member sees in the app.",
+		dataSchema: z.array(CommentSchema),
+		parameters: [
+			{
+				name: "taskId",
+				in: "path",
+				required: true,
+				schema: { type: "string" },
+				description: 'Task short id (the number in SAY-123, e.g. "123") or task id.',
+			},
+			{
+				name: "orgId",
+				in: "query",
+				required: true,
+				schema: { type: "string" },
+				description: 'Organization slug (e.g. "platform") or organization id.',
+			},
+			{ name: "page", in: "query", schema: { type: "integer", minimum: 1 } },
+			{ name: "limit", in: "query", schema: { type: "integer", minimum: 1, maximum: COMMENTS_MAX_LIMIT } },
+		],
+		tags: ["Tasks"],
+		security: [{ bearerAuth: [] }],
+		extraResponses: bearerAuthResponses,
+	}),
+	async (c) => {
+		const principal = c.get("apiKeyPrincipal");
+		if (!principal) return c.json(errorResponse("Unauthorized"), 401);
+
+		const orgId = await resolveOrganizationId(c.req.query("orgId"));
+		if (!orgId) {
+			return c.json(
+				errorResponse("Organization not found", 'Pass the organization slug (e.g. "platform") or its id.'),
+				404
+			);
+		}
+
+		const isAuthorized = await assertApiAccess(c, orgId, "tasks.read");
+		if (!isAuthorized) {
+			return c.json(
+				errorResponse(
+					"You don't have permission to read tasks.",
+					"Your API key or your role in this organization doesn't allow reading tasks."
+				),
+				403
+			);
+		}
+
+		const taskId = await resolveTaskId(orgId, c.req.param("taskId"));
+		if (!taskId) {
+			return c.json(errorResponse("Task not found", "Pass the task short id (e.g. 123) or its id."), 404);
+		}
+
+		const task = await db.query.task.findFirst({
+			where: (t) => and(eq(t.organizationId, orgId), eq(t.id, taskId)),
+			columns: { id: true },
+		});
+		if (!task) {
+			return c.json(errorResponse("Task not found", "No task found with the provided id in the organization"), 404);
+		}
+
+		const query = c.req.query();
+		const page = Math.max(Number(query.page) || 1, 1);
+		const requestedLimit = Number(query.limit);
+		const limit = Math.min(requestedLimit || 10, COMMENTS_MAX_LIMIT);
+		const offset = (page - 1) * limit;
+
+		const result = await getTaskComments(orgId, taskId, { offset, limit });
+		const comments = (result?.comments ?? []).map((comment) => ({
+			...comment,
+			contentHtml: comment.content ? prosekitJSONToHTML(comment.content) : null,
+			contentMarkdown: comment.content ? prosekitJSONToMarkdown(comment.content) : null,
+		}));
+		const totalItems = result?.totalComments ?? 0;
+		const totalPages = Math.max(Math.ceil(totalItems / limit), 1);
+
+		return c.json(
+			paginatedSuccessResponse(comments, {
+				limit,
+				page,
+				totalPages,
+				totalItems,
+				hasMore: page < totalPages,
+			})
+		);
 	}
 );
 
