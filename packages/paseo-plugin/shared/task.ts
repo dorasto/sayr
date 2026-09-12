@@ -30,6 +30,19 @@ export const STATUS_COLORS: Record<(typeof TASK_STATUSES)[number], string> = {
 	canceled: "#EF4444",
 };
 
+/**
+ * Backlog/todo/in-progress only — the statuses the board actually shows a
+ * column for. Done/canceled aren't even fetched (see `server/task-handlers.ts`,
+ * no `--include-closed`); the status picker in the task detail sheet still
+ * covers the full `TASK_STATUSES` enum, so a task moved to done/canceled
+ * there just drops off the board until reopened.
+ */
+export const BOARD_STATUSES = [
+	"backlog",
+	"todo",
+	"in-progress",
+] as const satisfies readonly (typeof TASK_STATUSES)[number][];
+
 export const PRIORITY_LABELS: Record<(typeof TASK_PRIORITIES)[number], string> = {
 	none: "No Priority",
 	low: "Low",

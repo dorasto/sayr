@@ -1,8 +1,8 @@
-import type { PluginTheme } from "@getpaseo/plugin";
 import { Icon } from "@getpaseo/plugin/client/react-native";
 import type { ReactNode } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Animated, Dimensions, PanResponder, Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import type { Theme } from "./types";
 import { trackPointerOnDocument } from "./web";
 
 /**
@@ -31,7 +31,7 @@ export function Sheet({
 	open: boolean;
 	onClose: () => void;
 	title: string;
-	theme: PluginTheme;
+	theme: Theme;
 	compact: boolean;
 	/** The board's own measured width (`onLayout` in `board.tsx`), or null before first layout. Resizing is disabled on compact/mobile regardless. */
 	bodyWidth: number | null;
