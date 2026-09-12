@@ -310,6 +310,7 @@ Before adding a new type, function, component, or utility anywhere in this repo:
 | `document-feature/` | Writing user-facing docs for `apps/marketing`'s Starlight docs site |
 | `update-pr/` | Generating a PR title/description from the diff |
 | `agent-docs-maintenance/` | Checking `AGENTS.md`/skills for staleness, writing a new skill, updating an existing one |
+| `read-tasks/` | Looking up a SAY-<n> / platform.sayr.io task via the `sayr` CLI (`--org platform --json`) instead of a web fetch |
 
 ## Agent skills
 

@@ -49,10 +49,12 @@ sayr config set-base-url http://localhost:5468
 | `sayr orgs list`                            | List organizations you belong to                                 |
 | `sayr task create <title>`                  | Create a task                                                    |
 | `sayr task list`                            | List tasks — search, filter, sort, paginate                      |
-| `sayr task view <taskId>`                   | Show a single task                                               |
+| `sayr task view <taskId>`                   | Show a single task, its AI summary (if any), and recent comments |
 | `sayr task update <taskId>`                 | Update title, status, priority, category, release, or visibility |
 | `sayr task label <taskId> --set <ids>`      | Replace a task's full set of labels                              |
 | `sayr task assign <taskId> --set <ids>`     | Replace a task's full set of assignees                           |
+| `sayr comment list <taskId>`                | List a task's top-level comments, paginated                      |
+| `sayr comment replies <commentId>`          | List replies to a top-level comment, paginated                   |
 | `sayr comment create <taskId> <content>`    | Post a comment on a task                                         |
 | `sayr comment update <commentId> <content>` | Edit a comment                                                   |
 | `sayr comment delete <commentId>`           | Delete a comment                                                 |

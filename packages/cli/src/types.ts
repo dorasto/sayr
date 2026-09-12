@@ -81,6 +81,19 @@ export interface TaskPerson {
 	image: string | null;
 }
 
+/**
+ * A cached AI-generated task summary, if one exists. Read-only best-effort —
+ * `null`/absent whenever AI isn't enabled/allowed for the org, or none has
+ * ever been generated (e.g. via the web UI). The CLI never triggers
+ * generation itself.
+ */
+export interface TaskAiSummary {
+	hasCachedSummary: boolean;
+	isStale: boolean;
+	summary: string | null;
+	generatedAt: string | null;
+}
+
 export interface Task {
 	id: string;
 	organizationId: string;
@@ -100,6 +113,26 @@ export interface Task {
 	releaseId: string | null;
 	voteCount: number;
 	parentId: string | null;
+	aiSummary?: TaskAiSummary | null;
+}
+
+export interface Comment {
+	id: string;
+	taskId: string | null;
+	organizationId: string;
+	/** Prosekit/ProseMirror document JSON — see `lib/prosekit.ts` for plain-text rendering. */
+	content: unknown | null;
+	contentHtml?: string | null;
+	contentMarkdown?: string | null;
+	visibility: CommentVisibility;
+	source: "sayr" | "github";
+	parentId: string | null;
+	createdAt: string;
+	updatedAt: string;
+	createdBy: TaskPerson | null;
+	replyCount: number;
+	latestReplyAuthor: TaskPerson | null;
+	replyAuthors: TaskPerson[];
 }
 
 export interface TaskCreated {
