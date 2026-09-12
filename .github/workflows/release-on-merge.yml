@@ -131,3 +131,14 @@ jobs:
     secrets: inherit
     with:
       version: ${{ needs.release.outputs.version }}
+
+  trigger-zerops-deploy:
+    name: Trigger Zerops Deploy
+    needs: release
+    if: needs.release.outputs.released == 'true'
+    # Invoked directly rather than relying on zerops-deploy.yml's own
+    # push.tags trigger: the tag above was pushed with GITHUB_TOKEN, and
+    # GitHub doesn't fire downstream workflows from GITHUB_TOKEN-authored
+    # pushes. Same reasoning as trigger-build above.
+    uses: ./.github/workflows/zerops-deploy.yml
+    secrets: inherit
