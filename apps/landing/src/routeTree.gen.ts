@@ -18,6 +18,9 @@ import { Route as DocsSplatRouteImport } from './routes/docs/$'
 import { Route as ApiSearchRouteImport } from './routes/api/search'
 import { Route as ApiOpenapiProxyRouteImport } from './routes/api/openapi-proxy'
 import { Route as MarketingPricingRouteImport } from './routes/_marketing/pricing'
+import { Route as MarketingLegalTermsRouteImport } from './routes/_marketing/legal/terms'
+import { Route as MarketingLegalSubprocessorsRouteImport } from './routes/_marketing/legal/subprocessors'
+import { Route as MarketingLegalPrivacyRouteImport } from './routes/_marketing/legal/privacy'
 import { Route as MarketingFeaturesSlugRouteImport } from './routes/_marketing/features/$slug'
 
 const MarketingRoute = MarketingRouteImport.update({
@@ -64,6 +67,22 @@ const MarketingPricingRoute = MarketingPricingRouteImport.update({
   path: '/pricing',
   getParentRoute: () => MarketingRoute,
 } as any)
+const MarketingLegalTermsRoute = MarketingLegalTermsRouteImport.update({
+  id: '/legal/terms',
+  path: '/legal/terms',
+  getParentRoute: () => MarketingRoute,
+} as any)
+const MarketingLegalSubprocessorsRoute =
+  MarketingLegalSubprocessorsRouteImport.update({
+    id: '/legal/subprocessors',
+    path: '/legal/subprocessors',
+    getParentRoute: () => MarketingRoute,
+  } as any)
+const MarketingLegalPrivacyRoute = MarketingLegalPrivacyRouteImport.update({
+  id: '/legal/privacy',
+  path: '/legal/privacy',
+  getParentRoute: () => MarketingRoute,
+} as any)
 const MarketingFeaturesSlugRoute = MarketingFeaturesSlugRouteImport.update({
   id: '/features/$slug',
   path: '/features/$slug',
@@ -80,6 +99,9 @@ export interface FileRoutesByFullPath {
   '/docs/llms.txt': typeof DocsLlmsDottxtRoute
   '/docs/{$}.md': typeof DocsChar123Char125DotmdRoute
   '/features/$slug': typeof MarketingFeaturesSlugRoute
+  '/legal/privacy': typeof MarketingLegalPrivacyRoute
+  '/legal/subprocessors': typeof MarketingLegalSubprocessorsRoute
+  '/legal/terms': typeof MarketingLegalTermsRoute
 }
 export interface FileRoutesByTo {
   '/pricing': typeof MarketingPricingRoute
@@ -91,6 +113,9 @@ export interface FileRoutesByTo {
   '/docs/{$}.md': typeof DocsChar123Char125DotmdRoute
   '/': typeof MarketingIndexRoute
   '/features/$slug': typeof MarketingFeaturesSlugRoute
+  '/legal/privacy': typeof MarketingLegalPrivacyRoute
+  '/legal/subprocessors': typeof MarketingLegalSubprocessorsRoute
+  '/legal/terms': typeof MarketingLegalTermsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -104,6 +129,9 @@ export interface FileRoutesById {
   '/docs/{$}.md': typeof DocsChar123Char125DotmdRoute
   '/_marketing/': typeof MarketingIndexRoute
   '/_marketing/features/$slug': typeof MarketingFeaturesSlugRoute
+  '/_marketing/legal/privacy': typeof MarketingLegalPrivacyRoute
+  '/_marketing/legal/subprocessors': typeof MarketingLegalSubprocessorsRoute
+  '/_marketing/legal/terms': typeof MarketingLegalTermsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -117,6 +145,9 @@ export interface FileRouteTypes {
     | '/docs/llms.txt'
     | '/docs/{$}.md'
     | '/features/$slug'
+    | '/legal/privacy'
+    | '/legal/subprocessors'
+    | '/legal/terms'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/pricing'
@@ -128,6 +159,9 @@ export interface FileRouteTypes {
     | '/docs/{$}.md'
     | '/'
     | '/features/$slug'
+    | '/legal/privacy'
+    | '/legal/subprocessors'
+    | '/legal/terms'
   id:
     | '__root__'
     | '/_marketing'
@@ -140,6 +174,9 @@ export interface FileRouteTypes {
     | '/docs/{$}.md'
     | '/_marketing/'
     | '/_marketing/features/$slug'
+    | '/_marketing/legal/privacy'
+    | '/_marketing/legal/subprocessors'
+    | '/_marketing/legal/terms'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -217,6 +254,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MarketingPricingRouteImport
       parentRoute: typeof MarketingRoute
     }
+    '/_marketing/legal/terms': {
+      id: '/_marketing/legal/terms'
+      path: '/legal/terms'
+      fullPath: '/legal/terms'
+      preLoaderRoute: typeof MarketingLegalTermsRouteImport
+      parentRoute: typeof MarketingRoute
+    }
+    '/_marketing/legal/subprocessors': {
+      id: '/_marketing/legal/subprocessors'
+      path: '/legal/subprocessors'
+      fullPath: '/legal/subprocessors'
+      preLoaderRoute: typeof MarketingLegalSubprocessorsRouteImport
+      parentRoute: typeof MarketingRoute
+    }
+    '/_marketing/legal/privacy': {
+      id: '/_marketing/legal/privacy'
+      path: '/legal/privacy'
+      fullPath: '/legal/privacy'
+      preLoaderRoute: typeof MarketingLegalPrivacyRouteImport
+      parentRoute: typeof MarketingRoute
+    }
     '/_marketing/features/$slug': {
       id: '/_marketing/features/$slug'
       path: '/features/$slug'
@@ -231,12 +289,18 @@ interface MarketingRouteChildren {
   MarketingPricingRoute: typeof MarketingPricingRoute
   MarketingIndexRoute: typeof MarketingIndexRoute
   MarketingFeaturesSlugRoute: typeof MarketingFeaturesSlugRoute
+  MarketingLegalPrivacyRoute: typeof MarketingLegalPrivacyRoute
+  MarketingLegalSubprocessorsRoute: typeof MarketingLegalSubprocessorsRoute
+  MarketingLegalTermsRoute: typeof MarketingLegalTermsRoute
 }
 
 const MarketingRouteChildren: MarketingRouteChildren = {
   MarketingPricingRoute: MarketingPricingRoute,
   MarketingIndexRoute: MarketingIndexRoute,
   MarketingFeaturesSlugRoute: MarketingFeaturesSlugRoute,
+  MarketingLegalPrivacyRoute: MarketingLegalPrivacyRoute,
+  MarketingLegalSubprocessorsRoute: MarketingLegalSubprocessorsRoute,
+  MarketingLegalTermsRoute: MarketingLegalTermsRoute,
 }
 
 const MarketingRouteWithChildren = MarketingRoute._addFileChildren(
