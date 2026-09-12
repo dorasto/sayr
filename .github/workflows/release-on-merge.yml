@@ -32,16 +32,23 @@ jobs:
         run: |
           echo "Labels: $PR_LABELS"
 
-          if echo "$PR_LABELS" | grep -q "release:major"; then
+          # Quoted to anchor on the exact JSON array entry ("release:major"),
+          # not a bare substring — otherwise "cli-release:minor" also matches
+          # the unanchored "release:minor" check below it and gets treated as
+          # an app release (this actually happened: PRs #314 and #315 both
+          # carried a cli-release:* label alongside their real release:*
+          # label and got misclassified, firing an unintended app version
+          # bump plus a full backend/worker/start build-and-deploy each time).
+          if echo "$PR_LABELS" | grep -q '"release:major"'; then
             echo "bump=major" >> $GITHUB_OUTPUT
             echo "Detected: MAJOR release"
-          elif echo "$PR_LABELS" | grep -q "release:minor"; then
+          elif echo "$PR_LABELS" | grep -q '"release:minor"'; then
             echo "bump=minor" >> $GITHUB_OUTPUT
             echo "Detected: MINOR release"
-          elif echo "$PR_LABELS" | grep -q "release:patch"; then
+          elif echo "$PR_LABELS" | grep -q '"release:patch"'; then
             echo "bump=patch" >> $GITHUB_OUTPUT
             echo "Detected: PATCH release"
-          elif echo "$PR_LABELS" | grep -q "release:skip"; then
+          elif echo "$PR_LABELS" | grep -q '"release:skip"'; then
             echo "bump=skip" >> $GITHUB_OUTPUT
             echo "Detected: SKIP release"
           else
