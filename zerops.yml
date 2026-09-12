@@ -43,21 +43,26 @@ zerops:
         # Use corepack for pnpm
         - corepack enable && corepack prepare pnpm@latest --activate
       buildCommands:
-        - pnpm i
-        - pnpm -F backend zerops:build
+        # Prune the workspace down to backend + its dependency graph only
+        # (same tool the CE Dockerfiles use for the ghcr.io images) so we
+        # install/deploy just what this service needs instead of shipping
+        # the whole monorepo's node_modules to every service.
+        - bunx turbo prune backend
+        - cd out && pnpm install
+        - cd out && pnpm -F backend zerops:build
       deployFiles:
         # compiled backend bundle -> dist/
-        - apps/backend/~dist
+        - out/apps/backend/~dist
         # migration runner (compiled standalone JS) -> migrate.js
-        - packages/database/~migrate.js
+        - out/packages/database/~migrate.js
         # SQL migration files -> drizzle/
-        - packages/database/~drizzle
+        - out/packages/database/~drizzle
         # startup script -> start.sh
-        - apps/backend/~start.sh
+        - out/apps/backend/~start.sh
         # package.json -> package.json
-        - apps/backend/~package.json
-        # workspace node_modules (resolved deps)
-        - node_modules
+        - out/apps/backend/~package.json
+        # pruned node_modules (backend's dependency subset only)
+        - out/~node_modules
     deploy:
       readinessCheck:
         httpGet:
@@ -70,10 +75,12 @@ zerops:
         - port: 5468
           httpSupport: true
       initCommands:
-        # jsdom's bundled code resolves __dirname to the build-time path
-        # (/build/source/node_modules/...) for its CSS assets. Create a symlink
-        # so those paths resolve at runtime where node_modules actually lives.
-        - sudo mkdir -p /build/source && sudo ln -sf /var/www/node_modules /build/source/node_modules
+        # jsdom's bundled code resolves __dirname to the build-time path for
+        # its CSS assets. The build now runs from /build/source/out (pruned
+        # workspace), not /build/source directly, so the baked-in path is
+        # /build/source/out/node_modules/... — symlink that exact path to
+        # where node_modules actually lives at runtime.
+        - sudo mkdir -p /build/source/out && sudo ln -sf /var/www/node_modules /build/source/out/node_modules
       start: chmod +x start.sh && sh start.sh
       healthCheck:
         httpGet:

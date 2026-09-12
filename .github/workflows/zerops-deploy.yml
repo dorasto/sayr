@@ -1,0 +1,141 @@
+# Deploys the cloud (sayr.io) services to Zerops.
+#
+# Replaces Zerops' own "new tag" git-integration webhook — that trigger fired
+# on every tag (including cli-v* CLI releases, which never touch these
+# services) and gave no build visibility outside the Zerops dashboard. This
+# workflow only reacts to website release tags (v1.2.3, not cli-v1.2.3 —
+# the pattern below requires the tag to start with a literal "v" followed by
+# a digit, so cli-v* tags never match) and streams the Zerops build/deploy
+# log straight into the job output.
+#
+# Separate from build-and-deploy.yml, which builds the CE/self-host Docker
+# images for ghcr.io and has no relation to the Zerops project.
+#
+# Requires the "Stop automatic build trigger" switch flipped in each
+# service's Build/Deploy/Run Pipeline settings in the Zerops dashboard so the
+# webhook and this workflow don't both fire on the same tag.
+#
+# Required secrets:
+#   ZEROPS_TOKEN                  - Zerops dashboard -> Settings -> Access Token Management
+#   ZEROPS_SERVICE_ID_MARKETING   - service detail -> three-dot menu -> Copy Service ID
+#   ZEROPS_SERVICE_ID_BACKEND
+#   ZEROPS_SERVICE_ID_START
+#   ZEROPS_SERVICE_ID_WORKERMAIN
+#   ZEROPS_SERVICE_ID_WORKERGITHUB
+#   ZEROPS_SERVICE_ID_INTEGRATIONS
+# Service IDs go through secrets (not hardcoded) per Zerops' own CI/CD
+# reference pattern, even though the ID alone can't authenticate anything —
+# this repo is public, so no reason to publish the project's service
+# topology when a secret costs nothing extra.
+
+name: Deploy to Zerops
+
+on:
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"
+  workflow_dispatch:
+    inputs:
+      marketing:
+        description: "marketing (landing site)"
+        type: boolean
+        default: true
+      backend:
+        description: "backend"
+        type: boolean
+        default: true
+      start:
+        description: "start (admin/public UI)"
+        type: boolean
+        default: true
+      workermain:
+        description: "workermain (queue processor)"
+        type: boolean
+        default: true
+      workergithub:
+        description: "workergithub (GitHub webhook processor)"
+        type: boolean
+        default: true
+      integrations:
+        description: "integrations"
+        type: boolean
+        default: true
+
+# One deploy run at a time; let an in-flight deploy finish rather than
+# cancel it mid-way.
+concurrency:
+  group: zerops-deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+# Six independent jobs, no `needs:` between them, so GitHub Actions fans them
+# out and runs all selected services in parallel (same as the matrix build
+# in build-and-deploy.yml) instead of one after another in a single job.
+jobs:
+  marketing:
+    name: Deploy marketing
+    if: github.event_name == 'push' || inputs.marketing
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: zeropsio/actions@19329d7d7ecaad2c382fb30ea6e52aaa15ec1f20 # v1.0.2
+        with:
+          access-token: ${{ secrets.ZEROPS_TOKEN }}
+          service-id: ${{ secrets.ZEROPS_SERVICE_ID_MARKETING }}
+
+  backend:
+    name: Deploy backend
+    if: github.event_name == 'push' || inputs.backend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: zeropsio/actions@19329d7d7ecaad2c382fb30ea6e52aaa15ec1f20 # v1.0.2
+        with:
+          access-token: ${{ secrets.ZEROPS_TOKEN }}
+          service-id: ${{ secrets.ZEROPS_SERVICE_ID_BACKEND }}
+
+  start:
+    name: Deploy start
+    if: github.event_name == 'push' || inputs.start
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: zeropsio/actions@19329d7d7ecaad2c382fb30ea6e52aaa15ec1f20 # v1.0.2
+        with:
+          access-token: ${{ secrets.ZEROPS_TOKEN }}
+          service-id: ${{ secrets.ZEROPS_SERVICE_ID_START }}
+
+  workermain:
+    name: Deploy workermain
+    if: github.event_name == 'push' || inputs.workermain
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: zeropsio/actions@19329d7d7ecaad2c382fb30ea6e52aaa15ec1f20 # v1.0.2
+        with:
+          access-token: ${{ secrets.ZEROPS_TOKEN }}
+          service-id: ${{ secrets.ZEROPS_SERVICE_ID_WORKERMAIN }}
+
+  workergithub:
+    name: Deploy workergithub
+    if: github.event_name == 'push' || inputs.workergithub
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: zeropsio/actions@19329d7d7ecaad2c382fb30ea6e52aaa15ec1f20 # v1.0.2
+        with:
+          access-token: ${{ secrets.ZEROPS_TOKEN }}
+          service-id: ${{ secrets.ZEROPS_SERVICE_ID_WORKERGITHUB }}
+
+  integrations:
+    name: Deploy integrations
+    if: github.event_name == 'push' || inputs.integrations
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: zeropsio/actions@19329d7d7ecaad2c382fb30ea6e52aaa15ec1f20 # v1.0.2
+        with:
+          access-token: ${{ secrets.ZEROPS_TOKEN }}
+          service-id: ${{ secrets.ZEROPS_SERVICE_ID_INTEGRATIONS }}
