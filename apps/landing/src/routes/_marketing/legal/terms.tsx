@@ -1,7 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 const lastUpdated = "2026-02-16";
-const formattedDate = new Date(lastUpdated).toLocaleDateString("en-GB", {
+// Construct as a local calendar date, not `new Date(lastUpdated)` — that parses
+// as UTC midnight, which renders a day early for anyone west of UTC once this
+// hydrates client-side.
+const [lastUpdatedYear, lastUpdatedMonth, lastUpdatedDay] = lastUpdated.split("-").map(Number) as [
+	number,
+	number,
+	number,
+];
+const formattedDate = new Date(lastUpdatedYear, lastUpdatedMonth - 1, lastUpdatedDay).toLocaleDateString("en-GB", {
 	day: "numeric",
 	month: "long",
 	year: "numeric",
@@ -56,9 +64,9 @@ function TermsPage() {
 				<section>
 					<h2 className="text-xl font-semibold text-foreground mb-4">3. Accounts</h2>
 					<p>
-						You sign in to Sayr using a third-party authentication provider (GitHub or Doras). You are responsible
-						for maintaining the security of your authentication credentials and for all activity that occurs under
-						your account.
+						You sign in to Sayr using a third-party authentication provider (GitHub, Doras, Discord, or Slack).
+						You are responsible for maintaining the security of your authentication credentials and for all
+						activity that occurs under your account.
 					</p>
 					<p className="mt-2">
 						You must notify us promptly at{" "}

@@ -1,7 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 const lastUpdated = "2026-02-16";
-const formattedDate = new Date(lastUpdated).toLocaleDateString("en-GB", {
+// Construct as a local calendar date, not `new Date(lastUpdated)` — that parses
+// as UTC midnight, which renders a day early for anyone west of UTC once this
+// hydrates client-side.
+const [lastUpdatedYear, lastUpdatedMonth, lastUpdatedDay] = lastUpdated.split("-").map(Number) as [
+	number,
+	number,
+	number,
+];
+const formattedDate = new Date(lastUpdatedYear, lastUpdatedMonth - 1, lastUpdatedDay).toLocaleDateString("en-GB", {
 	day: "numeric",
 	month: "long",
 	year: "numeric",
@@ -54,7 +62,7 @@ function PrivacyPage() {
 					<h2 className="text-xl font-semibold text-foreground mb-4">2. Data We Collect</h2>
 
 					<h3 className="text-base font-medium text-foreground mt-6 mb-2">2.1 Account Data</h3>
-					<p>When you sign up via GitHub or Doras OAuth, we collect:</p>
+					<p>When you sign up via GitHub, Doras, Discord, or Slack OAuth, we collect:</p>
 					<ul className="list-disc pl-6 mt-2 space-y-1">
 						<li>
 							<strong className="text-foreground">Name and display name</strong> — from your OAuth provider
@@ -281,9 +289,10 @@ function PrivacyPage() {
 				<section>
 					<h2 className="text-xl font-semibold text-foreground mb-4">7. International Data Transfers</h2>
 					<p>
-						Our primary infrastructure is hosted in the EU (Germany) via Hetzner, and we use PostHog's EU instance
-						(Frankfurt). However, some of our subprocessors are based in the United States, including Cloudflare,
-						GitHub, Send, and Axiom.
+						Our primary infrastructure is hosted in the EU (Czechia) via Zerops, with object storage and internal
+						tooling hosted in the EU (Germany, Finland) via Hetzner, and we use PostHog's EU instance (Frankfurt).
+						However, some of our subprocessors are based in the United States, including Cloudflare, GitHub, Send,
+						and Axiom.
 					</p>
 					<p className="mt-2">
 						Where data is transferred outside the EEA, we ensure appropriate safeguards are in place, such as
