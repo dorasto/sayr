@@ -1,6 +1,6 @@
 import type { Command } from "commander";
 import pc from "picocolors";
-import { CONFIG_PATH, readConfig, updateConfig } from "../lib/config";
+import { getConfigPath, readConfig, updateConfig } from "../lib/config";
 
 export function registerConfigCommand(program: Command): void {
 	const config = program.command("config").description("Manage local CLI configuration");
@@ -10,7 +10,7 @@ export function registerConfigCommand(program: Command): void {
 		.description("Show the current configuration")
 		.action(async () => {
 			const current = await readConfig();
-			console.log(pc.dim(`Config file: ${CONFIG_PATH}`));
+			console.log(pc.dim(`Config file: ${getConfigPath()}`));
 			console.log(`baseUrl:    ${current.baseUrl ?? "(default)"}`);
 			console.log(`defaultOrg: ${current.defaultOrg ?? "(none)"}`);
 			console.log(`token:      ${current.token ? `${current.token.slice(0, 8)}…` : "(not set)"}`);

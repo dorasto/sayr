@@ -29,6 +29,17 @@ sayr login --token api_xxxxxxxx --base-url https://api.your-instance.com
 
 Credentials are written to `~/.sayr/config.json` (owner-readable only). `sayr logout` clears them. `SAYR_TOKEN` and `SAYR_BASE_URL` environment variables override the stored values for a single command without touching the file — handy in CI.
 
+### Working against a second backend (e.g. a local dev instance)
+
+`~/.sayr/config.json` holds one login at a time. To keep a separate one — most commonly a local `sayr` backend running against its own database, alongside your normal production login — use `sayr-local` instead of `sayr` for those commands. It's the same CLI with `SAYR_PROFILE=local` pre-set, which reads/writes `~/.sayr/config.local.json` instead:
+
+```bash
+sayr-local login --token api_xxxxxxxx --base-url http://localhost:5468
+sayr-local task list --org platform
+```
+
+`sayr` (unprefixed) is completely unaffected — the two configs never interact. `SAYR_PROFILE=<name>` works the same way directly if you want more than two (`~/.sayr/config.<name>.json`).
+
 ## Configuration
 
 Most commands need an organization. Set a default once instead of passing `--org <slug>` on every command:

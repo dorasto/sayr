@@ -10,7 +10,8 @@
 		"directory": "packages/cli"
 	},
 	"bin": {
-		"sayr": "dist/index.js"
+		"sayr": "dist/index.js",
+		"sayr-local": "dist/index.local.js"
 	},
 	"files": [
 		"dist"
