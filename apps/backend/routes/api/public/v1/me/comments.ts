@@ -18,7 +18,7 @@ import { assertApiAccess } from "../../../../../lib/apiKeyAuth";
 import { resolveOrganizationId, resolveTaskId } from "../../../../../lib/apiRefs";
 import { bearerAuthResponses, describeOkNotFound } from "../../../../../openapi/helpers";
 import { errorResponse, paginatedSuccessResponse, successResponse } from "../../../../../responses";
-import { CommentSchema, CreatedBySchema, resolveActorId } from "./schemas";
+import { CommentSchema, CreatedBySchema, parsePaginationParam, resolveActorId } from "./schemas";
 
 const REPLIES_MAX_LIMIT = 50;
 
@@ -219,9 +219,16 @@ commentsRoute.get(
 		}
 
 		const query = c.req.query();
-		const page = Math.max(Number(query.page) || 1, 1);
-		const requestedLimit = Number(query.limit);
-		const limit = Math.min(requestedLimit || 20, REPLIES_MAX_LIMIT);
+		const pageParam = parsePaginationParam(query.page, "page");
+		if (pageParam.error) {
+			return c.json(errorResponse("Invalid page", pageParam.error), 400);
+		}
+		const limitParam = parsePaginationParam(query.limit, "limit");
+		if (limitParam.error) {
+			return c.json(errorResponse("Invalid limit", limitParam.error), 400);
+		}
+		const page = pageParam.value ?? 1;
+		const limit = Math.min(limitParam.value ?? 20, REPLIES_MAX_LIMIT);
 		const offset = (page - 1) * limit;
 
 		const result = await getCommentReplies(comment.organizationId, commentId, { offset, limit });

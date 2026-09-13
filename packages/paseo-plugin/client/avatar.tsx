@@ -1,5 +1,5 @@
 import { Icon } from "@getpaseo/plugin/client/react-native";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Image, Text, View } from "react-native";
 import type { Theme } from "./types";
 
@@ -48,6 +48,10 @@ export function Avatar({
 	fallbackIcon?: string;
 }) {
 	const [failed, setFailed] = useState(false);
+	// biome-ignore lint/correctness/useExhaustiveDependencies: intentionally reset only when imageUrl changes, so a later valid URL isn't stuck behind an earlier failure
+	useEffect(() => {
+		setFailed(false);
+	}, [imageUrl]);
 	const showImage =
 		Boolean(imageUrl) && (imageUrl?.startsWith("http://") || imageUrl?.startsWith("https://")) && !failed;
 	const borderRadius = square ? Math.max(4, size / 5) : size / 2;

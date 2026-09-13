@@ -20,9 +20,17 @@ export const DEFAULT_BASE_URL = "https://api.sayr.io";
  * `process.env` once at CLI startup anyway, and this keeps tests/callers honest about
  * where a given read/write actually lands.
  */
+const SAFE_PROFILE_PATTERN = /^[a-zA-Z0-9._-]+$/;
+
 export function getConfigPath(): string {
 	const profile = process.env.SAYR_PROFILE?.trim();
-	return profile ? join(homedir(), ".sayr", `config.${profile}.json`) : join(homedir(), ".sayr", "config.json");
+	if (!profile) return join(homedir(), ".sayr", "config.json");
+
+	if (!SAFE_PROFILE_PATTERN.test(profile)) {
+		throw new Error(`Invalid SAYR_PROFILE "${profile}": only letters, digits, ".", "_", and "-" are allowed.`);
+	}
+
+	return join(homedir(), ".sayr", `config.${profile}.json`);
 }
 
 export async function readConfig(): Promise<CliConfig> {

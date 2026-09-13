@@ -1,6 +1,7 @@
 import { extractPlainText, type ProsekitNode } from "../shared/prosekit";
 import {
 	type CategoryInfo,
+	formatTaskKey,
 	PRIORITY_LABELS,
 	resolveCategoryName,
 	STATUS_LABELS,
@@ -19,7 +20,7 @@ export function buildAgentPrompt(
 	task: TaskDetail,
 	{ categories, additionalInstructions }: { categories?: CategoryInfo[]; additionalInstructions?: string } = {}
 ): string {
-	const key = task.shortId != null ? `#${task.shortId}` : task.id;
+	const key = formatTaskKey(task.orgShortId, task.shortId);
 	const description = task.description ? extractPlainText(task.description as ProsekitNode) : "";
 	const categoryName = resolveCategoryName(task.category, categories);
 

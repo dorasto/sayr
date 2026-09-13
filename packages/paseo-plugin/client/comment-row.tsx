@@ -45,6 +45,9 @@ export function CommentRow({
 	onOpenTask?: (taskId: string) => void;
 }) {
 	const [expanded, setExpanded] = useState(false);
+	const [page, setPage] = useState(1);
+	const [extraReplies, setExtraReplies] = useState<TaskComment[]>([]);
+	const [loadingMoreReplies, setLoadingMoreReplies] = useState(false);
 	const listReplies = useRpc(listRepliesRpc);
 	const replyCount = comment.replyCount ?? 0;
 	const { data, isLoading } = useQuery({
@@ -52,6 +55,9 @@ export function CommentRow({
 		queryFn: () => listReplies({ commentId: comment.id }),
 		enabled: expanded && replyCount > 0,
 	});
+	// Replies come back oldest-first (unlike top-level comments' newest-first
+	// pages), so later pages are appended below rather than prepended above.
+	const replies = [...(data?.replies ?? []), ...extraReplies];
 
 	const styles = useMemo(
 		() => ({
@@ -59,9 +65,22 @@ export function CommentRow({
 			body: { marginTop: 2, marginLeft: 26 },
 			meta: { color: theme.colors.foregroundMuted, fontSize: 11, marginTop: 2, marginLeft: 26 },
 			reply: { marginTop: 6, marginLeft: 16 },
+			loadMore: { color: theme.colors.accent, fontSize: 12, marginTop: 4, marginLeft: 16 },
 		}),
 		[theme]
 	);
+
+	async function loadMoreReplies() {
+		setLoadingMoreReplies(true);
+		try {
+			const next = page + 1;
+			const result = await listReplies({ commentId: comment.id, page: next });
+			setExtraReplies((prev) => [...prev, ...result.replies]);
+			setPage(next);
+		} finally {
+			setLoadingMoreReplies(false);
+		}
+	}
 
 	return (
 		<View style={styles.row}>
@@ -91,7 +110,7 @@ export function CommentRow({
 			)}
 			{expanded && isLoading && <Text style={styles.meta}>Loading replies…</Text>}
 			{expanded &&
-				data?.replies.map((reply) => (
+				replies.map((reply) => (
 					<View key={reply.id} style={styles.reply}>
 						<AuthorLine theme={theme} name={reply.createdBy?.name} imageUrl={reply.createdBy?.image} />
 						{reply.content ? (
@@ -107,6 +126,11 @@ export function CommentRow({
 						) : null}
 					</View>
 				))}
+			{expanded && replies.length < replyCount && (
+				<Pressable accessibilityRole="button" onPress={loadMoreReplies} disabled={loadingMoreReplies}>
+					<Text style={styles.loadMore}>{loadingMoreReplies ? "Loading…" : "Load more replies"}</Text>
+				</Pressable>
+			)}
 		</View>
 	);
 }

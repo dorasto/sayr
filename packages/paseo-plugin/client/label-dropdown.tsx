@@ -119,7 +119,7 @@ export function LabelDropdown({
 		try {
 			const created = await onCreateLabel(name, newLabelVisible);
 			if (created) {
-				onChange([...selected, created.id]);
+				onChange([...new Set([...selected, created.id])]);
 				setNewLabelName("");
 				setNewLabelVisible("public");
 			}

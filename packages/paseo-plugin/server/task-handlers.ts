@@ -26,8 +26,14 @@ import type {
 } from "../shared/task";
 import { sayrJson } from "./sayr-cli";
 
-/** Hard cap on pages aggregated per org — 30/page, so 10 pages is 300 tasks/org. */
-const MAX_LIST_PAGES = 10;
+/**
+ * Hard cap on pages aggregated per org — 30/page, so 100 pages is 3000
+ * tasks/org. This is a worst-case bound against a pathologically large org,
+ * not an expected ceiling; if it's ever actually hit, `listTasksForOrg`
+ * below logs a warning (`paseo plugin logs sayr`) since there's currently no
+ * UI indicator that the returned list was truncated.
+ */
+const MAX_LIST_PAGES = 100;
 
 export async function listOrgs(_input: RpcInput<typeof listOrgsRpc>): Promise<RpcOutput<typeof listOrgsRpc>> {
 	const orgs = await sayrJson<Org[]>(["orgs", "list"]);
@@ -88,6 +94,7 @@ async function findOrg(orgSlug: string): Promise<Org> {
 
 async function listTasksForOrg(org: Org): Promise<Task[]> {
 	const tasks: Task[] = [];
+	let hasMore = false;
 	for (let page = 1; page <= MAX_LIST_PAGES; page++) {
 		// No --include-closed: done/canceled tasks aren't shown on the board at
 		// all (see BOARD_STATUSES in client/board.tsx), so fetching them here
@@ -107,7 +114,16 @@ async function listTasksForOrg(org: Org): Promise<Task[]> {
 		for (const task of result.tasks) {
 			tasks.push({ ...task, orgId: org.id, orgSlug: org.slug, orgShortId: org.shortId });
 		}
-		if (!result.pagination.hasMore) break;
+		hasMore = result.pagination.hasMore;
+		if (!hasMore) break;
+	}
+	// Exhausted every page and the API still says there's more — the board
+	// silently drops the remainder with no UI indicator. Not fixed here (a
+	// bigger, separate piece of work), just logged so it's at least visible.
+	if (hasMore) {
+		console.warn(
+			`[sayr] listTasksForOrg: org "${org.slug}" has more than ${MAX_LIST_PAGES * 30} tasks — results truncated to ${tasks.length}.`
+		);
 	}
 	return tasks;
 }

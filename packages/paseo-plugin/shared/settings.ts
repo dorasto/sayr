@@ -12,7 +12,7 @@ export const DEFAULT_CLI_BIN = "sayr";
  * are the ones that actually need this value.
  */
 export const SayrSettingsSchema = z.object({
-	cliBin: z.string().min(1),
+	cliBin: z.string().trim().min(1),
 	/** Prefilled into "Send to agent"'s instructions field — edited further per-send there, never sent as-is without a chance to change it. */
 	defaultAgentInstructions: z.string().default(""),
 	/**
@@ -34,7 +34,7 @@ export const getSettingsRpc = defineRpc({
 
 export const setCliBinRpc = defineRpc({
 	name: "sayr.settings.set-cli-bin",
-	input: z.object({ cliBin: z.string().min(1) }),
+	input: z.object({ cliBin: z.string().trim().min(1) }),
 	output: SayrSettingsSchema,
 });
 

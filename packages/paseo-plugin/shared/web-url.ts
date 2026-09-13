@@ -61,8 +61,11 @@ function deriveWebBase(baseApiUrl: string, orgSlug: string): string | undefined 
  * `template`, if non-empty, overrides the derivation entirely (an escape
  * hatch for self-hosted setups that don't follow the `api.<domain>` /
  * `<org>.<domain>` convention at all) — see `shared/settings.ts`'s
- * `webUrlTemplate`. Returns `undefined` only if `baseApiUrl` isn't a parseable
- * URL, which shouldn't happen for anything `sayr login --base-url` accepted.
+ * `webUrlTemplate`. Returns `undefined` if `baseApiUrl` isn't a parseable
+ * URL (shouldn't happen for anything `sayr login --base-url` accepted), or if
+ * an expanded `template` doesn't produce a valid `http(s)` URL — the caller
+ * only renders the "Open on Sayr" button when this is truthy, so `undefined`
+ * just hides the button instead of handing `Linking.openURL()` garbage.
  */
 export function deriveTaskWebUrl({
 	baseApiUrl,
@@ -76,7 +79,18 @@ export function deriveTaskWebUrl({
 	template?: string;
 }): string | undefined {
 	if (template?.trim()) {
-		return applyWebUrlTemplate(template.trim(), orgSlug, shortId);
+		const expanded = applyWebUrlTemplate(template.trim(), orgSlug, shortId);
+		try {
+			const parsed = new URL(expanded);
+			if (parsed.protocol === "http:" || parsed.protocol === "https:") {
+				return expanded;
+			}
+		} catch {
+			// A typo'd template (e.g. missing the scheme/host entirely) isn't a
+			// usable URL — fall through to `undefined` below rather than handing
+			// something unopenable to `Linking.openURL()`.
+		}
+		return undefined;
 	}
 	const base = deriveWebBase(baseApiUrl, orgSlug);
 	return base ? `${base}/${shortId}` : undefined;

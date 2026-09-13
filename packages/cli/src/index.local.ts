@@ -11,9 +11,12 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
+// Force "local" regardless of what's inherited from the parent shell — an
+// inherited SAYR_PROFILE=production would otherwise make sayr-local silently
+// read/write production config instead of ~/.sayr/config.local.json.
 const result = spawnSync(process.execPath, [join(here, "index.js"), ...process.argv.slice(2)], {
 	stdio: "inherit",
-	env: { ...process.env, SAYR_PROFILE: process.env.SAYR_PROFILE || "local" },
+	env: { ...process.env, SAYR_PROFILE: "local" },
 });
 
 process.exit(result.status ?? 1);

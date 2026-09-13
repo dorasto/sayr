@@ -38,7 +38,7 @@ import {
 import { bearerAuthResponses, describeOkNotFound } from "../../../../../openapi/helpers";
 import { errorResponse, paginatedSuccessResponse, successResponse } from "../../../../../responses";
 import { baseTaskWhere } from "../../../internal/v1/task";
-import { CommentSchema, CreatedBySchema, resolveActorId, TaskSchema } from "./schemas";
+import { CommentSchema, CreatedBySchema, parsePaginationParam, resolveActorId, TaskSchema } from "./schemas";
 
 const COMMENTS_MAX_LIMIT = 30;
 
@@ -565,6 +565,7 @@ tasksRoute.get(
 		extraResponses: bearerAuthResponses,
 	}),
 	async (c) => {
+		const recordWideError = c.get("recordWideError");
 		const principal = c.get("apiKeyPrincipal");
 		if (!principal) return c.json(errorResponse("Unauthorized"), 401);
 
@@ -605,12 +606,24 @@ tasksRoute.get(
 		// Best-effort: an unavailable/disallowed/never-generated summary just
 		// omits the field rather than failing the whole task fetch — unlike the
 		// dedicated internal task-summary-status endpoint, this route's job is
-		// "get the task," not "get the summary."
+		// "get the task," not "get the summary." A DB/Redis failure inside this
+		// flow must not fail the task fetch either.
 		let aiSummary: Awaited<ReturnType<typeof getTaskAiSummary>> | null = null;
 		if (isAiEnabled()) {
-			const access = await checkTaskSummaryAccess(orgId, principal.userId);
-			if (access.ok) {
-				aiSummary = await getTaskAiSummary(orgId, taskId);
+			try {
+				const access = await checkTaskSummaryAccess(orgId, principal.userId);
+				if (access.ok) {
+					aiSummary = await getTaskAiSummary(orgId, taskId);
+				}
+			} catch (err) {
+				await recordWideError({
+					name: "task.aiSummary.fetch.failed",
+					error: err,
+					code: "TASK_AI_SUMMARY_FETCH_FAILED",
+					message: "Failed to fetch AI summary for task",
+					contextData: { orgId, taskId },
+				});
+				aiSummary = null;
 			}
 		}
 
@@ -684,9 +697,16 @@ tasksRoute.get(
 		}
 
 		const query = c.req.query();
-		const page = Math.max(Number(query.page) || 1, 1);
-		const requestedLimit = Number(query.limit);
-		const limit = Math.min(requestedLimit || 10, COMMENTS_MAX_LIMIT);
+		const pageParam = parsePaginationParam(query.page, "page");
+		if (pageParam.error) {
+			return c.json(errorResponse("Invalid page", pageParam.error), 400);
+		}
+		const limitParam = parsePaginationParam(query.limit, "limit");
+		if (limitParam.error) {
+			return c.json(errorResponse("Invalid limit", limitParam.error), 400);
+		}
+		const page = pageParam.value ?? 1;
+		const limit = Math.min(limitParam.value ?? 10, COMMENTS_MAX_LIMIT);
 		const offset = (page - 1) * limit;
 
 		const result = await getTaskComments(orgId, taskId, { offset, limit });

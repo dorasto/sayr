@@ -46,6 +46,10 @@ export function extractPlainText(doc: ProsekitNode | null | undefined): string {
 			current += node.text;
 			return;
 		}
+		if (node.type === "hardBreak") {
+			current += "\n";
+			return;
+		}
 		if (Array.isArray(node.content)) {
 			for (const child of node.content) walk(child);
 			if (node.type !== undefined) {

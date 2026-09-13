@@ -10,6 +10,14 @@ const execFileAsync = promisify(execFile);
 /** `sayr task view --json` output can run long (full comment threads); guard a runaway. */
 const MAX_OUTPUT_BYTES = 8 * 1024 * 1024;
 
+/**
+ * Bounds a single CLI invocation — this shells out to a CLI hitting a real
+ * HTTP API, so it needs to tolerate normal network latency, not be too
+ * aggressive, but a hung child process must not leave the RPC promise
+ * pending forever with no way for the caller to recover.
+ */
+const CLI_TIMEOUT_MS = 30_000;
+
 function paseoHome(): string {
 	return process.env.PASEO_HOME ?? join(homedir(), ".paseo");
 }
@@ -54,6 +62,13 @@ function describeSayrFailure(error: unknown, cliBin: string): string {
 			return `\`${cliBin}\` is not installed, or not on the daemon's PATH (see packages/cli/README.md).`;
 		}
 	}
+	// A timed-out (or otherwise killed) child never gets a normal exit code —
+	// `execFile`'s promisified error carries `killed`/`signal` instead, not a
+	// useful `stderr`, so it needs its own message rather than falling through
+	// to the generic stderr-based handling below.
+	if (typeof error === "object" && error !== null && "killed" in error && (error as { killed?: unknown }).killed) {
+		return `\`${cliBin}\` timed out after ${CLI_TIMEOUT_MS / 1000}s with no response — check network connectivity to the Sayr API and try again.`;
+	}
 	const stderr =
 		typeof error === "object" && error !== null && "stderr" in error
 			? String((error as { stderr?: unknown }).stderr ?? "").trim()
@@ -78,6 +93,7 @@ export async function sayrJson<T>(args: readonly string[]): Promise<T> {
 	try {
 		const { stdout } = await execFileAsync(cliBin, [...args, "--json"], {
 			maxBuffer: MAX_OUTPUT_BYTES,
+			timeout: CLI_TIMEOUT_MS,
 		});
 		return JSON.parse(stdout) as T;
 	} catch (error) {

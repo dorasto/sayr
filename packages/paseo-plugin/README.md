@@ -88,8 +88,8 @@ bug) — worth a quick grep before reloading if you touched anything under `clie
 
 ## Known gaps
 
-- **No labels picker.** There's no `/me/*` endpoint to list an organization's labels today, so the
-  task detail view shows a task's existing labels but can't add/remove them (same shape of gap as
-  comments/categories were before this plugin's own backend routes closed them).
+- **Labels can be created but not edited or deleted.** `GET/POST /me/labels` and the labels picker
+  cover listing, selecting, and creating a label (with a public/private toggle), but there's no way
+  to rename, recolor, or delete an existing one from the plugin — that still needs the web app.
 - **Board doesn't show done/canceled tasks.** The status picker still covers the full status enum,
   so a task can be moved there — it just drops off the board once it is.

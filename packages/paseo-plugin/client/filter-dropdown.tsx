@@ -43,7 +43,8 @@ export function FilterDropdown<T extends string>({
 	onShowAll: () => void;
 	onHideAll: () => void;
 }) {
-	const shown = options.length - hidden.size;
+	const hiddenCount = options.filter((option) => hidden.has(option.value)).length;
+	const shown = options.length - hiddenCount;
 	const allShown = shown === options.length;
 
 	const styles = useMemo(

@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Fragment } from "react";
-import { Platform, Text, View } from "react-native";
+import { Linking, Platform, Text, View } from "react-native";
 import type { ProsekitMark, ProsekitNode } from "../shared/prosekit";
 import type { CategoryInfo, Org } from "../shared/task";
 import { TaskMentionPill } from "./task-mention-pill";
@@ -71,13 +71,14 @@ interface Ctx {
 const MONOSPACE = Platform.select({ ios: "Menlo", android: "monospace", default: "monospace" });
 
 function markStyle(marks: ProsekitMark[] | undefined, theme: Theme) {
-	if (!marks || marks.length === 0) return undefined;
+	if (!marks || marks.length === 0) return { style: undefined, href: undefined };
 	let fontWeight: "700" | undefined;
 	let fontStyle: "italic" | undefined;
 	let underline = false;
 	let strike = false;
 	let isCode = false;
 	let isLink = false;
+	let href: string | undefined;
 
 	for (const mark of marks) {
 		switch (mark.type) {
@@ -96,9 +97,13 @@ function markStyle(marks: ProsekitMark[] | undefined, theme: Theme) {
 			case "code":
 				isCode = true;
 				break;
-			case "link":
+			case "link": {
 				isLink = true;
+				const rawHref = typeof mark.attrs?.href === "string" ? mark.attrs.href : undefined;
+				// Reject anything that isn't a plain http(s) URL (e.g. `javascript:`) — no onPress at all for those.
+				if (rawHref && /^https?:\/\//i.test(rawHref)) href = rawHref;
 				break;
+			}
 			default:
 				break;
 		}
@@ -108,19 +113,23 @@ function markStyle(marks: ProsekitMark[] | undefined, theme: Theme) {
 		underline && strike ? "underline line-through" : underline ? "underline" : strike ? "line-through" : undefined;
 
 	return {
-		fontWeight,
-		fontStyle,
-		textDecorationLine,
-		...(isCode ? { fontFamily: MONOSPACE, backgroundColor: theme.colors.surface2 } : {}),
-		...(isLink ? { color: theme.colors.accent, textDecorationLine: "underline" as const } : {}),
+		style: {
+			fontWeight,
+			fontStyle,
+			textDecorationLine,
+			...(isCode ? { fontFamily: MONOSPACE, backgroundColor: theme.colors.surface2 } : {}),
+			...(isLink ? { color: theme.colors.accent, textDecorationLine: "underline" as const } : {}),
+		},
+		href,
 	};
 }
 
 function renderTextRun(node: ProsekitNode, ctx: Ctx, key: string): ReactNode {
 	if (node.type === "hardBreak") return <Text key={key}>{"\n"}</Text>;
 	if (typeof node.text !== "string") return null;
+	const { style, href } = markStyle(node.marks, ctx.theme);
 	return (
-		<Text key={key} style={markStyle(node.marks, ctx.theme)}>
+		<Text key={key} style={style} onPress={href ? () => Linking.openURL(href) : undefined}>
 			{node.text}
 		</Text>
 	);

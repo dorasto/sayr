@@ -1,10 +1,10 @@
 import { usePaseo, useRpc } from "@getpaseo/plugin/client";
 import { Icon, Modal, TextInput, useToast } from "@getpaseo/plugin/client/react-native";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Platform, Pressable, ScrollView, Text } from "react-native";
 import { getSettingsRpc } from "../shared/settings";
-import type { CategoryInfo, TaskDetail } from "../shared/task";
+import { type CategoryInfo, formatTaskKey, type TaskDetail } from "../shared/task";
 import { buildAgentPrompt } from "./agent-prompt";
 import type { Navigation, Theme } from "./types";
 
@@ -39,6 +39,7 @@ export function SendToAgentModal({
 	const [sending, setSending] = useState<string | null>(null);
 	const [instructions, setInstructions] = useState("");
 	const [previewOpen, setPreviewOpen] = useState(false);
+	const seededInstructionsRef = useRef(false);
 	const { data: projects, isLoading } = useQuery({
 		queryKey: ["sayr", "projects"],
 		queryFn: () => paseo.projects.list(),
@@ -50,9 +51,12 @@ export function SendToAgentModal({
 
 	// Seeded once, from whatever the settings say at the time this modal
 	// opens — not kept in sync afterward, so typing here never gets clobbered
-	// by an unrelated settings refetch.
+	// by an unrelated settings refetch (the `["sayr","settings"]` query can
+	// refetch with a new object reference while this modal stays mounted).
 	useEffect(() => {
-		if (settings) setInstructions(settings.defaultAgentInstructions);
+		if (!settings || seededInstructionsRef.current) return;
+		seededInstructionsRef.current = true;
+		setInstructions(settings.defaultAgentInstructions);
 	}, [settings]);
 
 	// Recomputed on every keystroke — it's pure string building, no RPC
@@ -133,7 +137,7 @@ export function SendToAgentModal({
 			// The exact same string the preview box shows — not recomputed here,
 			// so there's no way for what's sent to drift from what was reviewed.
 			const prompt = previewPrompt;
-			const title = `Sayr #${task.shortId ?? task.id}: ${(task.title ?? "").slice(0, 60)}`;
+			const title = `Sayr ${formatTaskKey(task.orgShortId, task.shortId)}: ${(task.title ?? "").slice(0, 60)}`;
 
 			const workspace = await paseo.workspaces.create({
 				title,

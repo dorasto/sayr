@@ -284,6 +284,7 @@ export function TaskDetailBody({
 					<View style={styles.section}>
 						<Text style={styles.sectionTitle}>COMMENTS ({data.commentsTotal})</Text>
 						<CommentsSection
+							key={`${orgSlug}:${taskId}`}
 							theme={theme}
 							taskId={taskId}
 							orgSlug={orgSlug}

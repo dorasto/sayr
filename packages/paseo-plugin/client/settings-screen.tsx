@@ -2,8 +2,8 @@ import type { PluginSurfaceProps } from "@getpaseo/plugin/client";
 import { useRpc } from "@getpaseo/plugin/client";
 import { TextInput, useToast } from "@getpaseo/plugin/client/react-native";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
-import { Pressable, Text, View } from "react-native";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Pressable, ScrollView, Text, View } from "react-native";
 import { getSettingsRpc, setAgentInstructionsRpc, setCliBinRpc, setWebUrlTemplateRpc } from "../shared/settings";
 import { getCliConfigRpc } from "../shared/task";
 import { deriveTaskWebUrl } from "../shared/web-url";
@@ -31,9 +31,16 @@ export function SayrSettingsScreen({ theme, layout }: PluginSurfaceProps) {
 	const [savingCliBin, setSavingCliBin] = useState(false);
 	const [savingInstructions, setSavingInstructions] = useState(false);
 	const [savingWebUrlTemplate, setSavingWebUrlTemplate] = useState(false);
+	const seededRef = useRef(false);
 
+	// Seeded once, on the first successful load — NOT on every refetch. Each
+	// "Save" button below refetches this same `["sayr","settings"]` query
+	// after its own RPC, and if this effect re-ran on every `data` change it
+	// would re-seed all three fields at once, clobbering unsaved edits a user
+	// has in progress on one of the *other* two.
 	useEffect(() => {
-		if (!data) return;
+		if (!data || seededRef.current) return;
+		seededRef.current = true;
 		setCliBinValue(data.cliBin);
 		setInstructions(data.defaultAgentInstructions);
 		setWebUrlTemplateValue(data.webUrlTemplate);
@@ -49,6 +56,7 @@ export function SayrSettingsScreen({ theme, layout }: PluginSurfaceProps) {
 
 	const styles = useMemo(
 		() => ({
+			scrollView: { flex: 1 },
 			screen: {
 				flex: 1,
 				padding: layout.compact ? 16 : 24,
@@ -108,7 +116,12 @@ export function SayrSettingsScreen({ theme, layout }: PluginSurfaceProps) {
 	async function saveCliBin() {
 		setSavingCliBin(true);
 		try {
-			await setCliBin({ cliBin: cliBin.trim() || "sayr" });
+			const saved = cliBin.trim() || "sayr";
+			await setCliBin({ cliBin: saved });
+			// The trimmed/defaulted value actually persisted — reflect it locally
+			// rather than relying on the shared refetch below (which, now that the
+			// seeding effect only runs once, no longer re-syncs this field).
+			setCliBinValue(saved);
 			await refetch();
 			toast.show("Saved.", { variant: "success" });
 		} catch (err) {
@@ -145,7 +158,7 @@ export function SayrSettingsScreen({ theme, layout }: PluginSurfaceProps) {
 	}
 
 	return (
-		<View style={styles.screen}>
+		<ScrollView style={styles.scrollView} contentContainerStyle={styles.screen}>
 			<Text style={styles.label}>CLI binary</Text>
 			<Text style={styles.help}>
 				Which installed `sayr`-compatible binary this plugin shells out to. Use `sayr-local` (or any
@@ -226,6 +239,6 @@ export function SayrSettingsScreen({ theme, layout }: PluginSurfaceProps) {
 					<Text style={styles.buttonText}>{savingWebUrlTemplate ? "Saving…" : "Save"}</Text>
 				</Pressable>
 			</View>
-		</View>
+		</ScrollView>
 	);
 }

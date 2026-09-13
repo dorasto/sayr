@@ -47,6 +47,9 @@ export function registerLabelsCommand(program: Command): void {
 		.option("--json", "Output raw JSON")
 		.action(async (name: string, opts: { org?: string; color?: string; visibility?: string; json?: boolean }) => {
 			try {
+				if (opts.visibility !== undefined && opts.visibility !== "public" && opts.visibility !== "private") {
+					throw new Error(`Invalid --visibility "${opts.visibility}": must be "public" or "private"`);
+				}
 				const orgId = await resolveOrg(opts.org);
 				const visible: TaskVisibility = opts.visibility === "private" ? "private" : "public";
 				const result = await apiRequest<Label>("/labels", {
