@@ -10,6 +10,12 @@ export type ConsolidatedTimelineItem = {
 	eventTypes: string[];
 };
 
+export type TimelineRunGroup = {
+	id: string;
+	createdAt: Date;
+	runItems: (schema.taskTimelineWithActor | ConsolidatedTimelineItem)[];
+};
+
 /**
  * Timeline item variants:
  * - "activity": Shows timeline indicator (icon) and separator line - for status changes, assignments, etc.
@@ -45,36 +51,42 @@ export interface TimelineItemWrapperProps {
 	 * @default true
 	 */
 	showSeparator?: boolean;
+	/**
+	 * Hides the "· 3 minutes ago" relative timestamp normally rendered after the header text.
+	 * @default false
+	 */
+	hideTimestamp?: boolean;
 	/** Set of blocked user IDs for displaying badge on blocked user comments */
 	blockedUserIds?: Set<string>;
 }
 
 export interface GlobalTimelineProps {
-  task: schema.TaskWithLabels;
-  labels: schema.labelType[];
-  availableUsers: schema.userType[];
-  categories: schema.categoryType[];
-  tasks: schema.TaskWithLabels[];
-  releases: schema.releaseType[];
-  organization?: TaskDetailOrganization;
+	task: schema.TaskWithLabels;
+	labels: schema.labelType[];
+	availableUsers: schema.userType[];
+	categories: schema.categoryType[];
+	tasks: schema.TaskWithLabels[];
+	releases: schema.releaseType[];
+	organization?: TaskDetailOrganization;
 }
 
 export interface TimelineItemProps {
-  item: schema.taskTimelineWithActor;
-  labels?: schema.labelType[];
-  availableUsers?: schema.userType[];
-  categories?: schema.categoryType[];
-  tasks?: schema.TaskWithLabels[];
-  releases?: schema.releaseType[];
-  organization?: TaskDetailOrganization;
-  /** Set of blocked user IDs for displaying badge on blocked user comments */
-  blockedUserIds?: Set<string>;
+	item: schema.taskTimelineWithActor;
+	labels?: schema.labelType[];
+	availableUsers?: schema.userType[];
+	categories?: schema.categoryType[];
+	tasks?: schema.TaskWithLabels[];
+	releases?: schema.releaseType[];
+	organization?: TaskDetailOrganization;
+	/** Set of blocked user IDs for displaying badge on blocked user comments */
+	blockedUserIds?: Set<string>;
 }
 
 export interface ConsolidatedTimelineItemProps {
 	consolidatedItem: ConsolidatedTimelineItem;
 	labels: schema.labelType[];
 	availableUsers: schema.userType[];
+	tasks?: schema.TaskWithLabels[];
 	showSeparator?: boolean;
 	organization?: TaskDetailOrganization;
 }

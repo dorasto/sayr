@@ -2,53 +2,52 @@
 
 // Base components
 export { AvatarWithName, TimelineItemWrapper } from "./base";
-
+export { TimelineCategoryChange } from "./category-change";
+export { CommentThread, CommentThreadBody, CommentThreadTrigger } from "./comment-thread";
 // Consolidated timeline components
 export {
 	ConsolidatedTimelineAssignees,
 	ConsolidatedTimelineItem,
 	ConsolidatedTimelineLabels,
+	ConsolidatedTimelineLinks,
+	ConsolidatedTimelineUpdates,
 } from "./consolidated-timeline";
-
-// Individual timeline components
-export { TimelineCreated } from "./timeline-created";
-export { TimelineStatusChange } from "./timeline-status-change";
-export { TimelinePriorityChange } from "./timeline-priority-change";
-export { TimelineComment } from "./timeline-comment";
-export { CommentThread, CommentThreadTrigger, CommentThreadBody } from "./comment-thread";
-export { TimelineLabelAdded, TimelineLabelRemoved } from "./timeline-label";
+export { TimelineReleaseChange } from "./release-change";
+// Root component
+export { default as GlobalTimeline } from "./root";
 export {
 	TimelineAssigneeAdded,
 	TimelineAssigneeRemoved,
 } from "./timeline-assignee";
-export { TimelineUpdated } from "./timeline-updated";
+export { TimelineComment } from "./timeline-comment";
+// Individual timeline components
+export { TimelineCreated } from "./timeline-created";
+export { TimelineGithubBranchLinked } from "./timeline-github-branch";
+export { TimelineGithubCommit } from "./timeline-github-commit";
+export { TimelineGithubPRClosed } from "./timeline-github-pr-closed";
+export { TimelineGithubPRCommit } from "./timeline-github-pr-commit";
+export { TimelineGithubPRLinked } from "./timeline-github-pr-linked";
 export {
 	TimelineParentAdded,
 	TimelineParentRemoved,
-	TimelineSubtaskAdded,
-	TimelineSubtaskRemoved,
 	TimelineRelationAdded,
 	TimelineRelationRemoved,
+	TimelineSubtaskAdded,
+	TimelineSubtaskRemoved,
 } from "./timeline-hierarchy";
-export { TimelineGithubCommit } from "./timeline-github-commit";
-export { TimelineGithubPRLinked } from "./timeline-github-pr-linked";
-export { TimelineGithubPRCommit } from "./timeline-github-pr-commit";
-export { TimelineGithubPRClosed } from "./timeline-github-pr-closed";
-export { TimelineGithubBranchLinked } from "./timeline-github-branch";
+export { TimelineLabelAdded, TimelineLabelRemoved } from "./timeline-label";
+export { TimelinePriorityChange } from "./timeline-priority-change";
+export { TimelineStatusChange } from "./timeline-status-change";
 export { TimelineTaskMentioned } from "./timeline-task-mention";
-export { TimelineCategoryChange } from "./category-change";
-export { TimelineReleaseChange } from "./release-change";
-
-// Root component
-export { default as GlobalTimeline } from "./root";
+export { TimelineUpdated } from "./timeline-updated";
 
 // Types
 export type {
 	ConsolidatedTimelineItem as ConsolidatedTimelineItemType,
-	TimelineItemWrapperProps,
+	ConsolidatedTimelineItemProps,
 	GlobalTimelineProps,
 	TimelineItemProps,
-	ConsolidatedTimelineItemProps,
+	TimelineItemWrapperProps,
 } from "./types";
 
 // Utilities

@@ -3,20 +3,21 @@ import { Button } from "@repo/ui/components/button";
 import { Timeline } from "@repo/ui/components/tomui/timeline";
 import { useStateManagementFetch, useStateManagementInfiniteFetch } from "@repo/ui/hooks/useStateManagement.ts";
 import { onWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
-import { IconLoader2 } from "@tabler/icons-react";
+import { IconChevronsDown, IconLoader2 } from "@tabler/icons-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import { getBlockedUserIdsAction } from "@/lib/fetches/organization";
 import { TaskNewCommentContent } from "../comment/new";
-import { CommentThreadTrigger, CommentThreadBody } from "./comment-thread";
+import { TimelineItemWrapper } from "./base";
 import { TimelineCategoryChange } from "./category-change";
-import { TimelineReleaseChange } from "./release-change";
+import { CommentThreadBody, CommentThreadTrigger } from "./comment-thread";
 import {
 	ConsolidatedTimelineItem,
 	TimelineAssigneeAdded,
 	TimelineAssigneeRemoved,
 	TimelineComment,
 	TimelineCreated,
+	TimelineGithubBranchLinked,
 	TimelineGithubCommit,
 	TimelineGithubPRClosed,
 	TimelineGithubPRCommit,
@@ -31,13 +32,28 @@ import {
 	TimelineStatusChange,
 	TimelineSubtaskAdded,
 	TimelineSubtaskRemoved,
-	TimelineUpdated,
-	TimelineGithubBranchLinked,
 	TimelineTaskMentioned,
+	TimelineUpdated,
 } from "./index";
-import type { GlobalTimelineProps } from "./types";
-import { consolidateTimelineItems } from "./utils";
+import { TimelineReleaseChange } from "./release-change";
+import type {
+	ConsolidatedTimelineItem as ConsolidatedTimelineGroup,
+	GlobalTimelineProps,
+	TimelineRunGroup,
+} from "./types";
+import { consolidateTimelineItems, groupTimelineRuns, mergeUpdateSessions } from "./utils";
+
 const baseApiUrl = import.meta.env.VITE_APP_ENV === "development" ? "/backend-api/internal" : "/api/internal";
+
+// Number of oldest events in a collapsed run to always keep visible, uncollapsed — gives
+// context for what happened right after the preceding comment (Linear-style).
+const RUN_HEAD_VISIBLE_COUNT = 2;
+// Number of most-recent events in a collapsed run to always keep visible, uncollapsed —
+// gives context for what's happened most recently.
+const RUN_TAIL_VISIBLE_COUNT = 2;
+
+type RunEntry = schema.taskTimelineWithActor | ConsolidatedTimelineGroup;
+
 export default function GlobalTimeline({
 	task,
 	labels,
@@ -61,6 +77,12 @@ export default function GlobalTimeline({
 			}
 			return next;
 		});
+	}, []);
+
+	const [expandedRuns, setExpandedRuns] = useState<Set<string>>(new Set());
+
+	const expandRun = useCallback((runId: string) => {
+		setExpandedRuns((prev) => (prev.has(runId) ? prev : new Set(prev).add(runId)));
 	}, []);
 
 	// Fetch blocked user IDs for displaying badge on blocked user comments
@@ -133,8 +155,9 @@ export default function GlobalTimeline({
 	>({
 		key: ["timeline", "comments", task.id, task.organizationId],
 		fetch: {
-			url: `${baseApiUrl}/v1/admin/organization/task/timeline/comments?org_id=${task.organizationId
-				}&task_id=${task.id}&limit=${commentLimit / 2}`,
+			url: `${baseApiUrl}/v1/admin/organization/task/timeline/comments?org_id=${
+				task.organizationId
+			}&task_id=${task.id}&limit=${commentLimit / 2}`,
 			custom: async (url, pageParam) => {
 				// pageParam manages current outer pages
 				const { fromStart = 1, fromEnd } = pageParam ?? {};
@@ -206,8 +229,7 @@ export default function GlobalTimeline({
 				// Also invalidate any expanded reply threads so other users' replies/reactions show in real time
 				queryClient.invalidateQueries({
 					predicate: (query) =>
-						query.queryKey[0] === "comment-replies" &&
-						query.queryKey[2] === task.organizationId,
+						query.queryKey[0] === "comment-replies" && query.queryKey[2] === task.organizationId,
 				});
 			}
 		});
@@ -224,8 +246,7 @@ export default function GlobalTimeline({
 				});
 				queryClient.invalidateQueries({
 					predicate: (query) =>
-						query.queryKey[0] === "comment-replies" &&
-						query.queryKey[2] === task.organizationId,
+						query.queryKey[0] === "comment-replies" && query.queryKey[2] === task.organizationId,
 				});
 			}
 		});
@@ -273,20 +294,29 @@ export default function GlobalTimeline({
 		});
 	}, [activity.data, oldestCommentTime, newestCommentTime]);
 
-	// --- Merge combined + filtered items ---
-	const combinedData = [...visibleActivity, ...flattenedComments];
-
-	const consolidatedItems = consolidateTimelineItems(combinedData).sort(
+	// --- Merge combined + filtered items, sorted chronologically before any grouping pass ---
+	const combinedData = [...visibleActivity, ...flattenedComments].sort(
 		(a, b) => new Date(a.createdAt ?? 0).getTime() - new Date(b.createdAt ?? 0).getTime()
 	);
 
+	// --- Roll up SSE-driven bursts of rapid-fire description/title/visibility edits first ---
+	const updateSessionsApplied = mergeUpdateSessions(combinedData);
+
+	const consolidatedItems = consolidateTimelineItems(updateSessionsApplied).sort(
+		(a, b) => new Date(a.createdAt ?? 0).getTime() - new Date(b.createdAt ?? 0).getTime()
+	);
+
+	// --- Collapse long runs of non-comment activity between comments into a single expandable row ---
+	const timelineEntries = groupTimelineRuns(consolidatedItems);
+
 	// --- Split for mid‑timeline button placement ---
-	const halfway = Math.floor(consolidatedItems.length / 2);
-	const topItems = consolidatedItems.slice(0, halfway);
-	const bottomItems = consolidatedItems.slice(halfway);
+	const halfway = Math.floor(timelineEntries.length / 2);
+	const topItems = timelineEntries.slice(0, halfway);
+	const bottomItems = timelineEntries.slice(halfway);
 	// Helper to check if an item is an activity (not a comment)
 	// biome-ignore lint/suspicious/noExplicitAny: <dont care>
 	const isActivityItem = (item: any) => {
+		if ("runItems" in item) return true; // Run groups are activities
 		if ("items" in item) return true; // Consolidated items are activities
 		return item.eventType !== "comment";
 	};
@@ -296,6 +326,56 @@ export default function GlobalTimeline({
 		const nextItem = array[index + 1];
 		const showSeparator = nextItem ? isActivityItem(nextItem) : false;
 
+		if ("runItems" in item) {
+			const runGroup = item as TimelineRunGroup;
+			const isExpanded = expandedRuns.has(runGroup.id);
+			const totalCount = runGroup.runItems.length;
+			const headCount = Math.min(RUN_HEAD_VISIBLE_COUNT, totalCount);
+			const tailCount = Math.min(RUN_TAIL_VISIBLE_COUNT, totalCount - headCount);
+			const headItems = runGroup.runItems.slice(0, headCount);
+			const hiddenItems = runGroup.runItems.slice(headCount, totalCount - tailCount);
+			const visibleTailItems = runGroup.runItems.slice(totalCount - tailCount);
+			const outerNextItem = array[index + 1];
+
+			const renderRunItem = (sub: RunEntry, absoluteIndex: number) =>
+				absoluteIndex === totalCount - 1
+					? renderItem(sub, 0, outerNextItem ? [sub, outerNextItem] : [sub])
+					: renderItem(sub, absoluteIndex, runGroup.runItems);
+
+			const collapsedMockItem = {
+				...hiddenItems[0],
+				id: runGroup.id,
+				createdAt: runGroup.createdAt,
+				actor: undefined,
+			} as Parameters<typeof TimelineItemWrapper>[0]["item"];
+
+			return (
+				<Fragment key={runGroup.id}>
+					{headItems.map((sub, i) => renderRunItem(sub, i))}
+					{hiddenItems.length > 0 && !isExpanded && (
+						<TimelineItemWrapper
+							item={collapsedMockItem}
+							availableUsers={availableUsers}
+							icon={IconChevronsDown}
+							color="bg-accent text-primary-foreground"
+							showSeparator={true}
+							hideTimestamp={true}
+						>
+							<button
+								type="button"
+								onClick={() => expandRun(runGroup.id)}
+								className="text-left hover:text-foreground transition-colors cursor-pointer"
+							>
+								Show {hiddenItems.length} event{hiddenItems.length === 1 ? "" : "s"}
+							</button>
+						</TimelineItemWrapper>
+					)}
+					{isExpanded && hiddenItems.map((sub, i) => renderRunItem(sub, headCount + i))}
+					{visibleTailItems.map((sub, i) => renderRunItem(sub, totalCount - tailCount + i))}
+				</Fragment>
+			);
+		}
+
 		if ("items" in item) {
 			return (
 				<ConsolidatedTimelineItem
@@ -303,6 +383,7 @@ export default function GlobalTimeline({
 					consolidatedItem={item}
 					labels={labels}
 					availableUsers={availableUsers}
+					tasks={tasks}
 					showSeparator={showSeparator}
 					organization={organization}
 				/>
@@ -331,29 +412,29 @@ export default function GlobalTimeline({
 				blockedUserIds={blockedUserIds}
 				{...(isComment
 					? {
-						onReply: () => toggleThread(item.id),
-						footer:
-							replyCount > 0 || isThreadExpanded ? (
-								<>
-									<CommentThreadTrigger
-										replyCount={replyCount}
-										replyAuthors={replyAuthors}
-										expanded={isThreadExpanded}
-										onToggle={() => toggleThread(item.id)}
-									/>
-									{isThreadExpanded && (
-										<CommentThreadBody
-											parentComment={item}
-											availableUsers={availableUsers}
-											categories={categories}
-											tasks={tasks}
-											organization={organization}
-											blockedUserIds={blockedUserIds}
+							onReply: () => toggleThread(item.id),
+							footer:
+								replyCount > 0 || isThreadExpanded ? (
+									<>
+										<CommentThreadTrigger
+											replyCount={replyCount}
+											replyAuthors={replyAuthors}
+											expanded={isThreadExpanded}
+											onToggle={() => toggleThread(item.id)}
 										/>
-									)}
-								</>
-							) : undefined,
-					}
+										{isThreadExpanded && (
+											<CommentThreadBody
+												parentComment={item}
+												availableUsers={availableUsers}
+												categories={categories}
+												tasks={tasks}
+												organization={organization}
+												blockedUserIds={blockedUserIds}
+											/>
+										)}
+									</>
+								) : undefined,
+						}
 					: {})}
 			/>
 		);

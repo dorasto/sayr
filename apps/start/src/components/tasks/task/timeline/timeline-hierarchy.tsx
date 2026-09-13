@@ -1,20 +1,20 @@
+import type { schema } from "@repo/database";
 import { cn } from "@repo/ui/lib/utils";
 import { formatTaskKey, getDisplayName } from "@repo/util";
-import type { TaskDetailOrganization } from "../../types";
 import {
-	IconArrowUpRight,
 	IconArrowDownRight,
-	IconLink,
-	IconLinkOff,
+	IconArrowUpRight,
 	IconCopy,
 	IconForbidFilled,
+	IconLink,
+	IconLinkOff,
 } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
 import { statusConfig } from "../../shared/config";
 import { InlineLabel } from "../../shared/inlinelabel";
+import type { TaskDetailOrganization } from "../../types";
 import { TimelineItemWrapper } from "./base";
 import type { TimelineItemProps } from "./types";
-import type { schema } from "@repo/database";
 
 /* -------------------------------------------------------------------------- */
 /*                               Shared helpers                               */
@@ -29,7 +29,7 @@ function taskStatusIcon(
 	return cfg ? cfg.icon(cn(cfg.className, "h-3.5 w-3.5")) : <FallbackIcon size={12} />;
 }
 
-function TaskLink({
+export function TaskLink({
 	task,
 	FallbackIcon,
 	organization,
@@ -193,7 +193,7 @@ export function TimelineSubtaskRemoved({
 /*                         Relation Added / Removed                           */
 /* -------------------------------------------------------------------------- */
 
-const RELATION_TYPE_CONFIG: Record<
+export const RELATION_TYPE_CONFIG: Record<
 	string,
 	{ label: string; icon: React.ComponentType<{ size?: number; className?: string }>; className?: string }
 > = {
@@ -202,7 +202,7 @@ const RELATION_TYPE_CONFIG: Record<
 	duplicate: { label: "duplicate of", icon: IconCopy, className: "text-muted-foreground" },
 };
 
-function parseRelationValue(value: unknown): { type?: string; relatedTaskId?: string } | null {
+export function parseRelationValue(value: unknown): { type?: string; relatedTaskId?: string } | null {
 	if (!value) return null;
 	if (typeof value === "object") return value as { type?: string; relatedTaskId?: string };
 	if (typeof value === "string") {

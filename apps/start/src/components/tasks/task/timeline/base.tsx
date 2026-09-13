@@ -41,6 +41,7 @@ export function TimelineItemWrapper({
 	footer,
 	isReply,
 	blockedUserIds,
+	hideTimestamp = false,
 }: TimelineItemWrapperProps & {
 	onReactionToggle?: (emoji: ReactionEmoji) => void;
 	footer?: React.ReactNode;
@@ -73,17 +74,23 @@ export function TimelineItemWrapper({
 					)}
 					<TimelineTitle className="mt-0.5">
 						<Label variant={"description"} className="text-muted-foreground items-center flex flex-wrap gap-2">
-							<span>{children}</span>·{/*{!item.content && (*/}
-							<Tooltip delayDuration={500}>
-								<TooltipTrigger asChild>
-									<Label variant={"description"} className="text-muted-foreground">
-										{" "}
-										{formatDateTimeFromNow(item.createdAt as Date)}
-									</Label>
-								</TooltipTrigger>
-								<TooltipContent side="top">{formatDateTime(item.createdAt as Date)}</TooltipContent>
-							</Tooltip>
-							{/*)}*/}
+							<span>{children}</span>
+							{!hideTimestamp && (
+								<>
+									·
+									<Tooltip delayDuration={500}>
+										<TooltipTrigger
+											render={
+												<Label variant={"description"} className="text-muted-foreground">
+													{" "}
+													{formatDateTimeFromNow(item.createdAt as Date)}
+												</Label>
+											}
+										/>
+										<TooltipContent side="top">{formatDateTime(item.createdAt as Date)}</TooltipContent>
+									</Tooltip>
+								</>
+							)}
 						</Label>
 					</TimelineTitle>
 
@@ -158,12 +165,14 @@ export function TimelineItemWrapper({
 											)}
 
 											<Tooltip delayDuration={500}>
-												<TooltipTrigger asChild>
-													<Label variant={"description"} className="text-muted-foreground">
-														{" "}
-														{formatDateTimeFromNow(item.createdAt as Date)}
-													</Label>
-												</TooltipTrigger>
+												<TooltipTrigger
+													render={
+														<Label variant={"description"} className="text-muted-foreground">
+															{" "}
+															{formatDateTimeFromNow(item.createdAt as Date)}
+														</Label>
+													}
+												/>
 												<TooltipContent side="top">{formatDateTime(item.createdAt as Date)}</TooltipContent>
 											</Tooltip>
 										</div>
@@ -186,21 +195,19 @@ export function TimelineItemWrapper({
 								)}
 								{item.visibility === "internal" && (
 									<Tooltip delayDuration={0}>
-										<TooltipTrigger asChild>
-											<Button
-												variant="ghost"
-												size="icon"
-												className="p-1 h-auto w-auto aspect-square data-[state=open]:bg-accent"
-											>
-												<IconLock size={16} />
-											</Button>
-											{/*<Badge
-                        variant={"secondary"}
-                        className="w-fit bg-transparent pointer-events-none rounded-lg gap-1 text-sm"
-                      >
-                        <IconLock className="size-4" />
-                      </Badge>*/}
-										</TooltipTrigger>
+										<TooltipTrigger
+											// Dropped a dead commented-out Badge fallback that used to sit alongside
+											// this Button; the ghost-icon Button is the only real trigger.
+											render={
+												<Button
+													variant="ghost"
+													size="icon"
+													className="p-1 h-auto w-auto aspect-square data-[state=open]:bg-accent"
+												>
+													<IconLock size={16} />
+												</Button>
+											}
+										/>
 										<TooltipContent side="top">
 											<p>This is an internal comment. Only team members can see it.</p>
 										</TooltipContent>
