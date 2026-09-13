@@ -56,29 +56,25 @@ export const basicGithubSchema = new Schema({
 			},
 		},
 
-		bulletList: {
-			group: "block",
-			content: "listItem+",
-			toDOM() {
-				return ["ul", 0];
-			},
-		},
-
-		orderedList: {
-			group: "block",
-			content: "listItem+",
+		// Matches @prosekit/extensions/list's real node spec (backed by
+		// prosemirror-flat-list) — the actual editor's schema (see
+		// apps/worker/prosekit/schema.ts) has a single flat "list" node with
+		// no separate "bulletList"/"orderedList"/"listItem" wrapper; nested
+		// lists are just adjacent "list" nodes inside a parent list's content.
+		// This must stay structurally identical or NodeJSON produced here
+		// (see markdownToProsekit.ts) fails with "Unknown node type" when the
+		// frontend editor tries to load it.
+		list: {
+			group: "list block",
+			content: "block+",
 			attrs: {
-				start: { default: 1 },
+				kind: { default: "bullet" }, // "bullet" | "ordered" | "task" | "toggle"
+				order: { default: null },
+				checked: { default: false },
+				collapsed: { default: false },
 			},
 			toDOM(node) {
-				return ["ol", node.attrs.start === 1 ? {} : { start: node.attrs.start }, 0];
-			},
-		},
-
-		listItem: {
-			content: "block+",
-			toDOM() {
-				return ["li", 0];
+				return node.attrs.kind === "ordered" ? ["ol", { start: node.attrs.order }, 0] : ["ul", 0];
 			},
 		},
 

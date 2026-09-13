@@ -1,10 +1,12 @@
-//@ts-expect-error
-import MarkdownIt from "markdown-it";
-import { MarkdownParser } from "prosemirror-markdown";
 import type { schema } from "@repo/database";
 import { db } from "@repo/database";
 import { formatTaskKey } from "@repo/util";
 import { and, eq, inArray } from "drizzle-orm";
+// @ts-expect-error
+import MarkdownIt from "markdown-it";
+// @ts-expect-error — markdown-it's Token type has no declarations either
+import type Token from "markdown-it/lib/token.mjs";
+import { MarkdownParser } from "prosemirror-markdown";
 import { basicGithubSchema } from "./basicGithubSchema";
 
 /**
@@ -18,6 +20,55 @@ const md = new MarkdownIt({
 	linkify: true,
 	breaks: true,
 });
+
+/**
+ * The real editor schema (prosemirror-flat-list, via @prosekit/extensions/list)
+ * has one flat "list" node per *item*, with no shared wrapper for the whole
+ * bullet/ordered list and no separate list-item node — see the doc comment
+ * on the `list` node in ./basicGithubSchema.ts. markdown-it's
+ * `list_item_open` tokens don't carry which kind of list they're in or
+ * their position within it, so this walks a parse's full token stream once
+ * (tracking open bullet_list/ordered_list scopes on a stack) to compute
+ * each list_item's {kind, order} up front. Cached per token-array reference
+ * (one entry per `.parse()` call) so it only runs once per document, not
+ * once per list item. Mirrors apps/backend/prosekit/parser.ts verbatim.
+ */
+const listItemAttrsCache = new WeakMap<Token[], Map<number, { kind: "bullet" | "ordered"; order?: number }>>();
+
+function computeListItemAttrs(tokens: Token[]): Map<number, { kind: "bullet" | "ordered"; order?: number }> {
+	const attrsByIndex = new Map<number, { kind: "bullet" | "ordered"; order?: number }>();
+	const stack: { kind: "bullet" | "ordered"; nextOrder: number }[] = [];
+	for (let i = 0; i < tokens.length; i++) {
+		const tok = tokens[i];
+		if (tok.type === "bullet_list_open") {
+			stack.push({ kind: "bullet", nextOrder: 1 });
+		} else if (tok.type === "ordered_list_open") {
+			const start = tok.attrGet("start") ? Number(tok.attrGet("start")) : 1;
+			stack.push({ kind: "ordered", nextOrder: start });
+		} else if (tok.type === "bullet_list_close" || tok.type === "ordered_list_close") {
+			stack.pop();
+		} else if (tok.type === "list_item_open") {
+			const ctx = stack[stack.length - 1];
+			if (ctx) {
+				attrsByIndex.set(
+					i,
+					ctx.kind === "ordered" ? { kind: "ordered", order: ctx.nextOrder++ } : { kind: "bullet" }
+				);
+			}
+		}
+	}
+	return attrsByIndex;
+}
+
+function getListItemAttrs(tokens: Token[], i: number): { kind: "bullet" | "ordered"; order?: number } {
+	let attrsByIndex = listItemAttrsCache.get(tokens);
+	if (!attrsByIndex) {
+		attrsByIndex = computeListItemAttrs(tokens);
+		listItemAttrsCache.set(tokens, attrsByIndex);
+	}
+	return attrsByIndex.get(i) ?? { kind: "bullet" };
+}
+
 /**
  * Markdown → ProseKit (ProseMirror) parser
  */
@@ -35,16 +86,15 @@ const prosekitMarkdownParser = new MarkdownParser(basicGithubSchema, md, {
 		}),
 	},
 
-	bullet_list: { block: "bulletList" },
+	// The whole-list wrapper tokens don't map to anything — each item
+	// becomes its own "list" node instead (see getListItemAttrs above).
+	bullet_list: { ignore: true },
+	ordered_list: { ignore: true },
 
-	ordered_list: {
-		block: "orderedList",
-		getAttrs: (tok) => ({
-			start: tok.attrGet("start") ? Number(tok.attrGet("start")) : 1,
-		}),
+	list_item: {
+		block: "list",
+		getAttrs: (_tok, tokens, i) => getListItemAttrs(tokens, i),
 	},
-
-	list_item: { block: "listItem" },
 
 	fence: {
 		block: "codeBlock",
