@@ -73,6 +73,7 @@ export async function listLabels(input: RpcInput<typeof listLabelsRpc>): Promise
 export async function createLabel(input: RpcInput<typeof createLabelRpc>): Promise<RpcOutput<typeof createLabelRpc>> {
 	const args = ["labels", "create", input.name, "--org", input.orgSlug];
 	if (input.color) args.push("--color", input.color);
+	if (input.visible) args.push("--visibility", input.visible);
 	return sayrJson<LabelInfo>(args);
 }
 

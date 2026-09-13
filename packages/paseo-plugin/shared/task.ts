@@ -300,7 +300,12 @@ export const listLabelsRpc = defineRpc({
  */
 export const createLabelRpc = defineRpc({
 	name: "sayr.label.create",
-	input: z.object({ orgSlug: z.string(), name: z.string().min(1), color: z.string().optional() }),
+	input: z.object({
+		orgSlug: z.string(),
+		name: z.string().min(1),
+		color: z.string().optional(),
+		visible: z.enum(["public", "private"]).optional(),
+	}),
 	output: LabelInfoSchema,
 });
 

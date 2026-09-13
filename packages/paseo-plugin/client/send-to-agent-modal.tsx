@@ -1,8 +1,8 @@
 import { usePaseo, useRpc } from "@getpaseo/plugin/client";
-import { Modal, TextInput, useToast } from "@getpaseo/plugin/client/react-native";
+import { Icon, Modal, TextInput, useToast } from "@getpaseo/plugin/client/react-native";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
-import { Pressable, ScrollView, Text } from "react-native";
+import { Platform, Pressable, ScrollView, Text } from "react-native";
 import { getSettingsRpc } from "../shared/settings";
 import type { CategoryInfo, TaskDetail } from "../shared/task";
 import { buildAgentPrompt } from "./agent-prompt";
@@ -14,6 +14,11 @@ import type { Navigation, Theme } from "./types";
  * "Additional instructions" — prefilled from the plugin's settings
  * (`sayr.settings.set-agent-instructions`) but freely editable here before
  * anything is actually sent, per-send rather than only ever the fixed default.
+ *
+ * A collapsible "Preview full prompt" box shows the exact string that will
+ * be sent — literally `previewPrompt`, the same variable `sendTo` uses, not
+ * a separate approximation — so what you review is guaranteed to be what
+ * ships, without needing to actually start an agent to find out.
  */
 export function SendToAgentModal({
 	theme,
@@ -33,6 +38,7 @@ export function SendToAgentModal({
 	const getSettings = useRpc(getSettingsRpc);
 	const [sending, setSending] = useState<string | null>(null);
 	const [instructions, setInstructions] = useState("");
+	const [previewOpen, setPreviewOpen] = useState(false);
 	const { data: projects, isLoading } = useQuery({
 		queryKey: ["sayr", "projects"],
 		queryFn: () => paseo.projects.list(),
@@ -48,6 +54,15 @@ export function SendToAgentModal({
 	useEffect(() => {
 		if (settings) setInstructions(settings.defaultAgentInstructions);
 	}, [settings]);
+
+	// Recomputed on every keystroke — it's pure string building, no RPC
+	// involved, so there's no reason to gate it behind opening the preview.
+	// This is exactly the prompt `sendTo` below will actually send, not an
+	// approximation of it — same function, same arguments.
+	const previewPrompt = useMemo(
+		() => buildAgentPrompt(task, { categories, additionalInstructions: instructions }),
+		[task, categories, instructions]
+	);
 
 	const styles = useMemo(
 		() => ({
@@ -77,6 +92,28 @@ export function SendToAgentModal({
 				fontWeight: "600" as const,
 				marginBottom: 6,
 			},
+			previewToggle: {
+				flexDirection: "row" as const,
+				alignItems: "center" as const,
+				gap: 6,
+				marginBottom: 8,
+			},
+			previewToggleText: { color: theme.colors.foregroundMuted, fontSize: 12, fontWeight: "600" as const },
+			previewBox: {
+				borderWidth: 1,
+				borderColor: theme.colors.border,
+				borderRadius: 6,
+				backgroundColor: theme.colors.surface1,
+				padding: 10,
+				maxHeight: 220,
+				marginBottom: 16,
+			},
+			previewText: {
+				color: theme.colors.foreground,
+				fontSize: 12,
+				lineHeight: 17,
+				fontFamily: Platform.select({ ios: "Menlo", android: "monospace", default: "monospace" }),
+			},
 		}),
 		[theme]
 	);
@@ -93,7 +130,9 @@ export function SendToAgentModal({
 				return;
 			}
 			const model = ready.models.find((m) => m.isDefault) ?? ready.models[0];
-			const prompt = buildAgentPrompt(task, { categories, additionalInstructions: instructions });
+			// The exact same string the preview box shows — not recomputed here,
+			// so there's no way for what's sent to drift from what was reviewed.
+			const prompt = previewPrompt;
 			const title = `Sayr #${task.shortId ?? task.id}: ${(task.title ?? "").slice(0, 60)}`;
 
 			const workspace = await paseo.workspaces.create({
@@ -127,6 +166,29 @@ export function SendToAgentModal({
 					placeholder="Anything extra the agent should know, beyond the task itself…"
 					multiline
 				/>
+
+				<Pressable
+					accessibilityRole="button"
+					accessibilityLabel={previewOpen ? "Hide full prompt preview" : "Show full prompt preview"}
+					style={styles.previewToggle}
+					onPress={() => setPreviewOpen((v) => !v)}
+				>
+					<Icon
+						name={previewOpen ? "ChevronDown" : "ChevronRight"}
+						size={14}
+						color={theme.colors.foregroundMuted}
+					/>
+					<Text style={styles.previewToggleText}>
+						{previewOpen ? "Hide" : "Preview"} full prompt ({previewPrompt.length} chars)
+					</Text>
+				</Pressable>
+				{previewOpen && (
+					<ScrollView style={styles.previewBox}>
+						<Text style={styles.previewText} selectable>
+							{previewPrompt}
+						</Text>
+					</ScrollView>
+				)}
 
 				<Text style={styles.projectsLabel}>Project</Text>
 				{isLoading && <Text style={styles.empty}>Loading projects…</Text>}

@@ -28,10 +28,11 @@ export function LabelDropdown({
 	selectedIds: string[];
 	onChange: (labelIds: string[]) => void;
 	/** Returns the created (or matching existing) label on success, `null` on failure — the caller already surfaced the error (e.g. a toast). */
-	onCreateLabel: (name: string) => Promise<LabelInfo | null>;
+	onCreateLabel: (name: string, visible: "public" | "private") => Promise<LabelInfo | null>;
 }) {
 	const [open, setOpen] = useState(false);
 	const [newLabelName, setNewLabelName] = useState("");
+	const [newLabelVisible, setNewLabelVisible] = useState<"public" | "private">("public");
 	const [creating, setCreating] = useState(false);
 	const selected = new Set(selectedIds);
 	const selectedLabels = labels.filter((l) => selected.has(l.id));
@@ -82,6 +83,17 @@ export function LabelDropdown({
 				backgroundColor: theme.colors.surface0,
 				fontSize: 13,
 			},
+			visibilityToggle: {
+				flexDirection: "row" as const,
+				alignItems: "center" as const,
+				gap: 4,
+				borderWidth: 1,
+				borderColor: theme.colors.border,
+				borderRadius: 6,
+				paddingVertical: 6,
+				paddingHorizontal: 8,
+			},
+			visibilityToggleText: { color: theme.colors.foregroundMuted, fontSize: 11 },
 		}),
 		[theme]
 	);
@@ -91,10 +103,11 @@ export function LabelDropdown({
 		if (!name) return;
 		setCreating(true);
 		try {
-			const created = await onCreateLabel(name);
+			const created = await onCreateLabel(name, newLabelVisible);
 			if (created) {
 				onChange([...selected, created.id]);
 				setNewLabelName("");
+				setNewLabelVisible("public");
 			}
 		} finally {
 			setCreating(false);
@@ -153,6 +166,26 @@ export function LabelDropdown({
 							autoCorrect={false}
 							editable={!creating}
 						/>
+						<Pressable
+							accessibilityRole="button"
+							accessibilityLabel={
+								newLabelVisible === "private"
+									? "New label will be private — tap to make it public"
+									: "New label will be public — tap to make it private"
+							}
+							onPress={() => setNewLabelVisible((v) => (v === "private" ? "public" : "private"))}
+							disabled={creating}
+							style={styles.visibilityToggle}
+						>
+							<Icon
+								name={newLabelVisible === "private" ? "Lock" : "Globe"}
+								size={14}
+								color={theme.colors.foregroundMuted}
+							/>
+							<Text style={styles.visibilityToggleText}>
+								{newLabelVisible === "private" ? "Private" : "Public"}
+							</Text>
+						</Pressable>
 						<Pressable
 							accessibilityRole="button"
 							accessibilityLabel="Create label"

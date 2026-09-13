@@ -130,9 +130,9 @@ export function TaskDetailBody({
 	}
 
 	/** Surfaces a permission error (or any other failure) as a toast and returns `null` — `LabelDropdown` only reacts to whether this succeeded, it doesn't pre-check access itself. */
-	async function onCreateLabel(name: string) {
+	async function onCreateLabel(name: string, visible: "public" | "private") {
 		try {
-			const created = await createLabel({ orgSlug, name });
+			const created = await createLabel({ orgSlug, name, visible });
 			await queryClient.invalidateQueries({ queryKey: ["sayr", "labels", orgSlug] });
 			return created;
 		} catch (err) {
