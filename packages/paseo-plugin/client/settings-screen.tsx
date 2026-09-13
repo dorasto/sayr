@@ -4,29 +4,48 @@ import { TextInput, useToast } from "@getpaseo/plugin/client/react-native";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { Pressable, Text, View } from "react-native";
-import { getSettingsRpc, setAgentInstructionsRpc, setCliBinRpc } from "../shared/settings";
+import { getSettingsRpc, setAgentInstructionsRpc, setCliBinRpc, setWebUrlTemplateRpc } from "../shared/settings";
+import { getCliConfigRpc } from "../shared/task";
+import { deriveTaskWebUrl } from "../shared/web-url";
 
 const QUICK_PICKS = ["sayr", "sayr-local"];
+/** Purely illustrative — shows what the auto-derivation actually produces for this install's configured API, without needing a real org/task in context (this screen isn't scoped to one). */
+const EXAMPLE_ORG_SLUG = "platform";
+const EXAMPLE_SHORT_ID = 71;
 
 export function SayrSettingsScreen({ theme, layout }: PluginSurfaceProps) {
 	const getSettings = useRpc(getSettingsRpc);
 	const setCliBin = useRpc(setCliBinRpc);
 	const setAgentInstructions = useRpc(setAgentInstructionsRpc);
+	const setWebUrlTemplate = useRpc(setWebUrlTemplateRpc);
+	const getCliConfig = useRpc(getCliConfigRpc);
 	const toast = useToast();
 	const { data, refetch } = useQuery({
 		queryKey: ["sayr", "settings"],
 		queryFn: () => getSettings({}),
 	});
+	const cliConfigQuery = useQuery({ queryKey: ["sayr", "cli-config"], queryFn: () => getCliConfig({}) });
 	const [cliBin, setCliBinValue] = useState("");
 	const [instructions, setInstructions] = useState("");
+	const [webUrlTemplate, setWebUrlTemplateValue] = useState("");
 	const [savingCliBin, setSavingCliBin] = useState(false);
 	const [savingInstructions, setSavingInstructions] = useState(false);
+	const [savingWebUrlTemplate, setSavingWebUrlTemplate] = useState(false);
 
 	useEffect(() => {
 		if (!data) return;
 		setCliBinValue(data.cliBin);
 		setInstructions(data.defaultAgentInstructions);
+		setWebUrlTemplateValue(data.webUrlTemplate);
 	}, [data]);
+
+	const derivedExample = cliConfigQuery.data
+		? deriveTaskWebUrl({
+				baseApiUrl: cliConfigQuery.data.baseUrl,
+				orgSlug: EXAMPLE_ORG_SLUG,
+				shortId: EXAMPLE_SHORT_ID,
+			})
+		: undefined;
 
 	const styles = useMemo(
 		() => ({
@@ -43,6 +62,7 @@ export function SayrSettingsScreen({ theme, layout }: PluginSurfaceProps) {
 				fontWeight: "600" as const,
 			},
 			help: { color: theme.colors.foregroundMuted, fontSize: 13 },
+			example: { color: theme.colors.foregroundMuted, fontSize: 12, fontFamily: "monospace" as const },
 			input: {
 				borderWidth: 1,
 				borderColor: theme.colors.border,
@@ -111,6 +131,19 @@ export function SayrSettingsScreen({ theme, layout }: PluginSurfaceProps) {
 		}
 	}
 
+	async function saveWebUrlTemplate() {
+		setSavingWebUrlTemplate(true);
+		try {
+			await setWebUrlTemplate({ webUrlTemplate });
+			await refetch();
+			toast.show("Saved.", { variant: "success" });
+		} catch (err) {
+			toast.error(err instanceof Error ? err.message : "Failed to save.");
+		} finally {
+			setSavingWebUrlTemplate(false);
+		}
+	}
+
 	return (
 		<View style={styles.screen}>
 			<Text style={styles.label}>CLI binary</Text>
@@ -163,6 +196,34 @@ export function SayrSettingsScreen({ theme, layout }: PluginSurfaceProps) {
 					disabled={savingInstructions}
 				>
 					<Text style={styles.buttonText}>{savingInstructions ? "Saving…" : "Save"}</Text>
+				</Pressable>
+			</View>
+
+			<View style={styles.section}>
+				<Text style={styles.label}>Web app URL override</Text>
+				<Text style={styles.help}>
+					"Open on Sayr" normally derives the web URL automatically from your CLI's configured API address (
+					{`api.<domain>`} → {`<org>.<domain>`}, or {`<org>.app.localhost:3000`} for `sayr-local`). Leave this
+					blank unless that guess is wrong for your setup — a self-hosted instance with a different domain scheme,
+					for example. Supports {`{org}`} and {`{shortId}`} placeholders, e.g.{" "}
+					{`https://tasks.example.com/{org}/{shortId}`}.
+				</Text>
+				{derivedExample && <Text style={styles.example}>Currently auto-derives to, e.g.: {derivedExample}</Text>}
+				<TextInput
+					value={webUrlTemplate}
+					onChangeText={setWebUrlTemplateValue}
+					style={styles.input}
+					placeholder="Leave blank to auto-derive"
+					autoCapitalize="none"
+					autoCorrect={false}
+				/>
+				<Pressable
+					accessibilityRole="button"
+					style={styles.button}
+					onPress={saveWebUrlTemplate}
+					disabled={savingWebUrlTemplate}
+				>
+					<Text style={styles.buttonText}>{savingWebUrlTemplate ? "Saving…" : "Save"}</Text>
 				</Pressable>
 			</View>
 		</View>

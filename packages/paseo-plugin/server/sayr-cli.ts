@@ -24,14 +24,16 @@ export async function readSettings(): Promise<SayrSettings> {
 		const record = typeof parsed === "object" && parsed !== null ? (parsed as Record<string, unknown>) : {};
 		const cliBin = record.cliBin;
 		const defaultAgentInstructions = record.defaultAgentInstructions;
+		const webUrlTemplate = record.webUrlTemplate;
 		return {
 			cliBin: typeof cliBin === "string" && cliBin.trim() !== "" ? cliBin.trim() : DEFAULT_CLI_BIN,
 			defaultAgentInstructions: typeof defaultAgentInstructions === "string" ? defaultAgentInstructions : "",
+			webUrlTemplate: typeof webUrlTemplate === "string" ? webUrlTemplate : "",
 		};
 	} catch {
 		// No settings file yet, or one that's no longer parseable — either way,
 		// the default (production `sayr`) is always a safe fallback.
-		return { cliBin: DEFAULT_CLI_BIN, defaultAgentInstructions: "" };
+		return { cliBin: DEFAULT_CLI_BIN, defaultAgentInstructions: "", webUrlTemplate: "" };
 	}
 }
 

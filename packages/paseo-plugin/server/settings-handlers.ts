@@ -1,5 +1,11 @@
 import type { RpcInput } from "@getpaseo/plugin";
-import type { getSettingsRpc, SayrSettings, setAgentInstructionsRpc, setCliBinRpc } from "../shared/settings";
+import type {
+	getSettingsRpc,
+	SayrSettings,
+	setAgentInstructionsRpc,
+	setCliBinRpc,
+	setWebUrlTemplateRpc,
+} from "../shared/settings";
 import { readSettings, writeSettings } from "./sayr-cli";
 
 export async function getSettings(_input: RpcInput<typeof getSettingsRpc>): Promise<SayrSettings> {
@@ -17,6 +23,13 @@ export async function setCliBin(input: RpcInput<typeof setCliBinRpc>): Promise<S
 export async function setAgentInstructions(input: RpcInput<typeof setAgentInstructionsRpc>): Promise<SayrSettings> {
 	const current = await readSettings();
 	const next = { ...current, defaultAgentInstructions: input.defaultAgentInstructions };
+	await writeSettings(next);
+	return next;
+}
+
+export async function setWebUrlTemplate(input: RpcInput<typeof setWebUrlTemplateRpc>): Promise<SayrSettings> {
+	const current = await readSettings();
+	const next = { ...current, webUrlTemplate: input.webUrlTemplate.trim() };
 	await writeSettings(next);
 	return next;
 }

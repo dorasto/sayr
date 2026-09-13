@@ -318,6 +318,25 @@ export const getMeRpc = defineRpc({
 	output: MeSchema,
 });
 
+/**
+ * The CLI's resolved connection config (`sayr config get --json`) — `baseUrl`
+ * powers "Open on Sayr" (`shared/web-url.ts`'s `deriveTaskWebUrl`). Never
+ * carries the token itself, not even truncated — see `config.ts`'s own
+ * `--json` handler.
+ */
+export const CliConfigSchema = z.looseObject({
+	baseUrl: z.string(),
+	defaultOrg: z.string().nullable().optional(),
+	hasToken: z.boolean(),
+});
+export type CliConfig = z.output<typeof CliConfigSchema>;
+
+export const getCliConfigRpc = defineRpc({
+	name: "sayr.config.get",
+	input: z.object({}),
+	output: CliConfigSchema,
+});
+
 export const listTasksRpc = defineRpc({
 	name: "sayr.task.list",
 	input: z.object({}),

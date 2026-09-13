@@ -1,8 +1,10 @@
 import type { RpcInput, RpcOutput } from "@getpaseo/plugin";
 import type {
 	CategoryInfo,
+	CliConfig,
 	createCommentRpc,
 	createLabelRpc,
+	getCliConfigRpc,
 	getMeRpc,
 	getTaskRpc,
 	LabelInfo,
@@ -48,6 +50,12 @@ export async function listReleases(
 
 export async function getMe(_input: RpcInput<typeof getMeRpc>): Promise<RpcOutput<typeof getMeRpc>> {
 	return sayrJson<Me>(["whoami"]);
+}
+
+export async function getCliConfig(
+	_input: RpcInput<typeof getCliConfigRpc>
+): Promise<RpcOutput<typeof getCliConfigRpc>> {
+	return sayrJson<CliConfig>(["config", "get"]);
 }
 
 export async function listLabels(input: RpcInput<typeof listLabelsRpc>): Promise<RpcOutput<typeof listLabelsRpc>> {

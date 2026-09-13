@@ -1,8 +1,9 @@
 import type { PluginServerContext } from "@getpaseo/plugin/server";
-import { getSettings, setAgentInstructions, setCliBin } from "./server/settings-handlers";
+import { getSettings, setAgentInstructions, setCliBin, setWebUrlTemplate } from "./server/settings-handlers";
 import {
 	createComment,
 	createLabel,
+	getCliConfig,
 	getMe,
 	getTask,
 	listCategories,
@@ -17,10 +18,11 @@ import {
 	updateTaskPriority,
 	updateTaskStatus,
 } from "./server/task-handlers";
-import { getSettingsRpc, setAgentInstructionsRpc, setCliBinRpc } from "./shared/settings";
+import { getSettingsRpc, setAgentInstructionsRpc, setCliBinRpc, setWebUrlTemplateRpc } from "./shared/settings";
 import {
 	createCommentRpc,
 	createLabelRpc,
+	getCliConfigRpc,
 	getMeRpc,
 	getTaskRpc,
 	listCategoriesRpc,
@@ -43,6 +45,7 @@ export default function contribute(server: PluginServerContext) {
 	server.handle(listLabelsRpc, listLabels);
 	server.handle(createLabelRpc, createLabel);
 	server.handle(getMeRpc, getMe);
+	server.handle(getCliConfigRpc, getCliConfig);
 	server.handle(listTasksRpc, listTasks);
 	server.handle(getTaskRpc, getTask);
 	server.handle(listCommentsRpc, listComments);
@@ -55,5 +58,6 @@ export default function contribute(server: PluginServerContext) {
 	server.handle(getSettingsRpc, getSettings);
 	server.handle(setCliBinRpc, setCliBin);
 	server.handle(setAgentInstructionsRpc, setAgentInstructions);
+	server.handle(setWebUrlTemplateRpc, setWebUrlTemplate);
 	return () => {};
 }
