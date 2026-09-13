@@ -4,9 +4,19 @@ import { useMemo, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { createCommentRpc, listCommentsRpc, type TaskComment } from "../shared/task";
 import { CommentRow } from "./comment-row";
+import type { MentionResolvers } from "./prosekit-view";
 import type { Theme } from "./types";
 
-/** The task detail sheet's comment thread: the list (paginated, "load more"), plus a composer to post a new one. */
+/**
+ * The task detail sheet's comment thread — oldest at the top, newest at the
+ * bottom, composer pinned below the list, matching the real web app's actual
+ * timeline (`apps/start/src/components/tasks/task/timeline/root.tsx`: an
+ * ascending `createdAt` sort with the composer in a `mt-auto` wrapper below
+ * it). The API itself returns comments newest-first (`getTaskComments`'s own
+ * `orderBy: desc(createdAt)`, shared with the CLI) — reversed here for
+ * display, and "load more" (an *older* page) is prepended above what's
+ * already shown rather than appended, so the whole list stays chronological.
+ */
 export function CommentsSection({
 	theme,
 	taskId,
@@ -14,6 +24,7 @@ export function CommentsSection({
 	initialComments,
 	initialTotal,
 	onPosted,
+	resolvers,
 }: {
 	theme: Theme;
 	taskId: string;
@@ -21,11 +32,13 @@ export function CommentsSection({
 	initialComments: TaskComment[];
 	initialTotal: number;
 	onPosted: () => Promise<void>;
+	resolvers?: MentionResolvers;
 }) {
 	const listComments = useRpc(listCommentsRpc);
 	const createComment = useRpc(createCommentRpc);
 	const toast = useToast();
-	const [comments, setComments] = useState(initialComments);
+	// Oldest-first from the start — the API/CLI hand back newest-first pages.
+	const [comments, setComments] = useState(() => [...initialComments].reverse());
 	const [total, setTotal] = useState(initialTotal);
 	const [page, setPage] = useState(1);
 	const [loadingMore, setLoadingMore] = useState(false);
@@ -35,7 +48,7 @@ export function CommentsSection({
 	const styles = useMemo(
 		() => ({
 			empty: { color: theme.colors.foregroundMuted, fontSize: 13 },
-			more: { color: theme.colors.accent, fontSize: 13, marginTop: 8 },
+			more: { color: theme.colors.accent, fontSize: 13, marginBottom: 10 },
 			composerRow: { flexDirection: "row" as const, gap: 8, marginTop: 12, alignItems: "flex-end" as const },
 			input: {
 				flex: 1,
@@ -58,12 +71,14 @@ export function CommentsSection({
 		[theme]
 	);
 
-	async function loadMore() {
+	async function loadOlder() {
 		setLoadingMore(true);
 		try {
 			const next = page + 1;
 			const result = await listComments({ taskId, orgSlug, page: next });
-			setComments((prev) => [...prev, ...result.comments]);
+			// This page is itself newest-first; reverse it before prepending so
+			// the older batch reads oldest-to-newest same as the rest.
+			setComments((prev) => [...result.comments].reverse().concat(prev));
 			setPage(next);
 		} finally {
 			setLoadingMore(false);
@@ -78,7 +93,7 @@ export function CommentsSection({
 			await createComment({ taskId, orgSlug, content });
 			setDraft("");
 			const result = await listComments({ taskId, orgSlug, page: 1 });
-			setComments(result.comments);
+			setComments([...result.comments].reverse());
 			setTotal(result.pagination.totalItems);
 			setPage(1);
 			await onPosted();
@@ -91,15 +106,17 @@ export function CommentsSection({
 
 	return (
 		<View>
+			{comments.length < total && (
+				<Pressable accessibilityRole="button" onPress={loadOlder} disabled={loadingMore}>
+					<Text style={styles.more}>{loadingMore ? "Loading…" : "Load earlier comments"}</Text>
+				</Pressable>
+			)}
 			{comments.length === 0 ? (
 				<Text style={styles.empty}>No comments yet.</Text>
 			) : (
-				comments.map((comment) => <CommentRow key={comment.id} theme={theme} comment={comment} />)
-			)}
-			{comments.length < total && (
-				<Pressable accessibilityRole="button" onPress={loadMore} disabled={loadingMore}>
-					<Text style={styles.more}>{loadingMore ? "Loading…" : "Load more comments"}</Text>
-				</Pressable>
+				comments.map((comment) => (
+					<CommentRow key={comment.id} theme={theme} comment={comment} resolvers={resolvers} />
+				))
 			)}
 			<View style={styles.composerRow}>
 				<TextInput

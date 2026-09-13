@@ -105,7 +105,7 @@ export function BoardHeader({
 					noun="orgs"
 					open={openFilter === "org"}
 					onToggleOpen={() => setOpenFilter((current) => (current === "org" ? null : "org"))}
-					options={orgs.map((org) => ({ value: org.id, label: org.name }))}
+					options={orgs.map((org) => ({ value: org.id, label: org.name, imageUrl: org.logo ?? null }))}
 					hidden={hiddenOrgs}
 					onToggle={onToggleOrg}
 					onShowAll={() => onSetHiddenOrgs(new Set())}

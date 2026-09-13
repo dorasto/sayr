@@ -7,19 +7,19 @@ export default function contribute(client: PluginClientContext) {
 	client.addSidebarItem({
 		id: "board",
 		title: "Sayr",
-		icon: "SquareKanban",
+		icon: "Zap",
 		surface: "board",
 	});
 	client.addSettingsScreen({
 		id: "settings",
 		title: "Sayr",
-		icon: "SquareKanban",
+		icon: "Zap",
 		Component: SayrSettingsScreen,
 	});
 	client.addCommandCenterItem({
 		id: "open-board",
 		title: "Open Sayr tasks",
-		icon: "SquareKanban",
+		icon: "Zap",
 		keywords: ["sayr", "tasks", "board", "issues"],
 		context: "global",
 		onSelect({ openSurface }) {

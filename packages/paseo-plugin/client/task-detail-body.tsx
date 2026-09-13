@@ -3,12 +3,13 @@ import { useToast } from "@getpaseo/plugin/client/react-native";
 import { type UseQueryResult, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
-import { extractPlainText, type ProsekitNode } from "../shared/prosekit";
+import type { ProsekitNode } from "../shared/prosekit";
 import {
-	categoryName,
+	listCategoriesRpc,
 	listOrgsRpc,
 	PRIORITY_COLORS,
 	PRIORITY_LABELS,
+	resolveCategoryName,
 	STATUS_COLORS,
 	STATUS_LABELS,
 	setAssigneesRpc,
@@ -20,6 +21,7 @@ import {
 } from "../shared/task";
 import { AssigneeDropdown } from "./assignee-dropdown";
 import { CommentsSection } from "./comments-section";
+import { ProsekitView } from "./prosekit-view";
 import { SelectDropdown } from "./select-dropdown";
 import { SendToAgentModal } from "./send-to-agent-modal";
 import type { Navigation, Theme } from "./types";
@@ -42,12 +44,17 @@ export function TaskDetailBody({
 	const updatePriority = useRpc(updateTaskPriorityRpc);
 	const setAssignees = useRpc(setAssigneesRpc);
 	const listOrgsFn = useRpc(listOrgsRpc);
+	const listCategoriesFn = useRpc(listCategoriesRpc);
 	const queryClient = useQueryClient();
 	const toast = useToast();
 	const [sendOpen, setSendOpen] = useState(false);
 	const [savingField, setSavingField] = useState<"status" | "priority" | "assignees" | null>(null);
 
 	const orgsQuery = useQuery({ queryKey: ["sayr", "orgs"], queryFn: () => listOrgsFn({}) });
+	const categoriesQuery = useQuery({
+		queryKey: ["sayr", "categories", orgSlug],
+		queryFn: () => listCategoriesFn({ orgSlug }),
+	});
 	const data = query.data;
 
 	async function refresh() {
@@ -127,7 +134,9 @@ export function TaskDetailBody({
 				<View>
 					<Text style={styles.meta}>
 						#{data.shortId ?? "?"}
-						{categoryName(data.category) ? ` · ${categoryName(data.category)}` : ""}
+						{resolveCategoryName(data.category, categoriesQuery.data?.categories)
+							? ` · ${resolveCategoryName(data.category, categoriesQuery.data?.categories)}`
+							: ""}
 					</Text>
 
 					<View style={styles.section}>
@@ -185,7 +194,11 @@ export function TaskDetailBody({
 					{data.description ? (
 						<View style={styles.section}>
 							<Text style={styles.sectionTitle}>DESCRIPTION</Text>
-							<Text style={styles.body}>{extractPlainText(data.description as ProsekitNode)}</Text>
+							<ProsekitView
+								theme={theme}
+								doc={data.description as ProsekitNode}
+								resolvers={{ members: orgMembers, categories: categoriesQuery.data?.categories }}
+							/>
 						</View>
 					) : null}
 
@@ -214,6 +227,7 @@ export function TaskDetailBody({
 							initialComments={data.comments}
 							initialTotal={data.commentsTotal}
 							onPosted={refresh}
+							resolvers={{ members: orgMembers, categories: categoriesQuery.data?.categories }}
 						/>
 					</View>
 				</View>

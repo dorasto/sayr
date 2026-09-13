@@ -1,13 +1,16 @@
 import { Icon } from "@getpaseo/plugin/client/react-native";
 import { useMemo } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
+import { Avatar } from "./avatar";
 import type { Theme } from "./types";
 
 export interface FilterOption<T extends string> {
 	value: T;
 	label: string;
-	/** Optional swatch color, e.g. a priority's hex — omit for a plain checkbox row (orgs). */
+	/** Optional swatch color, e.g. a priority's hex — mutually exclusive with `imageUrl`. */
 	color?: string;
+	/** Optional avatar, e.g. an org's logo — mutually exclusive with `color`. */
+	imageUrl?: string | null;
 }
 
 /**
@@ -135,6 +138,16 @@ export function FilterDropdown<T extends string>({
 									<View style={[styles.checkbox, checked && styles.checkboxChecked]}>
 										{checked && <Icon name="Check" size={10} color={theme.colors.accentForeground} />}
 									</View>
+									{option.imageUrl !== undefined && (
+										<Avatar
+											theme={theme}
+											name={option.label}
+											imageUrl={option.imageUrl}
+											size={16}
+											square
+											fallbackIcon="Building2"
+										/>
+									)}
 									<Text
 										style={[styles.rowLabel, option.color ? { color: option.color } : null]}
 										numberOfLines={1}

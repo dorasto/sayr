@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { createRequire } from "node:module";
 import { Command } from "commander";
+import { registerCategoriesCommand } from "./commands/categories";
 import { registerCommentCommand } from "./commands/comment";
 import { registerConfigCommand } from "./commands/config";
 import { registerLoginCommand } from "./commands/login";
@@ -26,6 +27,7 @@ registerLogoutCommand(program);
 registerWhoamiCommand(program);
 registerConfigCommand(program);
 registerOrgsCommand(program);
+registerCategoriesCommand(program);
 registerTaskCommand(program);
 registerCommentCommand(program);
 

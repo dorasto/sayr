@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import type { AppEnv } from "@/index";
 import { requireApiKey } from "../../../../../lib/apiKeyAuth";
+import { categoriesRoute } from "./categories";
 import { commentsRoute } from "./comments";
 import { profileRoute } from "./profile";
 import { tasksRoute } from "./tasks";
@@ -18,3 +19,4 @@ Route.use("*", requireApiKey());
 Route.route("/", profileRoute);
 Route.route("/", tasksRoute);
 Route.route("/", commentsRoute);
+Route.route("/", categoriesRoute);

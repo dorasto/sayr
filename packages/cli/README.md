@@ -58,6 +58,7 @@ sayr config set-base-url http://localhost:5468
 | `sayr logout`                               | Clear stored credentials                                         |
 | `sayr whoami`                               | Show the authenticated user                                      |
 | `sayr orgs list`                            | List organizations you belong to                                 |
+| `sayr categories list`                      | List an organization's categories                                |
 | `sayr task create <title>`                  | Create a task                                                    |
 | `sayr task list`                            | List tasks — search, filter, sort, paginate                      |
 | `sayr task view <taskId>`                   | Show a single task, its AI summary (if any), and recent comments |

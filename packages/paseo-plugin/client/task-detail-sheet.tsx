@@ -28,7 +28,11 @@ export function TaskDetailSheet({
 	const getTask = useRpc(getTaskRpc);
 	const taskQuery = useQuery({
 		queryKey: ["sayr", "task", selected?.orgSlug, selected?.taskId],
-		queryFn: () => getTask({ taskId: selected?.taskId ?? "", orgSlug: selected?.orgSlug ?? "" }),
+		queryFn: () =>
+			getTask({
+				taskId: selected?.taskId ?? "",
+				orgSlug: selected?.orgSlug ?? "",
+			}),
 		enabled: selected !== null,
 	});
 
@@ -36,7 +40,7 @@ export function TaskDetailSheet({
 		<Sheet
 			open={selected !== null}
 			onClose={onClose}
-			title={taskQuery.data?.title ?? "Task"}
+			title={taskQuery.data?.title ?? "Loading..."}
 			theme={theme}
 			compact={layout.compact}
 			bodyWidth={bodyWidth}

@@ -3,6 +3,7 @@ import { getSettings, setCliBin } from "./server/settings-handlers";
 import {
 	createComment,
 	getTask,
+	listCategories,
 	listComments,
 	listOrgs,
 	listReplies,
@@ -15,6 +16,7 @@ import { getSettingsRpc, setCliBinRpc } from "./shared/settings";
 import {
 	createCommentRpc,
 	getTaskRpc,
+	listCategoriesRpc,
 	listCommentsRpc,
 	listOrgsRpc,
 	listRepliesRpc,
@@ -26,6 +28,7 @@ import {
 
 export default function contribute(server: PluginServerContext) {
 	server.handle(listOrgsRpc, listOrgs);
+	server.handle(listCategoriesRpc, listCategories);
 	server.handle(listTasksRpc, listTasks);
 	server.handle(getTaskRpc, getTask);
 	server.handle(listCommentsRpc, listComments);

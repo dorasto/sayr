@@ -1,7 +1,9 @@
 import type { RpcInput, RpcOutput } from "@getpaseo/plugin";
 import type {
+	CategoryInfo,
 	createCommentRpc,
 	getTaskRpc,
+	listCategoriesRpc,
 	listCommentsRpc,
 	listOrgsRpc,
 	listRepliesRpc,
@@ -20,6 +22,13 @@ const MAX_LIST_PAGES = 10;
 export async function listOrgs(_input: RpcInput<typeof listOrgsRpc>): Promise<RpcOutput<typeof listOrgsRpc>> {
 	const orgs = await sayrJson<Org[]>(["orgs", "list"]);
 	return { orgs };
+}
+
+export async function listCategories(
+	input: RpcInput<typeof listCategoriesRpc>
+): Promise<RpcOutput<typeof listCategoriesRpc>> {
+	const categories = await sayrJson<CategoryInfo[]>(["categories", "list", "--org", input.orgSlug]);
+	return { categories };
 }
 
 async function findOrg(orgSlug: string): Promise<Org> {

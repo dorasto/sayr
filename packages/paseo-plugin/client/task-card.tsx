@@ -34,13 +34,12 @@ export function TaskCard({ theme, task, onPress }: { theme: Theme; task: Task; o
 		>
 			<Text style={styles.key}>{formatTaskKey(task.orgShortId, task.shortId)}</Text>
 			<Text style={styles.title}>{task.title ?? "(untitled)"}</Text>
-			{task.priority !== "none" && (
-				<View style={styles.meta}>
-					<Text style={[styles.priority, { color: PRIORITY_COLORS[task.priority] }]}>
-						{PRIORITY_LABELS[task.priority]}
-					</Text>
-				</View>
-			)}
+
+			<View style={styles.meta}>
+				<Text style={[styles.priority, { color: PRIORITY_COLORS[task.priority] }]}>
+					{PRIORITY_LABELS[task.priority]}
+				</Text>
+			</View>
 		</Pressable>
 	);
 }

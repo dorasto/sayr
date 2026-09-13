@@ -80,11 +80,31 @@ const LabelSchema = z.looseObject({
  * `packages/cli/src/types.ts` is aspirational, not what the API returns. The
  * real value is the raw category id column, a plain string. Accepting both
  * shapes defensively rather than assuming the CLI's declared (wrong) type.
+ * Resolving the id to an actual name needs a separate lookup — see
+ * `CategoryInfoSchema`/`listCategoriesRpc`/`resolveCategoryName` below.
  */
 const CategorySchema = z
 	.union([z.string(), z.looseObject({ id: z.string(), name: z.string() })])
 	.nullable()
 	.optional();
+
+export const CategoryInfoSchema = z.looseObject({
+	id: z.string(),
+	name: z.string(),
+	/** hsla(...) string, as stored — usable directly as a React Native color. */
+	color: z.string().optional(),
+});
+export type CategoryInfo = z.output<typeof CategoryInfoSchema>;
+
+/** Resolves a task's `category` field to a display name, given the org's category list (from `listCategoriesRpc`). Returns `undefined` if `category` is null/absent or the id isn't found (e.g. categories haven't loaded yet). */
+export function resolveCategoryName(
+	category: Task["category"],
+	categories: CategoryInfo[] | undefined
+): string | undefined {
+	if (!category) return undefined;
+	if (typeof category === "object") return category.name;
+	return categories?.find((c) => c.id === category)?.name;
+}
 
 const OrgMemberSchema = z.looseObject({
 	userId: z.string(),
@@ -95,13 +115,14 @@ const OrgMemberSchema = z.looseObject({
 	}),
 });
 
-/** Mirrors `packages/cli/src/types.ts`'s `Organization`. */
+/** Mirrors `packages/cli/src/types.ts`'s `Organization` — plus `logo`, which the CLI's own type omits but the real API returns (see `packages/database/schema/organization.schema.ts`'s `logo` column). */
 export const OrgSchema = z.looseObject({
 	id: z.string(),
 	slug: z.string(),
 	name: z.string(),
 	/** Task-key prefix, e.g. "SAY" in "SAY-123" — see `formatTaskKey` below. */
 	shortId: z.string(),
+	logo: z.string().nullable().optional(),
 	members: z.array(OrgMemberSchema).default([]),
 });
 export type Org = z.output<typeof OrgSchema>;
@@ -109,11 +130,6 @@ export type Org = z.output<typeof OrgSchema>;
 /** Local copy of `packages/util/src/index.ts`'s `formatTaskKey` — see the note on `extractPlainText` in `shared/prosekit.ts` for why this isn't an import. */
 export function formatTaskKey(orgShortId: string, taskShortId: number | null | undefined): string {
 	return `${orgShortId}-${taskShortId ?? "?"}`;
-}
-
-/** A category name to display, or `undefined` when all we have is the unresolved id string — see `CategorySchema`. */
-export function categoryName(category: Task["category"]): string | undefined {
-	return category && typeof category === "object" ? category.name : undefined;
 }
 
 /**
@@ -182,6 +198,12 @@ export const listOrgsRpc = defineRpc({
 	name: "sayr.org.list",
 	input: z.object({}),
 	output: z.object({ orgs: z.array(OrgSchema) }),
+});
+
+export const listCategoriesRpc = defineRpc({
+	name: "sayr.category.list",
+	input: z.object({ orgSlug: z.string() }),
+	output: z.object({ categories: z.array(CategoryInfoSchema) }),
 });
 
 export const listTasksRpc = defineRpc({
