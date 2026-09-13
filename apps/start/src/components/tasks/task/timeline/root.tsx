@@ -41,7 +41,7 @@ import type {
 	GlobalTimelineProps,
 	TimelineRunGroup,
 } from "./types";
-import { consolidateTimelineItems, groupTimelineRuns } from "./utils";
+import { consolidateTimelineItems, groupTimelineRuns, mergeUpdateSessions } from "./utils";
 
 const baseApiUrl = import.meta.env.VITE_APP_ENV === "development" ? "/backend-api/internal" : "/api/internal";
 
@@ -294,10 +294,15 @@ export default function GlobalTimeline({
 		});
 	}, [activity.data, oldestCommentTime, newestCommentTime]);
 
-	// --- Merge combined + filtered items ---
-	const combinedData = [...visibleActivity, ...flattenedComments];
+	// --- Merge combined + filtered items, sorted chronologically before any grouping pass ---
+	const combinedData = [...visibleActivity, ...flattenedComments].sort(
+		(a, b) => new Date(a.createdAt ?? 0).getTime() - new Date(b.createdAt ?? 0).getTime()
+	);
 
-	const consolidatedItems = consolidateTimelineItems(combinedData).sort(
+	// --- Roll up SSE-driven bursts of rapid-fire description/title/visibility edits first ---
+	const updateSessionsApplied = mergeUpdateSessions(combinedData);
+
+	const consolidatedItems = consolidateTimelineItems(updateSessionsApplied).sort(
 		(a, b) => new Date(a.createdAt ?? 0).getTime() - new Date(b.createdAt ?? 0).getTime()
 	);
 

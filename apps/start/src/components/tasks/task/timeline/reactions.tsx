@@ -1,12 +1,12 @@
-import { useState, useMemo } from "react";
+import type { schema } from "@repo/database";
 import { Button } from "@repo/ui/components/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@repo/ui/components/popover";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@repo/ui/components/tooltip";
+import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { cn } from "@repo/ui/lib/utils";
 import { IconMoodPlus } from "@tabler/icons-react";
+import { useMemo, useState } from "react";
 import { InlineLabel } from "../../shared/inlinelabel";
-import type { schema } from "@repo/database";
-import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 
 // --------------------------------
 // constants & types
@@ -50,11 +50,17 @@ export function ReactionPicker({ onSelect, existingReactions = [] }: ReactionPic
 	const [open, setOpen] = useState(false);
 	return (
 		<Popover open={open} onOpenChange={setOpen}>
-			<PopoverTrigger asChild>
-				<Button variant="ghost" size="icon" className="p-1 h-auto w-auto aspect-square data-[state=open]:bg-accent">
-					<IconMoodPlus size={16} />
-				</Button>
-			</PopoverTrigger>
+			<PopoverTrigger
+				render={
+					<Button
+						variant="ghost"
+						size="icon"
+						className="p-1 h-auto w-auto aspect-square data-[state=open]:bg-accent"
+					>
+						<IconMoodPlus size={16} />
+					</Button>
+				}
+			/>
 			<PopoverContent className="w-auto p-1" align="end" sideOffset={4}>
 				<div className="grid grid-cols-4 gap-1">
 					{REACTION_OPTIONS.map(({ emoji, label }) => {
@@ -108,22 +114,24 @@ export function ReactionDisplay({ reactions, toggleReaction, className, users, c
 		<div className={cn("flex items-center gap-1 flex-wrap", className)}>
 			{visibleReactions.map((r) => (
 				<Tooltip key={r.emoji} delayDuration={200}>
-					<TooltipTrigger asChild>
-						<Button
-							variant="ghost"
-							size="sm"
-							className={cn(
-								"h-6 px-2 py-0 text-sm gap-1 rounded-full border hover:bg-accent transition-colors",
-								r.reacted
-									? "bg-primary/10 border-primary/20 text-primary-foreground"
-									: "bg-accent/50 border-border"
-							)}
-							onClick={() => toggleReaction(r.emoji as ReactionEmoji)}
-						>
-							<span className="text-base leading-none">{r.emoji}</span>
-							<span className="text-xs font-medium">{r.count}</span>
-						</Button>
-					</TooltipTrigger>
+					<TooltipTrigger
+						render={
+							<Button
+								variant="ghost"
+								size="sm"
+								className={cn(
+									"h-6 px-2 py-0 text-sm gap-1 rounded-full border hover:bg-accent transition-colors",
+									r.reacted
+										? "bg-primary/10 border-primary/20 text-primary-foreground"
+										: "bg-accent/50 border-border"
+								)}
+								onClick={() => toggleReaction(r.emoji as ReactionEmoji)}
+							>
+								<span className="text-base leading-none">{r.emoji}</span>
+								<span className="text-xs font-medium">{r.count}</span>
+							</Button>
+						}
+					/>
 					<TooltipContent side="top" className="max-w-64 p-2">
 						{r.userObjs.length ? (
 							<div className="flex flex-col gap-1">
@@ -145,35 +153,39 @@ export function ReactionDisplay({ reactions, toggleReaction, className, users, c
 
 			{/* Add reaction */}
 			<Popover open={pickerOpen} onOpenChange={setPickerOpen}>
-				<PopoverTrigger asChild>
-					<Button
-						variant="ghost"
-						size="sm"
-						className="h-6 w-6 p-0 rounded-full border border-dashed border-border hover:border-solid hover:bg-accent"
-					>
-						<IconMoodPlus size={14} />
-					</Button>
-				</PopoverTrigger>
+				<PopoverTrigger
+					render={
+						<Button
+							variant="ghost"
+							size="sm"
+							className="h-6 w-6 p-0 rounded-full border border-dashed border-border hover:border-solid hover:bg-accent"
+						>
+							<IconMoodPlus size={14} />
+						</Button>
+					}
+				/>
 				<PopoverContent className="w-auto p-2" align="start" sideOffset={4}>
 					<div className="grid grid-cols-4 gap-1">
 						{REACTION_OPTIONS.map(({ emoji, label }) => (
 							<Tooltip key={emoji} delayDuration={100}>
-								<TooltipTrigger asChild>
-									<Button
-										variant="ghost"
-										size="sm"
-										className={cn(
-											"h-8 w-8 p-0 text-lg hover:bg-accent hover:scale-110 transition-transform",
-											reactedEmojis.includes(emoji) && "bg-accent ring-1 ring-primary/20"
-										)}
-										onClick={() => {
-											toggleReaction(emoji);
-											setPickerOpen(false);
-										}}
-									>
-										{emoji}
-									</Button>
-								</TooltipTrigger>
+								<TooltipTrigger
+									render={
+										<Button
+											variant="ghost"
+											size="sm"
+											className={cn(
+												"h-8 w-8 p-0 text-lg hover:bg-accent hover:scale-110 transition-transform",
+												reactedEmojis.includes(emoji) && "bg-accent ring-1 ring-primary/20"
+											)}
+											onClick={() => {
+												toggleReaction(emoji);
+												setPickerOpen(false);
+											}}
+										>
+											{emoji}
+										</Button>
+									}
+								/>
 								<TooltipContent side="top" className="text-xs">
 									{label}
 								</TooltipContent>
