@@ -1,8 +1,50 @@
 # Sayr in Paseo
 
-A native [Paseo](https://paseo.sh) plugin (`@repo/paseo-plugin`, id `sayr`) that brings Sayr tasks into
-the Paseo sidebar: a multi-org status board, a full task detail view with write actions, comment
-threads, and a "send to agent" hand-off — without leaving Paseo.
+Project management right from your coding agent. View, comment, and manage your Sayr tasks, or click a button and pass it off to an agent. Define a default prompt when passing it along, or customize it when passing off.
+
+## Screenshots
+
+<table>
+<tr>
+<td width="33%" valign="top">
+
+**Board** — multi-org, status columns, filters
+
+<img src="assets/sayr-plguin-1.png" alt="Sayr plugin board view">
+
+</td>
+<td width="33%" valign="top">
+
+**Task detail** — inline editing, rich rendering, AI summary
+
+<img src="assets/paseo-plugin-2.png" alt="Sayr plugin task detail sheet">
+
+</td>
+<td width="33%" valign="top">
+
+**For reference** — the real Sayr web app the plugin's board mirrors
+
+<img src="assets/sayr.png" alt="Sayr web app board view">
+
+</td>
+</tr>
+</table>
+
+## Requires
+
+- An account on [Sayr.io](https://sayr.io) or,
+- A self hosted instance of Sayr
+- Valid API key (can be created [here](https://admin.sayr.io/settings/api-keys))
+- [Sayr CLI](https://sayr.io/docs/cli)
+
+## Install
+
+```bash
+paseo plugin add dorasto/sayr --ref main --path packages/paseo-plugin
+```
+
+Then work through [Requirements](#requirements) below — the plugin is a thin shell over the `sayr`
+CLI, so it can't do anything until that's installed and logged in on the daemon machine.
 
 ## How it works
 
@@ -93,3 +135,7 @@ bug) — worth a quick grep before reloading if you touched anything under `clie
   to rename, recolor, or delete an existing one from the plugin — that still needs the web app.
 - **Board doesn't show done/canceled tasks.** The status picker still covers the full status enum,
   so a task can be moved there — it just drops off the board once it is.
+
+## Shoutouts
+
+Inspiration of the layout & UI comes from gpambrozio's [github-board](https://github.com/gpambrozio/paseo-plugins/tree/main/github-board) plugin. Great resource for learning how to build Paseo plugins. <3
