@@ -21,14 +21,17 @@ function settingsPath(): string {
 export async function readSettings(): Promise<SayrSettings> {
 	try {
 		const parsed: unknown = JSON.parse(await readFile(settingsPath(), "utf8"));
-		const cliBin = typeof parsed === "object" && parsed !== null ? (parsed as Record<string, unknown>).cliBin : null;
+		const record = typeof parsed === "object" && parsed !== null ? (parsed as Record<string, unknown>) : {};
+		const cliBin = record.cliBin;
+		const defaultAgentInstructions = record.defaultAgentInstructions;
 		return {
 			cliBin: typeof cliBin === "string" && cliBin.trim() !== "" ? cliBin.trim() : DEFAULT_CLI_BIN,
+			defaultAgentInstructions: typeof defaultAgentInstructions === "string" ? defaultAgentInstructions : "",
 		};
 	} catch {
 		// No settings file yet, or one that's no longer parseable — either way,
 		// the default (production `sayr`) is always a safe fallback.
-		return { cliBin: DEFAULT_CLI_BIN };
+		return { cliBin: DEFAULT_CLI_BIN, defaultAgentInstructions: "" };
 	}
 }
 

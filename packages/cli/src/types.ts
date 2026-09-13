@@ -75,6 +75,16 @@ export interface Category {
 	createdAt: string;
 }
 
+export interface Release {
+	id: string;
+	organizationId: string;
+	name: string;
+	slug: string;
+	status: "planned" | "in-progress" | "released" | "archived";
+	color: string | null;
+	icon: string | null;
+}
+
 export interface TaskPerson {
 	id: string;
 	name: string | null;

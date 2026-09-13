@@ -7,6 +7,8 @@ export interface SelectOption {
 	value: string;
 	label: string;
 	color: string;
+	/** Lucide icon name (e.g. from `STATUS_ICONS`/`PRIORITY_ICONS`) — shown colored by `color` instead of the plain dot when given. */
+	icon?: string;
 }
 
 /**
@@ -20,6 +22,7 @@ export function SelectDropdown({
 	disabled,
 	currentLabel,
 	currentColor,
+	currentIcon,
 	options,
 	selectedValue,
 	onSelect,
@@ -28,6 +31,8 @@ export function SelectDropdown({
 	disabled: boolean;
 	currentLabel: string;
 	currentColor: string;
+	/** Lucide icon name — shown colored by `currentColor` instead of the plain dot when given. */
+	currentIcon?: string;
 	options: SelectOption[];
 	selectedValue: string;
 	onSelect: (value: string) => void;
@@ -71,7 +76,11 @@ export function SelectDropdown({
 				style={[styles.trigger, disabled ? { opacity: 0.6 } : null]}
 				onPress={() => setOpen((v) => !v)}
 			>
-				<View style={[styles.dot, { backgroundColor: currentColor }]} />
+				{currentIcon ? (
+					<Icon name={currentIcon} size={14} color={currentColor} />
+				) : (
+					<View style={[styles.dot, { backgroundColor: currentColor }]} />
+				)}
 				<Text style={styles.label}>{currentLabel}</Text>
 				<Icon name={open ? "ChevronUp" : "ChevronDown"} size={14} color={theme.colors.foregroundMuted} />
 			</Pressable>
@@ -87,7 +96,11 @@ export function SelectDropdown({
 								if (option.value !== selectedValue) onSelect(option.value);
 							}}
 						>
-							<View style={[styles.dot, { backgroundColor: option.color }]} />
+							{option.icon ? (
+								<Icon name={option.icon} size={14} color={option.color} />
+							) : (
+								<View style={[styles.dot, { backgroundColor: option.color }]} />
+							)}
 							<Text style={styles.rowLabel}>{option.label}</Text>
 							{option.value === selectedValue && (
 								<Icon name="Check" size={14} color={theme.colors.foregroundMuted} />

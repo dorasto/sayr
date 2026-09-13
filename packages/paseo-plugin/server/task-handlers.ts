@@ -2,14 +2,22 @@ import type { RpcInput, RpcOutput } from "@getpaseo/plugin";
 import type {
 	CategoryInfo,
 	createCommentRpc,
+	createLabelRpc,
+	getMeRpc,
 	getTaskRpc,
+	LabelInfo,
 	listCategoriesRpc,
 	listCommentsRpc,
+	listLabelsRpc,
 	listOrgsRpc,
+	listReleasesRpc,
 	listRepliesRpc,
 	listTasksRpc,
+	Me,
 	Org,
+	ReleaseInfo,
 	setAssigneesRpc,
+	setLabelsRpc,
 	Task,
 	updateTaskPriorityRpc,
 	updateTaskStatusRpc,
@@ -29,6 +37,35 @@ export async function listCategories(
 ): Promise<RpcOutput<typeof listCategoriesRpc>> {
 	const categories = await sayrJson<CategoryInfo[]>(["categories", "list", "--org", input.orgSlug]);
 	return { categories };
+}
+
+export async function listReleases(
+	input: RpcInput<typeof listReleasesRpc>
+): Promise<RpcOutput<typeof listReleasesRpc>> {
+	const releases = await sayrJson<ReleaseInfo[]>(["releases", "list", "--org", input.orgSlug]);
+	return { releases };
+}
+
+export async function getMe(_input: RpcInput<typeof getMeRpc>): Promise<RpcOutput<typeof getMeRpc>> {
+	return sayrJson<Me>(["whoami"]);
+}
+
+export async function listLabels(input: RpcInput<typeof listLabelsRpc>): Promise<RpcOutput<typeof listLabelsRpc>> {
+	const labels = await sayrJson<LabelInfo[]>(["labels", "list", "--org", input.orgSlug]);
+	return { labels };
+}
+
+/**
+ * No permission pre-check here — `sayr labels create` shells straight to
+ * `POST /me/labels`, which is what actually gates this on the
+ * `content.manageLabels` scope. A caller without it gets a plain 403,
+ * shaped into a message by `sayrJson`'s existing error handling, same as
+ * any other write RPC in this file.
+ */
+export async function createLabel(input: RpcInput<typeof createLabelRpc>): Promise<RpcOutput<typeof createLabelRpc>> {
+	const args = ["labels", "create", input.name, "--org", input.orgSlug];
+	if (input.color) args.push("--color", input.color);
+	return sayrJson<LabelInfo>(args);
 }
 
 async function findOrg(orgSlug: string): Promise<Org> {
@@ -112,6 +149,11 @@ export async function setAssignees(
 	input: RpcInput<typeof setAssigneesRpc>
 ): Promise<RpcOutput<typeof setAssigneesRpc>> {
 	await sayrJson(["task", "assign", input.taskId, "--org", input.orgSlug, "--set", input.userIds.join(",")]);
+	return { ok: true };
+}
+
+export async function setLabels(input: RpcInput<typeof setLabelsRpc>): Promise<RpcOutput<typeof setLabelsRpc>> {
+	await sayrJson(["task", "label", input.taskId, "--org", input.orgSlug, "--set", input.labelIds.join(",")]);
 	return { ok: true };
 }
 

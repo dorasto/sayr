@@ -1,10 +1,16 @@
-import { TextInput } from "@getpaseo/plugin/client/react-native";
+import { Icon, TextInput } from "@getpaseo/plugin/client/react-native";
 import { useMemo, useState } from "react";
 import { Pressable, Text, View } from "react-native";
-import { type Org, PRIORITY_COLORS, PRIORITY_LABELS, TASK_PRIORITIES, type Task } from "../shared/task";
+import { type Org, PRIORITY_COLORS, PRIORITY_ICONS, PRIORITY_LABELS, TASK_PRIORITIES, type Task } from "../shared/task";
 import { FilterDropdown } from "./filter-dropdown";
 import { SpinningIcon } from "./spinning-icon";
 import type { Layout, Theme } from "./types";
+
+export interface ReleaseOption {
+	value: string;
+	label: string;
+	color?: string;
+}
 
 /** Mirrors the installed `github-board` plugin's own `relativeTime()` exactly. */
 function relativeTime(timestampMs: number): string {
@@ -20,10 +26,11 @@ function relativeTime(timestampMs: number): string {
 }
 
 /**
- * The board's single header row: title, org/priority filter dropdowns,
- * search, and "Updated Xm ago" + refresh — everything that used to be three
- * separate rows, consolidated to match `github-board`'s one-row chrome (see
- * its real `client/board.tsx` around line 3860).
+ * The board's single header row: title, org/priority/release filter
+ * dropdowns, an "assigned to me" toggle, search, and "Updated Xm ago" +
+ * refresh — everything that used to be three separate rows, consolidated to
+ * match `github-board`'s one-row chrome (see its real `client/board.tsx`
+ * around line 3860).
  */
 export function BoardHeader({
 	theme,
@@ -35,6 +42,12 @@ export function BoardHeader({
 	hiddenPriorities,
 	onTogglePriority,
 	onSetHiddenPriorities,
+	releaseOptions,
+	hiddenReleases,
+	onToggleRelease,
+	onSetHiddenReleases,
+	onlyMine,
+	onToggleOnlyMine,
 	query,
 	onQueryChange,
 	dataUpdatedAt,
@@ -50,6 +63,13 @@ export function BoardHeader({
 	hiddenPriorities: Set<Task["priority"]>;
 	onTogglePriority: (priority: Task["priority"]) => void;
 	onSetHiddenPriorities: (next: Set<Task["priority"]>) => void;
+	/** Always includes a trailing "No release" option — real releases are scoped per org (see `board.tsx`). */
+	releaseOptions: ReleaseOption[];
+	hiddenReleases: Set<string>;
+	onToggleRelease: (releaseId: string) => void;
+	onSetHiddenReleases: (next: Set<string>) => void;
+	onlyMine: boolean;
+	onToggleOnlyMine: () => void;
 	query: string;
 	onQueryChange: (query: string) => void;
 	dataUpdatedAt: number;
@@ -57,7 +77,9 @@ export function BoardHeader({
 	onRefresh: () => void;
 }) {
 	// Only one filter dropdown open at a time.
-	const [openFilter, setOpenFilter] = useState<"org" | "priority" | null>(null);
+	const [openFilter, setOpenFilter] = useState<"org" | "priority" | "release" | null>(null);
+	// More than just the always-present "No release" placeholder means at least one org actually has releases.
+	const hasReleases = releaseOptions.length > 1;
 
 	const styles = useMemo(
 		() => ({
@@ -79,6 +101,18 @@ export function BoardHeader({
 			},
 			title: { color: theme.colors.foreground, fontSize: layout.compact ? 16 : 18, fontWeight: "600" as const },
 			spacer: { flex: 1 },
+			mineChip: {
+				flexDirection: "row" as const,
+				alignItems: "center" as const,
+				gap: 6,
+				borderWidth: 1,
+				borderColor: onlyMine ? theme.colors.accent : theme.colors.border,
+				backgroundColor: onlyMine ? theme.colors.accent : "transparent",
+				borderRadius: 6,
+				paddingHorizontal: 10,
+				paddingVertical: 6,
+			},
+			mineChipText: { color: onlyMine ? theme.colors.accentForeground : theme.colors.foreground, fontSize: 12 },
 			search: {
 				width: layout.compact ? 120 : 200,
 				borderWidth: 1,
@@ -93,7 +127,7 @@ export function BoardHeader({
 			updated: { color: theme.colors.foregroundMuted, fontSize: 12 },
 			iconButton: { padding: 6, borderRadius: 6 },
 		}),
-		[theme, layout.compact]
+		[theme, layout.compact, onlyMine]
 	);
 
 	return (
@@ -121,12 +155,40 @@ export function BoardHeader({
 					value: priority,
 					label: PRIORITY_LABELS[priority],
 					color: PRIORITY_COLORS[priority],
+					icon: PRIORITY_ICONS[priority],
 				}))}
 				hidden={hiddenPriorities}
 				onToggle={onTogglePriority}
 				onShowAll={() => onSetHiddenPriorities(new Set())}
 				onHideAll={() => onSetHiddenPriorities(new Set(TASK_PRIORITIES))}
 			/>
+			{hasReleases && (
+				<FilterDropdown
+					theme={theme}
+					noun="releases"
+					open={openFilter === "release"}
+					onToggleOpen={() => setOpenFilter((current) => (current === "release" ? null : "release"))}
+					options={releaseOptions}
+					hidden={hiddenReleases}
+					onToggle={onToggleRelease}
+					onShowAll={() => onSetHiddenReleases(new Set())}
+					onHideAll={() => onSetHiddenReleases(new Set(releaseOptions.map((option) => option.value)))}
+				/>
+			)}
+			<Pressable
+				accessibilityRole="checkbox"
+				accessibilityState={{ checked: onlyMine }}
+				accessibilityLabel="Only show tasks assigned to me"
+				style={styles.mineChip}
+				onPress={onToggleOnlyMine}
+			>
+				<Icon
+					name="UserCheck"
+					size={13}
+					color={onlyMine ? theme.colors.accentForeground : theme.colors.foreground}
+				/>
+				<Text style={styles.mineChipText}>Assigned to me</Text>
+			</Pressable>
 			<TextInput
 				value={query}
 				onChangeText={onQueryChange}

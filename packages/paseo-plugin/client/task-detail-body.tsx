@@ -2,17 +2,22 @@ import { useRpc } from "@getpaseo/plugin/client";
 import { useToast } from "@getpaseo/plugin/client/react-native";
 import { type UseQueryResult, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { ScrollView, Text, View } from "react-native";
 import type { ProsekitNode } from "../shared/prosekit";
 import {
+	createLabelRpc,
 	listCategoriesRpc,
+	listLabelsRpc,
 	listOrgsRpc,
 	PRIORITY_COLORS,
+	PRIORITY_ICONS,
 	PRIORITY_LABELS,
 	resolveCategoryName,
 	STATUS_COLORS,
+	STATUS_ICONS,
 	STATUS_LABELS,
 	setAssigneesRpc,
+	setLabelsRpc,
 	TASK_PRIORITIES,
 	TASK_STATUSES,
 	type TaskDetail,
@@ -21,22 +26,20 @@ import {
 } from "../shared/task";
 import { AssigneeDropdown } from "./assignee-dropdown";
 import { CommentsSection } from "./comments-section";
+import { LabelDropdown } from "./label-dropdown";
 import { ProsekitView } from "./prosekit-view";
 import { SelectDropdown } from "./select-dropdown";
-import { SendToAgentModal } from "./send-to-agent-modal";
-import type { Navigation, Theme } from "./types";
+import type { Theme } from "./types";
 
-/** The task detail sheet's main content: status/priority/assignees, description, AI summary, "send to agent", and comments. */
+/** The task detail sheet's main content: status/priority/assignees, description, AI summary, and comments. "Send to agent" lives in the sheet's own header now (`task-detail-sheet.tsx`), not buried down here. */
 export function TaskDetailBody({
 	theme,
-	navigation,
 	taskId,
 	orgSlug,
 	query,
 	onOpenTask,
 }: {
 	theme: Theme;
-	navigation: Navigation;
 	taskId: string;
 	orgSlug: string;
 	query: UseQueryResult<TaskDetail>;
@@ -46,23 +49,34 @@ export function TaskDetailBody({
 	const updateStatus = useRpc(updateTaskStatusRpc);
 	const updatePriority = useRpc(updateTaskPriorityRpc);
 	const setAssignees = useRpc(setAssigneesRpc);
+	const setLabels = useRpc(setLabelsRpc);
+	const createLabel = useRpc(createLabelRpc);
 	const listOrgsFn = useRpc(listOrgsRpc);
 	const listCategoriesFn = useRpc(listCategoriesRpc);
+	const listLabelsFn = useRpc(listLabelsRpc);
 	const queryClient = useQueryClient();
 	const toast = useToast();
-	const [sendOpen, setSendOpen] = useState(false);
-	const [savingField, setSavingField] = useState<"status" | "priority" | "assignees" | null>(null);
+	const [savingField, setSavingField] = useState<"status" | "priority" | "assignees" | "labels" | null>(null);
 
-	const orgsQuery = useQuery({ queryKey: ["sayr", "orgs"], queryFn: () => listOrgsFn({}) });
+	const orgsQuery = useQuery({
+		queryKey: ["sayr", "orgs"],
+		queryFn: () => listOrgsFn({}),
+	});
 	const categoriesQuery = useQuery({
 		queryKey: ["sayr", "categories", orgSlug],
 		queryFn: () => listCategoriesFn({ orgSlug }),
+	});
+	const labelsQuery = useQuery({
+		queryKey: ["sayr", "labels", orgSlug],
+		queryFn: () => listLabelsFn({ orgSlug }),
 	});
 	const data = query.data;
 
 	async function refresh() {
 		await Promise.all([
-			queryClient.invalidateQueries({ queryKey: ["sayr", "task", orgSlug, taskId] }),
+			queryClient.invalidateQueries({
+				queryKey: ["sayr", "task", orgSlug, taskId],
+			}),
 			queryClient.invalidateQueries({ queryKey: ["sayr", "tasks"] }),
 		]);
 	}
@@ -103,21 +117,40 @@ export function TaskDetailBody({
 		}
 	}
 
+	async function onSetLabels(labelIds: string[]) {
+		setSavingField("labels");
+		try {
+			await setLabels({ taskId, orgSlug, labelIds });
+			await refresh();
+		} catch (err) {
+			toast.error(err instanceof Error ? err.message : "Failed to update labels.");
+		} finally {
+			setSavingField(null);
+		}
+	}
+
+	/** Surfaces a permission error (or any other failure) as a toast and returns `null` — `LabelDropdown` only reacts to whether this succeeded, it doesn't pre-check access itself. */
+	async function onCreateLabel(name: string) {
+		try {
+			const created = await createLabel({ orgSlug, name });
+			await queryClient.invalidateQueries({ queryKey: ["sayr", "labels", orgSlug] });
+			return created;
+		} catch (err) {
+			toast.error(err instanceof Error ? err.message : "Failed to create label.");
+			return null;
+		}
+	}
+
 	const styles = useMemo(
 		() => ({
 			meta: { color: theme.colors.foregroundMuted, fontSize: 13 },
 			section: { marginTop: 16, gap: 6 },
-			sectionTitle: { color: theme.colors.foregroundMuted, fontSize: 12, fontWeight: "600" as const },
-			body: { color: theme.colors.foreground, fontSize: 14, lineHeight: 20 },
-			button: {
-				alignSelf: "flex-start" as const,
-				backgroundColor: theme.colors.accent,
-				paddingVertical: 8,
-				paddingHorizontal: 14,
-				borderRadius: 6,
-				marginTop: 12,
+			sectionTitle: {
+				color: theme.colors.foregroundMuted,
+				fontSize: 12,
+				fontWeight: "600" as const,
 			},
-			buttonText: { color: theme.colors.accentForeground, fontSize: 13, fontWeight: "600" as const },
+			body: { color: theme.colors.foreground, fontSize: 14, lineHeight: 20 },
 			errorText: { color: theme.colors.statusDanger, fontSize: 13 },
 		}),
 		[theme]
@@ -150,10 +183,12 @@ export function TaskDetailBody({
 							disabled={savingField === "status"}
 							currentLabel={STATUS_LABELS[data.status]}
 							currentColor={STATUS_COLORS[data.status]}
+							currentIcon={STATUS_ICONS[data.status]}
 							options={TASK_STATUSES.map((status) => ({
 								value: status,
 								label: STATUS_LABELS[status],
 								color: STATUS_COLORS[status],
+								icon: STATUS_ICONS[status],
 							}))}
 							selectedValue={data.status}
 							onSelect={(value) => onSetStatus(value as (typeof TASK_STATUSES)[number])}
@@ -167,22 +202,29 @@ export function TaskDetailBody({
 							disabled={savingField === "priority"}
 							currentLabel={PRIORITY_LABELS[data.priority]}
 							currentColor={PRIORITY_COLORS[data.priority]}
+							currentIcon={PRIORITY_ICONS[data.priority]}
 							options={TASK_PRIORITIES.map((priority) => ({
 								value: priority,
 								label: PRIORITY_LABELS[priority],
 								color: PRIORITY_COLORS[priority],
+								icon: PRIORITY_ICONS[priority],
 							}))}
 							selectedValue={data.priority}
 							onSelect={(value) => onSetPriority(value as (typeof TASK_PRIORITIES)[number])}
 						/>
 					</View>
 
-					{data.labels.length > 0 && (
-						<View style={styles.section}>
-							<Text style={styles.sectionTitle}>LABELS</Text>
-							<Text style={styles.body}>{data.labels.map((l) => l.name).join(", ")}</Text>
-						</View>
-					)}
+					<View style={styles.section}>
+						<Text style={styles.sectionTitle}>LABELS</Text>
+						<LabelDropdown
+							theme={theme}
+							disabled={savingField === "labels"}
+							labels={labelsQuery.data?.labels ?? []}
+							selectedIds={data.labels.map((l) => l.id)}
+							onChange={onSetLabels}
+							onCreateLabel={onCreateLabel}
+						/>
+					</View>
 
 					<View style={styles.section}>
 						<Text style={styles.sectionTitle}>ASSIGNEES</Text>
@@ -200,8 +242,12 @@ export function TaskDetailBody({
 							<Text style={styles.sectionTitle}>DESCRIPTION</Text>
 							<ProsekitView
 								theme={theme}
+								orgSlug={orgSlug}
 								doc={data.description as ProsekitNode}
-								resolvers={{ members: orgMembers, categories: categoriesQuery.data?.categories }}
+								resolvers={{
+									members: orgMembers,
+									categories: categoriesQuery.data?.categories,
+								}}
 								onOpenTask={openMentionedTask}
 							/>
 						</View>
@@ -214,15 +260,6 @@ export function TaskDetailBody({
 						</View>
 					)}
 
-					<Pressable
-						accessibilityRole="button"
-						accessibilityLabel="Send this task to an agent"
-						style={styles.button}
-						onPress={() => setSendOpen(true)}
-					>
-						<Text style={styles.buttonText}>Send to agent</Text>
-					</Pressable>
-
 					<View style={styles.section}>
 						<Text style={styles.sectionTitle}>COMMENTS ({data.commentsTotal})</Text>
 						<CommentsSection
@@ -232,14 +269,14 @@ export function TaskDetailBody({
 							initialComments={data.comments}
 							initialTotal={data.commentsTotal}
 							onPosted={refresh}
-							resolvers={{ members: orgMembers, categories: categoriesQuery.data?.categories }}
+							resolvers={{
+								members: orgMembers,
+								categories: categoriesQuery.data?.categories,
+							}}
 							onOpenTask={openMentionedTask}
 						/>
 					</View>
 				</View>
-			)}
-			{sendOpen && data && (
-				<SendToAgentModal theme={theme} navigation={navigation} task={data} onClose={() => setSendOpen(false)} />
 			)}
 		</ScrollView>
 	);

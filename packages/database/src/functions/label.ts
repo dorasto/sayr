@@ -23,7 +23,7 @@ import { db } from "..";
  * console.log(urgent1.id === urgent2.id); // true
  * ```
  */
-export async function getOrCreateLabel(orgId: string, name: string, color?: string) {
+export async function getOrCreateLabel(orgId: string, name: string, color?: string, visible?: "public" | "private") {
 	const existing = await db.query.label.findFirst({
 		where: (label) => and(eq(label.organizationId, orgId), eq(label.name, name)),
 	});
@@ -37,6 +37,7 @@ export async function getOrCreateLabel(orgId: string, name: string, color?: stri
 			organizationId: orgId,
 			name,
 			color: color ?? "#cccccc",
+			visible: visible ?? "public",
 		})
 		.returning();
 
@@ -212,15 +213,8 @@ export async function getLabelUsage(labelId: string) {
  * });
  * ```
  */
-export async function getLabels(
-	orgId: string,
-	visible?: "public" | "private",
-) {
+export async function getLabels(orgId: string, visible?: "public" | "private") {
 	return await db.query.label.findMany({
-		where: (label) =>
-			and(
-				eq(label.organizationId, orgId),
-				visible ? eq(label.visible, visible) : undefined,
-			),
+		where: (label) => and(eq(label.organizationId, orgId), visible ? eq(label.visible, visible) : undefined),
 	});
 }

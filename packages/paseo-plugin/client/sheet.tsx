@@ -21,6 +21,7 @@ export function Sheet({
 	open,
 	onClose,
 	title,
+	headerActions,
 	theme,
 	compact,
 	bodyWidth,
@@ -31,6 +32,8 @@ export function Sheet({
 	open: boolean;
 	onClose: () => void;
 	title: string;
+	/** Rendered between the title and the close button — e.g. "Send to agent", so it's a heading action rather than buried in scrollable content. */
+	headerActions?: ReactNode;
 	theme: Theme;
 	compact: boolean;
 	/** The board's own measured width (`onLayout` in `board.tsx`), or null before first layout. Resizing is disabled on compact/mobile regardless. */
@@ -175,14 +178,23 @@ export function Sheet({
 					}}
 				>
 					<Text
-						style={{ color: theme.colors.foreground, fontSize: 16, fontWeight: "600", flexShrink: 1 }}
+						style={{
+							color: theme.colors.foreground,
+							fontSize: 16,
+							fontWeight: "600",
+							flexShrink: 1,
+							flexGrow: 1,
+						}}
 						numberOfLines={1}
 					>
 						{title}
 					</Text>
-					<Pressable accessibilityRole="button" accessibilityLabel="Close" onPress={onClose}>
-						<Icon name="X" size={18} color={theme.colors.foregroundMuted} />
-					</Pressable>
+					<View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+						{headerActions}
+						<Pressable accessibilityRole="button" accessibilityLabel="Close" onPress={onClose}>
+							<Icon name="X" size={18} color={theme.colors.foregroundMuted} />
+						</Pressable>
+					</View>
 				</View>
 				<View style={{ flex: 1, padding: 16 }}>{children}</View>
 			</Animated.View>

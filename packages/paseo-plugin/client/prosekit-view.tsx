@@ -1,42 +1,54 @@
+import type { ReactNode } from "react";
 import { Fragment } from "react";
 import { Platform, Text, View } from "react-native";
 import type { ProsekitMark, ProsekitNode } from "../shared/prosekit";
 import type { CategoryInfo, Org } from "../shared/task";
+import { TaskMentionPill } from "./task-mention-pill";
 import type { Theme } from "./types";
+import { UserMentionPill } from "./user-mention-pill";
 
 /**
  * Renders a ProseKit/ProseMirror document as real React Native elements —
  * actual headings, bold/italic/strike/underline/code runs, blockquotes,
- * lists, code blocks, and `@user`/`#task`/`!category` mention pills
- * (`apps/start/src/components/prosekit/ui/mention-view.tsx`,
- * `task-mention.tsx`) — instead of `shared/prosekit.ts`'s `extractPlainText`,
- * which only preserves paragraph/heading line breaks and drops every inline
- * mark and mention entirely. React Native's `Text` supports nested styled
- * `Text` children natively, so this needed no HTML/DOM conversion (ProseKit's
- * own "saving and loading" doc talks about `generateHTML`, which isn't
- * usable here — there's no DOM in a plugin surface) — just walking the same
- * JSON the CLI already returns and mapping each node/mark type from the real
- * editor schema (`apps/start/src/components/prosekit/extensions/index.ts`'s
+ * lists, code blocks, and `@user`/`#task`/`!category` mentions rendered as
+ * real button-styled pills (`apps/start/src/components/prosekit/ui/
+ * mention-view.tsx`, `task-mention.tsx`) — instead of `shared/prosekit.ts`'s
+ * `extractPlainText`, which only preserves paragraph/heading line breaks and
+ * drops every inline mark and mention entirely. This needed no HTML/DOM
+ * conversion (ProseKit's own "saving and loading" doc talks about
+ * `generateHTML`, which isn't usable here — there's no DOM in a plugin
+ * surface) — just walking the same JSON the CLI already returns and mapping
+ * each node/mark type from the real editor schema
+ * (`apps/start/src/components/prosekit/extensions/index.ts`'s
  * `defineBasicExtension()`) onto RN primitives.
+ *
+ * Mention pills are real `View`/`Pressable`-based chips (`task-mention-pill.tsx`,
+ * `user-mention-pill.tsx`), not nested inside a `Text` run — React Native's
+ * `Text` can only safely nest `Text`/`Image` as children on native platforms,
+ * and a pill needs a real `Icon`/`Avatar` inside it, neither of which is safe
+ * to nest in `Text`. So paragraph/heading content isn't one `<Text>` anymore:
+ * consecutive plain-text/mark runs are grouped into their own `<Text>` (still
+ * reflows normally), and each mention becomes a sibling item in a
+ * `flexDirection: "row", flexWrap: "wrap"` container — visually inline
+ * (wraps with the surrounding text, doesn't force its own line) without
+ * gambling on Text's undocumented native behavior for non-Text children.
  *
  * Mentions store their own display text at insertion time
  * (`user-menu.tsx`/`task-menu.tsx`/`category-menu.tsx`'s `insertMention`
  * calls: `@username`, an org-prefixed task key like "SAY-27", `!category`) —
- * that's what's rendered when the referenced user/category isn't in
+ * that's the label shown when the referenced user/category isn't in
  * `resolvers` (e.g. `resolvers` omitted entirely, or an id the caller didn't
  * fetch). When it IS resolvable, `resolvers.members`/`resolvers.categories`
- * upgrade the pill to the live name/color, same idea as the website's own
- * `MentionViewInner`. Deliberately no avatar image or hover-card inside a
- * mention pill (the website's does both) — nesting an `Image` inside a `Text`
- * run works in RN in principle but isn't something to ship unverified when
- * there's no way to see the actual rendered result before asking for another
- * round of feedback; text-only pills are the safe subset. Task mentions never
- * fetch the live title (unlike the website) — only the stored key is shown —
- * to avoid an unbounded number of per-mention lookups on every render.
- * Tapping one still opens the mentioned task, via `onOpenTask` — a task
- * mention is only ever searched within the current org (`task-menu.tsx`'s
- * `searchOrgTasks` is scoped by `org_id`), so the caller's own `orgSlug`
- * always applies to the id, no lookup needed to figure out which org.
+ * upgrade the pill to the live name/avatar/color, same idea as the website's
+ * own `MentionViewInner`. A task mention's status icon is always live
+ * (`task-mention-pill.tsx` fetches it directly, deduped/cached against
+ * whatever else on screen already queried the same task) — the label itself
+ * still never fetches the live title, to avoid depending on a title that can
+ * go stale after the mention was written. Tapping a task pill opens it via
+ * `onOpenTask` — a task mention is only ever searched within the current org
+ * (`task-menu.tsx`'s `searchOrgTasks` is scoped by `org_id`), so the
+ * caller's own `orgSlug` always applies to the id, no lookup needed to
+ * figure out which org.
  *
  * Deliberately not exhaustive: tables and images fall back to rendering their
  * text content only (no grid/image display, no shiki-style syntax
@@ -51,6 +63,7 @@ export interface MentionResolvers {
 
 interface Ctx {
 	theme: Theme;
+	orgSlug: string;
 	resolvers: MentionResolvers;
 	onOpenTask?: (taskId: string) => void;
 }
@@ -103,33 +116,41 @@ function markStyle(marks: ProsekitMark[] | undefined, theme: Theme) {
 	};
 }
 
-/** A `@user`/`#task`/`!category` mention — see the file header for what's live-resolved vs. stored-text-only. */
-function renderMention(node: ProsekitNode, ctx: Ctx, key: string) {
+function renderTextRun(node: ProsekitNode, ctx: Ctx, key: string): ReactNode {
+	if (node.type === "hardBreak") return <Text key={key}>{"\n"}</Text>;
+	if (typeof node.text !== "string") return null;
+	return (
+		<Text key={key} style={markStyle(node.marks, ctx.theme)}>
+			{node.text}
+		</Text>
+	);
+}
+
+/** A `@user`/`#task`/`!category` mention pill — see the file header for what's live-resolved vs. stored-text-only. */
+function renderMention(node: ProsekitNode, ctx: Ctx, key: string): ReactNode {
 	const kind = typeof node.attrs?.kind === "string" ? node.attrs.kind : undefined;
 	const id = typeof node.attrs?.id === "string" ? node.attrs.id : undefined;
 	const storedValue = typeof node.attrs?.value === "string" ? node.attrs.value : "";
-	const pillStyle = { color: ctx.theme.colors.accentForeground, backgroundColor: ctx.theme.colors.accent };
 
 	if (kind === "user") {
 		const member = ctx.resolvers.members?.find((m) => m.userId === id || m.user.id === id);
-		const label = member?.user.name ? `@${member.user.name}` : storedValue || "@someone";
 		return (
-			<Text key={key} style={{ ...pillStyle, fontWeight: "600" }}>
-				{label}
-			</Text>
+			<UserMentionPill key={key} theme={ctx.theme} member={member?.user} label={member?.user.name ?? storedValue} />
 		);
 	}
 
 	if (kind === "task") {
+		const label = storedValue || "task";
+		if (!id) return <TaskMentionPill key={key} theme={ctx.theme} orgSlug={ctx.orgSlug} taskId="" label={label} />;
 		return (
-			<Text
+			<TaskMentionPill
 				key={key}
-				style={{ ...pillStyle, fontWeight: "600" }}
-				onPress={id && ctx.onOpenTask ? () => ctx.onOpenTask?.(id) : undefined}
-				accessibilityRole={id && ctx.onOpenTask ? "link" : undefined}
-			>
-				{storedValue || "task"}
-			</Text>
+				theme={ctx.theme}
+				orgSlug={ctx.orgSlug}
+				taskId={id}
+				label={label}
+				onPress={ctx.onOpenTask ? () => ctx.onOpenTask?.(id) : undefined}
+			/>
 		);
 	}
 
@@ -148,19 +169,44 @@ function renderMention(node: ProsekitNode, ctx: Ctx, key: string) {
 	return <Text key={key}>{storedValue}</Text>;
 }
 
-function renderInline(nodes: ProsekitNode[] | undefined, ctx: Ctx, keyPrefix: string) {
-	if (!nodes) return null;
-	return nodes.map((node, i) => {
-		const key = `${keyPrefix}-${i}`;
-		if (node.type === "hardBreak") return <Text key={key}>{"\n"}</Text>;
-		if (node.type === "mention") return renderMention(node, ctx, key);
-		if (typeof node.text !== "string") return null;
-		return (
-			<Text key={key} style={markStyle(node.marks, ctx.theme)}>
-				{node.text}
+/**
+ * Renders one inline run (a paragraph's or heading's content) as a
+ * `flexWrap` row: consecutive plain-text/mark nodes are grouped into a
+ * single `<Text>` (reflows normally), and each mention becomes its own
+ * sibling pill — see the file header for why mentions can't just be another
+ * nested `<Text>` run.
+ */
+function renderInlineRow(nodes: ProsekitNode[] | undefined, ctx: Ctx, keyPrefix: string, textStyle: object): ReactNode {
+	const items: ReactNode[] = [];
+	let buffer: ProsekitNode[] = [];
+	let index = 0;
+
+	function flushBuffer() {
+		if (buffer.length === 0) return;
+		const key = `${keyPrefix}-t${index++}`;
+		items.push(
+			<Text key={key} style={textStyle}>
+				{buffer.map((node, i) => renderTextRun(node, ctx, `${key}-${i}`))}
 			</Text>
 		);
-	});
+		buffer = [];
+	}
+
+	for (const node of nodes ?? []) {
+		if (node.type === "mention") {
+			flushBuffer();
+			items.push(renderMention(node, ctx, `${keyPrefix}-m${index++}`));
+			continue;
+		}
+		buffer.push(node);
+	}
+	flushBuffer();
+
+	return (
+		<View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", columnGap: 4, rowGap: 2 }}>
+			{items}
+		</View>
+	);
 }
 
 function headingStyle(level: number, theme: Theme) {
@@ -207,17 +253,19 @@ function renderBlock(node: ProsekitNode, ctx: Ctx, key: string, depth: number) {
 		case "paragraph":
 			if (!node.content || node.content.length === 0) return null;
 			return (
-				<Text key={key} style={{ color: ctx.theme.colors.foreground, fontSize: 14, lineHeight: 20 }}>
-					{renderInline(node.content, ctx, key)}
-				</Text>
+				<Fragment key={key}>
+					{renderInlineRow(node.content, ctx, key, {
+						color: ctx.theme.colors.foreground,
+						fontSize: 14,
+						lineHeight: 20,
+					})}
+				</Fragment>
 			);
 
 		case "heading": {
 			const level = typeof node.attrs?.level === "number" ? node.attrs.level : 1;
 			return (
-				<Text key={key} style={headingStyle(level, ctx.theme)}>
-					{renderInline(node.content, ctx, key)}
-				</Text>
+				<Fragment key={key}>{renderInlineRow(node.content, ctx, key, headingStyle(level, ctx.theme))}</Fragment>
 			);
 		}
 
@@ -260,25 +308,28 @@ function renderBlock(node: ProsekitNode, ctx: Ctx, key: string, depth: number) {
 
 /**
  * Renders a full ProseKit document (task description, comment body) as
- * styled React Native elements. `resolvers` upgrades `@user`/`!category`
- * mention pills to their live name/color when the caller has that data
- * loaded already (org members, org categories) — entirely optional, and
- * falls back to the mention's own stored text when omitted or the id isn't
- * found (see the file header). `onOpenTask`, if given, makes `#task`
- * mentions tappable.
+ * styled React Native elements. `orgSlug` is required — a `#task` mention's
+ * live status icon is fetched scoped to it (see `task-mention-pill.tsx`).
+ * `resolvers` upgrades `@user`/`!category` mention pills to their live
+ * name/avatar/color when the caller has that data loaded already (org
+ * members, org categories) — entirely optional, and falls back to the
+ * mention's own stored text when omitted or the id isn't found (see the file
+ * header). `onOpenTask`, if given, makes `#task` mentions tappable.
  */
 export function ProsekitView({
 	theme,
+	orgSlug,
 	doc,
 	resolvers = {},
 	onOpenTask,
 }: {
 	theme: Theme;
+	orgSlug: string;
 	doc: ProsekitNode | null | undefined;
 	resolvers?: MentionResolvers;
 	onOpenTask?: (taskId: string) => void;
 }) {
 	if (!doc || !Array.isArray(doc.content)) return null;
-	const ctx: Ctx = { theme, resolvers, onOpenTask };
+	const ctx: Ctx = { theme, orgSlug, resolvers, onOpenTask };
 	return <View style={{ gap: 8 }}>{renderBlocks(doc.content, ctx, "doc", 0)}</View>;
 }

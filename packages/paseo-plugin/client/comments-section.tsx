@@ -120,6 +120,7 @@ export function CommentsSection({
 					<CommentRow
 						key={comment.id}
 						theme={theme}
+						orgSlug={orgSlug}
 						comment={comment}
 						resolvers={resolvers}
 						onOpenTask={onOpenTask}

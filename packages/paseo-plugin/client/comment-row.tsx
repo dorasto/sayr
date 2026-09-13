@@ -33,11 +33,13 @@ function AuthorLine({
 /** One comment, with its reply thread lazily loaded on expand (not fetched until asked). */
 export function CommentRow({
 	theme,
+	orgSlug,
 	comment,
 	resolvers,
 	onOpenTask,
 }: {
 	theme: Theme;
+	orgSlug: string;
 	comment: TaskComment;
 	resolvers?: MentionResolvers;
 	onOpenTask?: (taskId: string) => void;
@@ -73,6 +75,7 @@ export function CommentRow({
 				<View style={styles.body}>
 					<ProsekitView
 						theme={theme}
+						orgSlug={orgSlug}
 						doc={comment.content as ProsekitNode}
 						resolvers={resolvers}
 						onOpenTask={onOpenTask}
@@ -95,6 +98,7 @@ export function CommentRow({
 							<View style={styles.body}>
 								<ProsekitView
 									theme={theme}
+									orgSlug={orgSlug}
 									doc={reply.content as ProsekitNode}
 									resolvers={resolvers}
 									onOpenTask={onOpenTask}

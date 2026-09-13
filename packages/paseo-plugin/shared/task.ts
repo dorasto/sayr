@@ -31,6 +31,22 @@ export const STATUS_COLORS: Record<(typeof TASK_STATUSES)[number], string> = {
 };
 
 /**
+ * Lucide icon names (Paseo's `Icon` component only ships Lucide, not the
+ * Tabler set `packages/ui/src/components/icons/status.tsx` actually uses) —
+ * `done`/`canceled` are genuine equivalents of that file's own
+ * `IconCircleCheck`/`IconCircleX` fallback case; `backlog`/`todo`/
+ * `in-progress` are the closest available analogues, since that file's
+ * default case is a bespoke circle-progress SVG with no Lucide counterpart.
+ */
+export const STATUS_ICONS: Record<(typeof TASK_STATUSES)[number], string> = {
+	backlog: "CircleDashed",
+	todo: "Circle",
+	"in-progress": "CircleDotDashed",
+	done: "CircleCheck",
+	canceled: "CircleX",
+};
+
+/**
  * Backlog/todo/in-progress only — the statuses the board actually shows a
  * column for. Done/canceled aren't even fetched (see `server/task-handlers.ts`,
  * no `--include-closed`); the status picker in the task detail sheet still
@@ -57,6 +73,20 @@ export const PRIORITY_COLORS: Record<(typeof TASK_PRIORITIES)[number], string> =
 	medium: "#F59E0B",
 	high: "#EF4444",
 	urgent: "#DC2626",
+};
+
+/**
+ * `packages/ui/src/components/icons/priority.tsx` is a bespoke signal-bar SVG
+ * (1/2/3 bars) plus a filled alert square for urgent — Lucide's own
+ * signal-strength icons are the closest match for the bars, and `TriangleAlert`
+ * for urgent since Lucide has no filled alert-square icon.
+ */
+export const PRIORITY_ICONS: Record<(typeof TASK_PRIORITIES)[number], string> = {
+	none: "SignalZero",
+	low: "SignalLow",
+	medium: "SignalMedium",
+	high: "SignalHigh",
+	urgent: "TriangleAlert",
 };
 
 const PersonSchema = z
@@ -95,6 +125,48 @@ export const CategoryInfoSchema = z.looseObject({
 	color: z.string().optional(),
 });
 export type CategoryInfo = z.output<typeof CategoryInfoSchema>;
+
+/**
+ * Same gap/fix shape as category: a task's `releaseId` is a raw id
+ * (`packages/database/schema/release.schema.ts`'s column), never expanded —
+ * resolving it to a name needs `listReleasesRpc` below, same as category
+ * needs `listCategoriesRpc`. `icon` is a Tabler icon name (e.g. "IconRocket",
+ * the website's own free-text convention for releases) — not usable as a
+ * Lucide name, so the plugin doesn't render it, just `color` + `name`.
+ */
+export const ReleaseInfoSchema = z.looseObject({
+	id: z.string(),
+	name: z.string(),
+	status: z.enum(["planned", "in-progress", "released", "archived"]),
+	color: z.string().nullable().optional(),
+});
+export type ReleaseInfo = z.output<typeof ReleaseInfoSchema>;
+
+/** Resolves a task's `releaseId` to a display name, given the org's release list (from `listReleasesRpc`). */
+export function resolveReleaseName(
+	releaseId: string | null | undefined,
+	releases: ReleaseInfo[] | undefined
+): string | undefined {
+	if (!releaseId) return undefined;
+	return releases?.find((r) => r.id === releaseId)?.name;
+}
+
+/**
+ * Same gap/fix shape as category/release: there was previously no `/me/*`
+ * way to list an organization's labels at all (only ever the full set
+ * already attached to one task, via the `labels` relation below) — needed
+ * so a client can build a labels picker instead of only ever showing
+ * whatever a task already happens to have. Includes both public and
+ * private labels — this is a member-authenticated route, same as `/me/tasks`
+ * including both visibilities rather than degrading to public-only.
+ */
+export const LabelInfoSchema = z.looseObject({
+	id: z.string(),
+	name: z.string(),
+	color: z.string().nullable().optional(),
+	visible: z.enum(["public", "private"]),
+});
+export type LabelInfo = z.output<typeof LabelInfoSchema>;
 
 /** Resolves a task's `category` field to a display name, given the org's category list (from `listCategoriesRpc`). Returns `undefined` if `category` is null/absent or the id isn't found (e.g. categories haven't loaded yet). */
 export function resolveCategoryName(
@@ -153,6 +225,7 @@ export const TaskSchema = z.looseObject({
 	priority: z.enum(TASK_PRIORITIES),
 	description: z.unknown().nullable().optional(),
 	category: CategorySchema,
+	releaseId: z.string().nullable().optional(),
 	labels: z.array(LabelSchema).default([]),
 	assignees: z.array(PersonSchema).default([]).optional(),
 	createdBy: PersonSchema.optional(),
@@ -204,6 +277,45 @@ export const listCategoriesRpc = defineRpc({
 	name: "sayr.category.list",
 	input: z.object({ orgSlug: z.string() }),
 	output: z.object({ categories: z.array(CategoryInfoSchema) }),
+});
+
+export const listReleasesRpc = defineRpc({
+	name: "sayr.release.list",
+	input: z.object({ orgSlug: z.string() }),
+	output: z.object({ releases: z.array(ReleaseInfoSchema) }),
+});
+
+export const listLabelsRpc = defineRpc({
+	name: "sayr.label.list",
+	input: z.object({ orgSlug: z.string() }),
+	output: z.object({ labels: z.array(LabelInfoSchema) }),
+});
+
+/**
+ * Gated server-side by the `content.manageLabels` scope
+ * (`apps/backend/routes/api/public/v1/me/labels.ts`) — a caller without it
+ * gets a plain 403, surfaced as a toast in the client picker rather than
+ * anything pre-checked here. Idempotent by `(orgSlug, name)`: creating a
+ * label whose name already exists just returns the existing one.
+ */
+export const createLabelRpc = defineRpc({
+	name: "sayr.label.create",
+	input: z.object({ orgSlug: z.string(), name: z.string().min(1), color: z.string().optional() }),
+	output: LabelInfoSchema,
+});
+
+/** The CLI's logged-in user — powers the "assigned to me" filter (`sayr whoami --json`). */
+export const MeSchema = z.looseObject({
+	id: z.string(),
+	name: z.string().nullable().optional(),
+	email: z.string().nullable().optional(),
+});
+export type Me = z.output<typeof MeSchema>;
+
+export const getMeRpc = defineRpc({
+	name: "sayr.me.get",
+	input: z.object({}),
+	output: MeSchema,
 });
 
 export const listTasksRpc = defineRpc({
@@ -266,6 +378,12 @@ export const updateTaskPriorityRpc = defineRpc({
 export const setAssigneesRpc = defineRpc({
 	name: "sayr.task.set-assignees",
 	input: z.object({ taskId: z.string(), orgSlug: z.string(), userIds: z.array(z.string()) }),
+	output: z.object({ ok: z.literal(true) }),
+});
+
+export const setLabelsRpc = defineRpc({
+	name: "sayr.task.set-labels",
+	input: z.object({ taskId: z.string(), orgSlug: z.string(), labelIds: z.array(z.string()) }),
 	output: z.object({ ok: z.literal(true) }),
 });
 

@@ -9,8 +9,10 @@ export interface FilterOption<T extends string> {
 	label: string;
 	/** Optional swatch color, e.g. a priority's hex — mutually exclusive with `imageUrl`. */
 	color?: string;
-	/** Optional avatar, e.g. an org's logo — mutually exclusive with `color`. */
+	/** Optional avatar, e.g. an org's logo — mutually exclusive with `color`/`icon`. */
 	imageUrl?: string | null;
+	/** Optional Lucide icon name, e.g. from `STATUS_ICONS`/`PRIORITY_ICONS` — colored by `color`, mutually exclusive with `imageUrl`. */
+	icon?: string;
 }
 
 /**
@@ -147,6 +149,9 @@ export function FilterDropdown<T extends string>({
 											square
 											fallbackIcon="Building2"
 										/>
+									)}
+									{option.icon && (
+										<Icon name={option.icon} size={14} color={option.color ?? theme.colors.foreground} />
 									)}
 									<Text
 										style={[styles.rowLabel, option.color ? { color: option.color } : null]}

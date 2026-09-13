@@ -1,13 +1,16 @@
 import type { PluginSurfaceProps } from "@getpaseo/plugin/client";
 import { useRpc } from "@getpaseo/plugin/client";
-import { useQuery } from "@tanstack/react-query";
+import { useQueries, useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import type { LayoutChangeEvent } from "react-native";
 import { Pressable, ScrollView, Text, View } from "react-native";
-import { BOARD_STATUSES, listTasksRpc, STATUS_LABELS, type Task } from "../shared/task";
+import { BOARD_STATUSES, getMeRpc, listReleasesRpc, listTasksRpc, STATUS_LABELS, type Task } from "../shared/task";
 import { BoardColumn } from "./board-column";
-import { BoardHeader } from "./board-header";
+import { BoardHeader, type ReleaseOption } from "./board-header";
 import { TaskDetailSheet } from "./task-detail-sheet";
+
+/** A release id shared across orgs would be a coincidence, not a real match — every option is scoped to one org's release list. */
+const NO_RELEASE = "__no-release__";
 
 interface SelectedTask {
 	taskId: string;
@@ -25,25 +28,58 @@ export function SayrBoard({ theme, layout, navigation }: PluginSurfaceProps) {
 	const [selected, setSelected] = useState<SelectedTask | null>(null);
 	const [hiddenOrgs, setHiddenOrgs] = useState<Set<string>>(new Set());
 	const [hiddenPriorities, setHiddenPriorities] = useState<Set<Task["priority"]>>(new Set());
+	const [hiddenReleases, setHiddenReleases] = useState<Set<string>>(new Set());
+	const [onlyMine, setOnlyMine] = useState(false);
 	const [query, setQuery] = useState("");
 	const [bodyWidth, setBodyWidth] = useState<number | null>(null);
 	const [panelWidth, setPanelWidth] = useState<number | null>(null);
 
 	const listTasks = useRpc(listTasksRpc);
+	const listReleasesFn = useRpc(listReleasesRpc);
+	const getMeFn = useRpc(getMeRpc);
 	const { data, isLoading, isError, error, refetch, isFetching, dataUpdatedAt } = useQuery({
 		queryKey: ["sayr", "tasks"],
 		queryFn: () => listTasks({}),
 	});
+	const meQuery = useQuery({ queryKey: ["sayr", "me"], queryFn: () => getMeFn({}) });
+
+	// One release list per org — a release id from one org means nothing
+	// compared against another's, so options are built per org below, not as
+	// one flat combined fetch.
+	const orgs = data?.orgs ?? [];
+	const releaseQueries = useQueries({
+		queries: orgs.map((org) => ({
+			queryKey: ["sayr", "releases", org.slug],
+			queryFn: () => listReleasesFn({ orgSlug: org.slug }),
+		})),
+	});
+	const releaseOptions: ReleaseOption[] = useMemo(() => {
+		const options: ReleaseOption[] = [];
+		orgs.forEach((org, index) => {
+			const releases = releaseQueries[index]?.data?.releases ?? [];
+			for (const release of releases) {
+				options.push({
+					value: release.id,
+					label: orgs.length > 1 ? `${org.shortId} · ${release.name}` : release.name,
+					color: release.color ?? undefined,
+				});
+			}
+		});
+		options.push({ value: NO_RELEASE, label: "No release" });
+		return options;
+	}, [orgs, releaseQueries]);
 
 	const visibleTasks = useMemo(() => {
 		const q = query.trim().toLowerCase();
 		return (data?.tasks ?? []).filter((task) => {
 			if (hiddenOrgs.has(task.orgId)) return false;
 			if (hiddenPriorities.has(task.priority)) return false;
+			if (hiddenReleases.has(task.releaseId ?? NO_RELEASE)) return false;
+			if (onlyMine && !(task.assignees ?? []).some((a) => a?.id === meQuery.data?.id)) return false;
 			if (q && !(task.title ?? "").toLowerCase().includes(q)) return false;
 			return true;
 		});
-	}, [data, hiddenOrgs, hiddenPriorities, query]);
+	}, [data, hiddenOrgs, hiddenPriorities, hiddenReleases, onlyMine, meQuery.data?.id, query]);
 
 	const columns = useMemo(() => {
 		const grouped = new Map<string, Task[]>(BOARD_STATUSES.map((status) => [status, []]));
@@ -67,6 +103,15 @@ export function SayrBoard({ theme, layout, navigation }: PluginSurfaceProps) {
 			const next = new Set(prev);
 			if (next.has(priority)) next.delete(priority);
 			else next.add(priority);
+			return next;
+		});
+	}
+
+	function toggleRelease(releaseId: string) {
+		setHiddenReleases((prev) => {
+			const next = new Set(prev);
+			if (next.has(releaseId)) next.delete(releaseId);
+			else next.add(releaseId);
 			return next;
 		});
 	}
@@ -115,6 +160,12 @@ export function SayrBoard({ theme, layout, navigation }: PluginSurfaceProps) {
 				hiddenPriorities={hiddenPriorities}
 				onTogglePriority={togglePriority}
 				onSetHiddenPriorities={setHiddenPriorities}
+				releaseOptions={releaseOptions}
+				hiddenReleases={hiddenReleases}
+				onToggleRelease={toggleRelease}
+				onSetHiddenReleases={setHiddenReleases}
+				onlyMine={onlyMine}
+				onToggleOnlyMine={() => setOnlyMine((v) => !v)}
 				query={query}
 				onQueryChange={setQuery}
 				dataUpdatedAt={dataUpdatedAt}
