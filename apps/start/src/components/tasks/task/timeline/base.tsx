@@ -41,6 +41,7 @@ export function TimelineItemWrapper({
 	footer,
 	isReply,
 	blockedUserIds,
+	hideTimestamp = false,
 }: TimelineItemWrapperProps & {
 	onReactionToggle?: (emoji: ReactionEmoji) => void;
 	footer?: React.ReactNode;
@@ -73,17 +74,21 @@ export function TimelineItemWrapper({
 					)}
 					<TimelineTitle className="mt-0.5">
 						<Label variant={"description"} className="text-muted-foreground items-center flex flex-wrap gap-2">
-							<span>{children}</span>·{/*{!item.content && (*/}
-							<Tooltip delayDuration={500}>
-								<TooltipTrigger asChild>
-									<Label variant={"description"} className="text-muted-foreground">
-										{" "}
-										{formatDateTimeFromNow(item.createdAt as Date)}
-									</Label>
-								</TooltipTrigger>
-								<TooltipContent side="top">{formatDateTime(item.createdAt as Date)}</TooltipContent>
-							</Tooltip>
-							{/*)}*/}
+							<span>{children}</span>
+							{!hideTimestamp && (
+								<>
+									·
+									<Tooltip delayDuration={500}>
+										<TooltipTrigger asChild>
+											<Label variant={"description"} className="text-muted-foreground">
+												{" "}
+												{formatDateTimeFromNow(item.createdAt as Date)}
+											</Label>
+										</TooltipTrigger>
+										<TooltipContent side="top">{formatDateTime(item.createdAt as Date)}</TooltipContent>
+									</Tooltip>
+								</>
+							)}
 						</Label>
 					</TimelineTitle>
 
