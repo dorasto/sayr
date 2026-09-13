@@ -1,0 +1,222 @@
+import { usePaseo, useRpc } from "@getpaseo/plugin/client";
+import { Icon, Modal, TextInput, useToast } from "@getpaseo/plugin/client/react-native";
+import { useQuery } from "@tanstack/react-query";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Platform, Pressable, ScrollView, Text } from "react-native";
+import { getSettingsRpc } from "../shared/settings";
+import { type CategoryInfo, formatTaskKey, type TaskDetail } from "../shared/task";
+import { buildAgentPrompt } from "./agent-prompt";
+import type { Navigation, Theme } from "./types";
+
+/**
+ * Picks a Paseo project, then creates a workspace + agent there seeded with
+ * the task's full content (see `agent-prompt.ts`) plus whatever's typed into
+ * "Additional instructions" — prefilled from the plugin's settings
+ * (`sayr.settings.set-agent-instructions`) but freely editable here before
+ * anything is actually sent, per-send rather than only ever the fixed default.
+ *
+ * A collapsible "Preview full prompt" box shows the exact string that will
+ * be sent — literally `previewPrompt`, the same variable `sendTo` uses, not
+ * a separate approximation — so what you review is guaranteed to be what
+ * ships, without needing to actually start an agent to find out.
+ */
+export function SendToAgentModal({
+	theme,
+	navigation,
+	task,
+	categories,
+	onClose,
+}: {
+	theme: Theme;
+	navigation: Navigation;
+	task: TaskDetail;
+	categories: CategoryInfo[] | undefined;
+	onClose: () => void;
+}) {
+	const paseo = usePaseo();
+	const toast = useToast();
+	const getSettings = useRpc(getSettingsRpc);
+	const [sending, setSending] = useState<string | null>(null);
+	const [instructions, setInstructions] = useState("");
+	const [previewOpen, setPreviewOpen] = useState(false);
+	const seededInstructionsRef = useRef(false);
+	const { data: projects, isLoading } = useQuery({
+		queryKey: ["sayr", "projects"],
+		queryFn: () => paseo.projects.list(),
+	});
+	const { data: settings } = useQuery({
+		queryKey: ["sayr", "settings"],
+		queryFn: () => getSettings({}),
+	});
+
+	// Seeded once, from whatever the settings say at the time this modal
+	// opens — not kept in sync afterward, so typing here never gets clobbered
+	// by an unrelated settings refetch (the `["sayr","settings"]` query can
+	// refetch with a new object reference while this modal stays mounted).
+	useEffect(() => {
+		if (!settings || seededInstructionsRef.current) return;
+		seededInstructionsRef.current = true;
+		setInstructions(settings.defaultAgentInstructions);
+	}, [settings]);
+
+	// Recomputed on every keystroke — it's pure string building, no RPC
+	// involved, so there's no reason to gate it behind opening the preview.
+	// This is exactly the prompt `sendTo` below will actually send, not an
+	// approximation of it — same function, same arguments.
+	const previewPrompt = useMemo(
+		() => buildAgentPrompt(task, { categories, additionalInstructions: instructions }),
+		[task, categories, instructions]
+	);
+
+	const styles = useMemo(
+		() => ({
+			row: {
+				paddingVertical: 10,
+				paddingHorizontal: 4,
+				borderBottomWidth: 1,
+				borderBottomColor: theme.colors.border,
+			},
+			rowText: { color: theme.colors.foreground, fontSize: 14 },
+			rowSub: { color: theme.colors.foregroundMuted, fontSize: 12 },
+			empty: { color: theme.colors.foregroundMuted, fontSize: 13, padding: 8 },
+			label: { color: theme.colors.foregroundMuted, fontSize: 12, fontWeight: "600" as const, marginBottom: 6 },
+			textarea: {
+				borderWidth: 1,
+				borderColor: theme.colors.border,
+				borderRadius: 6,
+				padding: 10,
+				color: theme.colors.foreground,
+				backgroundColor: theme.colors.surface1,
+				minHeight: 80,
+				marginBottom: 16,
+			},
+			projectsLabel: {
+				color: theme.colors.foregroundMuted,
+				fontSize: 12,
+				fontWeight: "600" as const,
+				marginBottom: 6,
+			},
+			previewToggle: {
+				flexDirection: "row" as const,
+				alignItems: "center" as const,
+				gap: 6,
+				marginBottom: 8,
+			},
+			previewToggleText: { color: theme.colors.foregroundMuted, fontSize: 12, fontWeight: "600" as const },
+			previewBox: {
+				borderWidth: 1,
+				borderColor: theme.colors.border,
+				borderRadius: 6,
+				backgroundColor: theme.colors.surface1,
+				padding: 10,
+				maxHeight: 220,
+				marginBottom: 16,
+			},
+			previewText: {
+				color: theme.colors.foreground,
+				fontSize: 12,
+				lineHeight: 17,
+				fontFamily: Platform.select({ ios: "Menlo", android: "monospace", default: "monospace" }),
+			},
+		}),
+		[theme]
+	);
+
+	async function sendTo(project: { projectId: string; projectDisplayName: string; projectRootPath: string }) {
+		setSending(project.projectId);
+		try {
+			const snapshot = await paseo.providers.snapshot();
+			const ready = snapshot.entries.find(
+				(entry) => entry.status === "ready" && entry.enabled !== false && (entry.models?.length ?? 0) > 0
+			);
+			if (!ready || !ready.models || ready.models.length === 0) {
+				toast.error("No ready AI provider is configured in Paseo — set one up under Settings → Providers.");
+				return;
+			}
+			const model = ready.models.find((m) => m.isDefault) ?? ready.models[0];
+			// The exact same string the preview box shows — not recomputed here,
+			// so there's no way for what's sent to drift from what was reviewed.
+			const prompt = previewPrompt;
+			const title = `Sayr ${formatTaskKey(task.orgShortId, task.shortId)}: ${(task.title ?? "").slice(0, 60)}`;
+
+			const workspace = await paseo.workspaces.create({
+				title,
+				firstAgentContext: { prompt, attachments: [] },
+				source: { kind: "directory", path: project.projectRootPath, projectId: project.projectId },
+			});
+			const agent = await workspace.agents.create({
+				config: { provider: `${ready.provider}/${model.id}` },
+				prompt,
+			});
+
+			toast.show(`Agent started in ${project.projectDisplayName}`, { variant: "success" });
+			navigation?.openAgent({ agentId: agent.id });
+			onClose();
+		} catch (err) {
+			toast.error(err instanceof Error ? err.message : "Failed to start agent.");
+		} finally {
+			setSending(null);
+		}
+	}
+
+	return (
+		<Modal title="Send to agent" open onOpenChange={(open: boolean) => !open && onClose()}>
+			<Modal.Content>
+				<Text style={styles.label}>Additional instructions</Text>
+				<TextInput
+					value={instructions}
+					onChangeText={setInstructions}
+					style={styles.textarea}
+					placeholder="Anything extra the agent should know, beyond the task itself…"
+					multiline
+				/>
+
+				<Pressable
+					accessibilityRole="button"
+					accessibilityLabel={previewOpen ? "Hide full prompt preview" : "Show full prompt preview"}
+					style={styles.previewToggle}
+					onPress={() => setPreviewOpen((v) => !v)}
+				>
+					<Icon
+						name={previewOpen ? "ChevronDown" : "ChevronRight"}
+						size={14}
+						color={theme.colors.foregroundMuted}
+					/>
+					<Text style={styles.previewToggleText}>
+						{previewOpen ? "Hide" : "Preview"} full prompt ({previewPrompt.length} chars)
+					</Text>
+				</Pressable>
+				{previewOpen && (
+					<ScrollView style={styles.previewBox}>
+						<Text style={styles.previewText} selectable>
+							{previewPrompt}
+						</Text>
+					</ScrollView>
+				)}
+
+				<Text style={styles.projectsLabel}>Project</Text>
+				{isLoading && <Text style={styles.empty}>Loading projects…</Text>}
+				{!isLoading && (projects?.projects.length ?? 0) === 0 && (
+					<Text style={styles.empty}>No projects registered in Paseo yet.</Text>
+				)}
+				<ScrollView>
+					{projects?.projects.map((project) => (
+						<Pressable
+							key={project.projectId}
+							accessibilityRole="button"
+							accessibilityLabel={`Send to ${project.projectDisplayName}`}
+							style={styles.row}
+							disabled={sending !== null}
+							onPress={() => sendTo(project)}
+						>
+							<Text style={styles.rowText}>
+								{sending === project.projectId ? "Starting…" : project.projectDisplayName}
+							</Text>
+							<Text style={styles.rowSub}>{project.projectRootPath}</Text>
+						</Pressable>
+					))}
+				</ScrollView>
+			</Modal.Content>
+		</Modal>
+	);
+}

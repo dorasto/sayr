@@ -1,9 +1,11 @@
-import { createComment, db, getOrganizationMembers, schema } from "@repo/database";
+import { createComment, db, getCommentReplies, getOrganizationMembers, schema } from "@repo/database";
 import { createTraceAsync } from "@repo/opentelemetry/trace";
 import { and, eq } from "drizzle-orm";
 import { Hono } from "hono";
 import z from "zod";
 import type { AppEnv } from "@/index";
+import { prosekitJSONToHTML } from "@/prosekit/html";
+import { prosekitJSONToMarkdown } from "@/prosekit/markdown";
 import { markdownToProsekitJSON } from "@/prosekit/parser";
 import {
 	findSSEClientsByUserId,
@@ -15,8 +17,10 @@ import type { ServerEventBaseMessage } from "@/routes/events/types";
 import { assertApiAccess } from "../../../../../lib/apiKeyAuth";
 import { resolveOrganizationId, resolveTaskId } from "../../../../../lib/apiRefs";
 import { bearerAuthResponses, describeOkNotFound } from "../../../../../openapi/helpers";
-import { errorResponse, successResponse } from "../../../../../responses";
-import { CreatedBySchema, resolveActorId } from "./schemas";
+import { errorResponse, paginatedSuccessResponse, successResponse } from "../../../../../responses";
+import { CommentSchema, CreatedBySchema, parsePaginationParam, resolveActorId } from "./schemas";
+
+const REPLIES_MAX_LIMIT = 50;
 
 export const commentsRoute = new Hono<AppEnv>();
 
@@ -160,6 +164,91 @@ commentsRoute.post(
 		);
 
 		return c.json(successResponse({ id: taskId }));
+	}
+);
+
+const ListRepliesSchemaData = z.array(CommentSchema);
+
+/**
+ * Mirrors the internal `GET /timeline/comments/replies` handler's query
+ * (`getCommentReplies`, single-level threading only), gated the same way
+ * every other `/me/*` task-read route is (`tasks.read`, membership-backed) —
+ * rather than the internal route's public/member visibility split, since a
+ * personal key never represents an anonymous visitor.
+ */
+commentsRoute.get(
+	"/comments/:commentId/replies",
+	describeOkNotFound({
+		summary: "List Comment Replies",
+		description: "List paginated replies to a top-level comment. Requires org membership.",
+		dataSchema: ListRepliesSchemaData,
+		parameters: [
+			{
+				name: "commentId",
+				in: "path",
+				required: true,
+				schema: { type: "string" },
+			},
+			{ name: "page", in: "query", schema: { type: "integer", minimum: 1 } },
+			{ name: "limit", in: "query", schema: { type: "integer", minimum: 1, maximum: REPLIES_MAX_LIMIT } },
+		],
+		tags: ["Tasks"],
+		security: [{ bearerAuth: [] }],
+		extraResponses: bearerAuthResponses,
+	}),
+	async (c) => {
+		const principal = c.get("apiKeyPrincipal");
+		if (!principal) return c.json(errorResponse("Unauthorized"), 401);
+
+		const commentId = c.req.param("commentId");
+
+		const comment = await db.query.taskComment.findFirst({ where: (t) => eq(t.id, commentId) });
+		if (!comment) {
+			return c.json(errorResponse("Comment not found", "No comment found with the provided id"), 404);
+		}
+
+		const isAuthorized = await assertApiAccess(c, comment.organizationId, "tasks.read");
+		if (!isAuthorized) {
+			return c.json(
+				errorResponse(
+					"You don't have permission to read this comment's replies.",
+					"Your API key or your role in this organization doesn't allow reading tasks."
+				),
+				403
+			);
+		}
+
+		const query = c.req.query();
+		const pageParam = parsePaginationParam(query.page, "page");
+		if (pageParam.error) {
+			return c.json(errorResponse("Invalid page", pageParam.error), 400);
+		}
+		const limitParam = parsePaginationParam(query.limit, "limit");
+		if (limitParam.error) {
+			return c.json(errorResponse("Invalid limit", limitParam.error), 400);
+		}
+		const page = pageParam.value ?? 1;
+		const limit = Math.min(limitParam.value ?? 20, REPLIES_MAX_LIMIT);
+		const offset = (page - 1) * limit;
+
+		const result = await getCommentReplies(comment.organizationId, commentId, { offset, limit });
+		const replies = (result?.replies ?? []).map((reply) => ({
+			...reply,
+			contentHtml: reply.content ? prosekitJSONToHTML(reply.content) : null,
+			contentMarkdown: reply.content ? prosekitJSONToMarkdown(reply.content) : null,
+		}));
+		const totalItems = result?.totalReplies ?? 0;
+		const totalPages = Math.max(Math.ceil(totalItems / limit), 1);
+
+		return c.json(
+			paginatedSuccessResponse(replies, {
+				limit,
+				page,
+				totalPages,
+				totalItems,
+				hasMore: page < totalPages,
+			})
+		);
 	}
 );
 

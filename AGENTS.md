@@ -81,7 +81,8 @@ Turborepo monorepo for Sayr.io, a transparent, collaborative project management 
 |---|---|
 | `apps/backend` | Hono API server on Bun (REST + WebSocket, port 5468) |
 | `apps/start` | TanStack Start frontend with React 19 (port 3000) — the production admin + public UI |
-| `apps/marketing` | Astro marketing site with Starlight docs (port 3002) |
+| `apps/marketing` | Astro marketing site with Starlight docs (port 3002) — being retired in favor of `apps/landing`; both currently excluded from CI |
+| `apps/landing` | TanStack Start + fumadocs docs/API-reference site (port 3002) — newer replacement for `apps/marketing`; generates its API reference pages from a static OpenAPI snapshot via `pnpm openapi:generate` (manual, not CI-wired) |
 | `apps/worker` | GitHub webhook queue processor (Bun) |
 | `apps/nginx` | Reverse proxy config (Dockerfile + templates, not a Node app) |
 | `apps/traefik` | Edge router config (Dockerfile + templates, not a Node app) |
@@ -104,6 +105,8 @@ Turborepo monorepo for Sayr.io, a transparent, collaborative project management 
 | `@repo/create-integration` | Scaffolding CLI for new integrations (`pnpm create-integration`) |
 | `@repo/typescript-config` | Shared `tsconfig.json` bases |
 | `@sayrio/public` | Public read-only JS/TS SDK for Sayr.io (REST + SSE), published separately |
+| `@sayrio/cli` | `sayr`/`sayr-local` command-line interface — task/comment CRUD over `/v1/me/*`, published separately (`packages/cli`) |
+| `@repo/paseo-plugin` | Paseo plugin (SAY-71) — sidebar board of Sayr tasks, comment/reply threads, AI summaries, and "send task to agent"; shells out to the `sayr` CLI rather than calling the API directly |
 
 ## Commands
 
@@ -310,6 +313,7 @@ Before adding a new type, function, component, or utility anywhere in this repo:
 | `document-feature/` | Writing user-facing docs for `apps/marketing`'s Starlight docs site |
 | `update-pr/` | Generating a PR title/description from the diff |
 | `agent-docs-maintenance/` | Checking `AGENTS.md`/skills for staleness, writing a new skill, updating an existing one |
+| `read-tasks/` | Looking up a SAY-<n> / platform.sayr.io task via the `sayr` CLI (`--org platform --json`) instead of a web fetch |
 
 ## Agent skills
 

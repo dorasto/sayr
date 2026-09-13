@@ -1,11 +1,14 @@
 #!/usr/bin/env node
 import { createRequire } from "node:module";
 import { Command } from "commander";
+import { registerCategoriesCommand } from "./commands/categories";
 import { registerCommentCommand } from "./commands/comment";
 import { registerConfigCommand } from "./commands/config";
+import { registerLabelsCommand } from "./commands/labels";
 import { registerLoginCommand } from "./commands/login";
 import { registerLogoutCommand } from "./commands/logout";
 import { registerOrgsCommand } from "./commands/orgs";
+import { registerReleasesCommand } from "./commands/releases";
 import { registerTaskCommand } from "./commands/task";
 import { registerWhoamiCommand } from "./commands/whoami";
 import { printError } from "./lib/output";
@@ -26,6 +29,9 @@ registerLogoutCommand(program);
 registerWhoamiCommand(program);
 registerConfigCommand(program);
 registerOrgsCommand(program);
+registerCategoriesCommand(program);
+registerReleasesCommand(program);
+registerLabelsCommand(program);
 registerTaskCommand(program);
 registerCommentCommand(program);
 

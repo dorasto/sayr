@@ -1,11 +1,8 @@
-import { getTaskSummaryMeta, resolveOrgAiStatus, getOrganization, schema, db } from "@repo/database";
-import { isAiEnabled, isAiAllowedForOrg } from "@repo/edition";
-import { getRedis } from "@repo/queue";
+import { isAiEnabled } from "@repo/edition";
 import { Hono } from "hono";
 import { z } from "zod";
-import { eq, and, sql } from "drizzle-orm";
 import type { AppEnv } from "@/index";
-import { traceOrgPermissionCheck } from "@/util";
+import { checkTaskSummaryAccess, getTaskAiSummary } from "../../../../../lib/ai/task-summary";
 import { errorResponse } from "../../../../../responses";
 
 export const taskSummaryStatusRoute = new Hono<AppEnv>();
@@ -43,74 +40,17 @@ taskSummaryStatusRoute.get("/", async (c) => {
 	const { taskId, orgId } = parsed.data;
 
 	try {
-		const isAuthorized = await traceOrgPermissionCheck(session.userId, orgId, "members");
-		if (!isAuthorized) {
-			return c.json(errorResponse("Permission denied"), 403);
+		const access = await checkTaskSummaryAccess(orgId, session.userId);
+		if (!access.ok) {
+			return c.json(errorResponse(access.error), access.status);
 		}
 
-		// Check org-level AI settings
-		const org = await getOrganization(orgId, session.userId);
-
-		// On cloud, AI is a Pro plan feature. Self-hosted instances are unrestricted.
-		if (!isAiAllowedForOrg(org?.plan ?? null)) {
-			return c.json(
-				errorResponse("AI features are only available on the Pro plan. Please upgrade to access this feature."),
-				403
-			);
-		}
-
-		const aiStatus = resolveOrgAiStatus(org?.settings ?? null);
-		if (aiStatus.aiDisabled || !aiStatus.taskSummaryEnabled) {
-			return c.json(errorResponse("AI task summary is disabled for this organization"), 403);
-		}
-
-		// Fetch only the cache metadata columns — no full task load needed.
-		const meta = await getTaskSummaryMeta(orgId, taskId);
-		if (!meta?.aiSummaryHash || !meta.aiSummaryGeneratedAt) {
+		const result = await getTaskAiSummary(orgId, taskId);
+		if (!result.hasCachedSummary) {
 			return c.json({ hasCachedSummary: false });
 		}
 
-		const { aiSummaryHash, aiSummaryGeneratedAt } = meta;
-
-		// Check if any timeline activity (including comments) is newer than the
-		// last generation. If so the summary is stale.
-		let isStale = false;
-		try {
-			const [row] = await db
-				.select({ latestActivity: sql<string | null>`MAX(${schema.taskTimeline.createdAt})` })
-				.from(schema.taskTimeline)
-				.where(and(eq(schema.taskTimeline.organizationId, orgId), eq(schema.taskTimeline.taskId, taskId)));
-
-			const latestActivity = row?.latestActivity ? new Date(row.latestActivity) : null;
-			if (latestActivity && latestActivity > aiSummaryGeneratedAt) {
-				isStale = true;
-			}
-		} catch {
-			// DB error checking staleness — treat as non-stale to avoid unnecessary
-			// regeneration on every load if the DB is momentarily slow.
-		}
-
-		// Check Redis — if the key has expired the cache is stale.
-		let summary: string | null = null;
-		if (!isStale) {
-			try {
-				const redis = getRedis();
-				summary = await redis.get(`ai:summary:${taskId}:${aiSummaryHash}`);
-				if (!summary) {
-					isStale = true;
-				}
-			} catch {
-				// Redis unavailable — treat as stale so the frontend regenerates.
-				isStale = true;
-			}
-		}
-
-		return c.json({
-			hasCachedSummary: true,
-			isStale,
-			summary: summary ?? null,
-			generatedAt: aiSummaryGeneratedAt.toISOString(),
-		});
+		return c.json(result);
 	} catch (err) {
 		await recordWideError({
 			name: "ai.taskSummaryStatus.handler",

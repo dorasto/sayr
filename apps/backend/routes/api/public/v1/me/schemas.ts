@@ -56,6 +56,18 @@ export const PublicUserSchema = createSelectSchema(authSchema.user)
 	});
 
 /**
+ * Matches `getTaskAiSummary`'s return shape (`apps/backend/lib/ai/task-summary.ts`)
+ * exactly. Nullable/optional on `TaskSchema` since only `GET /tasks/:taskId`
+ * ever populates it — list/update/label/assignee responses don't attach it.
+ */
+export const TaskAiSummarySchema = z.object({
+	hasCachedSummary: z.boolean(),
+	isStale: z.boolean(),
+	summary: z.string().nullable(),
+	generatedAt: z.string().nullable(),
+});
+
+/**
  * Full task-with-relations shape (labels, assignees, comments, github links,
  * subtasks, etc.) — matches `getTaskById`'s return, which is assembled from
  * several joined relations rather than a plain table row, so this is a
@@ -69,6 +81,7 @@ export const TaskSchema = z.looseObject({
 	title: z.string().nullable(),
 	status: z.string(),
 	priority: z.string(),
+	aiSummary: TaskAiSummarySchema.nullable().optional(),
 });
 
 export const CommentSchema = z.looseObject({
@@ -78,6 +91,26 @@ export const CommentSchema = z.looseObject({
 	content: z.unknown(),
 	visibility: z.string(),
 });
+
+/**
+ * Parses an explicit `page`/`limit` query param as a finite positive integer.
+ * Returns `{}` when the param was omitted entirely, so the caller's existing
+ * default keeps applying unchanged — only a param that was *provided* but
+ * isn't a valid positive integer (negative, fractional, non-finite, non-numeric)
+ * produces `{ error }`, which callers should surface as a 400. Shared by every
+ * `/me/*` route that paginates, so all of them reject the same malformed input
+ * the same way.
+ */
+export function parsePaginationParam(value: string | undefined, fieldName: string): { value?: number; error?: string } {
+	if (value === undefined || value === "") return {};
+
+	const parsed = Number(value);
+	if (!Number.isFinite(parsed) || !Number.isInteger(parsed) || parsed < 1) {
+		return { error: `"${fieldName}" must be a positive integer` };
+	}
+
+	return { value: parsed };
+}
 
 const ALLOWED_CREATED_BY_PROVIDERS = ["github", "doras", "discord", "slack"] as const;
 

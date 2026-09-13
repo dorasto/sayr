@@ -10,11 +10,32 @@ export interface CliConfig {
 
 export const DEFAULT_BASE_URL = "https://api.sayr.io";
 
-export const CONFIG_PATH = join(homedir(), ".sayr", "config.json");
+/**
+ * `SAYR_PROFILE=<name>` isolates config into its own file — `~/.sayr/config.<name>.json`
+ * instead of the default `~/.sayr/config.json` — so a login against one backend (e.g.
+ * production) never gets clobbered by logging into another (e.g. a local dev instance).
+ * `sayr-local` (see `index.local.ts`) is `sayr` with `SAYR_PROFILE=local` pre-set, so
+ * "prod" and "local" stay two separate, unambiguous commands rather than a flag you
+ * have to remember every time. Computed per-call (not cached) since it only ever reads
+ * `process.env` once at CLI startup anyway, and this keeps tests/callers honest about
+ * where a given read/write actually lands.
+ */
+const SAFE_PROFILE_PATTERN = /^[a-zA-Z0-9._-]+$/;
+
+export function getConfigPath(): string {
+	const profile = process.env.SAYR_PROFILE?.trim();
+	if (!profile) return join(homedir(), ".sayr", "config.json");
+
+	if (!SAFE_PROFILE_PATTERN.test(profile)) {
+		throw new Error(`Invalid SAYR_PROFILE "${profile}": only letters, digits, ".", "_", and "-" are allowed.`);
+	}
+
+	return join(homedir(), ".sayr", `config.${profile}.json`);
+}
 
 export async function readConfig(): Promise<CliConfig> {
 	try {
-		const raw = await readFile(CONFIG_PATH, "utf8");
+		const raw = await readFile(getConfigPath(), "utf8");
 		return JSON.parse(raw) as CliConfig;
 	} catch (err) {
 		if ((err as NodeJS.ErrnoException).code === "ENOENT") return {};
@@ -23,9 +44,10 @@ export async function readConfig(): Promise<CliConfig> {
 }
 
 export async function writeConfig(config: CliConfig): Promise<void> {
-	await mkdir(dirname(CONFIG_PATH), { recursive: true });
+	const configPath = getConfigPath();
+	await mkdir(dirname(configPath), { recursive: true });
 	// mode 0o600: this file holds a bearer token — keep it owner-readable only.
-	await writeFile(CONFIG_PATH, `${JSON.stringify(config, null, "\t")}\n`, { encoding: "utf8", mode: 0o600 });
+	await writeFile(configPath, `${JSON.stringify(config, null, "\t")}\n`, { encoding: "utf8", mode: 0o600 });
 }
 
 export async function updateConfig(patch: Partial<CliConfig>): Promise<CliConfig> {
