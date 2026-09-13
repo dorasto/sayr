@@ -1,18 +1,20 @@
 import { Icon, TextInput } from "@getpaseo/plugin/client/react-native";
 import { useMemo, useState } from "react";
-import { Pressable, Text, View } from "react-native";
+import { Pressable, ScrollView, Text, View } from "react-native";
 import type { LabelInfo } from "../shared/task";
 import type { Theme } from "./types";
 
 /**
  * A multi-select dropdown for a task's labels, sourced from the org's real
- * label list (`listLabelsRpc`) — plus an inline "add a label" row at the
- * bottom for when the one you want doesn't exist yet. Creating one is
- * gated server-side by the `content.manageLabels` scope
+ * label list (`listLabelsRpc`) — plus an inline "add a label" row pinned
+ * below the (scrollable) list for when the one you want doesn't exist yet.
+ * Creating one is gated server-side by the `content.manageLabels` scope
  * (`apps/backend/routes/api/public/v1/me/labels.ts`); a caller without it
  * just gets an error here, same as any other write in this plugin — this
  * component doesn't pre-check permissions, it only reacts to whether the
- * attempt succeeded.
+ * attempt succeeded. The menu is a `position: "absolute"` overlay anchored
+ * to the trigger (see `select-dropdown.tsx`'s header comment for the
+ * reasoning) — opening it doesn't push the rest of the sheet's content down.
  */
 export function LabelDropdown({
 	theme,
@@ -39,6 +41,7 @@ export function LabelDropdown({
 
 	const styles = useMemo(
 		() => ({
+			anchor: { position: "relative" as const, alignSelf: "flex-start" as const },
 			trigger: {
 				flexDirection: "row" as const,
 				alignItems: "center" as const,
@@ -53,13 +56,24 @@ export function LabelDropdown({
 			},
 			label: { color: theme.colors.foreground, fontSize: 13, flex: 1 },
 			menu: {
+				position: "absolute" as const,
+				top: "100%" as const,
+				left: 0,
 				marginTop: 4,
+				minWidth: 220,
+				zIndex: 30,
 				borderWidth: 1,
 				borderColor: theme.colors.border,
 				borderRadius: 6,
 				backgroundColor: theme.colors.surface1,
 				overflow: "hidden" as const,
+				shadowColor: "#000",
+				shadowOffset: { width: 0, height: 4 },
+				shadowOpacity: 0.15,
+				shadowRadius: 8,
+				elevation: 6,
 			},
+			list: { maxHeight: 220 },
 			row: { flexDirection: "row" as const, alignItems: "center" as const, gap: 8, padding: 10 },
 			dot: { width: 8, height: 8, borderRadius: 4 },
 			rowLabel: { color: theme.colors.foreground, fontSize: 13, flex: 1 },
@@ -117,7 +131,7 @@ export function LabelDropdown({
 	const label = selectedLabels.length === 0 ? "No labels" : selectedLabels.map((l) => l.name).join(", ");
 
 	return (
-		<View>
+		<View style={styles.anchor}>
 			<Pressable
 				accessibilityRole="button"
 				disabled={disabled}
@@ -131,31 +145,35 @@ export function LabelDropdown({
 			</Pressable>
 			{open && (
 				<View style={styles.menu}>
-					{labels.map((item) => {
-						const active = selected.has(item.id);
-						return (
-							<Pressable
-								key={item.id}
-								accessibilityRole="button"
-								style={styles.row}
-								onPress={() => {
-									const next = new Set(selected);
-									if (active) next.delete(item.id);
-									else next.add(item.id);
-									onChange([...next]);
-								}}
-							>
-								<Icon
-									name={active ? "SquareCheck" : "Square"}
-									size={16}
-									color={active ? theme.colors.accent : theme.colors.foregroundMuted}
-								/>
-								<View style={[styles.dot, { backgroundColor: item.color ?? theme.colors.foregroundMuted }]} />
-								<Text style={styles.rowLabel}>{item.name}</Text>
-								{item.visible === "private" && <Text style={styles.privateHint}>Private</Text>}
-							</Pressable>
-						);
-					})}
+					<ScrollView style={styles.list}>
+						{labels.map((item) => {
+							const active = selected.has(item.id);
+							return (
+								<Pressable
+									key={item.id}
+									accessibilityRole="button"
+									style={styles.row}
+									onPress={() => {
+										const next = new Set(selected);
+										if (active) next.delete(item.id);
+										else next.add(item.id);
+										onChange([...next]);
+									}}
+								>
+									<Icon
+										name={active ? "SquareCheck" : "Square"}
+										size={16}
+										color={active ? theme.colors.accent : theme.colors.foregroundMuted}
+									/>
+									<View
+										style={[styles.dot, { backgroundColor: item.color ?? theme.colors.foregroundMuted }]}
+									/>
+									<Text style={styles.rowLabel}>{item.name}</Text>
+									{item.visible === "private" && <Text style={styles.privateHint}>Private</Text>}
+								</Pressable>
+							);
+						})}
+					</ScrollView>
 					<View style={styles.createRow}>
 						<TextInput
 							value={newLabelName}

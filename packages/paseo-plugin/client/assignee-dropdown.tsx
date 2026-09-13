@@ -1,6 +1,6 @@
 import { Icon } from "@getpaseo/plugin/client/react-native";
 import { useMemo, useState } from "react";
-import { Pressable, Text, View } from "react-native";
+import { Pressable, ScrollView, Text, View } from "react-native";
 import { Avatar } from "./avatar";
 import type { Theme } from "./types";
 
@@ -9,7 +9,13 @@ export interface AssigneeCandidate {
 	user: { name?: string | null; image?: string | null };
 }
 
-/** A multi-select dropdown for a task's assignees, sourced from the org's real member list. */
+/**
+ * A multi-select dropdown for a task's assignees, sourced from the org's
+ * real member list. The menu is a `position: "absolute"` overlay anchored
+ * to the trigger (see `select-dropdown.tsx`'s header comment for the
+ * reasoning and its trade-off vs. `github-board`'s `measureInWindow`-based
+ * popover) — opening it doesn't push the rest of the sheet's content down.
+ */
 export function AssigneeDropdown({
 	theme,
 	disabled,
@@ -29,6 +35,7 @@ export function AssigneeDropdown({
 
 	const styles = useMemo(
 		() => ({
+			anchor: { position: "relative" as const, alignSelf: "flex-start" as const },
 			trigger: {
 				flexDirection: "row" as const,
 				alignItems: "center" as const,
@@ -45,12 +52,23 @@ export function AssigneeDropdown({
 			stackedAvatar: { marginLeft: -6, borderWidth: 2, borderRadius: 999 },
 			label: { color: theme.colors.foreground, fontSize: 13, flex: 1 },
 			menu: {
+				position: "absolute" as const,
+				top: "100%" as const,
+				left: 0,
 				marginTop: 4,
+				minWidth: 220,
+				maxHeight: 280,
+				zIndex: 30,
 				borderWidth: 1,
 				borderColor: theme.colors.border,
 				borderRadius: 6,
 				backgroundColor: theme.colors.surface1,
 				overflow: "hidden" as const,
+				shadowColor: "#000",
+				shadowOffset: { width: 0, height: 4 },
+				shadowOpacity: 0.15,
+				shadowRadius: 8,
+				elevation: 6,
 			},
 			row: { flexDirection: "row" as const, alignItems: "center" as const, gap: 8, padding: 10 },
 			rowLabel: { color: theme.colors.foreground, fontSize: 13, flex: 1 },
@@ -68,7 +86,7 @@ export function AssigneeDropdown({
 			: selectedMembers.map((m) => m.user.name ?? m.userId).join(", ") || `${selectedIds.length} assigned`;
 
 	return (
-		<View>
+		<View style={styles.anchor}>
 			<Pressable
 				accessibilityRole="button"
 				disabled={disabled}
@@ -96,7 +114,7 @@ export function AssigneeDropdown({
 				<Icon name={open ? "ChevronUp" : "ChevronDown"} size={14} color={theme.colors.foregroundMuted} />
 			</Pressable>
 			{open && (
-				<View style={styles.menu}>
+				<ScrollView style={styles.menu}>
 					{members.map((member) => {
 						const active = selected.has(member.userId);
 						return (
@@ -121,7 +139,7 @@ export function AssigneeDropdown({
 							</Pressable>
 						);
 					})}
-				</View>
+				</ScrollView>
 			)}
 		</View>
 	);

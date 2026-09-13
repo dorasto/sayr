@@ -13,9 +13,17 @@ export interface SelectOption {
 
 /**
  * A single-select "current value, tap to expand a list below it" control —
- * this repo's own version of `github-board`'s floating `ChoicePopover`,
- * simplified to an inline accordion instead of a `measureInWindow`-positioned
- * overlay. Used by the task detail sheet's status and priority fields.
+ * this repo's own version of `github-board`'s floating `ChoicePopover`. The
+ * menu is a `position: "absolute"` overlay anchored to the trigger (like
+ * `board-header.tsx`'s `FilterDropdown` already does), not an inline
+ * accordion — opening it doesn't push the rest of the task detail sheet's
+ * content down. Lighter than `ChoicePopover`'s own `measureInWindow`-based
+ * positioning (which escapes any scrolling ancestor entirely): this trades
+ * away correctness in the rare case a trigger sits close enough to the
+ * bottom of the sheet's `ScrollView` that the open menu gets clipped, for
+ * not needing a root-level portal just for a status/priority picker whose
+ * triggers all live near the top of the sheet in practice. Used by the task
+ * detail sheet's status and priority fields.
  */
 export function SelectDropdown({
 	theme,
@@ -40,6 +48,7 @@ export function SelectDropdown({
 	const [open, setOpen] = useState(false);
 	const styles = useMemo(
 		() => ({
+			anchor: { position: "relative" as const, alignSelf: "flex-start" as const },
 			trigger: {
 				flexDirection: "row" as const,
 				alignItems: "center" as const,
@@ -55,12 +64,22 @@ export function SelectDropdown({
 			dot: { width: 8, height: 8, borderRadius: 4 },
 			label: { color: theme.colors.foreground, fontSize: 13, flex: 1 },
 			menu: {
+				position: "absolute" as const,
+				top: "100%" as const,
+				left: 0,
 				marginTop: 4,
+				minWidth: 220,
+				zIndex: 30,
 				borderWidth: 1,
 				borderColor: theme.colors.border,
 				borderRadius: 6,
 				backgroundColor: theme.colors.surface1,
 				overflow: "hidden" as const,
+				shadowColor: "#000",
+				shadowOffset: { width: 0, height: 4 },
+				shadowOpacity: 0.15,
+				shadowRadius: 8,
+				elevation: 6,
 			},
 			row: { flexDirection: "row" as const, alignItems: "center" as const, gap: 8, padding: 10 },
 			rowLabel: { color: theme.colors.foreground, fontSize: 13, flex: 1 },
@@ -69,7 +88,7 @@ export function SelectDropdown({
 	);
 
 	return (
-		<View>
+		<View style={styles.anchor}>
 			<Pressable
 				accessibilityRole="button"
 				disabled={disabled}
