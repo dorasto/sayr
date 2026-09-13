@@ -31,6 +31,27 @@ import { ProsekitView } from "./prosekit-view";
 import { SelectDropdown } from "./select-dropdown";
 import type { Theme } from "./types";
 
+/**
+ * Gives a section its own stacking context, elevated above the sections
+ * below it — needed because `styles.section` views are plain, unpositioned
+ * siblings in the ScrollView's content column. A floating dropdown menu
+ * (`select-dropdown.tsx`/`assignee-dropdown.tsx`/`label-dropdown.tsx`, all
+ * `position: "absolute"`) only escapes ITS OWN section's stacking context if
+ * that section itself is positioned with a z-index higher than every section
+ * after it — otherwise a later, perfectly ordinary unpositioned sibling
+ * still paints over it (the exact same "zIndex only competes within its own
+ * parent's stacking context" issue `board-header.tsx` hit against `body`
+ * earlier, just one level per section here instead of header-vs-body).
+ * Descending values top-to-bottom: STATUS's open menu must clear PRIORITY/
+ * LABELS/ASSIGNEES below it, PRIORITY's must clear LABELS/ASSIGNEES, etc.
+ * Sections with no dropdown (description, AI summary, comments) need no
+ * entry — plain unpositioned views already paint below anything positioned,
+ * regardless of DOM order.
+ */
+function stackedSection(zIndex: number) {
+	return { position: "relative" as const, zIndex };
+}
+
 /** The task detail sheet's main content: status/priority/assignees, description, AI summary, and comments. "Send to agent" lives in the sheet's own header now (`task-detail-sheet.tsx`), not buried down here. */
 export function TaskDetailBody({
 	theme,
@@ -176,7 +197,7 @@ export function TaskDetailBody({
 							: ""}
 					</Text>
 
-					<View style={styles.section}>
+					<View style={[styles.section, stackedSection(40)]}>
 						<Text style={styles.sectionTitle}>STATUS</Text>
 						<SelectDropdown
 							theme={theme}
@@ -195,7 +216,7 @@ export function TaskDetailBody({
 						/>
 					</View>
 
-					<View style={styles.section}>
+					<View style={[styles.section, stackedSection(30)]}>
 						<Text style={styles.sectionTitle}>PRIORITY</Text>
 						<SelectDropdown
 							theme={theme}
@@ -214,7 +235,7 @@ export function TaskDetailBody({
 						/>
 					</View>
 
-					<View style={styles.section}>
+					<View style={[styles.section, stackedSection(20)]}>
 						<Text style={styles.sectionTitle}>LABELS</Text>
 						<LabelDropdown
 							theme={theme}
@@ -226,7 +247,7 @@ export function TaskDetailBody({
 						/>
 					</View>
 
-					<View style={styles.section}>
+					<View style={[styles.section, stackedSection(10)]}>
 						<Text style={styles.sectionTitle}>ASSIGNEES</Text>
 						<AssigneeDropdown
 							theme={theme}
