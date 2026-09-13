@@ -1,6 +1,8 @@
 import type { schema } from "@repo/database";
+import { cn } from "@repo/ui/lib/utils";
 import { getDisplayName } from "@repo/util";
 import {
+	IconArrowRight,
 	IconEdit,
 	IconFileDescription,
 	IconLink,
@@ -13,6 +15,7 @@ import {
 } from "@tabler/icons-react";
 import { nanoid } from "nanoid";
 import { Fragment } from "react";
+import { priorityConfig, statusConfig } from "../../shared/config";
 import { InlineLabel } from "../../shared/inlinelabel";
 import { TimelineItemWrapper } from "./base";
 import { parseUpdatedField } from "./parse-updated-field";
@@ -220,9 +223,123 @@ export function ConsolidatedTimelineUpdates({
 				text={consolidatedItem.actor ? getDisplayName(consolidatedItem.actor) : "Unknown"}
 				image={consolidatedItem.actor?.image || ""}
 			/>{" "}
-			{dominantField
-				? `${UPDATED_FIELD_SUMMARY[dominantField]}${updatedItems.length > 1 ? ` (×${updatedItems.length})` : ""}`
-				: `made ${updatedItems.length} updates`}
+			{dominantField ? UPDATED_FIELD_SUMMARY[dominantField] : `made ${updatedItems.length} updates`}
+		</TimelineItemWrapper>
+	);
+}
+
+/**
+ * Renders a burst of status changes from the same actor as a single "changed the status from
+ * X to Y" line showing the net first-to-last transition, matching the shape of the plain
+ * `TimelineStatusChange` renderer. Intermediate hops (e.g. Backlog → Todo → In Progress) are
+ * not enumerated. Renders nothing if the net transition is a no-op (churned back to the
+ * original status) — there's nothing meaningful to report in that case.
+ */
+export function ConsolidatedTimelineStatusChanges({
+	consolidatedItem,
+	showSeparator = true,
+}: Pick<ConsolidatedTimelineItemProps, "consolidatedItem" | "showSeparator">) {
+	const statusItems = consolidatedItem.items.filter((item) => item.eventType === "status_change");
+	const firstItem = statusItems[0];
+	const lastItem = statusItems[statusItems.length - 1];
+	if (!firstItem || !lastItem) return null;
+
+	const from = typeof firstItem.fromValue === "string" ? firstItem.fromValue.replaceAll('"', "") : undefined;
+	const to = typeof lastItem.toValue === "string" ? lastItem.toValue.replaceAll('"', "") : undefined;
+	if (!from || !to || from === to) return null;
+
+	const fromConfig = statusConfig[from as keyof typeof statusConfig];
+	const toConfig = statusConfig[to as keyof typeof statusConfig];
+
+	const mockItem = {
+		...firstItem,
+		id: consolidatedItem.id,
+		createdAt: consolidatedItem.createdAt,
+		actor: consolidatedItem.actor,
+	} as Parameters<typeof TimelineItemWrapper>[0]["item"];
+
+	return (
+		<TimelineItemWrapper
+			item={mockItem}
+			icon={IconArrowRight}
+			color="bg-accent text-primary-foreground"
+			showSeparator={showSeparator}
+		>
+			<InlineLabel
+				text={consolidatedItem.actor ? getDisplayName(consolidatedItem.actor) : "Unknown"}
+				image={consolidatedItem.actor?.image || ""}
+			/>{" "}
+			changed the status from{" "}
+			<InlineLabel
+				className="text-muted-foreground hover:text-foreground"
+				text={fromConfig?.label || from}
+				icon={fromConfig?.icon(cn(fromConfig?.className, "h-3 w-3"))}
+			/>{" "}
+			to{" "}
+			<InlineLabel
+				className="text-muted-foreground hover:text-foreground"
+				text={toConfig?.label || to}
+				icon={toConfig?.icon(cn(toConfig?.className, "h-3 w-3"))}
+			/>
+		</TimelineItemWrapper>
+	);
+}
+
+/**
+ * Renders a burst of priority changes from the same actor as a single "changed the priority
+ * from X to Y" line showing the net first-to-last transition — see
+ * `ConsolidatedTimelineStatusChanges` for the equivalent status-change behavior.
+ */
+export function ConsolidatedTimelinePriorityChanges({
+	consolidatedItem,
+	showSeparator = true,
+}: Pick<ConsolidatedTimelineItemProps, "consolidatedItem" | "showSeparator">) {
+	const priorityItems = consolidatedItem.items.filter((item) => item.eventType === "priority_change");
+	const firstItem = priorityItems[0];
+	const lastItem = priorityItems[priorityItems.length - 1];
+	if (!firstItem || !lastItem) return null;
+
+	const from = typeof firstItem.fromValue === "string" ? firstItem.fromValue.replaceAll('"', "") : undefined;
+	const to = typeof lastItem.toValue === "string" ? lastItem.toValue.replaceAll('"', "") : undefined;
+	if (!from || !to || from === to) return null;
+
+	const fromConfig = priorityConfig[from as keyof typeof priorityConfig];
+	const toConfig = priorityConfig[to as keyof typeof priorityConfig];
+
+	const mockItem = {
+		...firstItem,
+		id: consolidatedItem.id,
+		createdAt: consolidatedItem.createdAt,
+		actor: consolidatedItem.actor,
+	} as Parameters<typeof TimelineItemWrapper>[0]["item"];
+
+	const PriorityIcon = toConfig?.icon
+		? () => toConfig.icon(cn(toConfig.className, "h-4 w-4", to !== "urgent" && "fill-foreground"))
+		: IconArrowRight;
+
+	return (
+		<TimelineItemWrapper
+			item={mockItem}
+			icon={PriorityIcon}
+			color="bg-accent text-primary-foreground"
+			showSeparator={showSeparator}
+		>
+			<InlineLabel
+				text={consolidatedItem.actor ? getDisplayName(consolidatedItem.actor) : "Unknown"}
+				image={consolidatedItem.actor?.image || ""}
+			/>{" "}
+			changed the priority from{" "}
+			<InlineLabel
+				className="text-muted-foreground hover:text-foreground"
+				text={fromConfig?.label || from}
+				icon={fromConfig?.icon(cn(fromConfig?.className, "h-3 w-3"))}
+			/>{" "}
+			to{" "}
+			<InlineLabel
+				className="text-muted-foreground hover:text-foreground"
+				text={toConfig?.label || to}
+				icon={toConfig?.icon(cn(toConfig?.className, "h-3 w-3"))}
+			/>
 		</TimelineItemWrapper>
 	);
 }
@@ -345,6 +462,8 @@ export function ConsolidatedTimelineItem({
 		(type) => type === "assignee_added" || type === "assignee_removed"
 	);
 	const hasUpdatedEvents = consolidatedItem.eventTypes.some((type) => type === "updated");
+	const hasStatusEvents = consolidatedItem.eventTypes.some((type) => type === "status_change");
+	const hasPriorityEvents = consolidatedItem.eventTypes.some((type) => type === "priority_change");
 	const hasLinkEvents = consolidatedItem.eventTypes.some((type) => LINK_ADDED_TYPES[type] || LINK_REMOVED_TYPES[type]);
 
 	return (
@@ -371,6 +490,16 @@ export function ConsolidatedTimelineItem({
 			{/* ✏️ Field updates (title / description / visibility) */}
 			{hasUpdatedEvents && (
 				<ConsolidatedTimelineUpdates consolidatedItem={consolidatedItem} showSeparator={showSeparator} />
+			)}
+
+			{/* 🔀 Status changes */}
+			{hasStatusEvents && (
+				<ConsolidatedTimelineStatusChanges consolidatedItem={consolidatedItem} showSeparator={showSeparator} />
+			)}
+
+			{/* 🚦 Priority changes */}
+			{hasPriorityEvents && (
+				<ConsolidatedTimelinePriorityChanges consolidatedItem={consolidatedItem} showSeparator={showSeparator} />
 			)}
 
 			{/* 🔗 Task links (parent / subtask / relation) */}

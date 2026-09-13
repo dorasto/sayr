@@ -4,8 +4,10 @@ import type { ConsolidatedTimelineItem, TimelineRunGroup } from "./types";
 /**
  * Consolidates timeline items that occur within a time window from the same actor into a
  * single merged, human-readable entry — e.g. "Tom added Bug, Urgent and removed Draft" for
- * a burst of label churn, or "Tom linked SAY-12 and unlinked SAY-20" for task-link churn.
- * Comments are never consolidated, to preserve individual comment history. `updated` events
+ * a burst of label churn, "Tom linked SAY-12 and unlinked SAY-20" for task-link churn, or
+ * "Tom changed the status from Backlog to Done" for a burst of status flips — rendered as
+ * the net first-to-last transition rather than one entry per intermediate hop. Comments are
+ * never consolidated, to preserve individual comment history. `updated` events
  * (title/description/visibility edits) are handled upstream by `mergeUpdateSessions` instead
  * of here — an entry already shaped like `ConsolidatedTimelineItem` is passed through
  * untouched (and treated as a hard boundary, like a comment) rather than re-grouped.
@@ -51,6 +53,8 @@ export function consolidateTimelineItems(
 				"subtask_removed",
 				"relation_added",
 				"relation_removed",
+				"status_change",
+				"priority_change",
 			];
 			const consolidatableItems = nonCommentItems.filter((item) => consolidatableTypes.includes(item.eventType));
 			const nonConsolidatableItems = nonCommentItems.filter((item) => !consolidatableTypes.includes(item.eventType));
