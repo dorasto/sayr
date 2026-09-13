@@ -25,6 +25,7 @@ export function CommentsSection({
 	initialTotal,
 	onPosted,
 	resolvers,
+	onOpenTask,
 }: {
 	theme: Theme;
 	taskId: string;
@@ -33,6 +34,7 @@ export function CommentsSection({
 	initialTotal: number;
 	onPosted: () => Promise<void>;
 	resolvers?: MentionResolvers;
+	onOpenTask?: (taskId: string) => void;
 }) {
 	const listComments = useRpc(listCommentsRpc);
 	const createComment = useRpc(createCommentRpc);
@@ -115,7 +117,13 @@ export function CommentsSection({
 				<Text style={styles.empty}>No comments yet.</Text>
 			) : (
 				comments.map((comment) => (
-					<CommentRow key={comment.id} theme={theme} comment={comment} resolvers={resolvers} />
+					<CommentRow
+						key={comment.id}
+						theme={theme}
+						comment={comment}
+						resolvers={resolvers}
+						onOpenTask={onOpenTask}
+					/>
 				))
 			)}
 			<View style={styles.composerRow}>

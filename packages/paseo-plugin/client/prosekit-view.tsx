@@ -33,6 +33,10 @@ import type { Theme } from "./types";
  * round of feedback; text-only pills are the safe subset. Task mentions never
  * fetch the live title (unlike the website) — only the stored key is shown —
  * to avoid an unbounded number of per-mention lookups on every render.
+ * Tapping one still opens the mentioned task, via `onOpenTask` — a task
+ * mention is only ever searched within the current org (`task-menu.tsx`'s
+ * `searchOrgTasks` is scoped by `org_id`), so the caller's own `orgSlug`
+ * always applies to the id, no lookup needed to figure out which org.
  *
  * Deliberately not exhaustive: tables and images fall back to rendering their
  * text content only (no grid/image display, no shiki-style syntax
@@ -48,6 +52,7 @@ export interface MentionResolvers {
 interface Ctx {
 	theme: Theme;
 	resolvers: MentionResolvers;
+	onOpenTask?: (taskId: string) => void;
 }
 
 const MONOSPACE = Platform.select({ ios: "Menlo", android: "monospace", default: "monospace" });
@@ -117,7 +122,12 @@ function renderMention(node: ProsekitNode, ctx: Ctx, key: string) {
 
 	if (kind === "task") {
 		return (
-			<Text key={key} style={{ ...pillStyle, fontWeight: "600" }}>
+			<Text
+				key={key}
+				style={{ ...pillStyle, fontWeight: "600" }}
+				onPress={id && ctx.onOpenTask ? () => ctx.onOpenTask?.(id) : undefined}
+				accessibilityRole={id && ctx.onOpenTask ? "link" : undefined}
+			>
 				{storedValue || "task"}
 			</Text>
 		);
@@ -254,18 +264,21 @@ function renderBlock(node: ProsekitNode, ctx: Ctx, key: string, depth: number) {
  * mention pills to their live name/color when the caller has that data
  * loaded already (org members, org categories) — entirely optional, and
  * falls back to the mention's own stored text when omitted or the id isn't
- * found (see the file header).
+ * found (see the file header). `onOpenTask`, if given, makes `#task`
+ * mentions tappable.
  */
 export function ProsekitView({
 	theme,
 	doc,
 	resolvers = {},
+	onOpenTask,
 }: {
 	theme: Theme;
 	doc: ProsekitNode | null | undefined;
 	resolvers?: MentionResolvers;
+	onOpenTask?: (taskId: string) => void;
 }) {
 	if (!doc || !Array.isArray(doc.content)) return null;
-	const ctx: Ctx = { theme, resolvers };
+	const ctx: Ctx = { theme, resolvers, onOpenTask };
 	return <View style={{ gap: 8 }}>{renderBlocks(doc.content, ctx, "doc", 0)}</View>;
 }

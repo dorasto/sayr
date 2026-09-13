@@ -33,12 +33,15 @@ export function TaskDetailBody({
 	taskId,
 	orgSlug,
 	query,
+	onOpenTask,
 }: {
 	theme: Theme;
 	navigation: Navigation;
 	taskId: string;
 	orgSlug: string;
 	query: UseQueryResult<TaskDetail>;
+	/** Opens another task (by id) in the same sheet — see `client/prosekit-view.tsx`'s `#task` mention pill. Always the current `orgSlug`: a task mention is only ever searched within the org it's written in. */
+	onOpenTask: (taskId: string, orgSlug: string) => void;
 }) {
 	const updateStatus = useRpc(updateTaskStatusRpc);
 	const updatePriority = useRpc(updateTaskPriorityRpc);
@@ -121,6 +124,7 @@ export function TaskDetailBody({
 	);
 
 	const orgMembers = orgsQuery.data?.orgs.find((org) => org.slug === orgSlug)?.members ?? [];
+	const openMentionedTask = (mentionedTaskId: string) => onOpenTask(mentionedTaskId, orgSlug);
 
 	return (
 		<ScrollView>
@@ -198,6 +202,7 @@ export function TaskDetailBody({
 								theme={theme}
 								doc={data.description as ProsekitNode}
 								resolvers={{ members: orgMembers, categories: categoriesQuery.data?.categories }}
+								onOpenTask={openMentionedTask}
 							/>
 						</View>
 					) : null}
@@ -228,6 +233,7 @@ export function TaskDetailBody({
 							initialTotal={data.commentsTotal}
 							onPosted={refresh}
 							resolvers={{ members: orgMembers, categories: categoriesQuery.data?.categories }}
+							onOpenTask={openMentionedTask}
 						/>
 					</View>
 				</View>

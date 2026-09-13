@@ -146,6 +146,7 @@ export function SayrBoard({ theme, layout, navigation }: PluginSurfaceProps) {
 					panelWidth={panelWidth}
 					onPanelWidthChange={setPanelWidth}
 					onClose={() => setSelected(null)}
+					onOpenTask={(taskId, orgSlug) => setSelected({ taskId, orgSlug })}
 				/>
 			</View>
 		</View>

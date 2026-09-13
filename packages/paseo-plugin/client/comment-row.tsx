@@ -35,10 +35,12 @@ export function CommentRow({
 	theme,
 	comment,
 	resolvers,
+	onOpenTask,
 }: {
 	theme: Theme;
 	comment: TaskComment;
 	resolvers?: MentionResolvers;
+	onOpenTask?: (taskId: string) => void;
 }) {
 	const [expanded, setExpanded] = useState(false);
 	const listReplies = useRpc(listRepliesRpc);
@@ -69,7 +71,12 @@ export function CommentRow({
 			/>
 			{comment.content ? (
 				<View style={styles.body}>
-					<ProsekitView theme={theme} doc={comment.content as ProsekitNode} resolvers={resolvers} />
+					<ProsekitView
+						theme={theme}
+						doc={comment.content as ProsekitNode}
+						resolvers={resolvers}
+						onOpenTask={onOpenTask}
+					/>
 				</View>
 			) : null}
 			{replyCount > 0 && (
@@ -86,7 +93,12 @@ export function CommentRow({
 						<AuthorLine theme={theme} name={reply.createdBy?.name} imageUrl={reply.createdBy?.image} />
 						{reply.content ? (
 							<View style={styles.body}>
-								<ProsekitView theme={theme} doc={reply.content as ProsekitNode} resolvers={resolvers} />
+								<ProsekitView
+									theme={theme}
+									doc={reply.content as ProsekitNode}
+									resolvers={resolvers}
+									onOpenTask={onOpenTask}
+								/>
 							</View>
 						) : null}
 					</View>

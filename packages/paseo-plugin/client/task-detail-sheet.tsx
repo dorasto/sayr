@@ -15,6 +15,7 @@ export function TaskDetailSheet({
 	panelWidth,
 	onPanelWidthChange,
 	onClose,
+	onOpenTask,
 }: {
 	theme: Theme;
 	layout: Layout;
@@ -24,6 +25,7 @@ export function TaskDetailSheet({
 	panelWidth: number | null;
 	onPanelWidthChange: (width: number) => void;
 	onClose: () => void;
+	onOpenTask: (taskId: string, orgSlug: string) => void;
 }) {
 	const getTask = useRpc(getTaskRpc);
 	const taskQuery = useQuery({
@@ -54,6 +56,7 @@ export function TaskDetailSheet({
 					taskId={selected.taskId}
 					orgSlug={selected.orgSlug}
 					query={taskQuery}
+					onOpenTask={onOpenTask}
 				/>
 			)}
 		</Sheet>
