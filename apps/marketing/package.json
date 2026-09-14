@@ -20,7 +20,7 @@
   },
   "dependencies": {
     "@astrojs/mdx": "^5.0.4",
-    "@astrojs/node": "^10.0.6",
+    "@astrojs/node": "^11.0.2",
     "@astrojs/react": "^5.0.4",
     "@astrojs/starlight": "^0.38.4",
     "@astrojs/starlight-tailwind": "^5.0.0",
@@ -36,7 +36,7 @@
     "@tailwindcss/vite": "^4.2.4",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.1",
-    "astro": "^6.1.9",
+    "astro": "^7.2.8",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.562.0",
