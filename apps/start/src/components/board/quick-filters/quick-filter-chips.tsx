@@ -46,7 +46,7 @@ export function QuickFilterChips() {
 	};
 
 	return (
-		<div className="flex items-center gap-1.5">
+		<div className="flex items-center gap-1.5 shrink-0">
 			{QUICK_FILTERS.map((definition) => {
 				if (definition.requiresUser && !userId) return null;
 				const isActive = activeId === definition.id;
@@ -56,7 +56,7 @@ export function QuickFilterChips() {
 						type="button"
 						onClick={() => handleToggle(definition.id)}
 						className={cn(
-							"flex items-center gap-1.5 h-7 px-2.5 rounded-full text-xs border transition-colors",
+							"flex items-center gap-1.5 h-6 px-2 shrink-0 rounded-full text-xs border transition-colors",
 							isActive
 								? "bg-primary/10 border-primary text-primary"
 								: "border-border text-muted-foreground hover:bg-accent"

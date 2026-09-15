@@ -69,7 +69,7 @@ export function FilterBuilder() {
 				<button
 					type="button"
 					className={cn(
-						"flex items-center gap-1.5 h-7 px-2.5 rounded-full text-xs border transition-colors",
+						"flex items-center gap-1.5 h-6 px-2 shrink-0 rounded-full text-xs border transition-colors",
 						conditions.length > 0
 							? "bg-primary/10 border-primary text-primary"
 							: "border-border text-muted-foreground hover:bg-accent"

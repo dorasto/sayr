@@ -24,11 +24,11 @@ export default function AdminHomePage({ pendingInvites }: { pendingInvites: Pend
 				<PageHeader.Identity icon={<IconHome className="size-4" />} title="Home" />
 				<PageHeader.Toolbar
 					left={
-						<>
+						<div className="flex items-center gap-2 flex-wrap max-w-full overflow-x-auto">
 							<FilterBuilder />
-							<div className="h-4 w-px bg-border" />
+							<div className="h-4 w-px bg-border shrink-0" />
 							<QuickFilterChips />
-						</>
+						</div>
 					}
 				/>
 			</PageHeader>
