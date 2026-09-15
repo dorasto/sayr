@@ -18,6 +18,7 @@ import {
 } from "@repo/database";
 import { ensureCdnUrl } from "@repo/util";
 import { inArray } from "drizzle-orm";
+import { useLanderCommands } from "@/hooks/commands/useLanderCommands";
 import { RootProviderLander } from "@/contexts/ContextLander";
 import { getAccess } from "@/lib/serverFunctions";
 import { seo } from "@/seo";
@@ -184,6 +185,12 @@ export const Route = createFileRoute("/(admin)/home")({
 	component: HomeLayout,
 });
 
+/** Registers /home's Cmd+K commands — needs to be inside RootProviderLander since useLanderCommands reads useLanderData(). */
+function LanderCommandRegistrar() {
+	useLanderCommands();
+	return null;
+}
+
 function HomeLayout() {
 	const { tasks, labels, personalViews, categories, releases, permissionsByOrg } = Route.useLoaderData();
 	return (
@@ -195,6 +202,7 @@ function HomeLayout() {
 			releases={releases}
 			permissionsByOrg={permissionsByOrg}
 		>
+			<LanderCommandRegistrar />
 			<Outlet />
 		</RootProviderLander>
 	);

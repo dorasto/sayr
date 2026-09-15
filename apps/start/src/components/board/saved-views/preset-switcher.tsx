@@ -107,6 +107,7 @@ export function PresetSwitcher() {
 				<ComboBoxTrigger asChild>
 					<button
 						type="button"
+						data-command-target="preset-switcher-trigger"
 						className="flex items-center gap-1.5 h-6 px-2 shrink-0 rounded-full text-xs border border-border text-muted-foreground hover:bg-accent transition-colors"
 					>
 						<span className="truncate max-w-32">{activeView ? activeView.name : "Views"}</span>

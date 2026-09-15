@@ -53,6 +53,7 @@ export function SaveViewPopover() {
 				render={
 					<button
 						type="button"
+						data-command-target="save-view-trigger"
 						className="flex items-center gap-1.5 h-6 px-2 shrink-0 rounded-full text-xs border border-border text-muted-foreground hover:bg-accent transition-colors"
 					>
 						<IconDeviceFloppy className="size-3.5" />

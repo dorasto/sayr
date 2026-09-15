@@ -135,6 +135,7 @@ export function FilterBuilder() {
 			<ComboBoxTrigger asChild>
 				<button
 					type="button"
+					data-command-target="filter-builder-trigger"
 					className={cn(
 						"flex items-center gap-1.5 h-6 px-2 shrink-0 rounded-full text-xs border transition-colors",
 						conditions.length > 0

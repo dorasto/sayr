@@ -12,7 +12,9 @@ import { sidebarActions } from "@/lib/sidebar/sidebar-store";
 import type { PendingInviteWithOrg } from "@/routes/(admin)/home/index";
 import { PendingInvitesSection } from "./pending-invites";
 
-const LANDER_PANEL_ID = "lander-side-panel";
+// Exported so useLanderCommands.tsx (the Cmd+K registrar for /home) can
+// drive this same panel from a command action without duplicating the id.
+export const LANDER_PANEL_ID = "lander-side-panel";
 
 /**
  * The new unified cross-org lander (SAY-73 Phase 1). Uses the shared Page +
