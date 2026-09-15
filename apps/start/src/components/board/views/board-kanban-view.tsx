@@ -116,7 +116,16 @@ export function BoardKanbanView({ tasks }: BoardKanbanViewProps) {
 				{...(rows ? { rows } : {})}
 				items={items}
 				onDragEnd={handleDragEnd}
-				mode="kanban"
+				// "kanban" mode gives each column independent vertical scroll, but
+				// that only works when GridBoardCells is a direct flex child of the
+				// provider's own flex-col container (its flex-1/min-h-0 sizing
+				// depends on that). With rows/sub-grouping, GridBoardCells nests one
+				// level deeper inside GridBoardRows' per-row wrapper instead, which
+				// breaks that chain — columns stop scrolling and just grow the page.
+				// "grid" mode sidesteps this entirely (single global scroll for the
+				// whole board), matching the existing org-scoped kanban's own
+				// hasKanbanSubGroups ? "grid" : "kanban" switch.
+				mode={subGrouping === "none" ? "kanban" : "grid"}
 			>
 				<GridBoardColumns>{(column) => <GridBoardColumnHeader column={column} />}</GridBoardColumns>
 				{rows ? (
