@@ -9,7 +9,8 @@ import {
 	ComboBoxSearch,
 	ComboBoxTrigger,
 } from "@repo/ui/components/tomui/combo-box-unified";
-import { STATUS_CONFIG, type StatusValue } from "../config/field-config";
+import { cn } from "@repo/ui/lib/utils";
+import { ROW_LEADING_GUTTER_CLASS, STATUS_CONFIG, type StatusValue } from "../config/field-config";
 import { useBoardTaskFieldAction } from "./use-board-task-field-action";
 
 interface FieldStatusProps {
@@ -43,7 +44,7 @@ export function FieldStatus({ task }: FieldStatusProps) {
 				<button
 					type="button"
 					data-no-propagate
-					className="size-4 grid place-items-center shrink-0 cursor-pointer"
+					className={cn(ROW_LEADING_GUTTER_CLASS, "h-3.5 grid place-items-center shrink-0 cursor-pointer")}
 					title={current.label}
 				>
 					{current.icon("h-3.5 w-3.5")}

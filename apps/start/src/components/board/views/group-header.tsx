@@ -1,17 +1,7 @@
 import { cn } from "@repo/ui/lib/utils";
 import { IconChevronDown } from "@tabler/icons-react";
 import type { ReactNode } from "react";
-
-/** The org-icon+key slot's width in board-row.tsx — imported there too, so this stays the single source of truth. */
-export const ORG_KEY_SLOT_CLASS = "w-20";
-
-/**
- * Matches the chevron's width — board-row.tsx reserves an identical leading
- * gutter (currently empty, for a future row-select checkbox) so that
- * checkbox lands in the same column as this chevron, not to line up with
- * anything else in the header.
- */
-export const ROW_LEADING_GUTTER_CLASS = "w-3.5";
+import { ROW_LEADING_GUTTER_CLASS } from "../config/field-config";
 
 interface GroupHeaderContentProps {
 	label: string;
@@ -63,7 +53,11 @@ export function GroupHeaderContent({
 		>
 			{expanded !== undefined && (
 				<IconChevronDown
-					className={cn("size-3.5 text-muted-foreground transition-transform shrink-0", !expanded && "-rotate-90")}
+					className={cn(
+						ROW_LEADING_GUTTER_CLASS,
+						"h-3.5 text-muted-foreground transition-transform shrink-0",
+						!expanded && "-rotate-90"
+					)}
 				/>
 			)}
 			{icon}

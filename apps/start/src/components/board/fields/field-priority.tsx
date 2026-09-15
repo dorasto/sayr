@@ -9,7 +9,8 @@ import {
 	ComboBoxSearch,
 	ComboBoxTrigger,
 } from "@repo/ui/components/tomui/combo-box-unified";
-import { PRIORITY_CONFIG, type PriorityValue } from "../config/field-config";
+import { cn } from "@repo/ui/lib/utils";
+import { PRIORITY_CONFIG, type PriorityValue, ROW_LEADING_GUTTER_CLASS } from "../config/field-config";
 import { useBoardTaskFieldAction } from "./use-board-task-field-action";
 
 interface FieldPriorityProps {
@@ -43,7 +44,7 @@ export function FieldPriority({ task }: FieldPriorityProps) {
 				<button
 					type="button"
 					data-no-propagate
-					className="h-4 flex items-center rounded text-xs cursor-pointer"
+					className={cn(ROW_LEADING_GUTTER_CLASS, "h-3.5 grid place-items-center shrink-0 cursor-pointer")}
 					title={current.label}
 				>
 					{current.icon("h-3.5 w-3.5")}

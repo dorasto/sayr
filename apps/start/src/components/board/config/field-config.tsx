@@ -104,3 +104,11 @@ export const VISIBILITY_CONFIG: Record<VisibilityValue, FieldPresentation> = Obj
 		},
 	])
 ) as Record<VisibilityValue, FieldPresentation>;
+
+// Shared leading-column width constants — every square icon slot on a board
+// row (checkbox/connector, status, priority) and the org+key slot use these,
+// so board-row.tsx, group-header.tsx, and the individual field pickers can't
+// drift out of alignment with each other. Single source of truth, imported
+// wherever a row/header needs to size or space one of these columns.
+export const ROW_LEADING_GUTTER_CLASS = "w-3.5";
+export const ORG_KEY_SLOT_CLASS = "w-20";
