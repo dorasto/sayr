@@ -23,6 +23,7 @@ export default function AdminHomePage({ pendingInvites }: { pendingInvites: Pend
 			<PageHeader>
 				<PageHeader.Identity icon={<IconHome className="size-4" />} title="Home" />
 				<PageHeader.Toolbar
+					className="border-b-0"
 					left={
 						<div className="flex items-center gap-2 flex-wrap max-w-full overflow-x-auto">
 							<FilterBuilder />
@@ -33,7 +34,7 @@ export default function AdminHomePage({ pendingInvites }: { pendingInvites: Pend
 				/>
 			</PageHeader>
 			<PendingInvitesSection invites={pendingInvites} />
-			<div className="flex-1 min-h-0 overflow-auto px-4 pb-4 max-w-6xl mx-auto w-full">
+			<div className="flex-1 min-h-0 overflow-auto px-2 pb-4 max-w-6xl mx-auto w-full">
 				<Board tasks={tasks} />
 			</div>
 		</div>
