@@ -5,6 +5,14 @@ import type { ReactNode } from "react";
 /** The org-icon+key slot's width in board-row.tsx — imported there too, so this stays the single source of truth. */
 export const ORG_KEY_SLOT_CLASS = "w-20";
 
+/**
+ * Matches the chevron's width — board-row.tsx reserves an identical leading
+ * gutter (currently empty, for a future row-select checkbox) so that
+ * checkbox lands in the same column as this chevron, not to line up with
+ * anything else in the header.
+ */
+export const ROW_LEADING_GUTTER_CLASS = "w-3.5";
+
 interface GroupHeaderContentProps {
 	label: string;
 	icon?: ReactNode;
@@ -26,12 +34,12 @@ interface GroupHeaderContentProps {
  * language — a rounded pill tinted per status/priority/category/release —
  * is available to kanban column headers too, not locked to the list view.
  *
- * When `icon` is set (status/priority grouping), two invisible spacers
- * mirror board-row.tsx's leading elements — the priority icon and the
- * org-icon+key slot — so this icon lands at the exact x-position of the
- * matching icon on the rows below it. Keep these widths in sync with
- * board-row.tsx if that layout changes (FieldPriority's icon is ~14px/w-3.5;
- * the org slot is ORG_KEY_SLOT_CLASS, w-20).
+ * Chevron stays leading (left), matching the row's own future leading
+ * checkbox slot (ROW_LEADING_GUTTER_CLASS, imported by board-row.tsx).
+ * That's the one place header and row deliberately line up; trying to also line up
+ * the header's group icon with a row's status icon (an earlier version of
+ * this did, via invisible spacers mirroring the row's whole leading
+ * structure) looked forced and was reverted.
  */
 export function GroupHeaderContent({
 	label,
@@ -53,21 +61,14 @@ export function GroupHeaderContent({
 				!isDropTarget && !toneClassName && !color && (isSubGroup ? "bg-accent" : undefined)
 			)}
 		>
-			{icon && (
-				<>
-					<div aria-hidden="true" className="w-3.5 shrink-0" />
-					<div aria-hidden="true" className={cn(ORG_KEY_SLOT_CLASS, "shrink-0")} />
-				</>
-			)}
-			{icon}
-			<span className="text-xs font-medium">{label}</span>
-			<span className="text-[10px] text-muted-foreground tabular-nums">{count}</span>
-			<div className="flex-1" />
 			{expanded !== undefined && (
 				<IconChevronDown
 					className={cn("size-3.5 text-muted-foreground transition-transform shrink-0", !expanded && "-rotate-90")}
 				/>
 			)}
+			{icon}
+			<span className="text-xs font-medium">{label}</span>
+			<span className="text-[10px] text-muted-foreground tabular-nums">{count}</span>
 		</div>
 	);
 }

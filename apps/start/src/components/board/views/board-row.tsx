@@ -8,7 +8,7 @@ import { OrgHoverCard } from "@/components/hover-cards";
 import { FieldAssignee } from "../fields/field-assignee";
 import { FieldPriority } from "../fields/field-priority";
 import { FieldStatus } from "../fields/field-status";
-import { ORG_KEY_SLOT_CLASS } from "./group-header";
+import { ORG_KEY_SLOT_CLASS, ROW_LEADING_GUTTER_CLASS } from "./group-header";
 
 interface BoardRowProps {
 	task: schema.TaskWithLabels;
@@ -16,11 +16,13 @@ interface BoardRowProps {
 
 /**
  * A single list row — flat, dense, no card/border treatment (matches the
- * existing UnifiedTaskItem list row, not a boxed item). Priority + task key
- * + status are clustered on the left so the icons read as directly attached
- * to the identifier, title follows, assignees sit on the right. Always a
- * real link to the task's own org detail page (org is explicit per row from
- * task.organizationId); no cross-org task detail surface is needed.
+ * existing UnifiedTaskItem list row, not a boxed item). Leads with an empty
+ * checkbox-sized gutter (ROW_LEADING_GUTTER_CLASS) reserved for a future
+ * row-select checkbox, aligned with the group header's chevron. Priority +
+ * task key + status are clustered after that so the icons read as directly
+ * attached to the identifier, title follows, assignees sit on the right.
+ * Always a real link to the task's own org detail page (org is explicit per
+ * row from task.organizationId); no cross-org task detail surface is needed.
  */
 export function BoardRow({ task }: BoardRowProps) {
 	const handleLinkClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
@@ -36,6 +38,8 @@ export function BoardRow({ task }: BoardRowProps) {
 			onClick={handleLinkClick}
 			className="flex items-center gap-1.5 px-2 py-1 text-xs hover:bg-accent transition-colors rounded-xl"
 		>
+			{/* Empty for now — reserved for a future row-select checkbox, aligned with the header's chevron. */}
+			<div aria-hidden="true" className={cn(ROW_LEADING_GUTTER_CLASS, "shrink-0")} />
 			<FieldPriority task={task} />
 			{task.organization ? (
 				<OrgHoverCard organization={task.organization}>
