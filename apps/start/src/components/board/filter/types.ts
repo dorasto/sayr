@@ -125,10 +125,13 @@ export interface FilterFieldConfig {
 	filterDefault: FilterOperator; // Default operator when user adds a condition
 	multi?: boolean; // If true, value may become string[] for (any, all, none, exact)
 	empty?: string; // Human label for empty option
+	// UserSummary (id/name/image), not the full userType — the board never
+	// loads full user records (no email etc.), only whatever's embedded on
+	// already-loaded tasks (assignees/createdBy).
 	getOptions?: (
 		tasks: schema.TaskWithLabels[],
 		labels: schema.labelType[],
-		users: schema.userType[],
+		users: schema.UserSummary[],
 		subSearch: string,
 		categories: schema.categoryType[],
 		releases: schema.releaseType[]

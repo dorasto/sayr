@@ -1,14 +1,19 @@
 import { IconHome } from "@tabler/icons-react";
 import { Board } from "@/components/board/board";
+import { FilterBuilder } from "@/components/board/filter/filter-builder";
+import { QuickFilterChips } from "@/components/board/quick-filters/quick-filter-chips";
 import { PageHeader } from "@/components/generic/PageHeader";
 import { useLanderData } from "@/contexts/ContextLander";
 import type { PendingInviteWithOrg } from "@/routes/(admin)/home/index";
 import { PendingInvitesSection } from "./pending-invites";
 
 /**
- * The new unified cross-org lander (SAY-73 Phase 1). Board rendering is
- * wired in, but the top bar / side panel / filter / saved-view assembly
- * around it is still incremental — build-order steps 7-9 flesh this out.
+ * The new unified cross-org lander (SAY-73 Phase 1). Toolbar (filter
+ * builder + quick filters) lives in PageHeader.Toolbar's left slot —
+ * same placement every other admin page uses for TaskFilterDropdown (see
+ * the page-header skill's "Cross-org task list (My Tasks)" pattern) — not
+ * inside Board itself. The side panel / saved-view / layout-toggle
+ * assembly around this is still incremental (step 9).
  */
 export default function AdminHomePage({ pendingInvites }: { pendingInvites: PendingInviteWithOrg[] }) {
 	const { tasks } = useLanderData();
@@ -17,6 +22,15 @@ export default function AdminHomePage({ pendingInvites }: { pendingInvites: Pend
 		<div className="relative flex flex-col h-full min-h-0">
 			<PageHeader>
 				<PageHeader.Identity icon={<IconHome className="size-4" />} title="Home" />
+				<PageHeader.Toolbar
+					left={
+						<>
+							<FilterBuilder />
+							<div className="h-4 w-px bg-border" />
+							<QuickFilterChips />
+						</>
+					}
+				/>
 			</PageHeader>
 			<div className="flex flex-col gap-4 p-4 max-w-6xl mx-auto w-full">
 				<PendingInvitesSection invites={pendingInvites} />

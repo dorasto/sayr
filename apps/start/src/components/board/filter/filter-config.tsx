@@ -116,7 +116,7 @@ export const FIELD_CONFIGS: FilterFieldConfig[] = [
 			tasks.forEach((t) => t.assignees?.forEach((a) => ids.add(a.id)));
 			const q = subSearch.toLowerCase();
 			return users
-				.filter((u) => ids.has(u.id) && (u.name?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q)))
+				.filter((u) => ids.has(u.id) && u.name?.toLowerCase().includes(q))
 				.map((u) => ({ value: u.id, label: u.name || "Unknown User", image: u.image || "" }));
 		},
 	},
@@ -145,7 +145,7 @@ export const FIELD_CONFIGS: FilterFieldConfig[] = [
 		getOptions: (_t, _l, users, subSearch) => {
 			const q = subSearch.toLowerCase();
 			return users
-				.filter((u) => u.name?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q))
+				.filter((u) => u.name?.toLowerCase().includes(q))
 				.map((u) => ({ value: u.id, label: u.name || "Unknown User", image: u.image || "" }));
 		},
 	},
