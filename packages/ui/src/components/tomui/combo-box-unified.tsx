@@ -168,6 +168,15 @@ function ComboBoxContent({
 	if (!isMobile) {
 		return (
 			<PopoverContent
+				// This content renders in a portal, outside the DOM subtree of
+				// whatever trigger opened it — a clickable row/card that guards
+				// its own navigation with `.closest("[data-no-propagate]")` (an
+				// established convention across the app) can't find that marker
+				// starting from a click inside here otherwise, since the portal
+				// isn't a DOM descendant of the trigger even though it bubbles to
+				// it through React's synthetic event tree. Selecting an item
+				// should never fall through to the row's own click handler.
+				data-no-propagate
 				className={cn("w-full p-0 w-72 rounded-xl", className)}
 				align={align}
 				side={side}
@@ -185,7 +194,7 @@ function ComboBoxContent({
 	}
 
 	return (
-		<DrawerContent>
+		<DrawerContent data-no-propagate>
 			<div className="mt-4 border-t">
 				<Command shouldFilter={shouldFilter}>{children}</Command>
 			</div>
