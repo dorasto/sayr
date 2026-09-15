@@ -4,14 +4,15 @@ import type { schema } from "@repo/database";
 import {
 	db,
 	getLabels,
+	getOrganizations,
 	getPersonalViews,
 	getReleases,
 	getOrgPermissions,
-	getTasksByUserId,
+	getTasksByOrganizationId,
 	type TeamPermissions,
 } from "@repo/database";
 import { ensureCdnUrl } from "@repo/util";
-import { eq, inArray } from "drizzle-orm";
+import { inArray } from "drizzle-orm";
 import { RootProviderLander } from "@/contexts/ContextLander";
 import { seo } from "@/seo";
 
@@ -19,9 +20,13 @@ export const getLanderData = createServerFn({ method: "GET" })
 	.inputValidator((data: { account: schema.userType }) => data)
 	.handler(async ({ data }) => {
 		try {
-			const tasks = await getTasksByUserId(data.account.id);
+			// getOrganizations already applies seat-assignment access rules (pro-plan
+			// orgs require an assigned seat) — every org it returns is one the user
+			// is genuinely allowed to see. This is the same source of truth the
+			// sidebar/org-switcher uses (useLayoutData().organizations).
+			const orgs = await getOrganizations(data.account.id);
 
-			if (tasks.length === 0) {
+			if (orgs.length === 0) {
 				return {
 					tasks: [],
 					labels: [],
@@ -32,58 +37,43 @@ export const getLanderData = createServerFn({ method: "GET" })
 				};
 			}
 
-			const organizationIds = Array.from(new Set(tasks.map((task) => task.organizationId)));
+			const orgIds = orgs.map((org) => org.id);
 
-			// Load orgs with seat info for this user
-			const orgs = await db.query.organization.findMany({
-				where: (org, { inArray }) => inArray(org.id, organizationIds),
-				with: {
-					members: {
-						where: (member) => eq(member.userId, data.account.id),
-					},
-				},
-			});
-
-			// Build map of orgId -> allowed
-			const allowedOrgIds = new Set(
-				orgs
-					.filter((org) => {
-						if (org.plan !== "pro") return true;
-						const member = org.members[0];
-						return member?.seatAssigned === true;
-					})
-					.map((org) => org.id)
+			// Every task in every org the user has access to — not just tasks
+			// assigned to them. getTasksByOrganizationId does no visibility
+			// filtering of its own (a task's public/private flag governs external
+			// visibility, not access among org members), matching what /:orgId/tasks
+			// itself shows for a single org.
+			const tasksByOrg = await Promise.all(
+				orgs.map(async (org) => {
+					const orgTasks = await getTasksByOrganizationId(org.id);
+					return orgTasks.map((task) => ({
+						...task,
+						organization: {
+							id: org.id,
+							name: org.name,
+							slug: org.slug,
+							shortId: org.shortId,
+							logo: org.logo ? ensureCdnUrl(org.logo) : null,
+						},
+					}));
+				})
 			);
+			const tasks = tasksByOrg.flat();
 
-			// Filter tasks based on seat rules
-			const filteredTasks = tasks.filter((task) => allowedOrgIds.has(task.organizationId));
-
-			// Transform organization logos
-			const transformedTasks = filteredTasks.map((task) => ({
-				...task,
-				organization: task.organization
-					? {
-							...task.organization,
-							logo: task.organization.logo ? ensureCdnUrl(task.organization.logo) : null,
-						}
-					: undefined,
-			}));
-
-			const filteredOrgIds = Array.from(allowedOrgIds);
-
-			const labelsArrays = await Promise.all(filteredOrgIds.map((orgId) => getLabels(orgId)));
+			const labelsArrays = await Promise.all(orgIds.map((orgId) => getLabels(orgId)));
 			const allLabels: schema.labelType[] = labelsArrays.flat();
 
 			const categories = await db.query.category.findMany({
-				where: (category) => inArray(category.organizationId, filteredOrgIds),
+				where: (category) => inArray(category.organizationId, orgIds),
 			});
 
-			const releasesArrays = await Promise.all(filteredOrgIds.map((orgId) => getReleases(orgId)));
+			const releasesArrays = await Promise.all(orgIds.map((orgId) => getReleases(orgId)));
 			const allReleases: schema.releaseType[] = releasesArrays.flat();
 
 			// Load per-org permissions for field-level gating in cross-org views
 			const permEntries = await Promise.all(
-				filteredOrgIds.map(async (orgId) => {
+				orgIds.map(async (orgId) => {
 					const perms = await getOrgPermissions(data.account.id, orgId);
 					return [orgId, perms] as const;
 				})
@@ -93,7 +83,7 @@ export const getLanderData = createServerFn({ method: "GET" })
 			const personalViews = await getPersonalViews(data.account.id);
 
 			return {
-				tasks: transformedTasks,
+				tasks,
 				labels: allLabels,
 				personalViews,
 				categories,
