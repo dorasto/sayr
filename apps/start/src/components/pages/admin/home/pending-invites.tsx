@@ -17,6 +17,11 @@ export function PendingInvitesSection({ invites }: PendingInvitesSectionProps) {
 	const [loadingId, setLoadingId] = useState<string | null>(null);
 	const [error, setError] = useState<string | null>(null);
 
+	// Bails before rendering any layout chrome (padding/width included on
+	// the root <section> below, not a wrapper in home/index.tsx) so an empty
+	// state never leaves behind a padded gap with nothing in it — including
+	// after the user declines every invite client-side, which only updates
+	// `items` (this component's own state), not the `invites` prop.
 	if (items.length === 0) return null;
 
 	const handleAction = async (invite: PendingInviteWithOrg, type: "accept" | "deny") => {
@@ -45,7 +50,7 @@ export function PendingInvitesSection({ invites }: PendingInvitesSectionProps) {
 	};
 
 	return (
-		<section className="flex flex-col gap-3">
+		<section className="flex flex-col gap-3 p-4 max-w-6xl mx-auto w-full">
 			<div className="flex items-center justify-between">
 				<Label variant="heading" className="text-base flex items-center gap-2">
 					<IconMailCheck className="size-4" />

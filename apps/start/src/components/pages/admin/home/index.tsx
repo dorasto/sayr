@@ -32,9 +32,7 @@ export default function AdminHomePage({ pendingInvites }: { pendingInvites: Pend
 					}
 				/>
 			</PageHeader>
-			<div className="flex flex-col gap-4 p-4 max-w-6xl mx-auto w-full">
-				<PendingInvitesSection invites={pendingInvites} />
-			</div>
+			<PendingInvitesSection invites={pendingInvites} />
 			<div className="flex-1 min-h-0 overflow-auto px-4 pb-4 max-w-6xl mx-auto w-full">
 				<Board tasks={tasks} />
 			</div>
