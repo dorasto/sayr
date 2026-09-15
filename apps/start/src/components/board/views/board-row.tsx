@@ -33,7 +33,7 @@ export function BoardRow({ task }: BoardRowProps) {
 			to="/$orgId/tasks/$taskShortId"
 			params={{ orgId: task.organizationId, taskShortId: (task.shortId ?? task.id).toString() }}
 			onClick={handleLinkClick}
-			className="flex items-center gap-1.5 px-2 py-1 text-xs hover:bg-accent transition-colors rounded-lg"
+			className="flex items-center gap-1.5 px-2 py-1 text-xs hover:bg-accent transition-colors rounded-xl"
 		>
 			<FieldPriority task={task} />
 			<span className="shrink-0 w-14 text-xs font-medium text-muted-foreground truncate">
@@ -55,7 +55,7 @@ export function BoardRow({ task }: BoardRowProps) {
 			<span
 				className={cn(
 					"truncate text-sm text-foreground flex-1 min-w-0 flex items-center",
-					(task.status === "done" || task.status === "canceled") && "text-muted-foreground line-through"
+					(task.status === "done" || task.status === "canceled") && "text-muted-foreground"
 				)}
 			>
 				{task.visible === "private" && <IconLock className="size-3.5 mr-1 text-primary shrink-0" />}

@@ -36,7 +36,10 @@ function BoardListDropZone({ id, tasks, children }: BoardListDropZoneProps) {
 	return (
 		<div
 			ref={setNodeRef}
-			className={cn("min-h-10 transition-colors", isOver && "bg-primary/5 ring-1 ring-primary/20 ring-inset")}
+			className={cn(
+				"min-h-10 rounded-xl transition-colors",
+				isOver && "bg-primary/5 ring-1 ring-primary/20 ring-inset"
+			)}
 		>
 			<SortableContext items={tasks.map((task) => `${id}:${task.id}`)}>{children}</SortableContext>
 		</div>
@@ -68,7 +71,16 @@ interface GroupSectionProps {
 	isSubGroup?: boolean;
 }
 
-/** Group section header — sticky, flat (no card/border wrapper), matching the group-header treatment used elsewhere in the app. */
+/**
+ * Group section header — sticky, flat (no card/border wrapper). Two layers:
+ * an opaque outer (bg-background) so scrolling rows never show through the
+ * sticky header, and an inner tint — either a semantic theme-token class
+ * (status/priority, e.g. "bg-primary/5") or a raw hex-alpha tint
+ * (category/release, which have no theme-token equivalent) — sitting on top
+ * of it. This is deliberately not color-mix(): mixing against a fully
+ * achromatic background makes the background's hue angle undefined, and
+ * browsers resolve that inconsistently (skewed everything red/pink).
+ */
 function GroupSection({ group, dropTargetId, isSubGroup = false, children }: PropsWithChildren<GroupSectionProps>) {
 	const [expanded, setExpanded] = useState(true);
 	const count = group.tasks.length;
@@ -79,19 +91,25 @@ function GroupSection({ group, dropTargetId, isSubGroup = false, children }: Pro
 				type="button"
 				onClick={() => setExpanded((value) => !value)}
 				style={{ top: isSubGroup ? "28px" : 0 }}
-				className={cn(
-					"sticky z-10 flex w-full items-center gap-1.5 px-2 py-1.5 text-left hover:bg-accent/50 transition-colors",
-					isSubGroup ? "bg-accent z-9" : "bg-background z-10"
-				)}
+				className={cn("sticky w-full overflow-hidden rounded-xl bg-background", isSubGroup ? "z-9" : "z-10")}
 			>
-				<IconChevronDown
-					className={cn("size-3.5 text-muted-foreground transition-transform", !expanded && "-rotate-90")}
-				/>
-				{group.icon}
-				<span className="text-xs font-medium">{group.label}</span>
-				<Badge variant="secondary" className="h-4 px-1.5 text-[10px]">
-					{count}
-				</Badge>
+				<div
+					style={group.color ? { backgroundColor: `${group.color}26` } : undefined}
+					className={cn(
+						"flex items-center gap-1.5 px-2 py-1.5 text-left hover:brightness-110 transition-[filter]",
+						group.toneClassName,
+						!group.toneClassName && !group.color && (isSubGroup ? "bg-accent" : undefined)
+					)}
+				>
+					<IconChevronDown
+						className={cn("size-3.5 text-muted-foreground transition-transform", !expanded && "-rotate-90")}
+					/>
+					{group.icon}
+					<span className="text-xs font-medium">{group.label}</span>
+					<Badge variant="secondary" className="h-4 px-1.5 text-[10px]">
+						{count}
+					</Badge>
+				</div>
 			</button>
 			{expanded &&
 				(dropTargetId ? (

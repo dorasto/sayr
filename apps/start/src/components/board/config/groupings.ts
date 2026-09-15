@@ -12,6 +12,15 @@ export interface BoardTaskGroup {
 	id: string;
 	label: string;
 	icon?: ReactNode;
+	/**
+	 * Semantic header tint for status/priority groups — a Tailwind class
+	 * (e.g. "bg-primary/5") tied to the app's theme tokens, not a raw color,
+	 * so it stays correct across themes. See STATUS_TONE_CLASSES/
+	 * PRIORITY_TONE_CLASSES below.
+	 */
+	toneClassName?: string;
+	/** Raw hex tint for category/release groups — these are user-picked colors with no theme-token equivalent. */
+	color?: string;
 	tasks: schema.TaskWithLabels[];
 	subGroups?: BoardTaskGroup[];
 }
@@ -21,9 +30,36 @@ export interface BoardGroupingOptions {
 	releases?: schema.releaseType[];
 }
 
-function createGroup(id: string, label: string, tasks: schema.TaskWithLabels[], icon?: ReactNode): BoardTaskGroup {
-	return { id, label, icon, tasks };
+function createGroup(
+	id: string,
+	label: string,
+	tasks: schema.TaskWithLabels[],
+	icon?: ReactNode,
+	tone?: { toneClassName?: string; color?: string }
+): BoardTaskGroup {
+	return { id, label, icon, tasks, ...tone };
 }
+
+// Same theme-token classes the app's existing group-header styling already
+// uses elsewhere (bg-muted/bg-primary/bg-success/bg-destructive) — these are
+// generic Tailwind/theme utility classes, not code imported from the old
+// system. Backlog/todo both read as neutral "not started yet" grays; todo is
+// deliberately a shade more present than backlog.
+const STATUS_TONE_CLASSES: Record<StatusValue, string | undefined> = {
+	backlog: "bg-muted/50",
+	todo: "bg-muted",
+	"in-progress": "bg-primary/5",
+	done: "bg-success/5",
+	canceled: "bg-destructive/5",
+};
+
+const PRIORITY_TONE_CLASSES: Record<PriorityValue, string | undefined> = {
+	urgent: "bg-destructive/10",
+	high: "bg-orange-800/15",
+	medium: "bg-primary/5",
+	low: "bg-card/5",
+	none: undefined,
+};
 
 function groupByAssignee(tasks: schema.TaskWithLabels[]): BoardTaskGroup[] {
 	const assignees = new Map<string, schema.UserSummary>();
@@ -55,7 +91,9 @@ function groupByCategory(tasks: schema.TaskWithLabels[], categories: schema.cate
 		createGroup(
 			category.id,
 			category.name,
-			tasks.filter((task) => task.category === category.id)
+			tasks.filter((task) => task.category === category.id),
+			undefined,
+			{ color: category.color ?? undefined }
 		)
 	);
 	const uncategorizedTasks = tasks.filter((task) => !task.category || !categoriesById.has(task.category));
@@ -69,7 +107,9 @@ function groupByRelease(tasks: schema.TaskWithLabels[], releases: schema.release
 		createGroup(
 			release.id,
 			release.name,
-			tasks.filter((task) => task.releaseId === release.id)
+			tasks.filter((task) => task.releaseId === release.id),
+			undefined,
+			{ color: release.color ?? undefined }
 		)
 	);
 	const noReleaseTasks = tasks.filter((task) => !task.releaseId || !releasesById.has(task.releaseId));
@@ -91,7 +131,8 @@ export function groupTasks(
 					status,
 					config.label,
 					tasks.filter((task) => task.status === status),
-					config.icon("h-4 w-4")
+					config.icon("h-4 w-4"),
+					{ toneClassName: STATUS_TONE_CLASSES[status] }
 				);
 			});
 		case "priority":
@@ -101,7 +142,8 @@ export function groupTasks(
 					priority,
 					config.label,
 					tasks.filter((task) => task.priority === priority),
-					config.icon("h-4 w-4")
+					config.icon("h-4 w-4"),
+					{ toneClassName: PRIORITY_TONE_CLASSES[priority] }
 				);
 			});
 		case "assignee":
