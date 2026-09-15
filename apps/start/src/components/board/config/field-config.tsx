@@ -1,7 +1,7 @@
 import { schema } from "@repo/database";
-import StatusIcon from "@repo/ui/components/icons/status";
 import PriorityIcon from "@repo/ui/components/icons/priority";
-import { IconAlertSquareFilled } from "@tabler/icons-react";
+import StatusIcon from "@repo/ui/components/icons/status";
+import { IconAlertSquareFilled, IconEye, IconEyeOff } from "@tabler/icons-react";
 import type { ReactNode } from "react";
 
 // Board's own status/priority presentation config — labels/colors/icons are
@@ -15,6 +15,7 @@ import type { ReactNode } from "react";
 
 export type StatusValue = (typeof schema.statusEnum.enumValues)[number];
 export type PriorityValue = (typeof schema.priorityEnum.enumValues)[number];
+export type VisibilityValue = (typeof schema.visibleEnum.enumValues)[number];
 
 interface FieldPresentation {
 	label: string;
@@ -36,6 +37,11 @@ const PRIORITY_PRESENTATION: Record<PriorityValue, Omit<FieldPresentation, "icon
 	medium: { label: "Medium", color: "#F59E0B", bars: 2 },
 	high: { label: "High", color: "#EF4444", bars: 3 },
 	urgent: { label: "Urgent", color: "#DC2626", bars: 3 },
+};
+
+const VISIBILITY_PRESENTATION: Record<VisibilityValue, Omit<FieldPresentation, "icon">> = {
+	public: { label: "Public", color: "#3B82F6" },
+	private: { label: "Private", color: "#6B7280" },
 };
 
 export const STATUS_CONFIG: Record<StatusValue, FieldPresentation> = Object.fromEntries(
@@ -64,3 +70,14 @@ export const PRIORITY_CONFIG: Record<PriorityValue, FieldPresentation> = Object.
 		];
 	})
 ) as Record<PriorityValue, FieldPresentation>;
+
+export const VISIBILITY_CONFIG: Record<VisibilityValue, FieldPresentation> = Object.fromEntries(
+	schema.visibleEnum.enumValues.map((visibility) => [
+		visibility,
+		{
+			...VISIBILITY_PRESENTATION[visibility],
+			icon: (className: string) =>
+				visibility === "public" ? <IconEye className={className} /> : <IconEyeOff className={className} />,
+		},
+	])
+) as Record<VisibilityValue, FieldPresentation>;

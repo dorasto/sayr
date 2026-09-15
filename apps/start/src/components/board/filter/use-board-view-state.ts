@@ -1,29 +1,29 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import type { schema } from "@repo/database";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useTasksSearchParams } from "@/hooks/useTasksSearchParams";
+import { mergeOrAppendCondition, toggleMultiValue as toggleValueHelper, updateConditionOperator } from "./multi-select";
+import { deserializeFilters, serializeFilters } from "./serialization";
 import {
-	type FilterState,
+	DEFAULT_TASK_VIEW_STATE,
 	type FilterCondition,
 	type FilterGroup,
 	type FilterOperator,
-	type TaskViewState,
+	type FilterState,
 	type TaskGroupingId,
-	DEFAULT_TASK_VIEW_STATE,
+	type TaskViewState,
 } from "./types";
-import { serializeFilters, deserializeFilters } from "./serialization";
-import { mergeOrAppendCondition, toggleMultiValue as toggleValueHelper, updateConditionOperator } from "./multi-select";
-import type { schema } from "@repo/database";
 
 export type {
-	FilterState,
 	FilterCondition,
+	FilterField,
 	FilterGroup,
 	FilterOperator,
-	FilterField,
-	TaskViewState,
+	FilterState,
 	TaskGroupingId,
+	TaskViewState,
 } from "./types";
 
 /**
