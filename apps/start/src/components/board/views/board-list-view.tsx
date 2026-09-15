@@ -49,7 +49,11 @@ function BoardListDropZone({ id, tasks, children }: BoardListDropZoneProps) {
 function SortableBoardRow({ task, containerId }: { task: schema.TaskWithLabels; containerId: string }) {
 	const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
 		id: `${containerId}:${task.id}`,
-		data: { taskId: task.id },
+		// containerId is needed on drop: dropping onto an existing row (the
+		// common case — groups are rarely empty) resolves `over` to that row's
+		// own sortable id, not the group's droppable container id, so
+		// handleDragEnd can't otherwise tell which group it landed in.
+		data: { taskId: task.id, containerId },
 	});
 
 	return (
@@ -148,7 +152,15 @@ export function BoardListView({ tasks }: BoardListViewProps) {
 	}, [groups, subGrouping]);
 
 	const handleDragEnd = (event: DragEndEvent) => {
-		const target = event.over ? dropTargets.get(event.over.id.toString()) : undefined;
+		// Dropping directly on a group's empty space resolves `over.id` to the
+		// container's own droppable id. Dropping on an existing row (the common
+		// case) resolves it to that row's sortable id instead — its `data`
+		// carries the containerId it belongs to, so check that first.
+		const overContainerId = event.over?.data.current?.containerId;
+		const overId = event.over?.id?.toString();
+		const target =
+			(typeof overContainerId === "string" ? dropTargets.get(overContainerId) : undefined) ??
+			(overId ? dropTargets.get(overId) : undefined);
 		const taskId = event.active.data.current?.taskId;
 		const task = typeof taskId === "string" ? tasks.find((item) => item.id === taskId) : undefined;
 		if (!target || !task) return;
