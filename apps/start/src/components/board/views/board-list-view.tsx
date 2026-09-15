@@ -8,7 +8,7 @@ import type { schema } from "@repo/database";
 import { Badge } from "@repo/ui/components/badge";
 import { cn } from "@repo/ui/lib/utils";
 import { IconChevronDown } from "@tabler/icons-react";
-import { type PropsWithChildren, type ReactNode, useMemo, useState } from "react";
+import { type PropsWithChildren, useMemo, useState } from "react";
 import { useLanderData } from "@/contexts/ContextLander";
 import { applyNestedGrouping, type BoardTaskGroup } from "../config/groupings";
 import { useBoardViewState } from "../filter/use-board-view-state";
@@ -22,28 +22,6 @@ interface BoardListViewProps {
 interface DropTarget {
 	groupId: string;
 	subGroupId?: string;
-}
-
-interface BoardListDropZoneProps {
-	id: string;
-	tasks: schema.TaskWithLabels[];
-	children: ReactNode;
-}
-
-function BoardListDropZone({ id, tasks, children }: BoardListDropZoneProps) {
-	const { isOver, setNodeRef } = useDroppable({ id });
-
-	return (
-		<div
-			ref={setNodeRef}
-			className={cn(
-				"min-h-10 rounded-xl transition-colors",
-				isOver && "bg-primary/5 ring-1 ring-primary/20 ring-inset"
-			)}
-		>
-			<SortableContext items={tasks.map((task) => `${id}:${task.id}`)}>{children}</SortableContext>
-		</div>
-	);
 }
 
 function SortableBoardRow({ task, containerId }: { task: schema.TaskWithLabels; containerId: string }) {
@@ -76,21 +54,38 @@ interface GroupSectionProps {
 }
 
 /**
- * Group section header — sticky, flat (no card/border wrapper). Two layers:
- * an opaque outer (bg-background) so scrolling rows never show through the
- * sticky header, and an inner tint — either a semantic theme-token class
- * (status/priority, e.g. "bg-primary/5") or a raw hex-alpha tint
- * (category/release, which have no theme-token equivalent) — sitting on top
- * of it. This is deliberately not color-mix(): mixing against a fully
- * achromatic background makes the background's hue angle undefined, and
- * browsers resolve that inconsistently (skewed everything red/pink).
+ * Group section — sticky flat header (no card/border wrapper; two layers,
+ * see below) plus its rows. The droppable region spans the *whole* section,
+ * header included, not just the row area: within a group, @dnd-kit's
+ * sortable animation naturally shows other rows making room as you drag, but
+ * there's no equivalent live feedback when hovering a *different* group —
+ * without this, there was no indication at all that dropping there would do
+ * anything. isOver highlighting the whole group (header ring included) is a
+ * deliberately louder signal for that case, not just a subtle tint.
+ *
+ * Header background is two layers: an opaque outer (bg-background) so
+ * scrolling rows never show through the sticky header, and an inner tint —
+ * either a semantic theme-token class (status/priority, e.g. "bg-primary/5")
+ * or a raw hex-alpha tint (category/release, which have no theme-token
+ * equivalent) — sitting on top of it. Deliberately not color-mix(): mixing
+ * against a fully achromatic background makes the background's hue angle
+ * undefined, and browsers resolve that inconsistently (skewed everything
+ * red/pink).
  */
 function GroupSection({ group, dropTargetId, isSubGroup = false, children }: PropsWithChildren<GroupSectionProps>) {
 	const [expanded, setExpanded] = useState(true);
 	const count = group.tasks.length;
+	const { isOver, setNodeRef } = useDroppable({ id: dropTargetId ?? `no-drop:${group.id}`, disabled: !dropTargetId });
+	const sortableIds = useMemo(
+		() => group.tasks.map((task) => `${dropTargetId}:${task.id}`),
+		[group.tasks, dropTargetId]
+	);
 
 	return (
-		<section>
+		<section
+			ref={setNodeRef}
+			className={cn("rounded-xl transition-shadow", isOver && "ring-2 ring-primary ring-inset")}
+		>
 			<button
 				type="button"
 				onClick={() => setExpanded((value) => !value)}
@@ -100,9 +95,10 @@ function GroupSection({ group, dropTargetId, isSubGroup = false, children }: Pro
 				<div
 					style={group.color ? { backgroundColor: `${group.color}26` } : undefined}
 					className={cn(
-						"flex items-center gap-1.5 px-2 py-1.5 text-left hover:brightness-110 transition-[filter]",
-						group.toneClassName,
-						!group.toneClassName && !group.color && (isSubGroup ? "bg-accent" : undefined)
+						"flex items-center gap-1.5 px-2 py-1.5 text-left transition-[filter,background-color]",
+						isOver ? "bg-primary/15" : "hover:brightness-110",
+						!isOver && group.toneClassName,
+						!isOver && !group.toneClassName && !group.color && (isSubGroup ? "bg-accent" : undefined)
 					)}
 				>
 					<IconChevronDown
@@ -115,14 +111,7 @@ function GroupSection({ group, dropTargetId, isSubGroup = false, children }: Pro
 					</Badge>
 				</div>
 			</button>
-			{expanded &&
-				(dropTargetId ? (
-					<BoardListDropZone id={dropTargetId} tasks={group.tasks}>
-						{children}
-					</BoardListDropZone>
-				) : (
-					children
-				))}
+			{expanded && (dropTargetId ? <SortableContext items={sortableIds}>{children}</SortableContext> : children)}
 		</section>
 	);
 }
