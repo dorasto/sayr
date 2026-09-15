@@ -1,4 +1,4 @@
-import { schema } from "@repo/database";
+import type { schema } from "@repo/database";
 import {
 	ComboBox,
 	ComboBoxContent,
@@ -53,7 +53,7 @@ export function FieldPriority({ task }: FieldPriorityProps) {
 				<ComboBoxList>
 					<ComboBoxEmpty>No priorities found.</ComboBoxEmpty>
 					<ComboBoxGroup>
-						{schema.priorityEnum.enumValues.map((priority) => {
+						{(Object.keys(PRIORITY_CONFIG) as PriorityValue[]).map((priority) => {
 							const config = PRIORITY_CONFIG[priority];
 							return (
 								<ComboBoxItem key={priority} value={priority} searchValue={config.label}>

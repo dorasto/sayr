@@ -1,4 +1,4 @@
-import { schema } from "@repo/database";
+import type { schema } from "@repo/database";
 import {
 	ComboBox,
 	ComboBoxContent,
@@ -53,7 +53,7 @@ export function FieldStatus({ task }: FieldStatusProps) {
 				<ComboBoxList>
 					<ComboBoxEmpty>No statuses found.</ComboBoxEmpty>
 					<ComboBoxGroup>
-						{schema.statusEnum.enumValues.map((status) => {
+						{(Object.keys(STATUS_CONFIG) as StatusValue[]).map((status) => {
 							const config = STATUS_CONFIG[status];
 							return (
 								<ComboBoxItem key={status} value={status} searchValue={config.label}>

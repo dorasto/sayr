@@ -1,4 +1,4 @@
-import { schema } from "@repo/database";
+import type { schema } from "@repo/database";
 import {
 	ComboBox,
 	ComboBoxContent,
@@ -53,7 +53,7 @@ export function FieldVisibility({ task }: FieldVisibilityProps) {
 				<ComboBoxList>
 					<ComboBoxEmpty>No visibility options found.</ComboBoxEmpty>
 					<ComboBoxGroup>
-						{schema.visibleEnum.enumValues.map((visible) => {
+						{(Object.keys(VISIBILITY_CONFIG) as VisibilityValue[]).map((visible) => {
 							const config = VISIBILITY_CONFIG[visible];
 							return (
 								<ComboBoxItem key={visible} value={visible} searchValue={config.label}>

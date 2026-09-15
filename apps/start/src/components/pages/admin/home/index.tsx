@@ -1,31 +1,28 @@
 import { IconHome } from "@tabler/icons-react";
-import { useLayoutData } from "@/components/admin/shell/context";
+import { Board } from "@/components/board/board";
 import { PageHeader } from "@/components/generic/PageHeader";
 import { useLanderData } from "@/contexts/ContextLander";
 import type { PendingInviteWithOrg } from "@/routes/(admin)/home/index";
 import { PendingInvitesSection } from "./pending-invites";
 
 /**
- * The new unified cross-org lander (SAY-73 Phase 1). This is a minimal stub —
- * the actual board (list/kanban, filters, saved views) is built incrementally
- * in apps/start/src/components/board/ over the following build-order steps.
+ * The new unified cross-org lander (SAY-73 Phase 1). Board rendering is
+ * wired in, but the top bar / side panel / filter / saved-view assembly
+ * around it is still incremental — build-order steps 7-9 flesh this out.
  */
 export default function AdminHomePage({ pendingInvites }: { pendingInvites: PendingInviteWithOrg[] }) {
-	const { account, organizations } = useLayoutData();
-	const { tasks, personalViews } = useLanderData();
+	const { tasks } = useLanderData();
 
 	return (
-		<div className="relative flex flex-col h-full">
+		<div className="relative flex flex-col h-full min-h-0">
 			<PageHeader>
 				<PageHeader.Identity icon={<IconHome className="size-4" />} title="Home" />
 			</PageHeader>
 			<div className="flex flex-col gap-4 p-4 max-w-6xl mx-auto w-full">
 				<PendingInvitesSection invites={pendingInvites} />
-				<p className="text-sm text-muted-foreground">
-					Hi {account.displayName} — {tasks.length} task{tasks.length !== 1 ? "s" : ""} across{" "}
-					{organizations.length} organization{organizations.length !== 1 ? "s" : ""}, {personalViews.length} saved
-					view{personalViews.length !== 1 ? "s" : ""}. Board coming next.
-				</p>
+			</div>
+			<div className="flex-1 min-h-0 overflow-auto px-4 pb-4 max-w-6xl mx-auto w-full">
+				<Board tasks={tasks} />
 			</div>
 		</div>
 	);

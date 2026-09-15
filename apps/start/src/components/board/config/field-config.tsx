@@ -1,13 +1,21 @@
-import { schema } from "@repo/database";
+import type { schema } from "@repo/database";
 import PriorityIcon from "@repo/ui/components/icons/priority";
 import StatusIcon from "@repo/ui/components/icons/status";
 import { IconAlertSquareFilled, IconEye, IconEyeOff } from "@tabler/icons-react";
 import type { ReactNode } from "react";
 
 // Board's own status/priority presentation config — labels/colors/icons are
-// new (not imported from components/tasks/shared/config.tsx), but the value
-// lists themselves are derived from @repo/database's schema enums so they
-// can never drift from what the DB actually allows.
+// new (not imported from components/tasks/shared/config.tsx).
+//
+// Value TYPES are derived from @repo/database's schema enums via `import
+// type` (erased at compile time, never bundled) so they can't drift from
+// what the DB allows — TypeScript will flag a missing/stale key in the
+// presentation records below if the enum changes. The VALUES themselves are
+// hardcoded (not a live `schema.statusEnum.enumValues` read): this file is
+// imported by client-rendered picker components, and `schema` is a runtime
+// value pulling in the full Drizzle schema module (which uses
+// `node:crypto` for id defaults) — Vite can't bundle that for the browser.
+// This mirrors why the old system's tasks/shared/config.tsx does the same.
 //
 // StatusIcon/PriorityIcon are generic @repo/ui glyph renderers (no
 // task-domain logic embedded), not part of "the task system" being
@@ -45,7 +53,7 @@ const VISIBILITY_PRESENTATION: Record<VisibilityValue, Omit<FieldPresentation, "
 };
 
 export const STATUS_CONFIG: Record<StatusValue, FieldPresentation> = Object.fromEntries(
-	schema.statusEnum.enumValues.map((status) => [
+	(Object.keys(STATUS_PRESENTATION) as StatusValue[]).map((status) => [
 		status,
 		{
 			...STATUS_PRESENTATION[status],
@@ -55,7 +63,7 @@ export const STATUS_CONFIG: Record<StatusValue, FieldPresentation> = Object.from
 ) as Record<StatusValue, FieldPresentation>;
 
 export const PRIORITY_CONFIG: Record<PriorityValue, FieldPresentation> = Object.fromEntries(
-	schema.priorityEnum.enumValues.map((priority) => {
+	(Object.keys(PRIORITY_PRESENTATION) as PriorityValue[]).map((priority) => {
 		const presentation = PRIORITY_PRESENTATION[priority];
 		return [
 			priority,
@@ -72,7 +80,7 @@ export const PRIORITY_CONFIG: Record<PriorityValue, FieldPresentation> = Object.
 ) as Record<PriorityValue, FieldPresentation>;
 
 export const VISIBILITY_CONFIG: Record<VisibilityValue, FieldPresentation> = Object.fromEntries(
-	schema.visibleEnum.enumValues.map((visibility) => [
+	(Object.keys(VISIBILITY_PRESENTATION) as VisibilityValue[]).map((visibility) => [
 		visibility,
 		{
 			...VISIBILITY_PRESENTATION[visibility],

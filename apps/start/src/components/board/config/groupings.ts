@@ -1,4 +1,4 @@
-import { schema } from "@repo/database";
+import type { schema } from "@repo/database";
 import type { ReactNode } from "react";
 import type { TaskGroupingId } from "../filter/types";
 import type { PriorityValue, StatusValue } from "./field-config";
@@ -85,8 +85,8 @@ export function groupTasks(
 ): BoardTaskGroup[] {
 	switch (groupBy) {
 		case "status":
-			return schema.statusEnum.enumValues.map((status) => {
-				const config = STATUS_CONFIG[status as StatusValue];
+			return (Object.keys(STATUS_CONFIG) as StatusValue[]).map((status) => {
+				const config = STATUS_CONFIG[status];
 				return createGroup(
 					status,
 					config.label,
@@ -95,8 +95,8 @@ export function groupTasks(
 				);
 			});
 		case "priority":
-			return schema.priorityEnum.enumValues.map((priority) => {
-				const config = PRIORITY_CONFIG[priority as PriorityValue];
+			return (Object.keys(PRIORITY_CONFIG) as PriorityValue[]).map((priority) => {
+				const config = PRIORITY_CONFIG[priority];
 				return createGroup(
 					priority,
 					config.label,
