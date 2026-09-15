@@ -15,6 +15,7 @@ import { useLanderData } from "@/contexts/ContextLander";
 import { sidebarActions } from "@/lib/sidebar/sidebar-store";
 import type { PendingInviteWithOrg } from "@/routes/(admin)/home/index";
 import { PendingInvitesSection } from "./pending-invites";
+import { Button } from "@repo/ui/components/button";
 
 // Exported so useLanderCommands.tsx (the Cmd+K registrar for /home) can
 // drive this same panel from a command action without duplicating the id.
@@ -53,7 +54,7 @@ export default function AdminHomePage({
         icon={<IconHome className="size-4" />}
         title="Home"
         actions={
-          <button
+          <Button
             type="button"
             onClick={() =>
               panel.isOpen
@@ -61,9 +62,10 @@ export default function AdminHomePage({
                 : sidebarActions.setOpen(LANDER_PANEL_ID, true)
             }
             title={panel.isOpen ? "Close side panel" : "Open side panel"}
+            variant="accent"
             className={cn(
-              "flex items-center justify-center size-6 rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors",
-              panel.isOpen && "bg-accent text-foreground",
+              "gap-2 h-6 w-fit bg-accent border-transparent p-1",
+              !panel.isOpen && "bg-transparent",
             )}
           >
             {panel.isOpen ? (
@@ -71,7 +73,7 @@ export default function AdminHomePage({
             ) : (
               <IconLayoutSidebarRight className="size-4" />
             )}
-          </button>
+          </Button>
         }
       />
       <PageHeader.Toolbar className="border-b-0" left={<BoardTopBar />} />
@@ -85,7 +87,8 @@ export default function AdminHomePage({
         right: {
           id: LANDER_PANEL_ID,
           header: { title: "Views & filters" },
-          defaultOpen: false,
+          defaultOpen: true,
+          persistOpenState: false,
           width: "320px",
         },
       }}

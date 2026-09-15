@@ -103,7 +103,7 @@ function Toolbar({ left, right, children, className }: ToolbarProps) {
   return (
     <div
       className={cn(
-        "flex items-center gap-1 px-2 h-11 shrink-0 border-b md:gap-2 md:px-3",
+        "flex items-center gap-1 px-2 h-11 shrink-0 border-b md:border-b-0 md:gap-2 md:px-3",
         className,
       )}
     >
