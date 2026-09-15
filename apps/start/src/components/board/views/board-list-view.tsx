@@ -15,9 +15,7 @@ import {
 import { SortableContext, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import type { schema } from "@repo/database";
-import { Badge } from "@repo/ui/components/badge";
 import { cn } from "@repo/ui/lib/utils";
-import { IconChevronDown } from "@tabler/icons-react";
 import { type PropsWithChildren, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useLanderData } from "@/contexts/ContextLander";
@@ -25,6 +23,7 @@ import { applyNestedGrouping, type BoardTaskGroup } from "../config/groupings";
 import { useBoardViewState } from "../filter/use-board-view-state";
 import { type BoardDragMutation, BoardDragMutationExecutor } from "./board-drag-actions";
 import { BoardRow } from "./board-row";
+import { GroupHeaderContent } from "./group-header";
 
 interface BoardListViewProps {
 	tasks: schema.TaskWithLabels[];
@@ -141,6 +140,8 @@ interface GroupSectionProps {
 	isSubGroup?: boolean;
 	/** Lifted from BoardListView's dragOverride — @dnd-kit only reports one closest "over" target at a time (a row wins over its own section), so a per-section useDroppable().isOver can't tell "is any row within this group currently the target." This can. */
 	isDropTarget?: boolean;
+	/** mt-3 on every section but the first, so stacked groups read as clearly separate — passed in rather than baked in here since "first" is a fact only the list knows. */
+	className?: string;
 }
 
 /**
@@ -161,6 +162,7 @@ function GroupSection({
 	dropTargetId,
 	isSubGroup = false,
 	isDropTarget = false,
+	className,
 	children,
 }: PropsWithChildren<GroupSectionProps>) {
 	const [expanded, setExpanded] = useState(true);
@@ -174,7 +176,7 @@ function GroupSection({
 	return (
 		<section
 			ref={setNodeRef}
-			className={cn("rounded-xl transition-shadow", isDropTarget && "ring-2 ring-primary ring-inset")}
+			className={cn("rounded-xl transition-shadow", isDropTarget && "ring-2 ring-primary ring-inset", className)}
 		>
 			<button
 				type="button"
@@ -182,24 +184,16 @@ function GroupSection({
 				style={{ top: isSubGroup ? "28px" : 0 }}
 				className={cn("sticky w-full overflow-hidden rounded-xl bg-background", isSubGroup ? "z-9" : "z-10")}
 			>
-				<div
-					style={group.color ? { backgroundColor: `${group.color}26` } : undefined}
-					className={cn(
-						"flex items-center gap-1.5 px-2 py-1.5 text-left transition-[filter,background-color]",
-						isDropTarget ? "bg-primary/15" : "hover:brightness-110",
-						!isDropTarget && group.toneClassName,
-						!isDropTarget && !group.toneClassName && !group.color && (isSubGroup ? "bg-accent" : undefined)
-					)}
-				>
-					<IconChevronDown
-						className={cn("size-3.5 text-muted-foreground transition-transform", !expanded && "-rotate-90")}
-					/>
-					{group.icon}
-					<span className="text-xs font-medium">{group.label}</span>
-					<Badge variant="secondary" className="h-4 px-1.5 text-[10px]">
-						{count}
-					</Badge>
-				</div>
+				<GroupHeaderContent
+					label={group.label}
+					icon={group.icon}
+					count={count}
+					toneClassName={group.toneClassName}
+					color={group.color}
+					isDropTarget={isDropTarget}
+					isSubGroup={isSubGroup}
+					expanded={expanded}
+				/>
 			</button>
 			{expanded && (dropTargetId ? <SortableContext items={sortableIds}>{children}</SortableContext> : children)}
 		</section>
@@ -355,7 +349,8 @@ export function BoardListView({ tasks }: BoardListViewProps) {
 				}}
 			>
 				<div>
-					{groups.map((group) => {
+					{groups.map((group, index) => {
+						const spacing = index > 0 ? "mt-3" : undefined;
 						if (subGrouping === "none") {
 							const dropTargetId = `board-list-drop:${group.id}`;
 							return (
@@ -364,6 +359,7 @@ export function BoardListView({ tasks }: BoardListViewProps) {
 									group={group}
 									dropTargetId={dropTargetId}
 									isDropTarget={dragOverride?.groupId === group.id && !dragOverride.subGroupId}
+									className={spacing}
 								>
 									{group.tasks.map((task) => (
 										<SortableBoardRow key={task.id} task={task} />
@@ -373,8 +369,8 @@ export function BoardListView({ tasks }: BoardListViewProps) {
 						}
 
 						return (
-							<GroupSection key={group.id} group={group}>
-								{(group.subGroups ?? []).map((subGroup) => {
+							<GroupSection key={group.id} group={group} className={spacing}>
+								{(group.subGroups ?? []).map((subGroup, subIndex) => {
 									const dropTargetId = `board-list-drop:${group.id}:${subGroup.id}`;
 									return (
 										<GroupSection
@@ -385,6 +381,7 @@ export function BoardListView({ tasks }: BoardListViewProps) {
 											isDropTarget={
 												dragOverride?.groupId === group.id && dragOverride.subGroupId === subGroup.id
 											}
+											className={subIndex > 0 ? "mt-3" : undefined}
 										>
 											{subGroup.tasks.map((task) => (
 												<SortableBoardRow key={task.id} task={task} />

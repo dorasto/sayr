@@ -1,6 +1,7 @@
 import type { schema } from "@repo/database";
 import PriorityIcon from "@repo/ui/components/icons/priority";
 import StatusIcon from "@repo/ui/components/icons/status";
+import { cn } from "@repo/ui/lib/utils";
 import { IconAlertSquareFilled, IconEye, IconEyeOff } from "@tabler/icons-react";
 import type { ReactNode } from "react";
 
@@ -31,12 +32,20 @@ interface FieldPresentation {
 	icon: (className: string) => ReactNode;
 }
 
-const STATUS_PRESENTATION: Record<StatusValue, Omit<FieldPresentation, "icon">> = {
-	backlog: { label: "Backlog", color: "#6B7280" },
-	todo: { label: "Todo", color: "#3B82F6" },
-	"in-progress": { label: "In Progress", color: "#F59E0B" },
-	done: { label: "Done", color: "#10B981" },
-	canceled: { label: "Canceled", color: "#EF4444" },
+// StatusIcon (the shared @repo/ui glyph) draws backlog/todo/in-progress with
+// `stroke="currentColor"` — it only takes on color from a text-* class the
+// caller supplies, it doesn't pick one itself. It also hardcodes its own
+// color for "done" (text-success) and "canceled" (text-muted-foreground),
+// ignoring the caller's className for those two — textClassName still gets
+// passed for done (redundant but harmless, matches the hardcoded value) and
+// needs `!` (Tailwind important) for canceled to actually win over that
+// hardcoded class.
+const STATUS_PRESENTATION: Record<StatusValue, Omit<FieldPresentation, "icon"> & { textClassName: string }> = {
+	backlog: { label: "Backlog", color: "#6B7280", textClassName: "text-muted-foreground" },
+	todo: { label: "Todo", color: "#3B82F6", textClassName: "text-foreground" },
+	"in-progress": { label: "In Progress", color: "#F59E0B", textClassName: "text-primary" },
+	done: { label: "Done", color: "#10B981", textClassName: "text-success" },
+	canceled: { label: "Canceled", color: "#EF4444", textClassName: "!text-destructive" },
 };
 
 const PRIORITY_PRESENTATION: Record<PriorityValue, Omit<FieldPresentation, "icon"> & { bars: 1 | 2 | 3 | "none" }> = {
@@ -53,13 +62,19 @@ const VISIBILITY_PRESENTATION: Record<VisibilityValue, Omit<FieldPresentation, "
 };
 
 export const STATUS_CONFIG: Record<StatusValue, FieldPresentation> = Object.fromEntries(
-	(Object.keys(STATUS_PRESENTATION) as StatusValue[]).map((status) => [
-		status,
-		{
-			...STATUS_PRESENTATION[status],
-			icon: (className: string) => <StatusIcon status={status} className={className} />,
-		},
-	])
+	(Object.keys(STATUS_PRESENTATION) as StatusValue[]).map((status) => {
+		const presentation = STATUS_PRESENTATION[status];
+		return [
+			status,
+			{
+				label: presentation.label,
+				color: presentation.color,
+				icon: (className: string) => (
+					<StatusIcon status={status} className={cn(className, presentation.textClassName)} />
+				),
+			},
+		];
+	})
 ) as Record<StatusValue, FieldPresentation>;
 
 export const PRIORITY_CONFIG: Record<PriorityValue, FieldPresentation> = Object.fromEntries(
