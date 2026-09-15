@@ -1,5 +1,6 @@
 import type { schema } from "@repo/database";
 import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
+import { Checkbox } from "@repo/ui/components/checkbox";
 import { cn } from "@repo/ui/lib/utils";
 import { formatTaskKey, getInitials } from "@repo/util";
 import { IconLock } from "@tabler/icons-react";
@@ -16,13 +17,13 @@ interface BoardRowProps {
 
 /**
  * A single list row — flat, dense, no card/border treatment (matches the
- * existing UnifiedTaskItem list row, not a boxed item). Leads with an empty
- * checkbox-sized gutter (ROW_LEADING_GUTTER_CLASS) reserved for a future
- * row-select checkbox, aligned with the group header's chevron. Priority +
- * task key + status are clustered after that so the icons read as directly
- * attached to the identifier, title follows, assignees sit on the right.
- * Always a real link to the task's own org detail page (org is explicit per
- * row from task.organizationId); no cross-org task detail surface is needed.
+ * existing UnifiedTaskItem list row, not a boxed item). Leads with a
+ * checkbox-gutter (ROW_LEADING_GUTTER_CLASS) aligned with the group header's
+ * chevron — not wired to multi-select yet, just reserving the spot. Status +
+ * priority + task key are clustered after that, title follows, assignees
+ * sit on the right. Always a real link to the task's own org detail page
+ * (org is explicit per row from task.organizationId); no cross-org task
+ * detail surface is needed.
  */
 export function BoardRow({ task }: BoardRowProps) {
 	const handleLinkClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
@@ -38,8 +39,13 @@ export function BoardRow({ task }: BoardRowProps) {
 			onClick={handleLinkClick}
 			className="flex items-center gap-1.5 px-2 py-1 text-xs hover:bg-accent transition-colors rounded-xl"
 		>
-			{/* Empty for now — reserved for a future row-select checkbox, aligned with the header's chevron. */}
-			<div aria-hidden="true" className={cn(ROW_LEADING_GUTTER_CLASS, "shrink-0")} />
+			{/* Not wired up yet — a placeholder for future multi-select, sized/positioned to match the header's chevron. */}
+			<Checkbox
+				data-no-propagate
+				className={cn(ROW_LEADING_GUTTER_CLASS, "h-3.5 shrink-0")}
+				onClick={(e) => e.stopPropagation()}
+			/>
+			<FieldStatus task={task} />
 			<FieldPriority task={task} />
 			{task.organization ? (
 				<OrgHoverCard organization={task.organization}>
@@ -60,7 +66,6 @@ export function BoardRow({ task }: BoardRowProps) {
 					{task.shortId}
 				</span>
 			)}
-			<FieldStatus task={task} />
 			<span
 				className={cn(
 					"truncate text-sm text-foreground flex-1 min-w-0 flex items-center",

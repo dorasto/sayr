@@ -131,7 +131,10 @@ export function groupTasks(
 					status,
 					config.label,
 					tasks.filter((task) => task.status === status),
-					config.icon("h-4 w-4"),
+					// h-3.5 w-3.5 — matches the glyph size FieldStatus/FieldPriority render
+					// on the rows below (field-status.tsx/field-priority.tsx both call
+					// icon("h-3.5 w-3.5")), so the header's icon isn't visibly larger.
+					config.icon("h-3.5 w-3.5"),
 					{ toneClassName: STATUS_TONE_CLASSES[status] }
 				);
 			});
@@ -142,7 +145,10 @@ export function groupTasks(
 					priority,
 					config.label,
 					tasks.filter((task) => task.priority === priority),
-					config.icon("h-4 w-4"),
+					// h-3.5 w-3.5 — matches the glyph size FieldStatus/FieldPriority render
+					// on the rows below (field-status.tsx/field-priority.tsx both call
+					// icon("h-3.5 w-3.5")), so the header's icon isn't visibly larger.
+					config.icon("h-3.5 w-3.5"),
 					{ toneClassName: PRIORITY_TONE_CLASSES[priority] }
 				);
 			});
