@@ -7,7 +7,7 @@ import type { TaskSortDirection, TaskSortField } from "./sort-config";
 // org-scoped system, but with "org" added since the board filters/groups
 // across every org the user belongs to, not just one.
 
-export type TaskGroupingId = "status" | "assignee" | "priority" | "category" | "release";
+export type TaskGroupingId = "status" | "assignee" | "priority" | "category" | "release" | "org";
 
 export interface TaskGroup {
 	id: string;

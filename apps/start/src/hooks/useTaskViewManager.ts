@@ -77,13 +77,26 @@ function areStatesEqual(a: TaskViewCombinedState, b: TaskViewCombinedState): boo
 	return areFiltersEqual(a.filters, b.filters) && areViewConfigsEqual(a.viewConfig, b.viewConfig);
 }
 
+// schema.savedViewType["viewConfig"] is one column shared with the board's
+// own personal views (packages/database/schema/saveView.schema.ts), whose
+// groupBy/subGroupBy is a superset of this file's TaskGroupingId — it also
+// allows "org" (cross-org grouping, meaningless for a single-org saved
+// view). An org-scoped view can never actually be saved with groupBy:
+// "org" (this file's own TaskViewDropdown never offers it), but the shared
+// column type doesn't know that, so narrow defensively rather than widen
+// TaskGroupingId here and leak "org" into every org-page grouping menu.
+const OLD_GROUPING_IDS = new Set<TaskGroupingId>(["status", "assignee", "priority", "category", "release"]);
+function isOldGroupingId(value: string): value is TaskGroupingId {
+	return OLD_GROUPING_IDS.has(value as TaskGroupingId);
+}
+
 /**
  * Maps a saved view's config to TaskViewState
  */
 function mapViewConfigToState(config: NonNullable<schema.savedViewType["viewConfig"]>): TaskViewState {
 	return {
-		grouping: config.groupBy,
-		subGrouping: config.subGroupBy ?? "none",
+		grouping: isOldGroupingId(config.groupBy) ? config.groupBy : DEFAULT_TASK_VIEW_STATE.grouping,
+		subGrouping: config.subGroupBy && isOldGroupingId(config.subGroupBy) ? config.subGroupBy : "none",
 		showCompletedTasks: config.showCompletedTasks,
 		viewMode: config.mode,
 		sortBy: config.sortBy ?? "none",

@@ -54,6 +54,10 @@ function getGroupUpdate(
 			// A task can appear in several assignee buckets. Dragging cannot express whether
 			// existing assignees should be retained, so assignee regrouping intentionally no-ops.
 			return null;
+		case "org":
+			// A task's organization isn't a mutable field — dragging between org
+			// groups can't reassign it, so org regrouping intentionally no-ops.
+			return null;
 	}
 }
 

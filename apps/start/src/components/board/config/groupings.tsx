@@ -1,4 +1,6 @@
 import type { schema } from "@repo/database";
+import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
+import { getInitials } from "@repo/util";
 import type { ReactNode } from "react";
 import type { TaskGroupingId } from "../filter/types";
 import type { PriorityValue, StatusValue } from "./field-config";
@@ -7,6 +9,7 @@ import { PRIORITY_CONFIG, STATUS_CONFIG } from "./field-config";
 export const UNASSIGNED_GROUP_ID = "__unassigned__";
 export const UNCATEGORIZED_GROUP_ID = "__uncategorized__";
 export const NO_RELEASE_GROUP_ID = "__no_release__";
+export const NO_ORG_GROUP_ID = "__no_org__";
 
 export interface BoardTaskGroup {
 	id: string;
@@ -117,6 +120,37 @@ function groupByRelease(tasks: schema.TaskWithLabels[], releases: schema.release
 	return [...knownReleaseGroups, createGroup(NO_RELEASE_GROUP_ID, "No release", noReleaseTasks)];
 }
 
+/**
+ * Groups tasks by their organization — the whole point of this cross-org
+ * lander. task.organization is attached manually per task when the /home
+ * route aggregates tasks across orgs (getTasksByOrganizationId doesn't embed
+ * it); a task somehow missing it falls into "No organization" rather than
+ * being dropped.
+ */
+function groupByOrg(tasks: schema.TaskWithLabels[]): BoardTaskGroup[] {
+	const orgs = new Map<string, NonNullable<schema.TaskWithLabels["organization"]>>();
+	for (const task of tasks) {
+		if (task.organization) orgs.set(task.organization.id, task.organization);
+	}
+
+	const knownOrgGroups = Array.from(orgs.values()).map((org) =>
+		createGroup(
+			org.id,
+			org.name,
+			tasks.filter((task) => task.organizationId === org.id),
+			<Avatar className="size-3.5 rounded-sm">
+				<AvatarImage src={org.logo ?? undefined} alt={org.name} />
+				<AvatarFallback className="rounded-sm text-[7px]">{getInitials(org.name)}</AvatarFallback>
+			</Avatar>
+		)
+	);
+	const noOrgTasks = tasks.filter((task) => !task.organization);
+
+	return noOrgTasks.length > 0
+		? [...knownOrgGroups, createGroup(NO_ORG_GROUP_ID, "No organization", noOrgTasks)]
+		: knownOrgGroups;
+}
+
 /** Groups board tasks without importing the retired task-view system. */
 export function groupTasks(
 	tasks: schema.TaskWithLabels[],
@@ -158,6 +192,8 @@ export function groupTasks(
 			return groupByCategory(tasks, categories);
 		case "release":
 			return groupByRelease(tasks, releases);
+		case "org":
+			return groupByOrg(tasks);
 	}
 }
 

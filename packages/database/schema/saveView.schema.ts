@@ -7,8 +7,8 @@ import { organization } from "./organization.schema";
 
 type viewConfig = {
 	mode: "list" | "kanban";
-	groupBy: "status" | "priority" | "assignee" | "category" | "release";
-	subGroupBy?: "status" | "priority" | "assignee" | "category" | "release" | "none";
+	groupBy: "status" | "priority" | "assignee" | "category" | "release" | "org";
+	subGroupBy?: "status" | "priority" | "assignee" | "category" | "release" | "org" | "none";
 	showCompletedTasks: boolean;
 	sortBy?: "priority" | "voteCount" | "createdAt" | "updatedAt" | "status" | "none";
 	sortDirection?: "asc" | "desc";
