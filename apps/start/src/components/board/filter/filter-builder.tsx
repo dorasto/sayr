@@ -37,13 +37,14 @@ function updateConditionValue(filters: FilterState, conditionId: string, value: 
 }
 
 /**
- * The filter builder — a popover listing every active condition (editable
- * in place) plus an "add filter" sub-picker. Conditions always live in a
+ * The condition list + "add filter" picker + clear-all — extracted from the
+ * popover shell so board-side-panel.tsx can render the exact same content
+ * inline, not just the compact trigger version. Conditions always live in a
  * single AND-ed group; useBoardViewState's addFilter/mergeOrAppendCondition
  * already only ever operate on groups[0], so there's no group/OR management
  * UI here — matches how the underlying state is actually shaped.
  */
-export function FilterBuilder() {
+export function FilterBuilderContent() {
 	const { filters, setFilters, addFilter, removeFilter, updateFilterOperator, clearFilters } = useBoardViewState();
 	const [addOpen, setAddOpen] = useState(false);
 
@@ -62,6 +63,72 @@ export function FilterBuilder() {
 		});
 		setAddOpen(false);
 	};
+
+	return (
+		<>
+			<div className="flex flex-col divide-y divide-border">
+				{conditions.length === 0 && <p className="text-xs text-muted-foreground px-1 py-2">No filters yet.</p>}
+				{conditions.map((condition) => (
+					<FilterBuilderConditionRow
+						key={condition.id}
+						condition={condition}
+						onOperatorChange={(operator) => updateFilterOperator(condition.id, operator)}
+						onValuesChange={(values) => setFilters(updateConditionValue(filters, condition.id, values))}
+						onTextChange={(value) => setFilters(updateConditionValue(filters, condition.id, value))}
+						onRemove={() => removeFilter(condition.id)}
+					/>
+				))}
+			</div>
+			<div className="flex items-center justify-between gap-2 mt-1 pt-2 border-t border-border">
+				<ComboBox open={addOpen} onOpenChange={setAddOpen} onValueChange={handleAddField}>
+					<ComboBoxTrigger asChild>
+						<button
+							type="button"
+							className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+						>
+							<IconPlus className="size-3.5" />
+							Add filter
+						</button>
+					</ComboBoxTrigger>
+					<ComboBoxContent align="start">
+						<ComboBoxSearch placeholder="Search fields..." />
+						<ComboBoxList>
+							<ComboBoxEmpty>No fields found.</ComboBoxEmpty>
+							<ComboBoxGroup>
+								{ADDABLE_FIELDS.map((config) => (
+									<ComboBoxItem
+										key={config.field}
+										value={config.field}
+										searchValue={config.label}
+										disabled={activeFields.has(config.field)}
+										showCheck={false}
+									>
+										{config.icon}
+										<span>{config.label}</span>
+									</ComboBoxItem>
+								))}
+							</ComboBoxGroup>
+						</ComboBoxList>
+					</ComboBoxContent>
+				</ComboBox>
+				{conditions.length > 0 && (
+					<button
+						type="button"
+						onClick={clearFilters}
+						className="text-xs text-muted-foreground hover:text-foreground"
+					>
+						Clear all
+					</button>
+				)}
+			</div>
+		</>
+	);
+}
+
+/** The filter builder's compact top-bar form — a trigger button + popover wrapping FilterBuilderContent. */
+export function FilterBuilder() {
+	const { filters } = useBoardViewState();
+	const conditions: FilterCondition[] = filters.groups[0]?.conditions ?? [];
 
 	return (
 		<ComboBox>
@@ -85,61 +152,7 @@ export function FilterBuilder() {
 				</button>
 			</ComboBoxTrigger>
 			<ComboBoxContent className="w-80 p-2" align="start">
-				<div className="flex flex-col divide-y divide-border">
-					{conditions.length === 0 && <p className="text-xs text-muted-foreground px-1 py-2">No filters yet.</p>}
-					{conditions.map((condition) => (
-						<FilterBuilderConditionRow
-							key={condition.id}
-							condition={condition}
-							onOperatorChange={(operator) => updateFilterOperator(condition.id, operator)}
-							onValuesChange={(values) => setFilters(updateConditionValue(filters, condition.id, values))}
-							onTextChange={(value) => setFilters(updateConditionValue(filters, condition.id, value))}
-							onRemove={() => removeFilter(condition.id)}
-						/>
-					))}
-				</div>
-				<div className="flex items-center justify-between gap-2 mt-1 pt-2 border-t border-border">
-					<ComboBox open={addOpen} onOpenChange={setAddOpen} onValueChange={handleAddField}>
-						<ComboBoxTrigger asChild>
-							<button
-								type="button"
-								className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
-							>
-								<IconPlus className="size-3.5" />
-								Add filter
-							</button>
-						</ComboBoxTrigger>
-						<ComboBoxContent align="start">
-							<ComboBoxSearch placeholder="Search fields..." />
-							<ComboBoxList>
-								<ComboBoxEmpty>No fields found.</ComboBoxEmpty>
-								<ComboBoxGroup>
-									{ADDABLE_FIELDS.map((config) => (
-										<ComboBoxItem
-											key={config.field}
-											value={config.field}
-											searchValue={config.label}
-											disabled={activeFields.has(config.field)}
-											showCheck={false}
-										>
-											{config.icon}
-											<span>{config.label}</span>
-										</ComboBoxItem>
-									))}
-								</ComboBoxGroup>
-							</ComboBoxList>
-						</ComboBoxContent>
-					</ComboBox>
-					{conditions.length > 0 && (
-						<button
-							type="button"
-							onClick={clearFilters}
-							className="text-xs text-muted-foreground hover:text-foreground"
-						>
-							Clear all
-						</button>
-					)}
-				</div>
+				<FilterBuilderContent />
 			</ComboBoxContent>
 		</ComboBox>
 	);
