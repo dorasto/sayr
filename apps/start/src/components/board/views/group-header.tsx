@@ -1,7 +1,9 @@
-import { Badge } from "@repo/ui/components/badge";
 import { cn } from "@repo/ui/lib/utils";
 import { IconChevronDown } from "@tabler/icons-react";
 import type { ReactNode } from "react";
+
+/** The org-icon+key slot's width in board-row.tsx — imported there too, so this stays the single source of truth. */
+export const ORG_KEY_SLOT_CLASS = "w-20";
 
 interface GroupHeaderContentProps {
 	label: string;
@@ -23,6 +25,13 @@ interface GroupHeaderContentProps {
  * (which is list-specific dnd-kit + scroll behavior) so this same visual
  * language — a rounded pill tinted per status/priority/category/release —
  * is available to kanban column headers too, not locked to the list view.
+ *
+ * When `icon` is set (status/priority grouping), two invisible spacers
+ * mirror board-row.tsx's leading elements — the priority icon and the
+ * org-icon+key slot — so this icon lands at the exact x-position of the
+ * matching icon on the rows below it. Keep these widths in sync with
+ * board-row.tsx if that layout changes (FieldPriority's icon is ~14px/w-3.5;
+ * the org slot is ORG_KEY_SLOT_CLASS, w-20).
  */
 export function GroupHeaderContent({
 	label,
@@ -44,16 +53,21 @@ export function GroupHeaderContent({
 				!isDropTarget && !toneClassName && !color && (isSubGroup ? "bg-accent" : undefined)
 			)}
 		>
-			{expanded !== undefined && (
-				<IconChevronDown
-					className={cn("size-3.5 text-muted-foreground transition-transform", !expanded && "-rotate-90")}
-				/>
+			{icon && (
+				<>
+					<div aria-hidden="true" className="w-3.5 shrink-0" />
+					<div aria-hidden="true" className={cn(ORG_KEY_SLOT_CLASS, "shrink-0")} />
+				</>
 			)}
 			{icon}
 			<span className="text-xs font-medium">{label}</span>
-			<Badge variant="secondary" className="h-4 px-1.5 text-[10px]">
-				{count}
-			</Badge>
+			<span className="text-[10px] text-muted-foreground tabular-nums">{count}</span>
+			<div className="flex-1" />
+			{expanded !== undefined && (
+				<IconChevronDown
+					className={cn("size-3.5 text-muted-foreground transition-transform shrink-0", !expanded && "-rotate-90")}
+				/>
+			)}
 		</div>
 	);
 }
