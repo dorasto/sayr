@@ -41,7 +41,7 @@ export function BoardCard({ task }: BoardCardProps) {
 					{task.title || "Untitled"}
 				</p>
 			</Link>
-			<FieldToolbar task={task} fields={["priority", "assignee"]} />
+			<FieldToolbar task={task} fields={["priority", "category", "release", "label", "assignee"]} />
 		</div>
 	);
 }

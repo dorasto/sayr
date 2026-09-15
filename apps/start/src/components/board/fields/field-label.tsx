@@ -4,29 +4,40 @@ import {
 	ComboBoxContent,
 	ComboBoxEmpty,
 	ComboBoxGroup,
-	ComboBoxIcon,
 	ComboBoxItem,
 	ComboBoxList,
 	ComboBoxSearch,
 	ComboBoxTrigger,
-	ComboBoxValue,
 } from "@repo/ui/components/tomui/combo-box-unified";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
-import { IconTag } from "@tabler/icons-react";
-import { useLanderData } from "@/contexts/ContextLander";
 import { updateLabelToTaskAction } from "@/lib/fetches/task";
+import { useLanderData } from "@/contexts/ContextLander";
 import { useBoardTaskFieldAction } from "./use-board-task-field-action";
+
+const MAX_VISIBLE_LABELS = 2;
 
 interface FieldLabelProps {
 	task: schema.TaskWithLabels;
 }
 
+/**
+ * Compact label pills — hidden entirely when the task has no labels
+ * (matches the existing org-scoped row's TaskLabelsInline, which also
+ * renders null on empty). Shows up to MAX_VISIBLE_LABELS colored-dot pills
+ * plus a "+N" overflow pill; the whole cluster is one ComboBox trigger, so
+ * clicking any of it opens the multi-select label picker.
+ */
 export function FieldLabel({ task }: FieldLabelProps) {
 	const { labels } = useLanderData();
 	const { value: sseClientId } = useStateManagement<string>("sse-clientId", "");
 	const { execute } = useBoardTaskFieldAction(task);
 	const availableLabels = labels.filter((label) => label.organizationId === task.organizationId);
 	const labelIds = task.labels.map((label) => label.id);
+
+	if (task.labels.length === 0) return null;
+
+	const visibleLabels = task.labels.slice(0, MAX_VISIBLE_LABELS);
+	const overflowCount = task.labels.length - visibleLabels.length;
 
 	return (
 		<ComboBox
@@ -46,12 +57,31 @@ export function FieldLabel({ task }: FieldLabelProps) {
 				});
 			}}
 		>
-			<ComboBoxTrigger className="w-auto gap-2">
-				<ComboBoxValue>
-					<IconTag className="h-4 w-4 text-muted-foreground" />
-					<span>{task.labels.length > 0 ? `${task.labels.length} labels` : "Labels"}</span>
-				</ComboBoxValue>
-				<ComboBoxIcon />
+			<ComboBoxTrigger asChild>
+				<button
+					type="button"
+					data-no-propagate
+					className="flex items-center gap-1 shrink-0 cursor-pointer"
+					title={task.labels.map((label) => label.name).join(", ")}
+				>
+					{visibleLabels.map((label) => (
+						<span
+							key={label.id}
+							className="flex items-center gap-1 h-5 max-w-20 rounded-full bg-accent px-1.5 text-[11px] font-medium text-muted-foreground"
+						>
+							<span
+								className="size-1.5 rounded-full shrink-0"
+								style={{ backgroundColor: label.color ?? "#9CA3AF" }}
+							/>
+							<span className="truncate">{label.name}</span>
+						</span>
+					))}
+					{overflowCount > 0 && (
+						<span className="flex items-center h-5 rounded-full bg-accent px-1.5 text-[11px] font-medium text-muted-foreground">
+							+{overflowCount}
+						</span>
+					)}
+				</button>
 			</ComboBoxTrigger>
 			<ComboBoxContent>
 				<ComboBoxSearch placeholder="Search labels..." />

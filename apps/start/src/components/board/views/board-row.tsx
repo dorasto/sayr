@@ -8,7 +8,10 @@ import { Link } from "@tanstack/react-router";
 import { OrgHoverCard } from "@/components/hover-cards";
 import { ORG_KEY_SLOT_CLASS, ROW_LEADING_GUTTER_CLASS } from "../config/field-config";
 import { FieldAssignee } from "../fields/field-assignee";
+import { FieldCategory } from "../fields/field-category";
+import { FieldLabel } from "../fields/field-label";
 import { FieldPriority } from "../fields/field-priority";
+import { FieldRelease } from "../fields/field-release";
 import { FieldStatus } from "../fields/field-status";
 
 interface BoardRowProps {
@@ -109,6 +112,11 @@ export function BoardRow({ task, nested = false }: BoardRowProps) {
 				{task.visible === "private" && <IconLock className="size-3.5 mr-1 text-primary shrink-0" />}
 				{task.title || "Untitled"}
 			</span>
+			<div className="flex items-center gap-1 shrink-0">
+				<FieldCategory task={task} />
+				<FieldRelease task={task} />
+				<FieldLabel task={task} />
+			</div>
 			<div className="shrink-0">
 				<FieldAssignee task={task} />
 			</div>

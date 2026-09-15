@@ -4,14 +4,11 @@ import {
 	ComboBoxContent,
 	ComboBoxEmpty,
 	ComboBoxGroup,
-	ComboBoxIcon,
 	ComboBoxItem,
 	ComboBoxList,
 	ComboBoxSearch,
 	ComboBoxTrigger,
-	ComboBoxValue,
 } from "@repo/ui/components/tomui/combo-box-unified";
-import { IconCategory } from "@tabler/icons-react";
 import { useLanderData } from "@/contexts/ContextLander";
 import { useBoardTaskFieldAction } from "./use-board-task-field-action";
 
@@ -19,11 +16,21 @@ interface FieldCategoryProps {
 	task: schema.TaskWithLabels;
 }
 
+/**
+ * Compact category pill — hidden entirely when the task has no category
+ * (matches the existing org-scoped row's CategoryBadgeButton, which also
+ * renders null on empty), a colored-dot pill when it does. Still a full
+ * ComboBox trigger underneath, so clicking it reassigns/clears the category
+ * — assigning a category to a task that has none is done from the task
+ * detail page, not from this compact row/card badge.
+ */
 export function FieldCategory({ task }: FieldCategoryProps) {
 	const { categories } = useLanderData();
 	const { execute } = useBoardTaskFieldAction(task);
 	const availableCategories = categories.filter((category) => category.organizationId === task.organizationId);
 	const current = availableCategories.find((category) => category.id === task.category);
+
+	if (!current) return null;
 
 	return (
 		<ComboBox
@@ -43,12 +50,19 @@ export function FieldCategory({ task }: FieldCategoryProps) {
 				});
 			}}
 		>
-			<ComboBoxTrigger className="w-auto gap-2">
-				<ComboBoxValue>
-					<IconCategory className="h-4 w-4 text-muted-foreground" />
-					<span>{current?.name ?? "Category"}</span>
-				</ComboBoxValue>
-				<ComboBoxIcon />
+			<ComboBoxTrigger asChild>
+				<button
+					type="button"
+					data-no-propagate
+					className="flex items-center gap-1 h-5 max-w-24 shrink-0 rounded-full bg-accent px-1.5 text-[11px] font-medium text-muted-foreground cursor-pointer"
+					title={current.name}
+				>
+					<span
+						className="size-1.5 rounded-full shrink-0"
+						style={{ backgroundColor: current.color ?? "#9CA3AF" }}
+					/>
+					<span className="truncate">{current.name}</span>
+				</button>
 			</ComboBoxTrigger>
 			<ComboBoxContent>
 				<ComboBoxSearch placeholder="Search categories..." />
