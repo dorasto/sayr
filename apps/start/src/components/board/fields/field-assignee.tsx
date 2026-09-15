@@ -5,16 +5,15 @@ import {
 	ComboBoxContent,
 	ComboBoxEmpty,
 	ComboBoxGroup,
-	ComboBoxIcon,
 	ComboBoxItem,
 	ComboBoxList,
 	ComboBoxSearch,
 	ComboBoxTrigger,
-	ComboBoxValue,
 } from "@repo/ui/components/tomui/combo-box-unified";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
+import { cn } from "@repo/ui/lib/utils";
 import { getInitials } from "@repo/util";
-import { IconUser } from "@tabler/icons-react";
+import { IconUserOff } from "@tabler/icons-react";
 import { useMemo } from "react";
 import { useLanderData } from "@/contexts/ContextLander";
 import { updateAssigneesToTaskAction } from "@/lib/fetches/task";
@@ -58,23 +57,31 @@ export function FieldAssignee({ task }: FieldAssigneeProps) {
 				});
 			}}
 		>
-			<ComboBoxTrigger className="w-auto gap-2">
-				<ComboBoxValue>
-					{task.assignees.length > 0 ? (
-						<span className="flex -space-x-1.5">
-							{task.assignees.slice(0, 3).map((assignee) => (
-								<Avatar key={assignee.id} className="size-5 border border-background">
-									<AvatarImage src={assignee.image ?? undefined} alt={assignee.name ?? "Assignee"} />
-									<AvatarFallback>{getInitials(assignee.name)}</AvatarFallback>
-								</Avatar>
-							))}
-						</span>
-					) : (
-						<IconUser className="h-4 w-4 text-muted-foreground" />
-					)}
-					<span>{task.assignees.length > 0 ? `${task.assignees.length} assignees` : "Assignee"}</span>
-				</ComboBoxValue>
-				<ComboBoxIcon />
+			<ComboBoxTrigger asChild>
+				{task.assignees.length === 0 ? (
+					<button
+						type="button"
+						data-no-propagate
+						className="flex items-center rounded-full bg-accent aspect-square place-content-center border h-5 w-5 cursor-pointer"
+					>
+						<IconUserOff className="h-3 w-3 shrink-0" />
+					</button>
+				) : (
+					<button type="button" data-no-propagate className="flex items-center -space-x-2 cursor-pointer">
+						{task.assignees.slice(0, 3).map((assignee, index) => (
+							<Avatar
+								key={assignee.id}
+								className={cn("rounded-full h-5 w-5 border border-background", index > 0 && "relative")}
+								style={{ zIndex: task.assignees.length - index }}
+							>
+								<AvatarImage src={assignee.image ?? undefined} alt={assignee.name ?? "Assignee"} />
+								<AvatarFallback className="rounded-full bg-accent uppercase text-[10px]">
+									{getInitials(assignee.name)}
+								</AvatarFallback>
+							</Avatar>
+						))}
+					</button>
+				)}
 			</ComboBoxTrigger>
 			<ComboBoxContent>
 				<ComboBoxSearch placeholder="Search assignees..." />

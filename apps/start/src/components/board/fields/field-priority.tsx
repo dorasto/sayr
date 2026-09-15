@@ -4,12 +4,10 @@ import {
 	ComboBoxContent,
 	ComboBoxEmpty,
 	ComboBoxGroup,
-	ComboBoxIcon,
 	ComboBoxItem,
 	ComboBoxList,
 	ComboBoxSearch,
 	ComboBoxTrigger,
-	ComboBoxValue,
 } from "@repo/ui/components/tomui/combo-box-unified";
 import { PRIORITY_CONFIG, type PriorityValue } from "../config/field-config";
 import { useBoardTaskFieldAction } from "./use-board-task-field-action";
@@ -41,12 +39,15 @@ export function FieldPriority({ task }: FieldPriorityProps) {
 				});
 			}}
 		>
-			<ComboBoxTrigger className="w-auto gap-2">
-				<ComboBoxValue>
-					{current.icon("h-4 w-4")}
-					<span>{current.label}</span>
-				</ComboBoxValue>
-				<ComboBoxIcon />
+			<ComboBoxTrigger asChild>
+				<button
+					type="button"
+					data-no-propagate
+					className="h-4 flex items-center rounded text-xs cursor-pointer"
+					title={current.label}
+				>
+					{current.icon("h-3.5 w-3.5")}
+				</button>
 			</ComboBoxTrigger>
 			<ComboBoxContent>
 				<ComboBoxSearch placeholder="Search priority..." />

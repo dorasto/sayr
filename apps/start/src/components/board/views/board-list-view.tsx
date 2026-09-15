@@ -65,23 +65,31 @@ function SortableBoardRow({ task, containerId }: { task: schema.TaskWithLabels; 
 interface GroupSectionProps {
 	group: BoardTaskGroup;
 	dropTargetId?: string;
+	isSubGroup?: boolean;
 }
 
-function GroupSection({ group, dropTargetId, children }: PropsWithChildren<GroupSectionProps>) {
+/** Group section header — sticky, flat (no card/border wrapper), matching the group-header treatment used elsewhere in the app. */
+function GroupSection({ group, dropTargetId, isSubGroup = false, children }: PropsWithChildren<GroupSectionProps>) {
 	const [expanded, setExpanded] = useState(true);
 	const count = group.tasks.length;
 
 	return (
-		<section className="rounded-lg border bg-card">
+		<section>
 			<button
 				type="button"
 				onClick={() => setExpanded((value) => !value)}
-				className="flex w-full items-center gap-2 px-3 py-2 text-left hover:bg-accent/50"
+				style={{ top: isSubGroup ? "28px" : 0 }}
+				className={cn(
+					"sticky z-10 flex w-full items-center gap-1.5 px-2 py-1.5 text-left hover:bg-accent/50 transition-colors",
+					isSubGroup ? "bg-accent z-9" : "bg-background z-10"
+				)}
 			>
-				<IconChevronDown className={cn("size-4 transition-transform", !expanded && "-rotate-90")} />
+				<IconChevronDown
+					className={cn("size-3.5 text-muted-foreground transition-transform", !expanded && "-rotate-90")}
+				/>
 				{group.icon}
-				<span className="text-sm font-medium">{group.label}</span>
-				<Badge variant="secondary" className="h-5 px-1.5 text-xs">
+				<span className="text-xs font-medium">{group.label}</span>
+				<Badge variant="secondary" className="h-4 px-1.5 text-[10px]">
 					{count}
 				</Badge>
 			</button>
@@ -139,7 +147,7 @@ export function BoardListView({ tasks }: BoardListViewProps) {
 	return (
 		<>
 			<DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-				<div className="space-y-3">
+				<div>
 					{groups.map((group) => {
 						if (subGrouping === "none") {
 							const dropTargetId = `board-list-drop:${group.id}`;
@@ -154,18 +162,16 @@ export function BoardListView({ tasks }: BoardListViewProps) {
 
 						return (
 							<GroupSection key={group.id} group={group}>
-								<div className="space-y-2 border-t p-2">
-									{(group.subGroups ?? []).map((subGroup) => {
-										const dropTargetId = `board-list-drop:${group.id}:${subGroup.id}`;
-										return (
-											<GroupSection key={subGroup.id} group={subGroup} dropTargetId={dropTargetId}>
-												{subGroup.tasks.map((task) => (
-													<SortableBoardRow key={task.id} task={task} containerId={dropTargetId} />
-												))}
-											</GroupSection>
-										);
-									})}
-								</div>
+								{(group.subGroups ?? []).map((subGroup) => {
+									const dropTargetId = `board-list-drop:${group.id}:${subGroup.id}`;
+									return (
+										<GroupSection key={subGroup.id} group={subGroup} dropTargetId={dropTargetId} isSubGroup>
+											{subGroup.tasks.map((task) => (
+												<SortableBoardRow key={task.id} task={task} containerId={dropTargetId} />
+											))}
+										</GroupSection>
+									);
+								})}
 							</GroupSection>
 						);
 					})}
