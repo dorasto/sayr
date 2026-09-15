@@ -1,11 +1,13 @@
 "use client";
 
-import type { DragEndEvent, DragOverEvent, DragStartEvent, Over } from "@dnd-kit/core";
+import type { CollisionDetection, DragEndEvent, DragOverEvent, DragStartEvent, Over } from "@dnd-kit/core";
 import {
-	closestCenter,
 	DndContext,
 	DragOverlay,
+	getFirstCollision,
+	pointerWithin,
 	PointerSensor,
+	rectIntersection,
 	useDroppable,
 	useSensor,
 	useSensors,
@@ -16,7 +18,7 @@ import type { schema } from "@repo/database";
 import { Badge } from "@repo/ui/components/badge";
 import { cn } from "@repo/ui/lib/utils";
 import { IconChevronDown } from "@tabler/icons-react";
-import { type PropsWithChildren, useMemo, useState } from "react";
+import { type PropsWithChildren, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useLanderData } from "@/contexts/ContextLander";
 import { applyNestedGrouping, type BoardTaskGroup } from "../config/groupings";
@@ -242,6 +244,40 @@ export function BoardListView({ tasks }: BoardListViewProps) {
 		);
 	}, [baseGroups, dragOverride, tasks]);
 
+	// Sticky "last over" target + a one-frame freeze right after a
+	// dragOverride-driven reshuffle. Without this, closestCenter alone
+	// oscillates: moving a row into a new group's SortableContext changes
+	// that group's layout, which changes what's geometrically closest to the
+	// pointer, which can flip the resolved target back, re-triggering the
+	// same reshuffle — an unbounded render loop ("Maximum update depth
+	// exceeded"). This mirrors @dnd-kit's own documented workaround for
+	// multi-container sortable lists (their "recentlyMovedToNewContainer"
+	// pattern): freeze collision resolution to the last known target for one
+	// animation frame after any state-driven layout shift.
+	const lastOverIdRef = useRef<string | null>(null);
+	const recentlyMovedRef = useRef(false);
+
+	useEffect(() => {
+		const frame = requestAnimationFrame(() => {
+			recentlyMovedRef.current = false;
+		});
+		return () => cancelAnimationFrame(frame);
+	}, [groups]);
+
+	const collisionDetectionStrategy: CollisionDetection = useCallback((args) => {
+		if (recentlyMovedRef.current) {
+			return lastOverIdRef.current ? [{ id: lastOverIdRef.current }] : [];
+		}
+		const pointerIntersections = pointerWithin(args);
+		const intersections = pointerIntersections.length > 0 ? pointerIntersections : rectIntersection(args);
+		const overId = getFirstCollision(intersections, "id");
+		if (overId != null) {
+			lastOverIdRef.current = overId.toString();
+			return [{ id: overId }];
+		}
+		return lastOverIdRef.current ? [{ id: lastOverIdRef.current }] : [];
+	}, []);
+
 	// Both built from baseGroups (stable, unaffected by the in-progress
 	// override) so target resolution never shifts mid-drag.
 	const dropTargets = useMemo(() => {
@@ -262,6 +298,8 @@ export function BoardListView({ tasks }: BoardListViewProps) {
 	const handleDragStart = (event: DragStartEvent) => {
 		const taskId = event.active.data.current?.taskId;
 		setActiveId(typeof taskId === "string" ? taskId : null);
+		lastOverIdRef.current = null;
+		recentlyMovedRef.current = false;
 	};
 
 	const handleDragOver = (event: DragOverEvent) => {
@@ -271,11 +309,17 @@ export function BoardListView({ tasks }: BoardListViewProps) {
 			setDragOverride(null);
 			return;
 		}
-		setDragOverride((prev) =>
-			prev?.taskId === taskId && prev.groupId === target.groupId && prev.subGroupId === target.subGroupId
-				? prev
-				: { taskId, groupId: target.groupId, subGroupId: target.subGroupId }
-		);
+		setDragOverride((prev) => {
+			if (prev?.taskId === taskId && prev.groupId === target.groupId && prev.subGroupId === target.subGroupId) {
+				return prev;
+			}
+			// The reshuffle this triggers changes layout out from under the
+			// collision-detection strategy — freeze it on the target we just
+			// resolved until the next animation frame, instead of letting it
+			// immediately recompute against the mid-shuffle DOM.
+			recentlyMovedRef.current = true;
+			return { taskId, groupId: target.groupId, subGroupId: target.subGroupId };
+		});
 	};
 
 	const handleDragEnd = (event: DragEndEvent) => {
@@ -299,13 +343,15 @@ export function BoardListView({ tasks }: BoardListViewProps) {
 		<>
 			<DndContext
 				sensors={sensors}
-				collisionDetection={closestCenter}
+				collisionDetection={collisionDetectionStrategy}
 				onDragStart={handleDragStart}
 				onDragOver={handleDragOver}
 				onDragEnd={handleDragEnd}
 				onDragCancel={() => {
 					setDragOverride(null);
 					setActiveId(null);
+					lastOverIdRef.current = null;
+					recentlyMovedRef.current = false;
 				}}
 			>
 				<div>
