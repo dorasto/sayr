@@ -80,14 +80,39 @@ function applyDragOverride(
 	return insertTask(removeTask(groups));
 }
 
-function SortableBoardRow({ task, containerId }: { task: schema.TaskWithLabels; containerId: string }) {
+/**
+ * Maps every task id to the group/subgroup it belongs to in `groups`
+ * (call with baseGroups — the stable, un-overridden grouping — so this
+ * doesn't shift mid-drag for tasks other than the one actively being
+ * dragged).
+ */
+function buildTaskGroupTargets(groups: BoardTaskGroup[]): Map<string, DropTarget> {
+	const map = new Map<string, DropTarget>();
+	for (const group of groups) {
+		for (const task of group.tasks) {
+			map.set(task.id, { groupId: group.id });
+		}
+		for (const subGroup of group.subGroups ?? []) {
+			for (const task of subGroup.tasks) {
+				map.set(task.id, { groupId: group.id, subGroupId: subGroup.id });
+			}
+		}
+	}
+	return map;
+}
+
+function SortableBoardRow({ task }: { task: schema.TaskWithLabels }) {
+	// id is deliberately just the task's own id, not container-prefixed: it
+	// must stay stable for the whole drag gesture. Encoding the container into
+	// the id (an earlier version of this did `${containerId}:${task.id}`)
+	// breaks the moment onDragOver moves the task's render position into a
+	// different group — its id would change mid-drag, which @dnd-kit doesn't
+	// expect, and caused a genuine infinite render loop (resolved target kept
+	// oscillating). Which group a row belongs to is resolved by lookup
+	// (buildTaskGroupTargets) instead of being encoded in the id.
 	const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-		id: `${containerId}:${task.id}`,
-		// containerId is needed on drop: dropping onto an existing row (the
-		// common case — groups are rarely empty) resolves `over` to that row's
-		// own sortable id, not the group's droppable container id, so
-		// handleDragEnd can't otherwise tell which group it landed in.
-		data: { taskId: task.id, containerId },
+		id: task.id,
+		data: { taskId: task.id },
 	});
 
 	return (
@@ -139,13 +164,10 @@ function GroupSection({
 	const [expanded, setExpanded] = useState(true);
 	const count = group.tasks.length;
 	// Still needed so @dnd-kit can resolve a drop onto truly empty space
-	// within this group (no row under the pointer to carry a containerId) —
-	// but isDropTarget (not this hook's own isOver) drives the highlight.
+	// within this group (no row under the pointer) — but isDropTarget (not
+	// this hook's own isOver) drives the highlight.
 	const { setNodeRef } = useDroppable({ id: dropTargetId ?? `no-drop:${group.id}`, disabled: !dropTargetId });
-	const sortableIds = useMemo(
-		() => group.tasks.map((task) => `${dropTargetId}:${task.id}`),
-		[group.tasks, dropTargetId]
-	);
+	const sortableIds = useMemo(() => group.tasks.map((task) => task.id), [group.tasks]);
 
 	return (
 		<section
@@ -182,17 +204,18 @@ function GroupSection({
 	);
 }
 
-function resolveDropTarget(over: Over | null, dropTargets: Map<string, DropTarget>): DropTarget | undefined {
-	// Dropping directly on a group's empty space resolves `over.id` to the
-	// container's own droppable id. Dropping on an existing row (the common
-	// case) resolves it to that row's sortable id instead — its `data`
-	// carries the containerId it belongs to, so check that first.
-	const overContainerId = over?.data.current?.containerId;
+function resolveDropTarget(
+	over: Over | null,
+	dropTargets: Map<string, DropTarget>,
+	taskGroupTargets: Map<string, DropTarget>
+): DropTarget | undefined {
 	const overId = over?.id?.toString();
-	return (
-		(typeof overContainerId === "string" ? dropTargets.get(overContainerId) : undefined) ??
-		(overId ? dropTargets.get(overId) : undefined)
-	);
+	if (!overId) return undefined;
+	// Empty-space drop: over.id is a group's own droppable id.
+	// Row drop (the common case — groups are rarely empty): over.id is the
+	// hovered task's own (now container-agnostic) id — look up which group it
+	// currently belongs to.
+	return dropTargets.get(overId) ?? taskGroupTargets.get(overId);
 }
 
 export function BoardListView({ tasks }: BoardListViewProps) {
@@ -219,8 +242,8 @@ export function BoardListView({ tasks }: BoardListViewProps) {
 		);
 	}, [baseGroups, dragOverride, tasks]);
 
-	// Built from baseGroups (stable, unaffected by the in-progress override)
-	// so drop-target ids never shift mid-drag.
+	// Both built from baseGroups (stable, unaffected by the in-progress
+	// override) so target resolution never shifts mid-drag.
 	const dropTargets = useMemo(() => {
 		const targets = new Map<string, DropTarget>();
 		for (const group of baseGroups) {
@@ -234,6 +257,7 @@ export function BoardListView({ tasks }: BoardListViewProps) {
 		}
 		return targets;
 	}, [baseGroups, subGrouping]);
+	const taskGroupTargets = useMemo(() => buildTaskGroupTargets(baseGroups), [baseGroups]);
 
 	const handleDragStart = (event: DragStartEvent) => {
 		const taskId = event.active.data.current?.taskId;
@@ -241,7 +265,7 @@ export function BoardListView({ tasks }: BoardListViewProps) {
 	};
 
 	const handleDragOver = (event: DragOverEvent) => {
-		const target = resolveDropTarget(event.over, dropTargets);
+		const target = resolveDropTarget(event.over, dropTargets, taskGroupTargets);
 		const taskId = event.active.data.current?.taskId;
 		if (!target || typeof taskId !== "string") {
 			setDragOverride(null);
@@ -255,7 +279,7 @@ export function BoardListView({ tasks }: BoardListViewProps) {
 	};
 
 	const handleDragEnd = (event: DragEndEvent) => {
-		const target = resolveDropTarget(event.over, dropTargets);
+		const target = resolveDropTarget(event.over, dropTargets, taskGroupTargets);
 		const taskId = event.active.data.current?.taskId;
 		const task = typeof taskId === "string" ? tasks.find((item) => item.id === taskId) : undefined;
 		setDragOverride(null);
@@ -296,7 +320,7 @@ export function BoardListView({ tasks }: BoardListViewProps) {
 									isDropTarget={dragOverride?.groupId === group.id && !dragOverride.subGroupId}
 								>
 									{group.tasks.map((task) => (
-										<SortableBoardRow key={task.id} task={task} containerId={dropTargetId} />
+										<SortableBoardRow key={task.id} task={task} />
 									))}
 								</GroupSection>
 							);
@@ -317,7 +341,7 @@ export function BoardListView({ tasks }: BoardListViewProps) {
 											}
 										>
 											{subGroup.tasks.map((task) => (
-												<SortableBoardRow key={task.id} task={task} containerId={dropTargetId} />
+												<SortableBoardRow key={task.id} task={task} />
 											))}
 										</GroupSection>
 									);
