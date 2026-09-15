@@ -3,7 +3,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar"
 import { Checkbox } from "@repo/ui/components/checkbox";
 import { cn } from "@repo/ui/lib/utils";
 import { formatTaskKey, getInitials } from "@repo/util";
-import { IconLock } from "@tabler/icons-react";
+import { IconCornerDownRight, IconLock } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
 import { OrgHoverCard } from "@/components/hover-cards";
 import { FieldAssignee } from "../fields/field-assignee";
@@ -13,6 +13,14 @@ import { ORG_KEY_SLOT_CLASS, ROW_LEADING_GUTTER_CLASS } from "./group-header";
 
 interface BoardRowProps {
 	task: schema.TaskWithLabels;
+	/**
+	 * Rendered as a subtask nested under its parent's row — swaps the leading
+	 * checkbox for a connector glyph and indents slightly. Subtasks aren't
+	 * wrapped in a sortable/draggable container by the caller (board-list-view.tsx
+	 * only renders them plain, never via SortableBoardRow), so there's nothing
+	 * extra to disable here — they're simply never part of the drag system.
+	 */
+	nested?: boolean;
 }
 
 /**
@@ -25,7 +33,7 @@ interface BoardRowProps {
  * (org is explicit per row from task.organizationId); no cross-org task
  * detail surface is needed.
  */
-export function BoardRow({ task }: BoardRowProps) {
+export function BoardRow({ task, nested = false }: BoardRowProps) {
 	const handleLinkClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
 		if ((e.target as HTMLElement).closest("[data-no-propagate]")) {
 			e.preventDefault();
@@ -37,14 +45,26 @@ export function BoardRow({ task }: BoardRowProps) {
 			to="/$orgId/tasks/$taskShortId"
 			params={{ orgId: task.organizationId, taskShortId: (task.shortId ?? task.id).toString() }}
 			onClick={handleLinkClick}
-			className="flex items-center gap-1.5 px-2 py-1 text-xs hover:bg-accent transition-colors rounded-xl"
+			className={cn(
+				"flex items-center gap-1.5 px-2 py-1 text-xs hover:bg-accent transition-colors rounded-xl",
+				nested && "ml-4"
+			)}
 		>
-			{/* Not wired up yet — a placeholder for future multi-select, sized/positioned to match the header's chevron. */}
-			<Checkbox
-				data-no-propagate
-				className={cn(ROW_LEADING_GUTTER_CLASS, "h-3.5 shrink-0")}
-				onClick={(e) => e.stopPropagation()}
-			/>
+			{nested ? (
+				<span
+					aria-hidden="true"
+					className={cn(ROW_LEADING_GUTTER_CLASS, "shrink-0 flex items-center justify-center")}
+				>
+					<IconCornerDownRight className="size-3 text-muted-foreground" />
+				</span>
+			) : (
+				// Not wired up yet — a placeholder for future multi-select, sized/positioned to match the header's chevron.
+				<Checkbox
+					data-no-propagate
+					className={cn(ROW_LEADING_GUTTER_CLASS, "h-3.5 shrink-0")}
+					onClick={(e) => e.stopPropagation()}
+				/>
+			)}
 			<FieldStatus task={task} />
 			<FieldPriority task={task} />
 			{task.organization ? (

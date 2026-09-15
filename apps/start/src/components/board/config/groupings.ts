@@ -173,3 +173,50 @@ export function applyNestedGrouping(
 		subGroups: subGroupBy === "none" ? undefined : groupTasks(group.tasks, subGroupBy, options),
 	}));
 }
+
+// Same order the status grouping itself uses (backlog → canceled) — reused
+// so "not done/canceled first" subtask ordering matches how the board
+// already orders things everywhere else.
+const STATUS_ORDER = Object.keys(STATUS_CONFIG) as StatusValue[];
+
+/**
+ * List-view-only: tasks whose parent is also in the same task list are
+ * subtasks, and don't get their own top-level group membership — they
+ * always render nested under their parent's row instead, in whichever
+ * group the parent lands in, regardless of the subtask's own status. Call
+ * this on the full task list before grouping (list view only — kanban is
+ * untouched, subtasks still render as their own cards there for now).
+ *
+ * A subtask whose parent isn't in the list (different org, filtered out,
+ * etc.) has nowhere to nest under, so it's treated as top-level.
+ */
+export function getTopLevelTasks(tasks: schema.TaskWithLabels[]): schema.TaskWithLabels[] {
+	const ids = new Set(tasks.map((task) => task.id));
+	return tasks.filter((task) => !task.parentId || !ids.has(task.parentId));
+}
+
+/**
+ * parentId -> its subtasks (the full TaskWithLabels, not the lightweight
+ * schema.SubtaskSummary relation — getTasksByOrganizationId already
+ * returns every task in the org as flat rows, subtasks included, so no
+ * extra fetch is needed). Sorted with anything not done/canceled first.
+ */
+export function buildSubtaskMap(tasks: schema.TaskWithLabels[]): Map<string, schema.TaskWithLabels[]> {
+	const ids = new Set(tasks.map((task) => task.id));
+	const map = new Map<string, schema.TaskWithLabels[]>();
+
+	for (const task of tasks) {
+		if (!task.parentId || !ids.has(task.parentId)) continue;
+		const siblings = map.get(task.parentId) ?? [];
+		siblings.push(task);
+		map.set(task.parentId, siblings);
+	}
+
+	for (const siblings of map.values()) {
+		siblings.sort(
+			(a, b) => STATUS_ORDER.indexOf(a.status as StatusValue) - STATUS_ORDER.indexOf(b.status as StatusValue)
+		);
+	}
+
+	return map;
+}

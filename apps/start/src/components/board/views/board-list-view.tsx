@@ -19,7 +19,7 @@ import { cn } from "@repo/ui/lib/utils";
 import { type PropsWithChildren, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useLanderData } from "@/contexts/ContextLander";
-import { applyNestedGrouping, type BoardTaskGroup } from "../config/groupings";
+import { applyNestedGrouping, type BoardTaskGroup, buildSubtaskMap, getTopLevelTasks } from "../config/groupings";
 import { useBoardViewState } from "../filter/use-board-view-state";
 import { type BoardDragMutation, BoardDragMutationExecutor } from "./board-drag-actions";
 import { BoardRow } from "./board-row";
@@ -134,6 +134,23 @@ function SortableBoardRow({ task }: { task: schema.TaskWithLabels }) {
 	);
 }
 
+/**
+ * A top-level row plus its subtasks (if any), rendered right after it.
+ * Subtasks are plain BoardRows, not wrapped in SortableBoardRow — they're
+ * never part of the drag/drop system, since their position is tied to
+ * their parent, not their own status/priority.
+ */
+function TaskRowWithSubtasks({ task, subtasks }: { task: schema.TaskWithLabels; subtasks: schema.TaskWithLabels[] }) {
+	return (
+		<>
+			<SortableBoardRow task={task} />
+			{subtasks.map((subtask) => (
+				<BoardRow key={subtask.id} task={subtask} nested />
+			))}
+		</>
+	);
+}
+
 interface GroupSectionProps {
 	group: BoardTaskGroup;
 	dropTargetId?: string;
@@ -224,9 +241,16 @@ export function BoardListView({ tasks }: BoardListViewProps) {
 	const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 	const options = useMemo(() => ({ categories, releases }), [categories, releases]);
 
+	// Subtasks (a task whose parent is also in this list) don't get their own
+	// top-level group membership — they always render nested under their
+	// parent's row instead, wherever the parent lands, regardless of the
+	// subtask's own status/priority. See config/groupings.ts.
+	const topLevelTasks = useMemo(() => getTopLevelTasks(tasks), [tasks]);
+	const subtaskMap = useMemo(() => buildSubtaskMap(tasks), [tasks]);
+
 	const baseGroups = useMemo(
-		() => applyNestedGrouping(tasks, grouping, subGrouping, options),
-		[grouping, options, subGrouping, tasks]
+		() => applyNestedGrouping(topLevelTasks, grouping, subGrouping, options),
+		[grouping, options, subGrouping, topLevelTasks]
 	);
 
 	const groups = useMemo(() => {
@@ -362,7 +386,7 @@ export function BoardListView({ tasks }: BoardListViewProps) {
 									className={spacing}
 								>
 									{group.tasks.map((task) => (
-										<SortableBoardRow key={task.id} task={task} />
+										<TaskRowWithSubtasks key={task.id} task={task} subtasks={subtaskMap.get(task.id) ?? []} />
 									))}
 								</GroupSection>
 							);
@@ -384,7 +408,11 @@ export function BoardListView({ tasks }: BoardListViewProps) {
 											className={subIndex > 0 ? "mt-3" : undefined}
 										>
 											{subGroup.tasks.map((task) => (
-												<SortableBoardRow key={task.id} task={task} />
+												<TaskRowWithSubtasks
+													key={task.id}
+													task={task}
+													subtasks={subtaskMap.get(task.id) ?? []}
+												/>
 											))}
 										</GroupSection>
 									);
