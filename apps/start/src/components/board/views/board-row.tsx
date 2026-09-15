@@ -22,11 +22,6 @@ interface BoardRowProps {
 	nested?: boolean;
 }
 
-/** An empty ROW_LEADING_GUTTER_CLASS-wide square — every leading column (checkbox/connector, status, priority) is exactly this size, so they form a consistent grid rows and headers can align against. */
-function ColumnSpacer() {
-	return <span aria-hidden="true" className={cn(ROW_LEADING_GUTTER_CLASS, "h-3.5 shrink-0")} />;
-}
-
 /**
  * A single list row — flat, dense, no card/border treatment (matches the
  * existing UnifiedTaskItem list row, not a boxed item). Leads with a
@@ -37,13 +32,21 @@ function ColumnSpacer() {
  * (org is explicit per row from task.organizationId); no cross-org task
  * detail surface is needed.
  *
- * Nested (subtask) rows get ONE extra leading ColumnSpacer before the
- * connector glyph, rather than an arbitrary margin — every column
- * (spacer/checkbox/connector, status, priority) is the same fixed
- * ROW_LEADING_GUTTER_CLASS width with the same gap-1.5 between them, so
- * that one extra column shifts everything after it by exactly one column:
- * the connector lands under the parent row's status column, the subtask's
- * own status lands under the parent's priority column, and so on.
+ * The checkbox is always the row's first column, at the same x for every
+ * row — nested or not (Linear does the same: a subtask's checkbox lives at
+ * the row's outer edge, not indented alongside its content). Nested rows
+ * get one extra column after it — the connector glyph — which is what
+ * actually shifts everything else over: since every column (checkbox,
+ * connector, status, priority) is the same fixed ROW_LEADING_GUTTER_CLASS
+ * width with the same gap-1.5 between them, that one extra column shifts
+ * status/priority/etc by exactly one slot — the connector lands under the
+ * parent row's status column, the subtask's own status lands under the
+ * parent's priority column, and so on.
+ *
+ * The checkbox itself stays invisible until the row is hovered or it's
+ * actually checked (data-checked, from Base UI's own Checkbox state) —
+ * group-hover on the row reveals it, matching Linear's convention of not
+ * showing a selection affordance until you're interacting with that row.
  */
 export function BoardRow({ task, nested = false }: BoardRowProps) {
 	const handleLinkClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
@@ -57,23 +60,24 @@ export function BoardRow({ task, nested = false }: BoardRowProps) {
 			to="/$orgId/tasks/$taskShortId"
 			params={{ orgId: task.organizationId, taskShortId: (task.shortId ?? task.id).toString() }}
 			onClick={handleLinkClick}
-			className="flex items-center gap-1.5 px-2 py-1 text-xs hover:bg-accent transition-colors rounded-xl"
+			className="group flex items-center gap-1.5 px-2 py-1 text-xs hover:bg-accent transition-colors rounded-xl"
 		>
-			{nested && <ColumnSpacer />}
-			{nested ? (
+			{/* Not wired up yet — a placeholder for future multi-select, sized/positioned to match the header's chevron. */}
+			<Checkbox
+				data-no-propagate
+				className={cn(
+					ROW_LEADING_GUTTER_CLASS,
+					"h-3.5 shrink-0 opacity-0 group-hover:opacity-100 data-checked:opacity-100"
+				)}
+				onClick={(e) => e.stopPropagation()}
+			/>
+			{nested && (
 				<span
 					aria-hidden="true"
 					className={cn(ROW_LEADING_GUTTER_CLASS, "h-3.5 shrink-0 flex items-center justify-center")}
 				>
 					<IconCornerDownRight className="size-3 text-muted-foreground" />
 				</span>
-			) : (
-				// Not wired up yet — a placeholder for future multi-select, sized/positioned to match the header's chevron.
-				<Checkbox
-					data-no-propagate
-					className={cn(ROW_LEADING_GUTTER_CLASS, "h-3.5 shrink-0")}
-					onClick={(e) => e.stopPropagation()}
-				/>
 			)}
 			<FieldStatus task={task} />
 			<FieldPriority task={task} />
