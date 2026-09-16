@@ -31,7 +31,22 @@ export interface BoardTaskGroup {
 export interface BoardGroupingOptions {
 	categories?: schema.categoryType[];
 	releases?: schema.releaseType[];
+	/**
+	 * When false, the Done/Canceled status groups are dropped from the
+	 * returned array entirely (not left present-but-empty for the UI to
+	 * collapse) — matches the org-scoped system's statusGrouping.group(),
+	 * which does the same .filter() for the identical reason: those two
+	 * statuses ARE "completed", so this toggle is specifically about them,
+	 * not a generic empty-group rule. Applies whenever status is the
+	 * grouping OR the sub-grouping, since both route through this same
+	 * function. Board.tsx already filters completed tasks out of the input
+	 * before grouping, so unlike the old system this doesn't also need to
+	 * re-filter tasks here — only the two group entries themselves.
+	 */
+	showCompletedTasks?: boolean;
 }
+
+const COMPLETED_STATUSES = new Set<StatusValue>(["done", "canceled"]);
 
 function createGroup(
 	id: string,
@@ -155,23 +170,25 @@ function groupByOrg(tasks: schema.TaskWithLabels[]): BoardTaskGroup[] {
 export function groupTasks(
 	tasks: schema.TaskWithLabels[],
 	groupBy: TaskGroupingId,
-	{ categories = [], releases = [] }: BoardGroupingOptions = {}
+	{ categories = [], releases = [], showCompletedTasks = true }: BoardGroupingOptions = {}
 ): BoardTaskGroup[] {
 	switch (groupBy) {
 		case "status":
-			return (Object.keys(STATUS_CONFIG) as StatusValue[]).map((status) => {
-				const config = STATUS_CONFIG[status];
-				return createGroup(
-					status,
-					config.label,
-					tasks.filter((task) => task.status === status),
-					// h-3.5 w-3.5 — matches the glyph size FieldStatus/FieldPriority render
-					// on the rows below (field-status.tsx/field-priority.tsx both call
-					// icon("h-3.5 w-3.5")), so the header's icon isn't visibly larger.
-					config.icon("h-3.5 w-3.5"),
-					{ toneClassName: STATUS_TONE_CLASSES[status] }
-				);
-			});
+			return (Object.keys(STATUS_CONFIG) as StatusValue[])
+				.filter((status) => showCompletedTasks || !COMPLETED_STATUSES.has(status))
+				.map((status) => {
+					const config = STATUS_CONFIG[status];
+					return createGroup(
+						status,
+						config.label,
+						tasks.filter((task) => task.status === status),
+						// h-3.5 w-3.5 — matches the glyph size FieldStatus/FieldPriority render
+						// on the rows below (field-status.tsx/field-priority.tsx both call
+						// icon("h-3.5 w-3.5")), so the header's icon isn't visibly larger.
+						config.icon("h-3.5 w-3.5"),
+						{ toneClassName: STATUS_TONE_CLASSES[status] }
+					);
+				});
 		case "priority":
 			return (Object.keys(PRIORITY_CONFIG) as PriorityValue[]).map((priority) => {
 				const config = PRIORITY_CONFIG[priority];

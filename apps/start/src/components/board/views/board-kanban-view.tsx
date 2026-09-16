@@ -41,9 +41,12 @@ function getGridItemId(
 
 export function BoardKanbanView({ tasks }: BoardKanbanViewProps) {
 	const { categories, releases } = useLanderData();
-	const { grouping, subGrouping } = useBoardViewState();
+	const { grouping, subGrouping, showCompletedTasks } = useBoardViewState();
 	const [mutation, setMutation] = useState<BoardDragMutation | null>(null);
-	const options = useMemo(() => ({ categories, releases }), [categories, releases]);
+	const options = useMemo(
+		() => ({ categories, releases, showCompletedTasks }),
+		[categories, releases, showCompletedTasks]
+	);
 	const groupedTasks = useMemo(
 		() => applyNestedGrouping(tasks, grouping, subGrouping, options),
 		[grouping, options, subGrouping, tasks]

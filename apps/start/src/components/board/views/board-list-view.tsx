@@ -247,13 +247,16 @@ function resolveDropTarget(
 
 export function BoardListView({ tasks }: BoardListViewProps) {
 	const { categories, releases } = useLanderData();
-	const { grouping, subGrouping } = useBoardViewState();
+	const { grouping, subGrouping, showCompletedTasks } = useBoardViewState();
 	const [mutation, setMutation] = useState<BoardDragMutation | null>(null);
 	const [dragOverride, setDragOverride] = useState<DragOverride | null>(null);
 	const [activeId, setActiveId] = useState<string | null>(null);
 	const activeTask = useMemo(() => tasks.find((t) => t.id === activeId), [tasks, activeId]);
 	const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
-	const options = useMemo(() => ({ categories, releases }), [categories, releases]);
+	const options = useMemo(
+		() => ({ categories, releases, showCompletedTasks }),
+		[categories, releases, showCompletedTasks]
+	);
 
 	// Subtasks (a task whose parent is also in this list) don't get their own
 	// top-level group membership — they always render nested under their

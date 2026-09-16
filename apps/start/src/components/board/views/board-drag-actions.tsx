@@ -25,7 +25,9 @@ function getGroupUpdate(
 	task: schema.TaskWithLabels,
 	groupBy: TaskGroupingId,
 	groupId: string,
-	{ categories, releases }: Required<BoardGroupingOptions>
+	// Only categories/releases are ever read here — showCompletedTasks
+	// doesn't apply to resolving what a drop target's groupId means.
+	{ categories, releases }: Required<Pick<BoardGroupingOptions, "categories" | "releases">>
 ): DragUpdateData | null {
 	switch (groupBy) {
 		case "status":
@@ -61,7 +63,10 @@ function getGroupUpdate(
 	}
 }
 
-function getDragUpdate(mutation: BoardDragMutation, options: Required<BoardGroupingOptions>): DragUpdateData | null {
+function getDragUpdate(
+	mutation: BoardDragMutation,
+	options: Required<Pick<BoardGroupingOptions, "categories" | "releases">>
+): DragUpdateData | null {
 	const primaryUpdate = getGroupUpdate(mutation.task, mutation.grouping, mutation.groupId, options);
 	const subGroupUpdate =
 		mutation.subGrouping !== "none" && mutation.subGroupId
