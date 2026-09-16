@@ -2,6 +2,7 @@
 
 import type { schema } from "@repo/database";
 import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
+import { Input } from "@repo/ui/components/input";
 import {
 	ComboBox,
 	ComboBoxContent,
@@ -105,12 +106,12 @@ export function FilterBuilderConditionRow({
 				</ComboBox>
 			)}
 			{needsValue && config.field === "title" ? (
-				<input
+				<Input
 					type="text"
 					value={typeof condition.value === "string" ? condition.value : ""}
 					onChange={(event) => onTextChange(event.target.value)}
 					placeholder="Search title..."
-					className="h-6 flex-1 min-w-0 rounded-md border border-input bg-transparent px-2 text-xs outline-none focus-visible:ring-1 focus-visible:ring-ring"
+					className="h-6 min-w-0 flex-1 px-2 text-xs"
 				/>
 			) : needsValue && config.getOptions ? (
 				<ComboBox values={selectedValues} onValuesChange={onValuesChange}>

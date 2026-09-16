@@ -1,5 +1,7 @@
 "use client";
 
+import { Badge } from "@repo/ui/components/badge";
+import { Button } from "@repo/ui/components/button";
 import {
 	ComboBox,
 	ComboBoxContent,
@@ -133,24 +135,21 @@ export function FilterBuilder() {
 	return (
 		<ComboBox>
 			<ComboBoxTrigger asChild>
-				<button
+				<Button
 					type="button"
+					variant="outline"
 					data-command-target="filter-builder-trigger"
 					className={cn(
-						"flex items-center gap-1.5 h-6 px-2 shrink-0 rounded-full text-xs border transition-colors",
-						conditions.length > 0
-							? "bg-primary/10 border-primary text-primary"
-							: "border-border text-muted-foreground hover:bg-accent"
+						"h-6 gap-1.5 rounded-full px-2 text-xs shrink-0",
+						conditions.length > 0 && "bg-primary/10 border-primary text-primary hover:bg-primary/10"
 					)}
 				>
 					<IconFilter className="size-3.5" />
 					Filter
 					{conditions.length > 0 && (
-						<span className="rounded-full bg-primary text-primary-foreground text-[10px] size-4 grid place-items-center">
-							{conditions.length}
-						</span>
+						<Badge className="size-4 justify-center p-0 text-[10px]">{conditions.length}</Badge>
 					)}
-				</button>
+				</Button>
 			</ComboBoxTrigger>
 			<ComboBoxContent className="w-80 p-2" align="start">
 				<FilterBuilderContent />

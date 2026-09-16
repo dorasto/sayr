@@ -1,4 +1,5 @@
 import type { schema } from "@repo/database";
+import { Badge } from "@repo/ui/components/badge";
 import {
 	ComboBox,
 	ComboBoxContent,
@@ -51,17 +52,17 @@ export function FieldCategory({ task }: FieldCategoryProps) {
 			}}
 		>
 			<ComboBoxTrigger asChild>
-				<button
-					type="button"
-					data-no-propagate
-					className="flex items-center gap-1 h-5 max-w-24 shrink-0 rounded-full bg-accent px-1.5 text-[11px] font-medium text-muted-foreground cursor-pointer"
-					title={current.name}
-				>
-					<span
-						className="size-1.5 rounded-full shrink-0"
-						style={{ backgroundColor: current.color ?? "#9CA3AF" }}
-					/>
-					<span className="truncate">{current.name}</span>
+				<button type="button" data-no-propagate className="shrink-0 cursor-pointer" title={current.name}>
+					<Badge
+						variant="secondary"
+						className="flex h-5 max-w-24 items-center gap-1 px-1.5 text-[11px] font-medium"
+					>
+						<span
+							className="size-1.5 rounded-full shrink-0"
+							style={{ backgroundColor: current.color ?? "#9CA3AF" }}
+						/>
+						<span className="truncate">{current.name}</span>
+					</Badge>
 				</button>
 			</ComboBoxTrigger>
 			<ComboBoxContent>

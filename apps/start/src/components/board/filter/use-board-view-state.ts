@@ -321,10 +321,24 @@ export function useBoardViewState(availableViews?: schema.savedViewType[]) {
 		}
 		if (lastProcessedViewSlug.current === targetSlug) return;
 
-		if (!availableViews || !targetSlug) {
-			lastProcessedViewSlug.current = targetSlug;
+		if (!targetSlug) {
+			// URL has no view. If we were PREVIOUSLY showing a real view (not just booting up with
+			// no view from the start), reset to defaults — otherwise leaving a view via the
+			// "Dashboard" nav link or the browser back button just clears the URL while the view's
+			// filters/grouping stay stuck applied, with nothing left to explain why.
+			const hadPreviousView = lastProcessedViewSlug.current != null;
+			lastProcessedViewSlug.current = null;
+			if (hadPreviousView && !areStatesEqual(state, DEFAULT_COMBINED_STATE)) {
+				isHandlingAction.current = true;
+				setCombinedState(DEFAULT_COMBINED_STATE);
+				setTimeout(() => {
+					isHandlingAction.current = false;
+				}, 0);
+			}
 			return;
 		}
+
+		if (!availableViews) return; // may still be loading — retry once it updates, don't mark yet
 
 		const targetView = availableViews.find((v) => v.slug === targetSlug || v.id === targetSlug);
 		// availableViews may still be loading (e.g. the personal-views store hasn't hydrated yet on

@@ -1,5 +1,7 @@
 "use client";
 
+import { Button } from "@repo/ui/components/button";
+import { Separator } from "@repo/ui/components/separator";
 import { useStore } from "@tanstack/react-store";
 import { IconLayoutSidebarRight } from "@tabler/icons-react";
 import { userPreferencesActions, userPreferencesStore } from "@/lib/stores/user-preferences-store";
@@ -29,18 +31,22 @@ export function BoardTopBar() {
 		// page rarely has enough badges to overflow) rather than copied as-is.
 		<div className="flex flex-row flex-nowrap items-center shrink-0 gap-2 max-w-full overflow-x-auto">
 			{landerLayout === "presetTop" ? <PresetSwitcher /> : <FilterBuilder />}
-			<div className="h-4 w-px bg-border shrink-0" />
+			<Separator orientation="vertical" className="h-4" />
 			<QuickFilterChips />
-			<button
+			<Button
 				type="button"
+				variant="ghost"
+				size="icon"
 				onClick={() =>
 					userPreferencesActions.setLanderLayout(landerLayout === "presetTop" ? "presetSide" : "presetTop")
 				}
-				title={landerLayout === "presetTop" ? "Move views to the side panel" : "Move filters to the side panel"}
-				className="flex items-center justify-center size-6 shrink-0 rounded-full text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+				tooltipText={
+					landerLayout === "presetTop" ? "Move views to the side panel" : "Move filters to the side panel"
+				}
+				className="size-6 shrink-0 rounded-full"
 			>
 				<IconLayoutSidebarRight className="size-3.5" />
-			</button>
+			</Button>
 		</div>
 	);
 }

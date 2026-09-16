@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@repo/ui/components/button";
 import {
 	ComboBox,
 	ComboBoxContent,
@@ -47,7 +48,7 @@ export function PresetSwitcherContent() {
 				const isActive = (view.slug || view.id) === viewSlug;
 				const onSelect = () => (isActive ? clearView() : selectView(view));
 				return (
-					// biome-ignore lint/a11y/noStaticElementInteractions: row-select target; real buttons (pin/edit/delete) are nested inside, which isn't valid inside a <button>
+					// biome-ignore lint/a11y/useSemanticElements: row-select target; real buttons (pin/edit/delete) are nested inside, which isn't valid inside a <button>
 					<div
 						key={view.id}
 						role="button"
@@ -130,14 +131,15 @@ export function PresetSwitcher() {
 				}}
 			>
 				<ComboBoxTrigger asChild>
-					<button
+					<Button
 						type="button"
+						variant="outline"
 						data-command-target="preset-switcher-trigger"
-						className="flex items-center gap-1.5 h-6 px-2 shrink-0 rounded-full text-xs border border-border text-muted-foreground hover:bg-accent transition-colors"
+						className="h-6 gap-1.5 rounded-full px-2 text-xs shrink-0"
 					>
 						<span className="truncate max-w-32">{activeView ? activeView.name : "Views"}</span>
 						<IconChevronDown className="size-3" />
-					</button>
+					</Button>
 				</ComboBoxTrigger>
 				<ComboBoxContent className="w-64" align="start">
 					<ComboBoxList>

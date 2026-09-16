@@ -26,6 +26,7 @@ import { useStore } from "@tanstack/react-store";
 import { useLayoutData } from "@/components/admin/shell/context";
 import { StatusBar } from "@/components/generic/status";
 import CreateOrganizationDialog from "@/components/organization/create-organization-dialog";
+import { useTasksSearchParams } from "@/hooks/useTasksSearchParams";
 import { commandActions } from "@/lib/command-store";
 import { heading, navigation } from "@/lib/routemap";
 import { sidebarActions, sidebarStore } from "@/lib/sidebar/sidebar-store";
@@ -40,6 +41,7 @@ export function PrimarySidebar() {
 	const rawPathname = useRouterState({ select: (s) => s.location.pathname });
 	const pathname = rawPathname.length > 1 ? rawPathname.replace(/\/$/, "") : rawPathname;
 	const { organizations } = useLayoutData();
+	const { clearSearchParams } = useTasksSearchParams();
 	const sidebar = useStore(sidebarStore, (state) => state.sidebars[sidebarId]);
 	const isSidebarOpen = sidebar?.open ?? true;
 	const inboxCount = useStore(notificationStore, (state) => state.unreadCount);
@@ -63,7 +65,21 @@ export function PrimarySidebar() {
 
 							return (
 								<SidebarMenuItem key={item.title} isActive={isActive} className="min-h-0 w-fit">
-									<Link className="" to={item.url}>
+									<Link
+										className=""
+										to={item.url}
+										onClick={(event) => {
+											if (item.url !== "/home" || !isActive) return;
+											// Already on /home — a bare <Link to="/home"> with no search prop
+											// doesn't clear existing params (e.g. a saved view's ?view=... or
+											// leftover ?filters=...), so clicking "Dashboard" while a favourite
+											// is applied looked like it did nothing. Clear the board's search
+											// params directly instead of relying on the router's own
+											// navigation, same reasoning as FavouritesSection's own bypass.
+											event.preventDefault();
+											clearSearchParams();
+										}}
+									>
 										<SidebarMenuButton size="small" tooltip={item.title} icon={<IconComponent size={16} />}>
 											<span>{item.title}</span>
 										</SidebarMenuButton>

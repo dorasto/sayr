@@ -1,4 +1,3 @@
-"use client";
 import { Button } from "@repo/ui/components/button";
 import { Card } from "@repo/ui/components/card";
 import {

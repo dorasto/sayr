@@ -1,5 +1,6 @@
 import type { schema } from "@repo/database";
 import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
+import { Button } from "@repo/ui/components/button";
 import {
 	ComboBox,
 	ComboBoxContent,
@@ -59,13 +60,9 @@ export function FieldAssignee({ task }: FieldAssigneeProps) {
 		>
 			<ComboBoxTrigger asChild>
 				{task.assignees.length === 0 ? (
-					<button
-						type="button"
-						data-no-propagate
-						className="flex items-center rounded-full bg-accent aspect-square place-content-center border h-5 w-5 cursor-pointer"
-					>
+					<Button type="button" variant="accent" size="icon" data-no-propagate className="size-5 rounded-full">
 						<IconUserOff className="h-3 w-3 shrink-0" />
-					</button>
+					</Button>
 				) : (
 					<button type="button" data-no-propagate className="flex items-center -space-x-2 cursor-pointer">
 						{task.assignees.slice(0, 3).map((assignee, index) => (

@@ -2,8 +2,8 @@
 
 import type { schema } from "@repo/database";
 import { headlessToast } from "@repo/ui/components/headless-toast";
+import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@repo/ui/components/input-group";
 import { Popover, PopoverContent, PopoverTrigger } from "@repo/ui/components/popover";
-import { cn } from "@repo/ui/lib/utils";
 import { IconPencil } from "@tabler/icons-react";
 import type React from "react";
 import { useState } from "react";
@@ -90,37 +90,26 @@ export function EditViewPopover({ view }: EditViewPopoverProps) {
 					</button>
 				}
 			/>
-			<PopoverContent className="w-64 p-2" align="start" onClick={stopRowSelect}>
-				<div className="flex flex-col gap-2">
-					<div className="flex items-center gap-1.5">
+			<PopoverContent className="w-72 p-2" align="start" onClick={stopRowSelect}>
+				<InputGroup>
+					<InputGroupAddon align="inline-start">
 						<ViewIconColorTrigger value={iconColor} onChange={setIconColor} />
-						<input
-							type="text"
-							value={name}
-							onChange={(event) => setName(event.target.value)}
-							onKeyDown={(event) => {
-								if (event.key === "Enter") handleSave();
-							}}
-							placeholder="View name..."
-							// biome-ignore lint/a11y/noAutofocus: popover content, opening it is the user's explicit intent to edit
-							autoFocus
-							className="h-7 min-w-0 flex-1 rounded-md border border-input bg-transparent px-2 text-xs outline-none focus-visible:ring-1 focus-visible:ring-ring"
-						/>
-					</div>
-					<button
-						type="button"
-						onClick={handleSave}
-						disabled={!name.trim() || saving}
-						className={cn(
-							"h-7 rounded-md text-xs font-medium transition-colors",
-							name.trim() && !saving
-								? "bg-primary text-primary-foreground hover:bg-primary/90"
-								: "bg-muted text-muted-foreground cursor-not-allowed"
-						)}
-					>
-						{saving ? "Saving..." : "Save changes"}
-					</button>
-				</div>
+					</InputGroupAddon>
+					<InputGroupInput
+						value={name}
+						onChange={(event) => setName(event.target.value)}
+						onKeyDown={(event) => {
+							if (event.key === "Enter") handleSave();
+						}}
+						placeholder="View name..."
+						autoFocus
+					/>
+					<InputGroupAddon align="inline-end">
+						<InputGroupButton variant="secondary" disabled={!name.trim() || saving} onClick={handleSave}>
+							{saving ? "Saving..." : "Save"}
+						</InputGroupButton>
+					</InputGroupAddon>
+				</InputGroup>
 			</PopoverContent>
 		</Popover>
 	);

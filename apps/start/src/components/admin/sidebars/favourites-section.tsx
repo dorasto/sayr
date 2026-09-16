@@ -15,6 +15,7 @@ import { IconGripVertical, IconPinnedOff } from "@tabler/icons-react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useStore } from "@tanstack/react-store";
 import RenderIcon from "@/components/generic/RenderIcon";
+import { useTasksSearchParams } from "@/hooks/useTasksSearchParams";
 import { personalViewsActions, personalViewsStore } from "@/lib/stores/personal-views-store";
 
 const DEFAULT_VIEW_ICON = "IconBookmark";
@@ -23,12 +24,15 @@ function FavouriteRow({
 	view,
 	isActive,
 	isSidebarOpen,
+	isOnHomePage,
 }: {
 	view: schema.savedViewType;
 	isActive: boolean;
 	isSidebarOpen: boolean;
+	isOnHomePage: boolean;
 }) {
 	const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: view.id });
+	const { setSearchParams } = useTasksSearchParams();
 	const targetSlug = view.slug || view.id;
 
 	return (
@@ -50,7 +54,22 @@ function FavouriteRow({
 						<IconGripVertical className="size-3.5" />
 					</button>
 				)}
-				<Link to="/home" search={{ view: targetSlug }} className="min-w-0 flex-1">
+				<Link
+					to="/home"
+					search={{ view: targetSlug }}
+					onClick={(event) => {
+						if (!isOnHomePage) return;
+						// Already on /home — write the URL directly instead of a full router
+						// navigation. TanStack Router's navigate() pipeline is async even for a
+						// same-route, search-only change, and racing it against rapid clicks left
+						// the URL and the actually-applied view/panel out of sync until an
+						// unrelated re-render happened to catch up. This mirrors exactly what
+						// useBoardViewState's own selectView() already does for the same reason.
+						event.preventDefault();
+						setSearchParams({ view: targetSlug, filters: null, category: null });
+					}}
+					className="min-w-0 flex-1"
+				>
 					<SidebarMenuButton
 						size="small"
 						tooltip={view.name}
@@ -100,7 +119,8 @@ export function FavouritesSection({ isSidebarOpen }: { isSidebarOpen: boolean })
 	const pathname = useRouterState({ select: (state) => state.location.pathname });
 	const search = useRouterState({ select: (state) => state.location.search }) as Record<string, unknown>;
 	const normalizedPathname = pathname.length > 1 ? pathname.replace(/\/$/, "") : pathname;
-	const activeViewSlug = normalizedPathname === "/home" ? (search.view as string | undefined) : undefined;
+	const isOnHomePage = normalizedPathname === "/home";
+	const activeViewSlug = isOnHomePage ? (search.view as string | undefined) : undefined;
 
 	const pinnedViews = useStore(personalViewsStore, (state) => state.views.filter((view) => view.pinned));
 
@@ -134,6 +154,7 @@ export function FavouritesSection({ isSidebarOpen }: { isSidebarOpen: boolean })
 									view={view}
 									isActive={activeViewSlug === targetSlug}
 									isSidebarOpen={isSidebarOpen}
+									isOnHomePage={isOnHomePage}
 								/>
 							);
 						})}

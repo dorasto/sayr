@@ -8,7 +8,12 @@ import IconPicker from "@/components/generic/icon-picker";
 import RenderIcon from "@/components/generic/RenderIcon";
 
 export const DEFAULT_VIEW_ICON = "IconBookmark";
-export const DEFAULT_VIEW_COLOR = "hsla(0, 0%, 0%, 1)";
+// A static HSLA snapshot of the theme's --primary (oklch(0.7686 0.1647 70.0804), same value in
+// both light and dark mode) — a live `var(--primary)` reference isn't usable here since it both
+// breaks extractHslValues' hsla-channel parsing (RenderIcon's tinted background) and can't be
+// parsed back into a picker value by hslaStringToHex below. Matches the same static-default
+// convention category/release schema defaults already use, just tuned to the actual theme color.
+export const DEFAULT_VIEW_COLOR = "hsla(38, 92%, 50%, 1)";
 
 export interface ViewIconColorValue {
 	icon: string;

@@ -1,4 +1,5 @@
 import type { schema } from "@repo/database";
+import { Badge } from "@repo/ui/components/badge";
 import {
 	ComboBox,
 	ComboBoxContent,
@@ -65,21 +66,22 @@ export function FieldLabel({ task }: FieldLabelProps) {
 					title={task.labels.map((label) => label.name).join(", ")}
 				>
 					{visibleLabels.map((label) => (
-						<span
+						<Badge
 							key={label.id}
-							className="flex items-center gap-1 h-5 max-w-20 rounded-full bg-accent px-1.5 text-[11px] font-medium text-muted-foreground"
+							variant="secondary"
+							className="flex h-5 max-w-20 items-center gap-1 px-1.5 text-[11px] font-medium"
 						>
 							<span
 								className="size-1.5 rounded-full shrink-0"
 								style={{ backgroundColor: label.color ?? "#9CA3AF" }}
 							/>
 							<span className="truncate">{label.name}</span>
-						</span>
+						</Badge>
 					))}
 					{overflowCount > 0 && (
-						<span className="flex items-center h-5 rounded-full bg-accent px-1.5 text-[11px] font-medium text-muted-foreground">
+						<Badge variant="secondary" className="h-5 px-1.5 text-[11px] font-medium">
 							+{overflowCount}
-						</span>
+						</Badge>
 					)}
 				</button>
 			</ComboBoxTrigger>

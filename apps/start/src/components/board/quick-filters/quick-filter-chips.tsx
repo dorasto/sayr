@@ -1,7 +1,5 @@
-"use client";
-
 import { authClient } from "@repo/auth/client";
-import { cn } from "@repo/ui/lib/utils";
+import { ToggleGroup, ToggleGroupItem } from "@repo/ui/components/toggle-group";
 import { useMemo } from "react";
 import { useBoardViewState } from "../filter/use-board-view-state";
 import { QUICK_FILTERS } from "./quick-filter-config";
@@ -26,19 +24,25 @@ export function QuickFilterChips() {
 		return QUICK_FILTERS.find((definition) => conditionId === `quick-${definition.id}`)?.id ?? null;
 	}, [filters]);
 
-	const handleToggle = (definitionId: string) => {
-		if (activeId === definitionId) {
+	const handleValueChange = (values: string[]) => {
+		const nextId = values[0];
+		if (!nextId) {
 			clearFilters();
 			return;
 		}
-		const definition = QUICK_FILTERS.find((d) => d.id === definitionId);
+		const definition = QUICK_FILTERS.find((d) => d.id === nextId);
 		if (!definition) return;
 		applyFilter({
 			groups: [
 				{
 					id: "quick",
 					operator: "AND",
-					conditions: [{ ...definition.buildCondition(userId ?? ""), id: `quick-${definition.id}` }],
+					conditions: [
+						{
+							...definition.buildCondition(userId ?? ""),
+							id: `quick-${definition.id}`,
+						},
+					],
 				},
 			],
 			operator: "AND",
@@ -46,27 +50,20 @@ export function QuickFilterChips() {
 	};
 
 	return (
-		<div className="flex items-center gap-1.5 shrink-0">
+		<ToggleGroup value={activeId ? [activeId] : []} onValueChange={handleValueChange} className="gap-1.5 shrink-0">
 			{QUICK_FILTERS.map((definition) => {
 				if (definition.requiresUser && !userId) return null;
-				const isActive = activeId === definition.id;
 				return (
-					<button
+					<ToggleGroupItem
 						key={definition.id}
-						type="button"
-						onClick={() => handleToggle(definition.id)}
-						className={cn(
-							"flex items-center gap-1.5 h-6 px-2 shrink-0 rounded-full text-xs border transition-colors",
-							isActive
-								? "bg-primary/10 border-primary text-primary"
-								: "border-border text-muted-foreground hover:bg-accent"
-						)}
+						value={definition.id}
+						className="flex items-center gap-1.5 h-6 px-2 shrink-0 rounded-full text-xs border border-border text-muted-foreground data-pressed:bg-primary/10 data-pressed:border-primary data-pressed:text-primary"
 					>
 						{definition.icon}
 						{definition.label}
-					</button>
+					</ToggleGroupItem>
 				);
 			})}
-		</div>
+		</ToggleGroup>
 	);
 }

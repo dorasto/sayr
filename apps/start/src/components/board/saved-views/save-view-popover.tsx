@@ -1,8 +1,7 @@
-"use client";
-
+import { Button } from "@repo/ui/components/button";
 import { headlessToast } from "@repo/ui/components/headless-toast";
+import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@repo/ui/components/input-group";
 import { Popover, PopoverContent, PopoverTrigger } from "@repo/ui/components/popover";
-import { cn } from "@repo/ui/lib/utils";
 import { IconDeviceFloppy } from "@tabler/icons-react";
 import { useState } from "react";
 import { serializeFilters } from "../filter/serialization";
@@ -10,7 +9,10 @@ import { useBoardViewState } from "../filter/use-board-view-state";
 import { usePersonalViews } from "./use-personal-views";
 import { DEFAULT_VIEW_COLOR, DEFAULT_VIEW_ICON, ViewIconColorTrigger } from "./view-icon-color-trigger";
 
-const DEFAULT_ICON_COLOR = { icon: DEFAULT_VIEW_ICON, color: DEFAULT_VIEW_COLOR };
+const DEFAULT_ICON_COLOR = {
+	icon: DEFAULT_VIEW_ICON,
+	color: DEFAULT_VIEW_COLOR,
+};
 
 /**
  * "Save current filters + grouping/view state as a personal view" flow —
@@ -44,7 +46,10 @@ export function SaveViewPopover() {
 					color: iconColor.color,
 				},
 			});
-			headlessToast.success({ title: "View saved", description: `"${trimmed}" added to your views` });
+			headlessToast.success({
+				title: "View saved",
+				description: `"${trimmed}" added to your views`,
+			});
 			setName("");
 			setIconColor(DEFAULT_ICON_COLOR);
 			setOpen(false);
@@ -59,47 +64,37 @@ export function SaveViewPopover() {
 		<Popover open={open} onOpenChange={setOpen}>
 			<PopoverTrigger
 				render={
-					<button
+					<Button
 						type="button"
+						variant="outline"
 						data-command-target="save-view-trigger"
-						className="flex items-center gap-1.5 h-6 px-2 shrink-0 rounded-full text-xs border border-border text-muted-foreground hover:bg-accent transition-colors"
+						className="h-6 gap-1.5 rounded-full px-2 text-xs shrink-0"
 					>
 						<IconDeviceFloppy className="size-3.5" />
 						Save view
-					</button>
+					</Button>
 				}
 			/>
-			<PopoverContent className="w-64 p-2" align="start">
-				<div className="flex flex-col gap-2">
-					<div className="flex items-center gap-1.5">
+			<PopoverContent className="w-72 p-2" align="start">
+				<InputGroup>
+					<InputGroupAddon align="inline-start">
 						<ViewIconColorTrigger value={iconColor} onChange={setIconColor} />
-						<input
-							type="text"
-							value={name}
-							onChange={(event) => setName(event.target.value)}
-							onKeyDown={(event) => {
-								if (event.key === "Enter") handleSave();
-							}}
-							placeholder="View name..."
-							// biome-ignore lint/a11y/noAutofocus: popover content, opening it is the user's explicit intent to name a view
-							autoFocus
-							className="h-7 min-w-0 flex-1 rounded-md border border-input bg-transparent px-2 text-xs outline-none focus-visible:ring-1 focus-visible:ring-ring"
-						/>
-					</div>
-					<button
-						type="button"
-						onClick={handleSave}
-						disabled={!name.trim() || saving}
-						className={cn(
-							"h-7 rounded-md text-xs font-medium transition-colors",
-							name.trim() && !saving
-								? "bg-primary text-primary-foreground hover:bg-primary/90"
-								: "bg-muted text-muted-foreground cursor-not-allowed"
-						)}
-					>
-						{saving ? "Saving..." : "Save current view"}
-					</button>
-				</div>
+					</InputGroupAddon>
+					<InputGroupInput
+						value={name}
+						onChange={(event) => setName(event.target.value)}
+						onKeyDown={(event) => {
+							if (event.key === "Enter") handleSave();
+						}}
+						placeholder="View name..."
+						autoFocus
+					/>
+					<InputGroupAddon align="inline-end">
+						<InputGroupButton variant="secondary" disabled={!name.trim() || saving} onClick={handleSave}>
+							{saving ? "Saving..." : "Save"}
+						</InputGroupButton>
+					</InputGroupAddon>
+				</InputGroup>
 			</PopoverContent>
 		</Popover>
 	);
