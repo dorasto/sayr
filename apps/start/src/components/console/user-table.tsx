@@ -542,7 +542,7 @@ export default function UserTable({ initialData }: UserTableProps) {
 										className="capitalize"
 										checked={column.getIsVisible()}
 										onCheckedChange={(value) => column.toggleVisibility(!!value)}
-										onSelect={(event) => event.preventDefault()}
+										closeOnClick={false}
 									>
 										{column.id}
 									</DropdownMenuCheckboxItem>

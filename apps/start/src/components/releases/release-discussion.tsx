@@ -272,13 +272,13 @@ function TopLevelCommentCard({
 											</DropdownMenuTrigger>
 											<DropdownMenuContent align="end">
 												{isOwn && (
-													<DropdownMenuItem onSelect={() => setIsEditing(true)}>
+													<DropdownMenuItem onClick={() => setIsEditing(true)}>
 														<IconPencil size={14} /> Edit
 													</DropdownMenuItem>
 												)}
 												{isOwn && <DropdownMenuSeparator />}
 												<DropdownMenuItem
-													onSelect={() => setDeleteDialogOpen(true)}
+													onClick={() => setDeleteDialogOpen(true)}
 													className="text-destructive focus:text-destructive"
 												>
 													<IconTrash size={14} /> Delete

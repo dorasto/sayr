@@ -245,12 +245,12 @@ function CommentActionsMenu({
 				}
 			/>
 			<DropdownMenuContent align="end">
-				<DropdownMenuItem onSelect={onEdit}>
+				<DropdownMenuItem onClick={onEdit}>
 					<IconPencil size={16} />
 					Edit
 				</DropdownMenuItem>
 				{showHistory ? (
-					<DropdownMenuItem onSelect={onViewHistory}>
+					<DropdownMenuItem onClick={onViewHistory}>
 						<IconHistory size={16} />
 						See edits
 					</DropdownMenuItem>
@@ -263,7 +263,7 @@ function CommentActionsMenu({
 				{canManageComment && (
 					<>
 						<DropdownMenuSeparator />
-						<DropdownMenuItem onSelect={onToggleVisibility}>
+						<DropdownMenuItem onClick={onToggleVisibility}>
 							{visibility === "public" ? (
 								<>
 									<IconLock size={16} />
@@ -276,7 +276,7 @@ function CommentActionsMenu({
 								</>
 							)}
 						</DropdownMenuItem>
-						<DropdownMenuItem onSelect={onDelete} className="text-destructive focus:text-destructive">
+						<DropdownMenuItem onClick={onDelete} className="text-destructive focus:text-destructive">
 							<IconTrash size={16} />
 							Delete
 						</DropdownMenuItem>

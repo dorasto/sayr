@@ -143,14 +143,14 @@ export function CommentItem({
 								</DropdownMenuTrigger>
 								<DropdownMenuContent align="end">
 									{onEdit && isOwn && (
-										<DropdownMenuItem onSelect={() => setIsEditing(true)}>
+										<DropdownMenuItem onClick={() => setIsEditing(true)}>
 											<IconPencil size={16} /> Edit
 										</DropdownMenuItem>
 									)}
 									{onEdit && onDelete && <DropdownMenuSeparator />}
 									{(isOwn || canManage) && onDelete && (
 										<DropdownMenuItem
-											onSelect={() => setDeleteDialogOpen(true)}
+											onClick={() => setDeleteDialogOpen(true)}
 											className="text-destructive focus:text-destructive"
 										>
 											<IconTrash size={16} /> Delete

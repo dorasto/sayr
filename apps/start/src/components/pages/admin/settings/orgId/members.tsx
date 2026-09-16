@@ -366,10 +366,8 @@ export default function SettingsOrganizationPageMembers({
 											return (
 												<DropdownMenuItem
 													key={team.id}
-													onSelect={(e) => {
-														e.preventDefault();
-														handleToggleTeam(member.id, team.id, isInTeam);
-													}}
+													onClick={() => handleToggleTeam(member.id, team.id, isInTeam)}
+													closeOnClick={false}
 													disabled={isToggling}
 													className="gap-2 max-w-56"
 												>

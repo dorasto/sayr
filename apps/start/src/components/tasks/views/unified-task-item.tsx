@@ -879,8 +879,8 @@ export function UnifiedTaskItem({
 											key={opt.id}
 											checked={isAssigned}
 											side="right"
-											onSelect={(e) => {
-												e.preventDefault();
+											closeOnClick={false}
+											onClick={() => {
 												const currentIds = task.assignees?.map((a) => a.id) || [];
 												const newIds = isAssigned
 													? currentIds.filter((id) => id !== opt.id)
@@ -952,8 +952,8 @@ export function UnifiedTaskItem({
 											key={opt.id}
 											checked={isApplied}
 											side="right"
-											onSelect={(e) => {
-												e.preventDefault();
+											closeOnClick={false}
+											onClick={() => {
 												const currentIds = task.labels?.map((l) => l.id) || [];
 												const newIds = isApplied
 													? currentIds.filter((id) => id !== opt.id)
@@ -1022,7 +1022,7 @@ export function UnifiedTaskItem({
 										key={opt.id}
 										value={opt.value ?? "none"}
 										showDot={false}
-										onSelect={(e) => e.preventDefault()}
+										closeOnClick={false}
 									>
 										<div className="flex items-center gap-2">
 											{opt.icon}
@@ -1078,7 +1078,7 @@ export function UnifiedTaskItem({
 											key={opt.id}
 											value={opt.value ?? "none"}
 											showDot={false}
-											onSelect={(e) => e.preventDefault()}
+											closeOnClick={false}
 										>
 											<div className="flex items-center gap-2 w-full truncate">
 												{opt.icon}
@@ -1217,7 +1217,7 @@ export function UnifiedTaskItem({
 												<ContextMenuItem
 													key={opt.id}
 													className="gap-2"
-													onSelect={() => onAddRelation(task.id, opt.id, relType.value)}
+													onClick={() => onAddRelation(task.id, opt.id, relType.value)}
 												>
 													<div className="flex items-center gap-2 truncate">
 														{opt.icon}
