@@ -1,4 +1,4 @@
-import { type HsvaColor, hexToHsva, hsvaToHex, hsvaToHsla } from "@uiw/color-convert";
+import { type HsvaColor, hexToHsva, hslaStringToHsva, hsvaToHex, hsvaToHsla } from "@uiw/color-convert";
 import Alpha from "@uiw/react-color-alpha";
 import Hue from "@uiw/react-color-hue";
 import Saturation from "@uiw/react-color-saturation";
@@ -13,6 +13,17 @@ const hsvaToHslaString = (hsva: ColorValue): string => {
 	const hsla = hsvaToHsla(hsva);
 	return `hsla(${Math.round(hsla.h)}, ${Math.round(hsla.s)}%, ${Math.round(hsla.l)}%, ${hsla.a})`;
 };
+
+/** Converts an "hsla(...)" string (this component's stored/onChange format) to a hex string
+ * (this component's `value`/`defaultValue` seed format) — for callers that persist color as
+ * HSLA and need to re-open this picker pre-seeded with an existing value. */
+export function hslaStringToHex(hsla: string): string {
+	try {
+		return hsvaToHex(hslaStringToHsva(hsla));
+	} catch {
+		return "#000000";
+	}
+}
 
 type Props = {
 	/** Whether to allow alpha (transparency) adjustment */
