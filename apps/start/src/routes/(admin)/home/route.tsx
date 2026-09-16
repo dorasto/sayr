@@ -13,8 +13,10 @@ import {
 } from "@repo/database";
 import { ensureCdnUrl } from "@repo/util";
 import { inArray } from "drizzle-orm";
+import { useEffect } from "react";
 import { useLanderCommands } from "@/hooks/commands/useLanderCommands";
 import { RootProviderLander } from "@/contexts/ContextLander";
+import { personalViewsActions } from "@/lib/stores/personal-views-store";
 import { seo } from "@/seo";
 
 export const getLanderData = createServerFn({ method: "GET" })
@@ -128,11 +130,17 @@ function LanderCommandRegistrar() {
 
 function HomeLayout() {
 	const { tasks, labels, personalViews, categories, releases, permissionsByOrg } = Route.useLoaderData();
+
+	// Seed the global personal-views store from this route's own loader data — /home already
+	// has it for free, so there's no reason to wait on RootProvider's separate client fetch.
+	useEffect(() => {
+		personalViewsActions.hydrate(personalViews);
+	}, [personalViews]);
+
 	return (
 		<RootProviderLander
 			tasks={tasks}
 			labels={labels}
-			personalViews={personalViews}
 			categories={categories}
 			releases={releases}
 			permissionsByOrg={permissionsByOrg}

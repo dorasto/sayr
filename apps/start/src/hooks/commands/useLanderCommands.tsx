@@ -5,8 +5,8 @@ import { IconBookmark, IconDeviceFloppy, IconFilter, IconLayoutSidebarRight, Ico
 import { useMemo } from "react";
 import { useBoardViewState } from "@/components/board/filter/use-board-view-state";
 import { QUICK_FILTERS } from "@/components/board/quick-filters/quick-filter-config";
+import { usePersonalViews } from "@/components/board/saved-views/use-personal-views";
 import { LANDER_PANEL_ID } from "@/components/pages/admin/home";
-import { useLanderData } from "@/contexts/ContextLander";
 import { commandActions } from "@/lib/command-store";
 import { sidebarActions } from "@/lib/sidebar/sidebar-store";
 import { userPreferencesActions, userPreferencesStore } from "@/lib/stores/user-preferences-store";
@@ -59,7 +59,7 @@ function handleToggleLayout() {
  */
 export function useLanderCommands() {
 	const { data: session } = authClient.useSession();
-	const { personalViews } = useLanderData();
+	const { personalViews } = usePersonalViews();
 	const { selectView, applyFilter } = useBoardViewState();
 	const userId = session?.user?.id;
 
