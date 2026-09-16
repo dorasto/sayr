@@ -72,6 +72,18 @@ export function FilterBuilderConditionRow({
 			? [String(condition.value)]
 			: [];
 	const options = config.getOptions?.(tasks, labels, users, search, categories, releases) ?? [];
+	// Unfiltered (search="") so the trigger's selected chips stay visible even while the user
+	// is mid-search — `options` above is scoped to the live search box and would otherwise drop
+	// an already-selected item the moment it no longer matches the typed query.
+	const allOptions = config.getOptions?.(tasks, labels, users, "", categories, releases) ?? [];
+	const selectedOptions = allOptions.filter((option) =>
+		option.mergedValues
+			? option.mergedValues.some((v) => selectedValues.includes(v))
+			: selectedValues.includes(option.value)
+	);
+	const MAX_VISIBLE_CHIPS = 3;
+	const visibleSelectedOptions = selectedOptions.slice(0, MAX_VISIBLE_CHIPS);
+	const hiddenSelectedCount = selectedOptions.length - visibleSelectedOptions.length;
 
 	return (
 		<div className="flex items-center gap-1.5 py-1">
@@ -118,12 +130,37 @@ export function FilterBuilderConditionRow({
 					<ComboBoxTrigger asChild>
 						<button
 							type="button"
-							className="flex items-center gap-1 flex-1 min-w-0 text-xs text-left truncate hover:text-foreground"
+							className="flex items-center gap-1.5 flex-1 min-w-0 text-xs text-left hover:text-foreground"
 						>
-							{selectedValues.length === 0 ? (
-								<span className="text-muted-foreground">Select {config.label.toLowerCase()}...</span>
+							{visibleSelectedOptions.length === 0 ? (
+								<span className="text-muted-foreground truncate">Select {config.label.toLowerCase()}...</span>
 							) : (
-								`${selectedValues.length} selected`
+								<>
+									{visibleSelectedOptions.map((option) => (
+										<span key={option.value} className="flex items-center gap-1 shrink-0">
+											{option.image !== undefined ? (
+												<Avatar className="size-3.5 shrink-0">
+													<AvatarImage src={option.image || undefined} alt={option.label} />
+													<AvatarFallback className="text-[7px]">
+														{getInitials(option.label)}
+													</AvatarFallback>
+												</Avatar>
+											) : option.color ? (
+												<span
+													className="size-2 rounded-full shrink-0"
+													style={{ backgroundColor: option.color }}
+													aria-hidden="true"
+												/>
+											) : (
+												option.icon
+											)}
+											<span className="truncate max-w-20">{option.label}</span>
+										</span>
+									))}
+									{hiddenSelectedCount > 0 && (
+										<span className="text-muted-foreground shrink-0">+{hiddenSelectedCount}</span>
+									)}
+								</>
 							)}
 						</button>
 					</ComboBoxTrigger>
