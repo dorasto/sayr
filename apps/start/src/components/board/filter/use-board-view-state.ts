@@ -90,7 +90,12 @@ export function useBoardViewState(availableViews?: schema.savedViewType[]) {
 	const { view: viewSlug, category: categorySlug, filters: filtersParam, setSearchParams } = useTasksSearchParams();
 
 	const isHandlingAction = useRef(false);
-	const hasInitializedFromUrl = useRef(false);
+	// Tracks the last viewSlug the URL-auto-load effect below has resolved (applied, confirmed
+	// already-matching, or confirmed absent) — replaces a one-shot "have we ever initialized"
+	// boolean so switching between saved views (e.g. via the Favourites sidebar) without a
+	// remount still reloads, not just the very first mount.
+	const lastProcessedViewSlug = useRef<string | null | undefined>(undefined);
+	const hasInitializedFiltersFromUrl = useRef(false);
 	const lastUpdateTime = useRef(0);
 	const pendingUpdate = useRef<{
 		state: TaskViewCombinedState;
@@ -301,12 +306,32 @@ export function useBoardViewState(availableViews?: schema.savedViewType[]) {
 		[setViewConfig]
 	);
 
-	// Auto-load saved view from URL on mount
+	// Auto-load saved view from URL — re-resolves whenever viewSlug changes (not just on mount),
+	// so switching between saved views without a remount (e.g. clicking a different Favourites
+	// sidebar link while already on /home) actually reloads that view's filters.
 	useEffect(() => {
-		if (!viewSlug || isHandlingAction.current || hasInitializedFromUrl.current || !availableViews) return;
+		const targetSlug = viewSlug ?? null;
 
-		const targetView = availableViews.find((v) => v.slug === viewSlug || v.id === viewSlug);
+		if (isHandlingAction.current) {
+			// A manual action (selectView/applyFilter/etc.) is already syncing state+URL together —
+			// record this slug as handled so a later unrelated state change doesn't snap state back
+			// to the view's defaults once isHandlingAction clears, but don't re-apply anything here.
+			lastProcessedViewSlug.current = targetSlug;
+			return;
+		}
+		if (lastProcessedViewSlug.current === targetSlug) return;
+
+		if (!availableViews || !targetSlug) {
+			lastProcessedViewSlug.current = targetSlug;
+			return;
+		}
+
+		const targetView = availableViews.find((v) => v.slug === targetSlug || v.id === targetSlug);
+		// availableViews may still be loading (e.g. the personal-views store hasn't hydrated yet on
+		// a fresh non-/home page) — don't mark this slug as processed, retry once it updates.
 		if (!targetView) return;
+
+		lastProcessedViewSlug.current = targetSlug;
 
 		const viewFilters = deserializeFilters(targetView.filterParams) || DEFAULT_FILTER_STATE;
 		const viewConfigFromView = targetView.viewConfig
@@ -316,19 +341,16 @@ export function useBoardViewState(availableViews?: schema.savedViewType[]) {
 
 		if (!areStatesEqual(state, targetState)) {
 			isHandlingAction.current = true;
-			hasInitializedFromUrl.current = true;
 			setCombinedState(targetState);
 			setTimeout(() => {
 				isHandlingAction.current = false;
 			}, 0);
-		} else {
-			hasInitializedFromUrl.current = true;
 		}
 	}, [viewSlug, availableViews, state, setCombinedState]);
 
 	// Auto-load filters from URL on mount
 	useEffect(() => {
-		if (viewSlug || isHandlingAction.current || hasInitializedFromUrl.current) return;
+		if (viewSlug || isHandlingAction.current || hasInitializedFiltersFromUrl.current) return;
 		if (!filtersParam) return;
 
 		const urlFilters = deserializeFilters(filtersParam);
@@ -337,13 +359,13 @@ export function useBoardViewState(availableViews?: schema.savedViewType[]) {
 		const targetState = { ...state, filters: urlFilters };
 		if (!areStatesEqual(state, targetState)) {
 			isHandlingAction.current = true;
-			hasInitializedFromUrl.current = true;
+			hasInitializedFiltersFromUrl.current = true;
 			setCombinedState(targetState);
 			setTimeout(() => {
 				isHandlingAction.current = false;
 			}, 0);
 		} else {
-			hasInitializedFromUrl.current = true;
+			hasInitializedFiltersFromUrl.current = true;
 		}
 	}, [viewSlug, filtersParam, state, setCombinedState]);
 

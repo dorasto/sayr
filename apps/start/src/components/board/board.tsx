@@ -3,6 +3,7 @@ import { useMemo } from "react";
 import { applyFilters } from "./filter/filter-config";
 import { sortTasks } from "./filter/sort-config";
 import { useBoardViewState } from "./filter/use-board-view-state";
+import { usePersonalViews } from "./saved-views/use-personal-views";
 import { BoardViewShell } from "./views/board-view-shell";
 
 interface BoardProps {
@@ -26,7 +27,8 @@ interface BoardProps {
  * receive, not the full unfiltered set.
  */
 export function Board({ tasks }: BoardProps) {
-	const { filters, showCompletedTasks, sortBy, sortDirection } = useBoardViewState();
+	const { personalViews } = usePersonalViews();
+	const { filters, showCompletedTasks, sortBy, sortDirection } = useBoardViewState(personalViews);
 
 	const visibleTasks = useMemo(() => {
 		const filtered = applyFilters(tasks, filters);
