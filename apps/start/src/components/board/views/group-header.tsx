@@ -72,7 +72,7 @@ export function GroupHeaderContent({
         >
           <IconChevronDown
             className={cn(
-              "h-3.5 text-muted-foreground transition-transform hover:text-foreground transition-all",
+              "h-3.5 text-muted-foreground hover:text-foreground transition-all",
               !expanded && "-rotate-90",
             )}
           />

@@ -1,44 +1,65 @@
 "use client";
 
-import type { CollisionDetection, DragEndEvent, DragOverEvent, DragStartEvent, Over } from "@dnd-kit/core";
+import type {
+  CollisionDetection,
+  DragEndEvent,
+  DragOverEvent,
+  DragStartEvent,
+  Over,
+} from "@dnd-kit/core";
 import {
-	DndContext,
-	DragOverlay,
-	getFirstCollision,
-	pointerWithin,
-	PointerSensor,
-	rectIntersection,
-	useDroppable,
-	useSensor,
-	useSensors,
+  DndContext,
+  DragOverlay,
+  getFirstCollision,
+  pointerWithin,
+  PointerSensor,
+  rectIntersection,
+  useDroppable,
+  useSensor,
+  useSensors,
 } from "@dnd-kit/core";
 import { SortableContext, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import type { schema } from "@repo/database";
 import { cn } from "@repo/ui/lib/utils";
-import { type PropsWithChildren, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  type PropsWithChildren,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { createPortal } from "react-dom";
 import { useLanderData } from "@/contexts/ContextLander";
-import { applyNestedGrouping, type BoardTaskGroup, buildSubtaskMap, getTopLevelTasks } from "../config/groupings";
+import {
+  applyNestedGrouping,
+  type BoardTaskGroup,
+  buildSubtaskMap,
+  getTopLevelTasks,
+} from "../config/groupings";
 import { useBoardViewState } from "../filter/use-board-view-state";
-import { type BoardDragMutation, BoardDragMutationExecutor } from "./board-drag-actions";
+import {
+  type BoardDragMutation,
+  BoardDragMutationExecutor,
+} from "./board-drag-actions";
 import { BoardRow } from "./board-row";
 import { GroupHeaderContent } from "./group-header";
 
 interface BoardListViewProps {
-	tasks: schema.TaskWithLabels[];
+  tasks: schema.TaskWithLabels[];
 }
 
 interface DropTarget {
-	groupId: string;
-	subGroupId?: string;
+  groupId: string;
+  subGroupId?: string;
 }
 
 /** Which task is currently being dragged over which group, for render-time-only display. */
 interface DragOverride {
-	taskId: string;
-	groupId: string;
-	subGroupId?: string;
+  taskId: string;
+  groupId: string;
+  subGroupId?: string;
 }
 
 /**
@@ -50,35 +71,37 @@ interface DragOverride {
  * actually persists via BoardDragMutationExecutor.
  */
 function applyDragOverride(
-	groups: BoardTaskGroup[],
-	override: DragOverride,
-	task: schema.TaskWithLabels | undefined
+  groups: BoardTaskGroup[],
+  override: DragOverride,
+  task: schema.TaskWithLabels | undefined,
 ): BoardTaskGroup[] {
-	if (!task) return groups;
+  if (!task) return groups;
 
-	const removeTask = (list: BoardTaskGroup[]): BoardTaskGroup[] =>
-		list.map((g) => ({
-			...g,
-			tasks: g.tasks.filter((t) => t.id !== override.taskId),
-			subGroups: g.subGroups ? removeTask(g.subGroups) : g.subGroups,
-		}));
+  const removeTask = (list: BoardTaskGroup[]): BoardTaskGroup[] =>
+    list.map((g) => ({
+      ...g,
+      tasks: g.tasks.filter((t) => t.id !== override.taskId),
+      subGroups: g.subGroups ? removeTask(g.subGroups) : g.subGroups,
+    }));
 
-	const insertTask = (list: BoardTaskGroup[]): BoardTaskGroup[] =>
-		list.map((g) => {
-			if (override.subGroupId) {
-				if (g.id !== override.groupId || !g.subGroups) return g;
-				return {
-					...g,
-					subGroups: g.subGroups.map((sg) =>
-						sg.id === override.subGroupId ? { ...sg, tasks: [...sg.tasks, task] } : sg
-					),
-				};
-			}
-			if (g.id !== override.groupId) return g;
-			return { ...g, tasks: [...g.tasks, task] };
-		});
+  const insertTask = (list: BoardTaskGroup[]): BoardTaskGroup[] =>
+    list.map((g) => {
+      if (override.subGroupId) {
+        if (g.id !== override.groupId || !g.subGroups) return g;
+        return {
+          ...g,
+          subGroups: g.subGroups.map((sg) =>
+            sg.id === override.subGroupId
+              ? { ...sg, tasks: [...sg.tasks, task] }
+              : sg,
+          ),
+        };
+      }
+      if (g.id !== override.groupId) return g;
+      return { ...g, tasks: [...g.tasks, task] };
+    });
 
-	return insertTask(removeTask(groups));
+  return insertTask(removeTask(groups));
 }
 
 /**
@@ -87,51 +110,63 @@ function applyDragOverride(
  * doesn't shift mid-drag for tasks other than the one actively being
  * dragged).
  */
-function buildTaskGroupTargets(groups: BoardTaskGroup[]): Map<string, DropTarget> {
-	const map = new Map<string, DropTarget>();
-	for (const group of groups) {
-		for (const task of group.tasks) {
-			map.set(task.id, { groupId: group.id });
-		}
-		for (const subGroup of group.subGroups ?? []) {
-			for (const task of subGroup.tasks) {
-				map.set(task.id, { groupId: group.id, subGroupId: subGroup.id });
-			}
-		}
-	}
-	return map;
+function buildTaskGroupTargets(
+  groups: BoardTaskGroup[],
+): Map<string, DropTarget> {
+  const map = new Map<string, DropTarget>();
+  for (const group of groups) {
+    for (const task of group.tasks) {
+      map.set(task.id, { groupId: group.id });
+    }
+    for (const subGroup of group.subGroups ?? []) {
+      for (const task of subGroup.tasks) {
+        map.set(task.id, { groupId: group.id, subGroupId: subGroup.id });
+      }
+    }
+  }
+  return map;
 }
 
 function SortableBoardRow({ task }: { task: schema.TaskWithLabels }) {
-	// id is deliberately just the task's own id, not container-prefixed: it
-	// must stay stable for the whole drag gesture. Encoding the container into
-	// the id (an earlier version of this did `${containerId}:${task.id}`)
-	// breaks the moment onDragOver moves the task's render position into a
-	// different group — its id would change mid-drag, which @dnd-kit doesn't
-	// expect, and caused a genuine infinite render loop (resolved target kept
-	// oscillating). Which group a row belongs to is resolved by lookup
-	// (buildTaskGroupTargets) instead of being encoded in the id.
-	const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-		id: task.id,
-		data: { taskId: task.id },
-	});
+  // id is deliberately just the task's own id, not container-prefixed: it
+  // must stay stable for the whole drag gesture. Encoding the container into
+  // the id (an earlier version of this did `${containerId}:${task.id}`)
+  // breaks the moment onDragOver moves the task's render position into a
+  // different group — its id would change mid-drag, which @dnd-kit doesn't
+  // expect, and caused a genuine infinite render loop (resolved target kept
+  // oscillating). Which group a row belongs to is resolved by lookup
+  // (buildTaskGroupTargets) instead of being encoded in the id.
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
+    id: task.id,
+    data: { taskId: task.id },
+  });
 
-	return (
-		<div
-			ref={setNodeRef}
-			style={{ transform: CSS.Transform.toString(transform), transition }}
-			{...attributes}
-			{...listeners}
-			// Faded, not hidden entirely — the actual moving element is the
-			// DragOverlay clone below, decoupled from this row's DOM position so
-			// it survives being moved between groups' SortableContexts mid-drag
-			// (which unmounts/remounts this node — a plain opacity-0 on it would
-			// flicker every time that happens).
-			className={cn("cursor-grab active:cursor-grabbing", isDragging && "opacity-30")}
-		>
-			<BoardRow task={task} />
-		</div>
-	);
+  return (
+    <div
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      {...attributes}
+      {...listeners}
+      // Faded, not hidden entirely — the actual moving element is the
+      // DragOverlay clone below, decoupled from this row's DOM position so
+      // it survives being moved between groups' SortableContexts mid-drag
+      // (which unmounts/remounts this node — a plain opacity-0 on it would
+      // flicker every time that happens).
+      className={cn(
+        "cursor-grab active:cursor-grabbing",
+        isDragging && "opacity-30",
+      )}
+    >
+      <BoardRow task={task} />
+    </div>
+  );
 }
 
 /**
@@ -140,15 +175,21 @@ function SortableBoardRow({ task }: { task: schema.TaskWithLabels }) {
  * never part of the drag/drop system, since their position is tied to
  * their parent, not their own status/priority.
  */
-function TaskRowWithSubtasks({ task, subtasks }: { task: schema.TaskWithLabels; subtasks: schema.TaskWithLabels[] }) {
-	return (
-		<>
-			<SortableBoardRow task={task} />
-			{subtasks.map((subtask) => (
-				<BoardRow key={subtask.id} task={subtask} nested />
-			))}
-		</>
-	);
+function TaskRowWithSubtasks({
+  task,
+  subtasks,
+}: {
+  task: schema.TaskWithLabels;
+  subtasks: schema.TaskWithLabels[];
+}) {
+  return (
+    <>
+      <SortableBoardRow task={task} />
+      {subtasks.map((subtask) => (
+        <BoardRow key={subtask.id} task={subtask} nested />
+      ))}
+    </>
+  );
 }
 
 // Sub-group ids aren't namespaced per parent group (groupTasks produces the
@@ -158,20 +199,23 @@ function TaskRowWithSubtasks({ task, subtasks }: { task: schema.TaskWithLabels; 
 // needs per-parent uniqueness though, so it scopes its own key here rather
 // than touching subGroup.id itself. Same format as the org-scoped system's
 // own getSubGroupCollapseKey, for consistency.
-function getSubGroupCollapseKey(group: BoardTaskGroup, subGroup: BoardTaskGroup): string {
-	return `${group.id}::${subGroup.id}`;
+function getSubGroupCollapseKey(
+  group: BoardTaskGroup,
+  subGroup: BoardTaskGroup,
+): string {
+  return `${group.id}::${subGroup.id}`;
 }
 
 interface GroupSectionProps {
-	group: BoardTaskGroup;
-	dropTargetId?: string;
-	isSubGroup?: boolean;
-	/** Lifted from BoardListView's dragOverride — @dnd-kit only reports one closest "over" target at a time (a row wins over its own section), so a per-section useDroppable().isOver can't tell "is any row within this group currently the target." This can. */
-	isDropTarget?: boolean;
-	/** mt-3 on every section but the first, so stacked groups read as clearly separate — passed in rather than baked in here since "first" is a fact only the list knows. */
-	className?: string;
-	expanded: boolean;
-	onToggleExpanded: () => void;
+  group: BoardTaskGroup;
+  dropTargetId?: string;
+  isSubGroup?: boolean;
+  /** Lifted from BoardListView's dragOverride — @dnd-kit only reports one closest "over" target at a time (a row wins over its own section), so a per-section useDroppable().isOver can't tell "is any row within this group currently the target." This can. */
+  isDropTarget?: boolean;
+  /** mt-3 on every section but the first, so stacked groups read as clearly separate — passed in rather than baked in here since "first" is a fact only the list knows. */
+  className?: string;
+  expanded: boolean;
+  onToggleExpanded: () => void;
 }
 
 /**
@@ -188,325 +232,374 @@ interface GroupSectionProps {
  * red/pink).
  */
 function GroupSection({
-	group,
-	dropTargetId,
-	isSubGroup = false,
-	isDropTarget = false,
-	className,
-	expanded,
-	onToggleExpanded,
-	children,
+  group,
+  dropTargetId,
+  isSubGroup = false,
+  isDropTarget = false,
+  className,
+  expanded,
+  onToggleExpanded,
+  children,
 }: PropsWithChildren<GroupSectionProps>) {
-	const count = group.tasks.length;
-	// Still needed so @dnd-kit can resolve a drop onto truly empty space
-	// within this group (no row under the pointer) — but isDropTarget (not
-	// this hook's own isOver) drives the highlight.
-	const { setNodeRef } = useDroppable({
-		id: dropTargetId ?? `no-drop:${group.id}`,
-		disabled: !dropTargetId,
-	});
-	const sortableIds = useMemo(() => group.tasks.map((task) => task.id), [group.tasks]);
+  const count = group.tasks.length;
+  // Still needed so @dnd-kit can resolve a drop onto truly empty space
+  // within this group (no row under the pointer) — but isDropTarget (not
+  // this hook's own isOver) drives the highlight.
+  const { setNodeRef } = useDroppable({
+    id: dropTargetId ?? `no-drop:${group.id}`,
+    disabled: !dropTargetId,
+  });
+  const sortableIds = useMemo(
+    () => group.tasks.map((task) => task.id),
+    [group.tasks],
+  );
 
-	return (
-		<section
-			ref={setNodeRef}
-			className={cn("rounded-xl transition-shadow", isDropTarget && "ring-2 ring-primary ring-inset", className)}
-		>
-			<div
-				style={{ top: isSubGroup ? "28px" : 0 }}
-				className={cn("w-full overflow-hidden rounded-xl bg-background", isSubGroup ? "z-9" : "z-10 sticky")}
-			>
-				<GroupHeaderContent
-					label={group.label}
-					icon={group.icon}
-					count={count}
-					toneClassName={group.toneClassName}
-					color={group.color}
-					isDropTarget={isDropTarget}
-					isSubGroup={isSubGroup}
-					expanded={expanded}
-					onToggleExpanded={onToggleExpanded}
-				/>
-			</div>
-			{expanded && (dropTargetId ? <SortableContext items={sortableIds}>{children}</SortableContext> : children)}
-		</section>
-	);
+  return (
+    <section
+      ref={setNodeRef}
+      className={cn(
+        "rounded-xl transition-shadow",
+        isDropTarget && "ring-2 ring-primary ring-inset",
+        className,
+      )}
+    >
+      <div
+        style={{ top: isSubGroup ? "28px" : 0 }}
+        className={cn(
+          "w-full overflow-hidden rounded-xl bg-background",
+          isSubGroup ? "z-9" : "z-10 sticky",
+        )}
+      >
+        <GroupHeaderContent
+          label={group.label}
+          icon={group.icon}
+          count={count}
+          toneClassName={group.toneClassName}
+          color={group.color}
+          isDropTarget={isDropTarget}
+          isSubGroup={isSubGroup}
+          expanded={expanded}
+          onToggleExpanded={onToggleExpanded}
+        />
+      </div>
+      {expanded &&
+        (dropTargetId ? (
+          <SortableContext items={sortableIds}>{children}</SortableContext>
+        ) : (
+          children
+        ))}
+    </section>
+  );
 }
 
 function resolveDropTarget(
-	over: Over | null,
-	dropTargets: Map<string, DropTarget>,
-	taskGroupTargets: Map<string, DropTarget>
+  over: Over | null,
+  dropTargets: Map<string, DropTarget>,
+  taskGroupTargets: Map<string, DropTarget>,
 ): DropTarget | undefined {
-	const overId = over?.id?.toString();
-	if (!overId) return undefined;
-	// Empty-space drop: over.id is a group's own droppable id.
-	// Row drop (the common case — groups are rarely empty): over.id is the
-	// hovered task's own (now container-agnostic) id — look up which group it
-	// currently belongs to.
-	return dropTargets.get(overId) ?? taskGroupTargets.get(overId);
+  const overId = over?.id?.toString();
+  if (!overId) return undefined;
+  // Empty-space drop: over.id is a group's own droppable id.
+  // Row drop (the common case — groups are rarely empty): over.id is the
+  // hovered task's own (now container-agnostic) id — look up which group it
+  // currently belongs to.
+  return dropTargets.get(overId) ?? taskGroupTargets.get(overId);
 }
 
 export function BoardListView({ tasks }: BoardListViewProps) {
-	const { categories, releases } = useLanderData();
-	const { grouping, subGrouping, showCompletedTasks } = useBoardViewState();
-	const [mutation, setMutation] = useState<BoardDragMutation | null>(null);
-	const [dragOverride, setDragOverride] = useState<DragOverride | null>(null);
-	const [activeId, setActiveId] = useState<string | null>(null);
-	const activeTask = useMemo(() => tasks.find((t) => t.id === activeId), [tasks, activeId]);
-	const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
-	const options = useMemo(
-		() => ({ categories, releases, showCompletedTasks }),
-		[categories, releases, showCompletedTasks]
-	);
+  const { categories, releases } = useLanderData();
+  const { grouping, subGrouping, showCompletedTasks } = useBoardViewState();
+  const [mutation, setMutation] = useState<BoardDragMutation | null>(null);
+  const [dragOverride, setDragOverride] = useState<DragOverride | null>(null);
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const activeTask = useMemo(
+    () => tasks.find((t) => t.id === activeId),
+    [tasks, activeId],
+  );
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+  );
+  const options = useMemo(
+    () => ({ categories, releases, showCompletedTasks }),
+    [categories, releases, showCompletedTasks],
+  );
 
-	// Subtasks (a task whose parent is also in this list) don't get their own
-	// top-level group membership — they always render nested under their
-	// parent's row instead, wherever the parent lands, regardless of the
-	// subtask's own status/priority. See config/groupings.ts.
-	const topLevelTasks = useMemo(() => getTopLevelTasks(tasks), [tasks]);
-	const subtaskMap = useMemo(() => buildSubtaskMap(tasks), [tasks]);
+  // Subtasks (a task whose parent is also in this list) don't get their own
+  // top-level group membership — they always render nested under their
+  // parent's row instead, wherever the parent lands, regardless of the
+  // subtask's own status/priority. See config/groupings.ts.
+  const topLevelTasks = useMemo(() => getTopLevelTasks(tasks), [tasks]);
+  const subtaskMap = useMemo(() => buildSubtaskMap(tasks), [tasks]);
 
-	const baseGroups = useMemo(
-		() => applyNestedGrouping(topLevelTasks, grouping, subGrouping, options),
-		[grouping, options, subGrouping, topLevelTasks]
-	);
+  const baseGroups = useMemo(
+    () => applyNestedGrouping(topLevelTasks, grouping, subGrouping, options),
+    [grouping, options, subGrouping, topLevelTasks],
+  );
 
-	// Latest baseGroups for use inside the grouping-change effect below,
-	// without making that effect re-fire on every task/filter change (it
-	// should only reset on grouping/subGrouping change) — same indirection
-	// the org-scoped system's own version of this uses.
-	const baseGroupsRef = useRef(baseGroups);
-	baseGroupsRef.current = baseGroups;
+  // Latest baseGroups for use inside the grouping-change effect below,
+  // without making that effect re-fire on every task/filter change (it
+  // should only reset on grouping/subGrouping change) — same indirection
+  // the org-scoped system's own version of this uses.
+  const baseGroupsRef = useRef(baseGroups);
+  baseGroupsRef.current = baseGroups;
 
-	const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(
+    new Set(),
+  );
 
-	// Reset collapsed sections when grouping or sub-grouping changes,
-	// defaulting any empty group/sub-group to collapsed. This is what keeps
-	// e.g. "Done"/"Canceled" from sitting there expanded-but-empty when
-	// showCompletedTasks hides their tasks — they're empty groups like any
-	// other, not a special case. Deliberately NOT re-run when
-	// showCompletedTasks (or any other task-data change) flips a group
-	// empty/non-empty mid-session — that would fight a user's own manual
-	// expand/collapse choice; only a grouping change resets it.
-	// biome-ignore lint/correctness/useExhaustiveDependencies: intentionally only reset on grouping/subGrouping change; baseGroupsRef always holds the latest value
-	useEffect(() => {
-		const defaultCollapsed = new Set<string>();
-		for (const group of baseGroupsRef.current) {
-			if (group.subGroups && group.subGroups.length > 0) {
-				for (const subGroup of group.subGroups) {
-					if (subGroup.tasks.length === 0) defaultCollapsed.add(getSubGroupCollapseKey(group, subGroup));
-				}
-				if (group.subGroups.every((subGroup) => subGroup.tasks.length === 0)) {
-					defaultCollapsed.add(group.id);
-				}
-			} else if (group.tasks.length === 0) {
-				defaultCollapsed.add(group.id);
-			}
-		}
-		setCollapsedSections(defaultCollapsed);
-	}, [grouping, subGrouping]);
+  // Reset collapsed sections when grouping or sub-grouping changes,
+  // defaulting any empty group/sub-group to collapsed. This is what keeps
+  // e.g. "Done"/"Canceled" from sitting there expanded-but-empty when
+  // showCompletedTasks hides their tasks — they're empty groups like any
+  // other, not a special case. Deliberately NOT re-run when
+  // showCompletedTasks (or any other task-data change) flips a group
+  // empty/non-empty mid-session — that would fight a user's own manual
+  // expand/collapse choice; only a grouping change resets it.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally only reset on grouping/subGrouping change; baseGroupsRef always holds the latest value
+  useEffect(() => {
+    const defaultCollapsed = new Set<string>();
+    for (const group of baseGroupsRef.current) {
+      if (group.subGroups && group.subGroups.length > 0) {
+        for (const subGroup of group.subGroups) {
+          if (subGroup.tasks.length === 0)
+            defaultCollapsed.add(getSubGroupCollapseKey(group, subGroup));
+        }
+        if (group.subGroups.every((subGroup) => subGroup.tasks.length === 0)) {
+          defaultCollapsed.add(group.id);
+        }
+      } else if (group.tasks.length === 0) {
+        defaultCollapsed.add(group.id);
+      }
+    }
+    setCollapsedSections(defaultCollapsed);
+  }, [grouping, subGrouping]);
 
-	const toggleSection = useCallback((key: string) => {
-		setCollapsedSections((prev) => {
-			const next = new Set(prev);
-			if (next.has(key)) next.delete(key);
-			else next.add(key);
-			return next;
-		});
-	}, []);
+  const toggleSection = useCallback((key: string) => {
+    setCollapsedSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }, []);
 
-	const groups = useMemo(() => {
-		if (!dragOverride) return baseGroups;
-		return applyDragOverride(
-			baseGroups,
-			dragOverride,
-			tasks.find((t) => t.id === dragOverride.taskId)
-		);
-	}, [baseGroups, dragOverride, tasks]);
+  const groups = useMemo(() => {
+    if (!dragOverride) return baseGroups;
+    return applyDragOverride(
+      baseGroups,
+      dragOverride,
+      tasks.find((t) => t.id === dragOverride.taskId),
+    );
+  }, [baseGroups, dragOverride, tasks]);
 
-	// Sticky "last over" target + a one-frame freeze right after a
-	// dragOverride-driven reshuffle. Without this, closestCenter alone
-	// oscillates: moving a row into a new group's SortableContext changes
-	// that group's layout, which changes what's geometrically closest to the
-	// pointer, which can flip the resolved target back, re-triggering the
-	// same reshuffle — an unbounded render loop ("Maximum update depth
-	// exceeded"). This mirrors @dnd-kit's own documented workaround for
-	// multi-container sortable lists (their "recentlyMovedToNewContainer"
-	// pattern): freeze collision resolution to the last known target for one
-	// animation frame after any state-driven layout shift.
-	const lastOverIdRef = useRef<string | null>(null);
-	const recentlyMovedRef = useRef(false);
+  // Sticky "last over" target + a one-frame freeze right after a
+  // dragOverride-driven reshuffle. Without this, closestCenter alone
+  // oscillates: moving a row into a new group's SortableContext changes
+  // that group's layout, which changes what's geometrically closest to the
+  // pointer, which can flip the resolved target back, re-triggering the
+  // same reshuffle — an unbounded render loop ("Maximum update depth
+  // exceeded"). This mirrors @dnd-kit's own documented workaround for
+  // multi-container sortable lists (their "recentlyMovedToNewContainer"
+  // pattern): freeze collision resolution to the last known target for one
+  // animation frame after any state-driven layout shift.
+  const lastOverIdRef = useRef<string | null>(null);
+  const recentlyMovedRef = useRef(false);
 
-	useEffect(() => {
-		const frame = requestAnimationFrame(() => {
-			recentlyMovedRef.current = false;
-		});
-		return () => cancelAnimationFrame(frame);
-	}, [groups]);
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      recentlyMovedRef.current = false;
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [groups]);
 
-	const collisionDetectionStrategy: CollisionDetection = useCallback((args) => {
-		if (recentlyMovedRef.current) {
-			return lastOverIdRef.current ? [{ id: lastOverIdRef.current }] : [];
-		}
-		const pointerIntersections = pointerWithin(args);
-		const intersections = pointerIntersections.length > 0 ? pointerIntersections : rectIntersection(args);
-		const overId = getFirstCollision(intersections, "id");
-		if (overId != null) {
-			lastOverIdRef.current = overId.toString();
-			return [{ id: overId }];
-		}
-		return lastOverIdRef.current ? [{ id: lastOverIdRef.current }] : [];
-	}, []);
+  const collisionDetectionStrategy: CollisionDetection = useCallback((args) => {
+    if (recentlyMovedRef.current) {
+      return lastOverIdRef.current ? [{ id: lastOverIdRef.current }] : [];
+    }
+    const pointerIntersections = pointerWithin(args);
+    const intersections =
+      pointerIntersections.length > 0
+        ? pointerIntersections
+        : rectIntersection(args);
+    const overId = getFirstCollision(intersections, "id");
+    if (overId != null) {
+      lastOverIdRef.current = overId.toString();
+      return [{ id: overId }];
+    }
+    return lastOverIdRef.current ? [{ id: lastOverIdRef.current }] : [];
+  }, []);
 
-	// Both built from baseGroups (stable, unaffected by the in-progress
-	// override) so target resolution never shifts mid-drag.
-	const dropTargets = useMemo(() => {
-		const targets = new Map<string, DropTarget>();
-		for (const group of baseGroups) {
-			if (subGrouping === "none") {
-				targets.set(`board-list-drop:${group.id}`, { groupId: group.id });
-				continue;
-			}
-			for (const subGroup of group.subGroups ?? []) {
-				targets.set(`board-list-drop:${group.id}:${subGroup.id}`, {
-					groupId: group.id,
-					subGroupId: subGroup.id,
-				});
-			}
-		}
-		return targets;
-	}, [baseGroups, subGrouping]);
-	const taskGroupTargets = useMemo(() => buildTaskGroupTargets(baseGroups), [baseGroups]);
+  // Both built from baseGroups (stable, unaffected by the in-progress
+  // override) so target resolution never shifts mid-drag.
+  const dropTargets = useMemo(() => {
+    const targets = new Map<string, DropTarget>();
+    for (const group of baseGroups) {
+      if (subGrouping === "none") {
+        targets.set(`board-list-drop:${group.id}`, { groupId: group.id });
+        continue;
+      }
+      for (const subGroup of group.subGroups ?? []) {
+        targets.set(`board-list-drop:${group.id}:${subGroup.id}`, {
+          groupId: group.id,
+          subGroupId: subGroup.id,
+        });
+      }
+    }
+    return targets;
+  }, [baseGroups, subGrouping]);
+  const taskGroupTargets = useMemo(
+    () => buildTaskGroupTargets(baseGroups),
+    [baseGroups],
+  );
 
-	const handleDragStart = (event: DragStartEvent) => {
-		const taskId = event.active.data.current?.taskId;
-		setActiveId(typeof taskId === "string" ? taskId : null);
-		lastOverIdRef.current = null;
-		recentlyMovedRef.current = false;
-	};
+  const handleDragStart = (event: DragStartEvent) => {
+    const taskId = event.active.data.current?.taskId;
+    setActiveId(typeof taskId === "string" ? taskId : null);
+    lastOverIdRef.current = null;
+    recentlyMovedRef.current = false;
+  };
 
-	const handleDragOver = (event: DragOverEvent) => {
-		const target = resolveDropTarget(event.over, dropTargets, taskGroupTargets);
-		const taskId = event.active.data.current?.taskId;
-		if (!target || typeof taskId !== "string") {
-			setDragOverride(null);
-			return;
-		}
-		setDragOverride((prev) => {
-			if (prev?.taskId === taskId && prev.groupId === target.groupId && prev.subGroupId === target.subGroupId) {
-				return prev;
-			}
-			// The reshuffle this triggers changes layout out from under the
-			// collision-detection strategy — freeze it on the target we just
-			// resolved until the next animation frame, instead of letting it
-			// immediately recompute against the mid-shuffle DOM.
-			recentlyMovedRef.current = true;
-			return { taskId, groupId: target.groupId, subGroupId: target.subGroupId };
-		});
-	};
+  const handleDragOver = (event: DragOverEvent) => {
+    const target = resolveDropTarget(event.over, dropTargets, taskGroupTargets);
+    const taskId = event.active.data.current?.taskId;
+    if (!target || typeof taskId !== "string") {
+      setDragOverride(null);
+      return;
+    }
+    setDragOverride((prev) => {
+      if (
+        prev?.taskId === taskId &&
+        prev.groupId === target.groupId &&
+        prev.subGroupId === target.subGroupId
+      ) {
+        return prev;
+      }
+      // The reshuffle this triggers changes layout out from under the
+      // collision-detection strategy — freeze it on the target we just
+      // resolved until the next animation frame, instead of letting it
+      // immediately recompute against the mid-shuffle DOM.
+      recentlyMovedRef.current = true;
+      return { taskId, groupId: target.groupId, subGroupId: target.subGroupId };
+    });
+  };
 
-	const handleDragEnd = (event: DragEndEvent) => {
-		const target = resolveDropTarget(event.over, dropTargets, taskGroupTargets);
-		const taskId = event.active.data.current?.taskId;
-		const task = typeof taskId === "string" ? tasks.find((item) => item.id === taskId) : undefined;
-		setDragOverride(null);
-		setActiveId(null);
-		if (!target || !task) return;
+  const handleDragEnd = (event: DragEndEvent) => {
+    const target = resolveDropTarget(event.over, dropTargets, taskGroupTargets);
+    const taskId = event.active.data.current?.taskId;
+    const task =
+      typeof taskId === "string"
+        ? tasks.find((item) => item.id === taskId)
+        : undefined;
+    setDragOverride(null);
+    setActiveId(null);
+    if (!target || !task) return;
 
-		setMutation({
-			task,
-			grouping,
-			groupId: target.groupId,
-			subGrouping,
-			subGroupId: target.subGroupId,
-		});
-	};
+    setMutation({
+      task,
+      grouping,
+      groupId: target.groupId,
+      subGrouping,
+      subGroupId: target.subGroupId,
+    });
+  };
 
-	return (
-		<>
-			<DndContext
-				sensors={sensors}
-				collisionDetection={collisionDetectionStrategy}
-				onDragStart={handleDragStart}
-				onDragOver={handleDragOver}
-				onDragEnd={handleDragEnd}
-				onDragCancel={() => {
-					setDragOverride(null);
-					setActiveId(null);
-					lastOverIdRef.current = null;
-					recentlyMovedRef.current = false;
-				}}
-			>
-				<div>
-					{groups.map((group, index) => {
-						const spacing = index > 0 ? "mt-3" : undefined;
-						if (subGrouping === "none") {
-							const dropTargetId = `board-list-drop:${group.id}`;
-							return (
-								<GroupSection
-									key={group.id}
-									group={group}
-									dropTargetId={dropTargetId}
-									isDropTarget={dragOverride?.groupId === group.id && !dragOverride.subGroupId}
-									className={spacing}
-									expanded={!collapsedSections.has(group.id)}
-									onToggleExpanded={() => toggleSection(group.id)}
-								>
-									{group.tasks.map((task) => (
-										<TaskRowWithSubtasks key={task.id} task={task} subtasks={subtaskMap.get(task.id) ?? []} />
-									))}
-								</GroupSection>
-							);
-						}
+  return (
+    <>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={collisionDetectionStrategy}
+        onDragStart={handleDragStart}
+        onDragOver={handleDragOver}
+        onDragEnd={handleDragEnd}
+        onDragCancel={() => {
+          setDragOverride(null);
+          setActiveId(null);
+          lastOverIdRef.current = null;
+          recentlyMovedRef.current = false;
+        }}
+      >
+        <div>
+          {groups.map((group, index) => {
+            const spacing = index > 0 ? "mt-3" : "";
+            if (subGrouping === "none") {
+              const dropTargetId = `board-list-drop:${group.id}`;
+              return (
+                <GroupSection
+                  key={group.id}
+                  group={group}
+                  dropTargetId={dropTargetId}
+                  isDropTarget={
+                    dragOverride?.groupId === group.id &&
+                    !dragOverride.subGroupId
+                  }
+                  className={spacing}
+                  expanded={!collapsedSections.has(group.id)}
+                  onToggleExpanded={() => toggleSection(group.id)}
+                >
+                  {group.tasks.map((task) => (
+                    <TaskRowWithSubtasks
+                      key={task.id}
+                      task={task}
+                      subtasks={subtaskMap.get(task.id) ?? []}
+                    />
+                  ))}
+                </GroupSection>
+              );
+            }
 
-						return (
-							<GroupSection
-								key={group.id}
-								group={group}
-								className={spacing}
-								expanded={!collapsedSections.has(group.id)}
-								onToggleExpanded={() => toggleSection(group.id)}
-							>
-								{(group.subGroups ?? []).map((subGroup, subIndex) => {
-									const dropTargetId = `board-list-drop:${group.id}:${subGroup.id}`;
-									const subGroupKey = getSubGroupCollapseKey(group, subGroup);
-									return (
-										<GroupSection
-											key={subGroup.id}
-											group={subGroup}
-											dropTargetId={dropTargetId}
-											isSubGroup
-											isDropTarget={
-												dragOverride?.groupId === group.id && dragOverride.subGroupId === subGroup.id
-											}
-											className={subIndex > 0 ? "mt-3" : undefined}
-											expanded={!collapsedSections.has(subGroupKey)}
-											onToggleExpanded={() => toggleSection(subGroupKey)}
-										>
-											{subGroup.tasks.map((task) => (
-												<TaskRowWithSubtasks
-													key={task.id}
-													task={task}
-													subtasks={subtaskMap.get(task.id) ?? []}
-												/>
-											))}
-										</GroupSection>
-									);
-								})}
-							</GroupSection>
-						);
-					})}
-				</div>
-				{typeof window !== "undefined" &&
-					createPortal(
-						<DragOverlay dropAnimation={{ duration: 200, easing: "ease" }}>
-							{activeTask && <BoardRow task={activeTask} />}
-						</DragOverlay>,
-						document.body
-					)}
-			</DndContext>
-			{mutation && <BoardDragMutationExecutor mutation={mutation} onHandled={() => setMutation(null)} />}
-		</>
-	);
+            return (
+              <GroupSection
+                key={group.id}
+                group={group}
+                className={spacing}
+                expanded={!collapsedSections.has(group.id)}
+                onToggleExpanded={() => toggleSection(group.id)}
+              >
+                {(group.subGroups ?? []).map((subGroup, subIndex) => {
+                  const dropTargetId = `board-list-drop:${group.id}:${subGroup.id}`;
+                  const subGroupKey = getSubGroupCollapseKey(group, subGroup);
+                  return (
+                    <GroupSection
+                      key={subGroup.id}
+                      group={subGroup}
+                      dropTargetId={dropTargetId}
+                      isSubGroup
+                      isDropTarget={
+                        dragOverride?.groupId === group.id &&
+                        dragOverride.subGroupId === subGroup.id
+                      }
+                      className={subIndex > 0 ? "mt-3" : undefined}
+                      expanded={!collapsedSections.has(subGroupKey)}
+                      onToggleExpanded={() => toggleSection(subGroupKey)}
+                    >
+                      {subGroup.tasks.map((task) => (
+                        <TaskRowWithSubtasks
+                          key={task.id}
+                          task={task}
+                          subtasks={subtaskMap.get(task.id) ?? []}
+                        />
+                      ))}
+                    </GroupSection>
+                  );
+                })}
+              </GroupSection>
+            );
+          })}
+        </div>
+        {typeof window !== "undefined" &&
+          createPortal(
+            <DragOverlay dropAnimation={{ duration: 200, easing: "ease" }}>
+              {activeTask && <BoardRow task={activeTask} />}
+            </DragOverlay>,
+            document.body,
+          )}
+      </DndContext>
+      {mutation && (
+        <BoardDragMutationExecutor
+          mutation={mutation}
+          onHandled={() => setMutation(null)}
+        />
+      )}
+    </>
+  );
 }
