@@ -133,7 +133,26 @@ export function FilterBuilderConditionRow({
 							<ComboBoxEmpty>No options found.</ComboBoxEmpty>
 							<ComboBoxGroup>
 								{options.map((option) => (
-									<ComboBoxItem key={option.value} value={option.value} searchValue={option.label}>
+									<ComboBoxItem
+										key={option.value}
+										value={option.value}
+										searchValue={option.label}
+										onSelect={
+											option.mergedValues
+												? () => {
+														const merged = option.mergedValues as string[];
+														const allSelected = merged.every((v) => selectedValues.includes(v));
+														const next = allSelected
+															? selectedValues.filter((v) => !merged.includes(v))
+															: [
+																	...selectedValues,
+																	...merged.filter((v) => !selectedValues.includes(v)),
+																];
+														onValuesChange(next);
+													}
+												: undefined
+										}
+									>
 										{option.image !== undefined ? (
 											<Avatar className="size-4 shrink-0">
 												<AvatarImage src={option.image || undefined} alt={option.label} />
@@ -149,6 +168,11 @@ export function FilterBuilderConditionRow({
 											option.icon
 										)}
 										<span className="truncate">{option.label}</span>
+										{option.orgName && (
+											<span className="ml-auto shrink-0 text-[10px] text-muted-foreground truncate max-w-16">
+												{option.orgName}
+											</span>
+										)}
 									</ComboBoxItem>
 								))}
 							</ComboBoxGroup>

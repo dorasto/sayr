@@ -115,6 +115,10 @@ export interface FilterOption {
 	color?: string;
 	description?: string;
 	image?: string;
+	/** Set when this option's name is unique to exactly one org — shown as a trailing badge. */
+	orgName?: string;
+	/** Set when 2+ orgs share this name — selecting the option toggles all of these ids as one unit. */
+	mergedValues?: string[];
 }
 
 export interface FilterFieldConfig {

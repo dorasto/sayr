@@ -14,9 +14,61 @@ import type {
 	FilterCondition,
 	FilterFieldConfig,
 	FilterOperator,
+	FilterOption,
 	FilterState,
 	FilterValue,
 } from "./types";
+
+function buildOrgNameMap(tasks: schema.TaskWithLabels[]): Map<string, string> {
+	const map = new Map<string, string>();
+	for (const task of tasks) {
+		if (task.organization && !map.has(task.organizationId)) {
+			map.set(task.organizationId, task.organization.name);
+		}
+	}
+	return map;
+}
+
+interface NamedOrgRow {
+	id: string;
+	name: string;
+	organizationId: string;
+	color?: string | null;
+}
+
+/**
+ * Groups org-scoped rows (labels/categories/releases) by name — two orgs with an
+ * identically-named row collapse into one selectable option whose selection toggles
+ * both underlying ids together, so filtering matches by "concept" across orgs rather
+ * than one org's literal id. A name unique to one org keeps that org's name as a
+ * trailing badge so a cross-org list doesn't read as ambiguous.
+ */
+function groupOptionsByName(rows: NamedOrgRow[], orgNameMap: Map<string, string>): FilterOption[] {
+	const groups = new Map<string, NamedOrgRow[]>();
+	for (const row of rows) {
+		const existing = groups.get(row.name);
+		if (existing) existing.push(row);
+		else groups.set(row.name, [row]);
+	}
+	return Array.from(groups.values()).map((group) => {
+		// biome-ignore lint/style/noNonNullAssertion: group is only ever created via [row] or push(row), never empty
+		const first = group[0]!;
+		if (group.length === 1) {
+			return {
+				value: first.id,
+				label: first.name,
+				color: first.color || "#cccccc",
+				orgName: orgNameMap.get(first.organizationId),
+			};
+		}
+		return {
+			value: first.id,
+			label: first.name,
+			color: first.color || "#cccccc",
+			mergedValues: group.map((r) => r.id),
+		};
+	});
+}
 
 const STATUS_OPTIONS = Object.entries(STATUS_CONFIG).map(([value, config]) => ({
 	value,
@@ -81,11 +133,10 @@ export const FIELD_CONFIGS: FilterFieldConfig[] = [
 		operators: ["any", "none", "empty", "not_empty"],
 		filterDefault: "any",
 		multi: true,
-		getOptions: (_tasks, _labels, _users, subSearch, categories) => {
+		getOptions: (tasks, _labels, _users, subSearch, categories) => {
 			const q = subSearch.toLowerCase();
-			return categories
-				.filter((c) => c.name.toLowerCase().includes(q || ""))
-				.map((category) => ({ value: category.id, label: category.name, color: category.color || "#cccccc" }));
+			const filtered = categories.filter((c) => c.name.toLowerCase().includes(q || ""));
+			return groupOptionsByName(filtered, buildOrgNameMap(tasks));
 		},
 	},
 	{
@@ -96,11 +147,10 @@ export const FIELD_CONFIGS: FilterFieldConfig[] = [
 		filterDefault: "any",
 		multi: true,
 		empty: "No release",
-		getOptions: (_tasks, _labels, _users, subSearch, _categories, releases) => {
+		getOptions: (tasks, _labels, _users, subSearch, _categories, releases) => {
 			const q = subSearch.toLowerCase();
-			return releases
-				.filter((r) => r.name.toLowerCase().includes(q || ""))
-				.map((release) => ({ value: release.id, label: release.name, color: release.color || "#cccccc" }));
+			const filtered = releases.filter((r) => r.name.toLowerCase().includes(q || ""));
+			return groupOptionsByName(filtered, buildOrgNameMap(tasks));
 		},
 	},
 	{
@@ -128,11 +178,10 @@ export const FIELD_CONFIGS: FilterFieldConfig[] = [
 		filterDefault: "any",
 		multi: true,
 		empty: "No labels",
-		getOptions: (_t, labels, _u, subSearch) => {
+		getOptions: (tasks, labels, _u, subSearch) => {
 			const q = subSearch.toLowerCase();
-			return labels
-				.filter((l) => l.name?.toLowerCase().includes(q))
-				.map((label) => ({ value: label.id, label: label.name, color: label.color || "#cccccc" }));
+			const filtered = labels.filter((l) => l.name?.toLowerCase().includes(q));
+			return groupOptionsByName(filtered, buildOrgNameMap(tasks));
 		},
 	},
 	{
