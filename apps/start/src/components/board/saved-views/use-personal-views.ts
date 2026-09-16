@@ -19,8 +19,9 @@ export function usePersonalViews() {
 		[]
 	);
 
-	const renameView = useCallback(
-		(viewId: string, name: string) => personalViewsActions.updateView(viewId, { name }),
+	const updateView = useCallback(
+		(viewId: string, updates: Partial<{ name: string; viewConfig: schema.savedViewType["viewConfig"] }>) =>
+			personalViewsActions.updateView(viewId, updates),
 		[]
 	);
 
@@ -30,5 +31,5 @@ export function usePersonalViews() {
 
 	const reorder = useCallback((orderedIds: string[]) => personalViewsActions.reorder(orderedIds), []);
 
-	return { personalViews, createView, renameView, deleteView, togglePin, reorder };
+	return { personalViews, createView, updateView, deleteView, togglePin, reorder };
 }

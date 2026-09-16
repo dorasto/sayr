@@ -12,17 +12,26 @@ import {
 import { cn } from "@repo/ui/lib/utils";
 import { IconChevronDown, IconPin, IconPinFilled, IconTrash } from "@tabler/icons-react";
 import type React from "react";
+import RenderIcon from "@/components/generic/RenderIcon";
 import { useBoardViewState } from "../filter/use-board-view-state";
+import { EditViewPopover } from "./edit-view-popover";
 import { SaveViewPopover } from "./save-view-popover";
 import { usePersonalViews } from "./use-personal-views";
+import { DEFAULT_VIEW_COLOR, DEFAULT_VIEW_ICON } from "./view-icon-color-trigger";
 
 const stopRowSelect = (event: React.SyntheticEvent) => event.stopPropagation();
 
 /**
  * Plain-list form — no ComboBox chrome, since this is meant to sit directly
- * in board-side-panel.tsx (not inside a popover). Same pin/delete/select
+ * in board-side-panel.tsx (not inside a popover). Same pin/edit/delete/select
  * behavior as the top-bar PresetSwitcher below, just rendered as a list
  * instead of a dropdown menu.
+ *
+ * The row is a `<div role="button">`, not a real `<button>` — it used to be, but nesting the
+ * pin/edit/delete `<button>`s inside an outer `<button>` is invalid HTML (a browser's HTML
+ * parser auto-closes nested buttons, which caused a real hydration mismatch warning) and made
+ * automated row-scoping brittle during Phase 2 testing. Keyboard activation (Enter/Space) is
+ * preserved via onKeyDown.
  */
 export function PresetSwitcherContent() {
 	const { personalViews, togglePin, deleteView } = usePersonalViews();
@@ -36,17 +45,33 @@ export function PresetSwitcherContent() {
 		<div className="flex flex-col gap-0.5">
 			{personalViews.map((view) => {
 				const isActive = (view.slug || view.id) === viewSlug;
+				const onSelect = () => (isActive ? clearView() : selectView(view));
 				return (
-					<button
+					// biome-ignore lint/a11y/noStaticElementInteractions: row-select target; real buttons (pin/edit/delete) are nested inside, which isn't valid inside a <button>
+					<div
 						key={view.id}
-						type="button"
-						onClick={() => (isActive ? clearView() : selectView(view))}
+						role="button"
+						tabIndex={0}
+						onClick={onSelect}
+						onKeyDown={(event) => {
+							if (event.key === "Enter" || event.key === " ") {
+								event.preventDefault();
+								onSelect();
+							}
+						}}
 						className={cn(
-							"flex items-center gap-1.5 rounded-md px-1.5 py-1.5 text-xs text-left transition-colors",
+							"flex cursor-pointer items-center gap-1.5 rounded-md px-1.5 py-1.5 text-xs text-left transition-colors",
 							isActive ? "bg-accent" : "hover:bg-accent/50"
 						)}
 					>
+						<RenderIcon
+							iconName={view.viewConfig?.icon || DEFAULT_VIEW_ICON}
+							color={view.viewConfig?.color || DEFAULT_VIEW_COLOR}
+							size={14}
+							raw
+						/>
 						<span className="flex-1 truncate">{view.name}</span>
+						<EditViewPopover view={view} />
 						<button
 							type="button"
 							onPointerDown={stopRowSelect}
@@ -71,7 +96,7 @@ export function PresetSwitcherContent() {
 						>
 							<IconTrash className="size-3.5" />
 						</button>
-					</button>
+					</div>
 				);
 			})}
 		</div>
@@ -125,7 +150,14 @@ export function PresetSwitcher() {
 									searchValue={view.name}
 									showCheck={false}
 								>
+									<RenderIcon
+										iconName={view.viewConfig?.icon || DEFAULT_VIEW_ICON}
+										color={view.viewConfig?.color || DEFAULT_VIEW_COLOR}
+										size={14}
+										raw
+									/>
 									<span className="flex-1 truncate text-left">{view.name}</span>
+									<EditViewPopover view={view} />
 									<button
 										type="button"
 										onPointerDown={stopRowSelect}
