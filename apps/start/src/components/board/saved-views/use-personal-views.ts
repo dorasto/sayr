@@ -20,8 +20,10 @@ export function usePersonalViews() {
 	);
 
 	const updateView = useCallback(
-		(viewId: string, updates: Partial<{ name: string; viewConfig: schema.savedViewType["viewConfig"] }>) =>
-			personalViewsActions.updateView(viewId, updates),
+		(
+			viewId: string,
+			updates: Partial<{ name: string; viewConfig: schema.savedViewType["viewConfig"]; filterParams: string }>
+		) => personalViewsActions.updateView(viewId, updates),
 		[]
 	);
 

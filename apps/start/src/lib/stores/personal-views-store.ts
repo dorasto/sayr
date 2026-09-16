@@ -49,10 +49,10 @@ export const personalViewsActions = {
 		return created;
 	},
 
-	/** Rename and/or edit viewConfig (icon/color) in one optimistic call. */
+	/** Rename and/or edit viewConfig (icon/color) and/or filterParams in one optimistic call. */
 	updateView: async (
 		viewId: string,
-		updates: Partial<{ name: string; viewConfig: schema.savedViewType["viewConfig"] }>
+		updates: Partial<{ name: string; viewConfig: schema.savedViewType["viewConfig"]; filterParams: string }>
 	) => {
 		const previous = personalViewsStore.state.views;
 		personalViewsStore.setState((state) => ({

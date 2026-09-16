@@ -71,7 +71,7 @@ function areViewConfigsEqual(a: TaskViewState, b: TaskViewState): boolean {
 	);
 }
 
-function areStatesEqual(a: TaskViewCombinedState, b: TaskViewCombinedState): boolean {
+export function areStatesEqual(a: TaskViewCombinedState, b: TaskViewCombinedState): boolean {
 	return areFiltersEqual(a.filters, b.filters) && areViewConfigsEqual(a.viewConfig, b.viewConfig);
 }
 
@@ -84,6 +84,30 @@ function mapViewConfigToState(config: NonNullable<schema.savedViewType["viewConf
 		sortBy: config.sortBy ?? "none",
 		sortDirection: config.sortDirection ?? "asc",
 	};
+}
+
+/** Inverse of mapViewConfigToState — used to persist local view state back into a saved view's schema shape. */
+export function mapStateToViewConfig(
+	viewConfig: TaskViewState,
+	iconColor: { icon: string; color: string }
+): NonNullable<schema.savedViewType["viewConfig"]> {
+	return {
+		mode: viewConfig.viewMode,
+		groupBy: viewConfig.grouping,
+		subGroupBy: viewConfig.subGrouping,
+		showCompletedTasks: viewConfig.showCompletedTasks,
+		sortBy: viewConfig.sortBy,
+		sortDirection: viewConfig.sortDirection,
+		icon: iconColor.icon,
+		color: iconColor.color,
+	};
+}
+
+/** Resolves a saved view row into the same combined-state shape used everywhere else in this hook. */
+export function getViewCombinedState(view: schema.savedViewType): TaskViewCombinedState {
+	const filters = deserializeFilters(view.filterParams) || DEFAULT_FILTER_STATE;
+	const viewConfig = view.viewConfig ? mapViewConfigToState(view.viewConfig) : DEFAULT_TASK_VIEW_STATE;
+	return { filters, viewConfig };
 }
 
 export function useBoardViewState(availableViews?: schema.savedViewType[]) {
@@ -186,15 +210,22 @@ export function useBoardViewState(availableViews?: schema.savedViewType[]) {
 			const targetViewSlug = view.slug || view.id;
 			if (viewSlug === targetViewSlug) return;
 
-			const viewFilters = deserializeFilters(view.filterParams) || DEFAULT_FILTER_STATE;
-			const viewConfigFromView = view.viewConfig ? mapViewConfigToState(view.viewConfig) : DEFAULT_TASK_VIEW_STATE;
-
-			updateStateAndUrl(
-				{ filters: viewFilters, viewConfig: viewConfigFromView },
-				{ view: targetViewSlug, filters: null, category: null }
-			);
+			updateStateAndUrl(getViewCombinedState(view), { view: targetViewSlug, filters: null, category: null });
 		},
 		[updateStateAndUrl, viewSlug]
+	);
+
+	/**
+	 * Like selectView, but force-applies the view's saved state even when the URL is already on
+	 * that slug — selectView's own equality guard exists to avoid redundant no-op navigations, but
+	 * that's exactly the case "reset local changes back to what's saved" needs to bypass.
+	 */
+	const resetToSavedView = useCallback(
+		(view: schema.savedViewType) => {
+			const targetViewSlug = view.slug || view.id;
+			updateStateAndUrl(getViewCombinedState(view), { view: targetViewSlug, filters: null, category: null });
+		},
+		[updateStateAndUrl]
 	);
 
 	const clearView = useCallback(
@@ -347,11 +378,7 @@ export function useBoardViewState(availableViews?: schema.savedViewType[]) {
 
 		lastProcessedViewSlug.current = targetSlug;
 
-		const viewFilters = deserializeFilters(targetView.filterParams) || DEFAULT_FILTER_STATE;
-		const viewConfigFromView = targetView.viewConfig
-			? mapViewConfigToState(targetView.viewConfig)
-			: DEFAULT_TASK_VIEW_STATE;
-		const targetState = { filters: viewFilters, viewConfig: viewConfigFromView };
+		const targetState = getViewCombinedState(targetView);
 
 		if (!areStatesEqual(state, targetState)) {
 			isHandlingAction.current = true;
@@ -395,6 +422,7 @@ export function useBoardViewState(availableViews?: schema.savedViewType[]) {
 		sortBy,
 		sortDirection,
 		selectView,
+		resetToSavedView,
 		clearView,
 		applyFilter,
 		setFilters,
