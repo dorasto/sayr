@@ -8,14 +8,19 @@ import { useState } from "react";
 import { serializeFilters } from "../filter/serialization";
 import { useBoardViewState } from "../filter/use-board-view-state";
 import { usePersonalViews } from "./use-personal-views";
+import { DEFAULT_VIEW_COLOR, DEFAULT_VIEW_ICON, ViewIconColorTrigger } from "./view-icon-color-trigger";
+
+const DEFAULT_ICON_COLOR = { icon: DEFAULT_VIEW_ICON, color: DEFAULT_VIEW_COLOR };
 
 /**
  * "Save current filters + grouping/view state as a personal view" flow —
- * a small popover, not a full dialog, since the only real input is a name.
+ * a small popover, not a full dialog, since the only real input is a name
+ * (plus the icon/color trigger next to it).
  */
 export function SaveViewPopover() {
 	const [open, setOpen] = useState(false);
 	const [name, setName] = useState("");
+	const [iconColor, setIconColor] = useState(DEFAULT_ICON_COLOR);
 	const [saving, setSaving] = useState(false);
 	const { filters, grouping, subGrouping, viewMode, showCompletedTasks, sortBy, sortDirection } = useBoardViewState();
 	const { createView } = usePersonalViews();
@@ -35,10 +40,13 @@ export function SaveViewPopover() {
 					showCompletedTasks,
 					sortBy,
 					sortDirection,
+					icon: iconColor.icon,
+					color: iconColor.color,
 				},
 			});
 			headlessToast.success({ title: "View saved", description: `"${trimmed}" added to your views` });
 			setName("");
+			setIconColor(DEFAULT_ICON_COLOR);
 			setOpen(false);
 		} catch {
 			headlessToast.error({ title: "Failed to save view" });
@@ -63,18 +71,21 @@ export function SaveViewPopover() {
 			/>
 			<PopoverContent className="w-64 p-2" align="start">
 				<div className="flex flex-col gap-2">
-					<input
-						type="text"
-						value={name}
-						onChange={(event) => setName(event.target.value)}
-						onKeyDown={(event) => {
-							if (event.key === "Enter") handleSave();
-						}}
-						placeholder="View name..."
-						// biome-ignore lint/a11y/noAutofocus: popover content, opening it is the user's explicit intent to name a view
-						autoFocus
-						className="h-7 rounded-md border border-input bg-transparent px-2 text-xs outline-none focus-visible:ring-1 focus-visible:ring-ring"
-					/>
+					<div className="flex items-center gap-1.5">
+						<ViewIconColorTrigger value={iconColor} onChange={setIconColor} />
+						<input
+							type="text"
+							value={name}
+							onChange={(event) => setName(event.target.value)}
+							onKeyDown={(event) => {
+								if (event.key === "Enter") handleSave();
+							}}
+							placeholder="View name..."
+							// biome-ignore lint/a11y/noAutofocus: popover content, opening it is the user's explicit intent to name a view
+							autoFocus
+							className="h-7 min-w-0 flex-1 rounded-md border border-input bg-transparent px-2 text-xs outline-none focus-visible:ring-1 focus-visible:ring-ring"
+						/>
+					</div>
 					<button
 						type="button"
 						onClick={handleSave}
