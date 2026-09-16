@@ -9,7 +9,7 @@ import {
 	reorderPersonalViewsAction,
 	togglePersonalViewPinAction,
 	updatePersonalViewAction,
-} from "@/routes/(admin)/home/route";
+} from "@/lib/serverFunctions/personalViews";
 
 /**
  * CRUD over the lander's personalViews list. Optimistic-then-persist,
