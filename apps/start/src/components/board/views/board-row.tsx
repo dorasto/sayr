@@ -112,7 +112,18 @@ export function BoardRow({ task, nested = false }: BoardRowProps) {
 				{task.visible === "private" && <IconLock className="size-3.5 mr-1 text-primary shrink-0" />}
 				{task.title || "Untitled"}
 			</span>
-			<div className="flex items-center gap-1 shrink-0">
+			{/*
+			 * shrink (not shrink-0) + min-w-0 + overflow-hidden: category/release/
+			 * label pills are unbounded in number and each individually truncates
+			 * its own text, but nothing capped their COMBINED width — on a task
+			 * with several of them, that width was unbounded and rigid (shrink-0),
+			 * which forced the title's flex-1 to collapse toward zero instead.
+			 * max-w caps it at less than half the row so title always keeps the
+			 * majority of the space; overflow-hidden clips whatever doesn't fit
+			 * once shrunk below its natural content width (the flex-shrink default
+			 * alone can't go below a flex item's own content size without it).
+			 */}
+			<div className="flex items-center gap-1 min-w-0 shrink overflow-hidden max-w-[40%]">
 				<FieldCategory task={task} />
 				<FieldRelease task={task} />
 				<FieldLabel task={task} />

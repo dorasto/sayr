@@ -151,6 +151,17 @@ function TaskRowWithSubtasks({ task, subtasks }: { task: schema.TaskWithLabels; 
 	);
 }
 
+// Sub-group ids aren't namespaced per parent group (groupTasks produces the
+// same "urgent"/"high"/etc ids regardless of which top-level group they're
+// nested under — board-kanban-view.tsx's row/column matrix relies on that
+// same id matching across every column). List view's collapse tracking
+// needs per-parent uniqueness though, so it scopes its own key here rather
+// than touching subGroup.id itself. Same format as the org-scoped system's
+// own getSubGroupCollapseKey, for consistency.
+function getSubGroupCollapseKey(group: BoardTaskGroup, subGroup: BoardTaskGroup): string {
+	return `${group.id}::${subGroup.id}`;
+}
+
 interface GroupSectionProps {
 	group: BoardTaskGroup;
 	dropTargetId?: string;
@@ -159,6 +170,8 @@ interface GroupSectionProps {
 	isDropTarget?: boolean;
 	/** mt-3 on every section but the first, so stacked groups read as clearly separate — passed in rather than baked in here since "first" is a fact only the list knows. */
 	className?: string;
+	expanded: boolean;
+	onToggleExpanded: () => void;
 }
 
 /**
@@ -180,9 +193,10 @@ function GroupSection({
 	isSubGroup = false,
 	isDropTarget = false,
 	className,
+	expanded,
+	onToggleExpanded,
 	children,
 }: PropsWithChildren<GroupSectionProps>) {
-	const [expanded, setExpanded] = useState(true);
 	const count = group.tasks.length;
 	// Still needed so @dnd-kit can resolve a drop onto truly empty space
 	// within this group (no row under the pointer) — but isDropTarget (not
@@ -197,7 +211,7 @@ function GroupSection({
 		>
 			<button
 				type="button"
-				onClick={() => setExpanded((value) => !value)}
+				onClick={onToggleExpanded}
 				style={{ top: isSubGroup ? "28px" : 0 }}
 				className={cn("sticky w-full overflow-hidden rounded-xl bg-background", isSubGroup ? "z-9" : "z-10")}
 			>
@@ -252,6 +266,50 @@ export function BoardListView({ tasks }: BoardListViewProps) {
 		() => applyNestedGrouping(topLevelTasks, grouping, subGrouping, options),
 		[grouping, options, subGrouping, topLevelTasks]
 	);
+
+	// Latest baseGroups for use inside the grouping-change effect below,
+	// without making that effect re-fire on every task/filter change (it
+	// should only reset on grouping/subGrouping change) — same indirection
+	// the org-scoped system's own version of this uses.
+	const baseGroupsRef = useRef(baseGroups);
+	baseGroupsRef.current = baseGroups;
+
+	const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
+
+	// Reset collapsed sections when grouping or sub-grouping changes,
+	// defaulting any empty group/sub-group to collapsed. This is what keeps
+	// e.g. "Done"/"Canceled" from sitting there expanded-but-empty when
+	// showCompletedTasks hides their tasks — they're empty groups like any
+	// other, not a special case. Deliberately NOT re-run when
+	// showCompletedTasks (or any other task-data change) flips a group
+	// empty/non-empty mid-session — that would fight a user's own manual
+	// expand/collapse choice; only a grouping change resets it.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: intentionally only reset on grouping/subGrouping change; baseGroupsRef always holds the latest value
+	useEffect(() => {
+		const defaultCollapsed = new Set<string>();
+		for (const group of baseGroupsRef.current) {
+			if (group.subGroups && group.subGroups.length > 0) {
+				for (const subGroup of group.subGroups) {
+					if (subGroup.tasks.length === 0) defaultCollapsed.add(getSubGroupCollapseKey(group, subGroup));
+				}
+				if (group.subGroups.every((subGroup) => subGroup.tasks.length === 0)) {
+					defaultCollapsed.add(group.id);
+				}
+			} else if (group.tasks.length === 0) {
+				defaultCollapsed.add(group.id);
+			}
+		}
+		setCollapsedSections(defaultCollapsed);
+	}, [grouping, subGrouping]);
+
+	const toggleSection = useCallback((key: string) => {
+		setCollapsedSections((prev) => {
+			const next = new Set(prev);
+			if (next.has(key)) next.delete(key);
+			else next.add(key);
+			return next;
+		});
+	}, []);
 
 	const groups = useMemo(() => {
 		if (!dragOverride) return baseGroups;
@@ -384,6 +442,8 @@ export function BoardListView({ tasks }: BoardListViewProps) {
 									dropTargetId={dropTargetId}
 									isDropTarget={dragOverride?.groupId === group.id && !dragOverride.subGroupId}
 									className={spacing}
+									expanded={!collapsedSections.has(group.id)}
+									onToggleExpanded={() => toggleSection(group.id)}
 								>
 									{group.tasks.map((task) => (
 										<TaskRowWithSubtasks key={task.id} task={task} subtasks={subtaskMap.get(task.id) ?? []} />
@@ -393,9 +453,16 @@ export function BoardListView({ tasks }: BoardListViewProps) {
 						}
 
 						return (
-							<GroupSection key={group.id} group={group} className={spacing}>
+							<GroupSection
+								key={group.id}
+								group={group}
+								className={spacing}
+								expanded={!collapsedSections.has(group.id)}
+								onToggleExpanded={() => toggleSection(group.id)}
+							>
 								{(group.subGroups ?? []).map((subGroup, subIndex) => {
 									const dropTargetId = `board-list-drop:${group.id}:${subGroup.id}`;
+									const subGroupKey = getSubGroupCollapseKey(group, subGroup);
 									return (
 										<GroupSection
 											key={subGroup.id}
@@ -406,6 +473,8 @@ export function BoardListView({ tasks }: BoardListViewProps) {
 												dragOverride?.groupId === group.id && dragOverride.subGroupId === subGroup.id
 											}
 											className={subIndex > 0 ? "mt-3" : undefined}
+											expanded={!collapsedSections.has(subGroupKey)}
+											onToggleExpanded={() => toggleSection(subGroupKey)}
 										>
 											{subGroup.tasks.map((task) => (
 												<TaskRowWithSubtasks

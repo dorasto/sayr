@@ -48,26 +48,36 @@ export function BoardKanbanView({ tasks }: BoardKanbanViewProps) {
 		() => applyNestedGrouping(tasks, grouping, subGrouping, options),
 		[grouping, options, subGrouping, tasks]
 	);
+	// Kanban has no collapse affordance (unlike list view's collapsible
+	// sections) — an empty column/row is just permanent dead space with a "0"
+	// badge, most visibly the "Done"/"Canceled" status columns whenever
+	// showCompletedTasks hides their tasks. Drop entirely rather than render
+	// empty, matching the same "don't surface empty groups" rule list view
+	// applies via auto-collapse — this is the columnar equivalent of that.
 	const columns = useMemo(
 		() =>
-			groupedTasks.map((group) => ({
-				id: group.id,
-				label: group.label,
-				count: group.tasks.length,
-				icon: group.icon,
-			})),
+			groupedTasks
+				.filter((group) => group.tasks.length > 0)
+				.map((group) => ({
+					id: group.id,
+					label: group.label,
+					count: group.tasks.length,
+					icon: group.icon,
+				})),
 		[groupedTasks]
 	);
 	const rows = useMemo(
 		() =>
 			subGrouping === "none"
 				? undefined
-				: groupTasks(tasks, subGrouping, options).map((group) => ({
-						id: group.id,
-						label: group.label,
-						count: group.tasks.length,
-						icon: group.icon,
-					})),
+				: groupTasks(tasks, subGrouping, options)
+						.filter((group) => group.tasks.length > 0)
+						.map((group) => ({
+							id: group.id,
+							label: group.label,
+							count: group.tasks.length,
+							icon: group.icon,
+						})),
 		[options, subGrouping, tasks]
 	);
 	const hasAssigneeGrouping = grouping === "assignee" || subGrouping === "assignee";
