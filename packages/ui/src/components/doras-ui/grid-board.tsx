@@ -430,20 +430,20 @@ export function GridBoardRowHeader({ row, count, className, ...props }: GridBoar
 	return (
 		<div
 			className={cn(
-				// Matches GridBoardColumnHeader's own treatment (same bg/border/padding), flat on the
-				// bottom edge with no border there so it reads as one piece with the cells row directly
-				// beneath it (which is itself always flat-topped — see GridBoardDroppableCell).
-				"flex items-center gap-2 px-3.5 py-2.5 rounded-t-xl bg-muted border border-b-0 border-border/40 sticky top-[42px] z-20",
+				// A sub-group header is a secondary level, not a peer of GridBoardColumnHeader — same
+				// attached-card mechanic (flat bottom, zero gap into the cells below) but deliberately
+				// lighter weight (bg-background not bg-muted, smaller text, plain count not a Badge),
+				// matching board-list-view's own sub-group header convention (group-header.tsx) instead
+				// of competing visually with the real column headers above it.
+				"flex items-center gap-1.5 px-2.5 py-1.5 rounded-t-xl bg-background border border-b-0 border-border/40 sticky top-[42px] z-20",
 				className
 			)}
 			{...props}
 		>
-			<div className="flex items-center gap-2 z-10 sticky left-3.5">
+			<div className="flex items-center gap-1.5 z-10 sticky left-2.5">
 				{row.icon && <span className={cn("text-sm", row.accentClassName)}>{row.icon}</span>}
-				<span className="text-sm font-semibold whitespace-nowrap">{row.label}</span>
-				<Badge variant="outline" className="text-xs h-5 px-2">
-					{displayCount}
-				</Badge>
+				<span className="text-xs font-medium whitespace-nowrap">{row.label}</span>
+				<span className="text-xs text-muted-foreground tabular-nums">{displayCount}</span>
 			</div>
 		</div>
 	);
