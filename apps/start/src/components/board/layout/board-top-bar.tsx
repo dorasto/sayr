@@ -20,7 +20,14 @@ export function BoardTopBar() {
 	const landerLayout = useStore(userPreferencesStore, (state) => state.landerLayout);
 
 	return (
-		<div className="flex items-center gap-2 flex-wrap max-w-full overflow-x-auto">
+		// flex-nowrap (not flex-wrap) is the actual fix here: flex-wrap lets the
+		// row grow onto new lines instead of overflowing horizontally, which
+		// means overflow-x-auto never gets a chance to trigger at all — content
+		// just wraps (and on a fixed-height toolbar, clips/overlaps) instead of
+		// scrolling. Forked from filter-badges.tsx's own "flex-wrap ... overflow-x-auto"
+		// combo (same contradiction, just never exercised there — a single-org
+		// page rarely has enough badges to overflow) rather than copied as-is.
+		<div className="flex flex-row flex-nowrap items-center shrink-0 gap-2 max-w-full overflow-x-auto">
 			{landerLayout === "presetTop" ? <PresetSwitcher /> : <FilterBuilder />}
 			<div className="h-4 w-px bg-border shrink-0" />
 			<QuickFilterChips />
