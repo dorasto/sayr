@@ -300,9 +300,14 @@ export function GridBoardProvider<
 					<div
 						className={cn(
 							// Grid mode: column layout, fit content width
-							!isKanbanMode && "flex flex-col gap-2 min-w-full w-fit",
+							!isKanbanMode && "flex flex-col min-w-full w-fit",
 							// Kanban mode: row layout for columns, fill height, fit content width but at least full width
-							isKanbanMode && "flex flex-col gap-2 flex-1 min-h-0 min-w-full w-fit"
+							isKanbanMode && "flex flex-col flex-1 min-h-0 min-w-full w-fit",
+							// With rows (sub-grouping), column headers stand alone as complete pills with a
+							// gap before the first row-band. Without rows, the gap is zero on purpose — the
+							// column header and its single cells row are meant to read as one attached piece
+							// (see GridBoardColumnHeader/GridBoardDroppableCell's matching flat-edge rounding).
+							hasRows && "gap-3"
 						)}
 					>
 						{children}
@@ -356,10 +361,17 @@ export type GridBoardColumnHeaderProps = HTMLAttributes<HTMLDivElement> & {
 };
 
 export function GridBoardColumnHeader({ column, className, ...props }: GridBoardColumnHeaderProps) {
+	const { rows } = useGridBoardContext();
+	const hasRows = !!rows && rows.length > 0;
 	return (
 		<div
 			className={cn(
-				"flex items-center justify-between px-3.5 py-2.5 bg-muted border border-border/40 min-w-[280px] flex-1 gap-2 rounded-xl",
+				"flex items-center justify-between px-3.5 py-2.5 bg-muted border border-border/40 min-w-[280px] flex-1 gap-2",
+				// With rows, this header stands alone (full rounding) — the row-band below has its own
+				// header that attaches to its own cells instead. Without rows, it attaches directly to the
+				// single cells row beneath it (flat bottom, no bottom border, zero gap — see the provider's
+				// own conditional gap above and GridBoardDroppableCell's matching flat top).
+				hasRows ? "rounded-xl" : "rounded-t-xl border-b-0",
 				className
 			)}
 			{...props}
@@ -397,7 +409,7 @@ export function GridBoardRows<
 	}
 
 	return (
-		<div className={className} {...props}>
+		<div className={cn("flex flex-col gap-3", className)} {...props}>
 			{rows.map((row) => children(row, columns))}
 		</div>
 	);
@@ -416,11 +428,20 @@ export function GridBoardRowHeader({ row, count, className, ...props }: GridBoar
 	const displayCount = count ?? row.count ?? 0;
 
 	return (
-		<div className={cn("flex items-center gap-2 py-2 px-2 bg-accent sticky top-9 z-20", className)} {...props}>
-			<div className="flex items-center gap-2 z-10 sticky left-2">
+		<div
+			className={cn(
+				// Matches GridBoardColumnHeader's own treatment (same bg/border/padding), flat on the
+				// bottom edge with no border there so it reads as one piece with the cells row directly
+				// beneath it (which is itself always flat-topped — see GridBoardDroppableCell).
+				"flex items-center gap-2 px-3.5 py-2.5 rounded-t-xl bg-muted border border-b-0 border-border/40 sticky top-[42px] z-20",
+				className
+			)}
+			{...props}
+		>
+			<div className="flex items-center gap-2 z-10 sticky left-3.5">
 				{row.icon && <span className={cn("text-sm", row.accentClassName)}>{row.icon}</span>}
-				<span className="text-sm font-medium whitespace-nowrap">{row.label}</span>
-				<Badge variant="secondary" className="text-xs h-5 px-1.5">
+				<span className="text-sm font-semibold whitespace-nowrap">{row.label}</span>
+				<Badge variant="outline" className="text-xs h-5 px-2">
 					{displayCount}
 				</Badge>
 			</div>
@@ -505,7 +526,10 @@ function GridBoardDroppableCell({ cellId, isEmpty, isKanbanMode, children }: Gri
 		<div
 			ref={setNodeRef}
 			className={cn(
-				"min-w-[280px] flex-1 flex flex-col gap-2.5 rounded-xl bg-muted/60 border border-border/40 p-2.5 transition-colors",
+				// Always flat-topped/no top border — this cell always sits directly beneath either
+				// GridBoardColumnHeader (no rows) or GridBoardRowHeader (rows), both of which are
+				// themselves flat-bottomed for the same reason, so the pair reads as one attached piece.
+				"min-w-[280px] flex-1 flex flex-col gap-2.5 rounded-b-xl rounded-t-none bg-muted/60 border border-t-0 border-border/40 p-2.5 transition-colors",
 				isOver && "bg-primary/10 ring-1 ring-primary/30 ring-inset",
 				// Grid mode: minimal height when empty
 				!isKanbanMode && isEmpty && "min-h-[40px]",
@@ -577,7 +601,7 @@ export function GridBoardCell({ children, className, isEmpty, ...props }: GridBo
 	return (
 		<div
 			className={cn(
-				"min-w-[280px] flex-1 flex flex-col gap-2.5 rounded-xl bg-muted/60 border border-border/40 p-2.5",
+				"min-w-[280px] flex-1 flex flex-col gap-2.5 rounded-b-xl rounded-t-none bg-muted/60 border border-t-0 border-border/40 p-2.5",
 				className
 			)}
 			{...props}
