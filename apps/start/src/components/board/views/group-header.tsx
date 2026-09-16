@@ -4,17 +4,17 @@ import type { ReactNode } from "react";
 import { ROW_LEADING_GUTTER_CLASS } from "../config/field-config";
 
 interface GroupHeaderContentProps {
-	label: string;
-	icon?: ReactNode;
-	count: number;
-	/** Semantic theme-token tint (e.g. "bg-primary/5") for status/priority groups — see config/groupings.ts. */
-	toneClassName?: string;
-	/** Raw hex tint for category/release groups (user-picked colors, no theme-token equivalent). */
-	color?: string;
-	isDropTarget?: boolean;
-	isSubGroup?: boolean;
-	/** Omit to render without the expand/collapse chevron (e.g. a non-collapsible header). */
-	expanded?: boolean;
+  label: string;
+  icon?: ReactNode;
+  count: number;
+  /** Semantic theme-token tint (e.g. "bg-primary/5") for status/priority groups — see config/groupings.ts. */
+  toneClassName?: string;
+  /** Raw hex tint for category/release groups (user-picked colors, no theme-token equivalent). */
+  color?: string;
+  isDropTarget?: boolean;
+  isSubGroup?: boolean;
+  /** Omit to render without the expand/collapse chevron (e.g. a non-collapsible header). */
+  expanded?: boolean;
 }
 
 /**
@@ -32,37 +32,42 @@ interface GroupHeaderContentProps {
  * structure) looked forced and was reverted.
  */
 export function GroupHeaderContent({
-	label,
-	icon,
-	count,
-	toneClassName,
-	color,
-	isDropTarget = false,
-	isSubGroup = false,
-	expanded,
+  label,
+  icon,
+  count,
+  toneClassName,
+  color,
+  isDropTarget = false,
+  isSubGroup = false,
+  expanded,
 }: GroupHeaderContentProps) {
-	return (
-		<div
-			style={color ? { backgroundColor: `${color}26` } : undefined}
-			className={cn(
-				"flex items-center gap-1.5 px-2 py-1.5 text-left transition-[filter,background-color]",
-				isDropTarget ? "bg-primary/15" : "hover:brightness-110",
-				!isDropTarget && toneClassName,
-				!isDropTarget && !toneClassName && !color && (isSubGroup ? "bg-accent" : undefined)
-			)}
-		>
-			{expanded !== undefined && (
-				<IconChevronDown
-					className={cn(
-						ROW_LEADING_GUTTER_CLASS,
-						"h-3.5 text-muted-foreground transition-transform shrink-0",
-						!expanded && "-rotate-90"
-					)}
-				/>
-			)}
-			{icon}
-			<span className="text-xs font-medium">{label}</span>
-			<span className="text-[10px] text-muted-foreground tabular-nums">{count}</span>
-		</div>
-	);
+  return (
+    <div
+      style={color ? { backgroundColor: `${color}26` } : undefined}
+      className={cn(
+        "flex items-center gap-1.5 px-2 py-1.5 text-left transition-[filter,background-color]",
+        isDropTarget ? "bg-primary/15" : "hover:brightness-110",
+        !isDropTarget && toneClassName,
+        !isDropTarget &&
+          !toneClassName &&
+          !color &&
+          (isSubGroup ? "bg-background" : undefined),
+      )}
+    >
+      {expanded !== undefined && (
+        <IconChevronDown
+          className={cn(
+            ROW_LEADING_GUTTER_CLASS,
+            "h-3.5 text-muted-foreground transition-transform shrink-0",
+            !expanded && "-rotate-90",
+          )}
+        />
+      )}
+      {icon}
+      <span className="text-xs font-medium">{label}</span>
+      <span className="text-[10px] text-muted-foreground tabular-nums">
+        {count}
+      </span>
+    </div>
+  );
 }
