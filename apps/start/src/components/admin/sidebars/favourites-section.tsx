@@ -1,5 +1,5 @@
 import type { DragEndEvent } from "@dnd-kit/core";
-import { closestCenter, DndContext, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
+import { closestCenter, DndContext, MouseSensor, TouchSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import type { schema } from "@repo/database";
@@ -11,12 +11,22 @@ import {
 	SidebarMenuItem,
 } from "@repo/ui/components/doras-ui/sidebar";
 import { cn } from "@repo/ui/lib/utils";
-import { IconGripVertical, IconPinnedOff } from "@tabler/icons-react";
+import { IconPinnedOff } from "@tabler/icons-react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useStore } from "@tanstack/react-store";
+import type React from "react";
+import { useRef } from "react";
 import RenderIcon from "@/components/generic/RenderIcon";
 import { useTasksSearchParams } from "@/hooks/useTasksSearchParams";
 import { personalViewsActions, personalViewsStore } from "@/lib/stores/personal-views-store";
+
+// Same activation distance the row's own MouseSensor uses below — dnd-kit's built-in
+// click-suppression-after-a-real-drag (a document-level capture-phase click listener,
+// armed once its sensor's own activationConstraint.distance is exceeded) turned out not to
+// reliably reach a real, same-page TanStack Router `<Link>` nested this deep, so this row
+// tracks the same distance itself and suppresses the click directly — see the capture-phase
+// handlers below.
+const DRAG_CLICK_SUPPRESS_DISTANCE = 8;
 
 const DEFAULT_VIEW_ICON = "IconBookmark";
 // Matches view-icon-color-trigger.tsx's own DEFAULT_VIEW_COLOR — duplicated locally the same
@@ -38,25 +48,46 @@ function FavouriteRow({
 	const { setSearchParams } = useTasksSearchParams();
 	const targetSlug = view.slug || view.id;
 
+	// Recorded on pointerdown (capture phase, so it runs before dnd-kit's own listener spread
+	// via {...listeners} below), checked on click (also capture phase, so a suppressed click
+	// never even reaches the Link's own bubble-phase onClick). Plain refs, not React state —
+	// both handlers fire synchronously within the same native gesture, so there's no render/
+	// re-render race to worry about, unlike gating this off dnd-kit's own isDragging/active
+	// state (which only updates via React state on the *next* render).
+	const pointerDownPos = useRef<{ x: number; y: number } | null>(null);
+
+	const handlePointerDownCapture = (event: React.PointerEvent) => {
+		pointerDownPos.current = { x: event.clientX, y: event.clientY };
+	};
+
+	const handleClickCapture = (event: React.MouseEvent) => {
+		const start = pointerDownPos.current;
+		pointerDownPos.current = null;
+		if (!start) return;
+		const moved =
+			Math.abs(event.clientX - start.x) > DRAG_CLICK_SUPPRESS_DISTANCE ||
+			Math.abs(event.clientY - start.y) > DRAG_CLICK_SUPPRESS_DISTANCE;
+		if (moved) {
+			event.preventDefault();
+			event.stopPropagation();
+		}
+	};
+
 	return (
 		<SidebarMenuItem isActive={isActive} className="min-h-auto group/fav">
 			<div
 				ref={setNodeRef}
 				style={{ transform: CSS.Transform.toString(transform), transition }}
-				className={cn("flex items-center w-full gap-0.5", isDragging && "opacity-50")}
-			>
-				{isSidebarOpen && (
-					// biome-ignore lint/a11y/noStaticElementInteractions: dnd-kit drag handle, not a real interactive control
-					<button
-						type="button"
-						{...attributes}
-						{...listeners}
-						aria-label="Reorder favourite"
-						className="shrink-0 touch-none cursor-grab text-transparent group-hover/fav:text-muted-foreground hover:text-foreground active:cursor-grabbing"
-					>
-						<IconGripVertical className="size-3.5" />
-					</button>
+				{...(isSidebarOpen ? attributes : undefined)}
+				{...(isSidebarOpen ? listeners : undefined)}
+				onPointerDownCapture={isSidebarOpen ? handlePointerDownCapture : undefined}
+				onClickCapture={isSidebarOpen ? handleClickCapture : undefined}
+				className={cn(
+					"flex items-center w-full gap-0.5",
+					isSidebarOpen && "touch-none cursor-grab active:cursor-grabbing",
+					isDragging && "opacity-50"
 				)}
+			>
 				<Link
 					to="/home"
 					search={{ view: targetSlug }}
@@ -91,13 +122,14 @@ function FavouriteRow({
 				{isSidebarOpen && (
 					<button
 						type="button"
+						onPointerDown={(event) => event.stopPropagation()}
 						onClick={(event) => {
 							event.preventDefault();
 							event.stopPropagation();
 							personalViewsActions.togglePin(view.id);
 						}}
 						title="Unpin"
-						className="shrink-0 text-transparent group-hover/fav:text-muted-foreground hover:text-foreground"
+						className="shrink-0 cursor-pointer text-transparent group-hover/fav:text-muted-foreground hover:text-foreground"
 					>
 						<IconPinnedOff className="size-3.5" />
 					</button>
@@ -114,9 +146,12 @@ function FavouriteRow({
  * shows up here immediately with no separate fetch. Hidden entirely when nothing is
  * pinned, matching how Organizations always has content but this optionally doesn't.
  *
- * Drag-and-drop uses a dedicated grip handle (not the whole row) so the row's own Link
- * navigation isn't fought over by the drag gesture — same reasoning as board-list-view.tsx,
- * just single-container here instead of multi-group.
+ * The whole row is the drag target (no dedicated handle) — a distance-based MouseSensor means
+ * dnd-kit only starts tracking a reorder past 8px of movement; FavouriteRow separately
+ * suppresses the click that same gesture would otherwise leave behind on its own Link (see its
+ * own doc comment for why). TouchSensor uses a delay instead of distance (a press-and-hold, not
+ * a press-and-move) since touch scrolling already uses movement — same two-sensor split
+ * grid-board.tsx's drag-and-drop uses for the identical reason.
  */
 export function FavouritesSection({ isSidebarOpen }: { isSidebarOpen: boolean }) {
 	const pathname = useRouterState({ select: (state) => state.location.pathname });
@@ -127,7 +162,10 @@ export function FavouritesSection({ isSidebarOpen }: { isSidebarOpen: boolean })
 
 	const pinnedViews = useStore(personalViewsStore, (state) => state.views.filter((view) => view.pinned));
 
-	const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
+	const sensors = useSensors(
+		useSensor(MouseSensor, { activationConstraint: { distance: 8 } }),
+		useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } })
+	);
 
 	const handleDragEnd = (event: DragEndEvent) => {
 		const { active, over } = event;
