@@ -117,7 +117,7 @@ export default function AdminHomePage({
         <PendingInvitesSection invites={pendingInvites} />
         <div
           className={cn(
-            "flex-1 min-h-0 overflow-auto px-2 pb-4 max-w-6xl mx-auto w-full",
+            "flex-1 min-h-0 overflow-auto px-2 pb-4 w-full",
             viewMode == "kanban" && "p-0 pl-2 rounded-xl",
           )}
         >

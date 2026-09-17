@@ -58,7 +58,8 @@ export function GroupHeaderContent({
         !isDropTarget &&
           !toneClassName &&
           !color &&
-          (isSubGroup ? "bg-background" : undefined),
+          (isSubGroup ? "bg-muted" : undefined),
+        !color && !toneClassName && "bg-muted",
       )}
     >
       {expanded !== undefined && (
