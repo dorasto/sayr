@@ -29,7 +29,7 @@ import {
   IconSortAscending,
   IconSortDescending,
 } from "@tabler/icons-react";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   TASK_GROUPING_OPTIONS,
   TASK_GROUPINGS,
@@ -94,17 +94,19 @@ export function BoardViewOptions() {
     [grouping],
   );
 
+  const [isViewOptionsOpen, setIsViewOptionsOpen] = useState(false);
+  const [isGroupingMenuOpen, setIsGroupingMenuOpen] = useState(false);
+  const [isSubGroupingMenuOpen, setIsSubGroupingMenuOpen] = useState(false);
+  const [isSortMenuOpen, setIsSortMenuOpen] = useState(false);
   return (
-    <Popover>
+    <Popover open={isViewOptionsOpen} onOpenChange={setIsViewOptionsOpen}>
       <PopoverTrigger
         render={
           <Button
             type="button"
-            variant="accent"
+            variant={isViewOptionsOpen ? "secondary" : "ghost"}
             size={"sm"}
-            className={cn(
-              "gap-2 h-6 w-6 bg-transparent border-transparent p-1 data-popup-open:bg-accent",
-            )}
+            className={cn("gap-2 h-6 w-6 p-1")}
           >
             <IconAdjustmentsHorizontal className="w-4 h-4" />
             {/*<span className="text-xs">View</span>*/}
@@ -155,14 +157,18 @@ export function BoardViewOptions() {
           titleWrapper="gap-1"
           icon={<IconLayoutRows className="size-3" />}
           customSide={
-            <DropdownMenu>
+            <DropdownMenu
+              open={isGroupingMenuOpen}
+              onOpenChange={setIsGroupingMenuOpen}
+            >
               <DropdownMenuTrigger
                 render={
                   <Button
-                    type="button"
-                    variant="accent"
                     size={"sm"}
-                    className={cn("p-1 h-auto aria-expanded:border-border")}
+                    className={
+                      "rounded-xl h-auto p-1 px-2 justify-start border gap-1"
+                    }
+                    variant={isGroupingMenuOpen ? "secondary" : "accent"}
                   >
                     {activeGrouping.icon}
                     <span className="text-xs">{activeGrouping.label}</span>
@@ -203,15 +209,22 @@ export function BoardViewOptions() {
         />
         <OptionField
           title="Sub-grouping"
-          icon={<IconLayoutRows className="h-4 w-4" />}
+          titleClassName="text-xs text-muted-foreground"
+          titleWrapper="gap-1"
+          icon={<IconLayoutRows className="size-3" />}
           customSide={
-            <DropdownMenu>
+            <DropdownMenu
+              open={isSubGroupingMenuOpen}
+              onOpenChange={setIsSubGroupingMenuOpen}
+            >
               <DropdownMenuTrigger
                 render={
                   <Button
-                    type="button"
-                    variant="accent"
-                    className={cn("gap-2 border-transparent p-1 h-auto")}
+                    size={"sm"}
+                    className={
+                      "rounded-xl h-auto p-1 px-2 justify-start border gap-1"
+                    }
+                    variant={isSubGroupingMenuOpen ? "secondary" : "accent"}
                   >
                     {activeSubGrouping ? (
                       activeSubGrouping.icon
@@ -258,16 +271,23 @@ export function BoardViewOptions() {
         />
         <OptionField
           title="Sort by"
-          icon={<IconArrowsSort className="h-4 w-4" />}
+          titleClassName="text-xs text-muted-foreground"
+          titleWrapper="gap-1"
+          icon={<IconArrowsSort className="size-3 text-muted-foreground" />}
           customSide={
             <div className="flex items-center gap-1">
-              <DropdownMenu>
+              <DropdownMenu
+                open={isSortMenuOpen}
+                onOpenChange={setIsSortMenuOpen}
+              >
                 <DropdownMenuTrigger
                   render={
                     <Button
-                      type="button"
-                      variant="accent"
-                      className={cn("gap-2 border-transparent p-1 h-auto")}
+                      size={"sm"}
+                      className={
+                        "rounded-xl h-auto p-1 px-2 justify-start border gap-1"
+                      }
+                      variant={isSortMenuOpen ? "secondary" : "accent"}
                     >
                       <span className="text-xs">
                         {activeSortField ? activeSortField.label : "None"}
@@ -338,7 +358,9 @@ export function BoardViewOptions() {
         />
         <OptionField
           title="Show completed tasks"
-          icon={<IconCheck className="h-4 w-4" />}
+          titleClassName="text-xs text-muted-foreground"
+          titleWrapper="gap-1"
+          icon={<IconCheck className="size-3" />}
           customSide={
             <Switch
               checked={showCompletedTasks}
