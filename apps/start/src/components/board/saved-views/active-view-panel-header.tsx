@@ -1,6 +1,6 @@
 "use client";
 
-import { IconStack2 } from "@tabler/icons-react";
+import { IconPin, IconPinFilled, IconStack2 } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
 import { useBoardViewState } from "../filter/use-board-view-state";
 import { usePersonalViews } from "./use-personal-views";
@@ -83,5 +83,30 @@ export function ActiveViewPanelHeader() {
 				className="-mx-1 min-w-0 flex-1 truncate rounded px-1 bg-transparent text-xs font-medium outline-none focus:bg-accent"
 			/>
 		</div>
+	);
+}
+
+/**
+ * Pin/unpin toggle for the panel header's far-right `actions` slot — the panel's own
+ * entry point for adding the active view to the Favourites sidebar (favourites-section.tsx),
+ * since the breadcrumb ActiveViewSwitcher deliberately doesn't own pin/edit/delete. No-op
+ * (renders nothing) with no active view — there's nothing to pin on "All tasks".
+ */
+export function ActiveViewPanelPinButton() {
+	const { personalViews, togglePin } = usePersonalViews();
+	const { viewSlug } = useBoardViewState();
+	const activeView = personalViews.find((view) => (view.slug || view.id) === viewSlug);
+
+	if (!activeView) return null;
+
+	return (
+		<button
+			type="button"
+			onClick={() => togglePin(activeView.id)}
+			title={activeView.pinned ? "Unpin from sidebar" : "Pin to sidebar"}
+			className="rounded p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
+		>
+			{activeView.pinned ? <IconPinFilled className="size-4" /> : <IconPin className="size-4" />}
+		</button>
 	);
 }

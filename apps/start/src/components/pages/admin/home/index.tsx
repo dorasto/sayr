@@ -7,7 +7,11 @@ import { FilterBuilder } from "@/components/board/filter/filter-builder";
 import { useBoardViewState } from "@/components/board/filter/use-board-view-state";
 import { BoardSidePanelContent } from "@/components/board/layout/board-side-panel";
 import { BoardViewOptions } from "@/components/board/layout/board-view-options";
-import { ActiveViewPanelHeader } from "@/components/board/saved-views/active-view-panel-header";
+import { TaskCountLabel } from "@/components/board/layout/task-count-label";
+import {
+	ActiveViewPanelHeader,
+	ActiveViewPanelPinButton,
+} from "@/components/board/saved-views/active-view-panel-header";
 import { ActiveViewSwitcher } from "@/components/board/saved-views/active-view-switcher";
 import { PageHeader } from "@/components/generic/PageHeader";
 import { Page } from "@/components/generic/page";
@@ -84,6 +88,7 @@ export default function AdminHomePage({ pendingInvites }: { pendingInvites: Pend
 				<span className="text-muted-foreground text-xs">/</span>
 				<ActiveViewSwitcher />
 			</PageHeader.Identity>
+			<PageHeader.Toolbar className="border-b-0" left={<TaskCountLabel />} />
 		</>
 	);
 
@@ -93,7 +98,11 @@ export default function AdminHomePage({ pendingInvites }: { pendingInvites: Pend
 			panels={{
 				right: {
 					id: LANDER_PANEL_ID,
-					header: { icon: <ActiveViewPanelHeader />, showClose: false },
+					header: {
+						icon: <ActiveViewPanelHeader />,
+						actions: <ActiveViewPanelPinButton />,
+						showClose: false,
+					},
 					defaultOpen: true,
 					persistOpenState: false,
 					width: "320px",
