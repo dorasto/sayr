@@ -355,3 +355,21 @@ function evaluateCondition(task: schema.TaskWithLabels, condition: FilterConditi
 	if (!handler) return true;
 	return handler(raw, condition.value);
 }
+
+/**
+ * Per-raw-value occurrence counts across `tasks` for `field` — the basis for quick-filter
+ * counts (quick-filter-panel.tsx runs this once per field, then sums per option via
+ * mergedValues, since a cross-org merged option's count is the sum of its underlying ids').
+ */
+export function buildFieldValueCounts(tasks: schema.TaskWithLabels[], field: string): Map<string, number> {
+	const counts = new Map<string, number>();
+	for (const task of tasks) {
+		const raw = extractFieldValue(task, field);
+		const values = Array.isArray(raw) ? raw : raw == null || raw === "" ? [] : [raw];
+		for (const value of values) {
+			const key = String(value);
+			counts.set(key, (counts.get(key) ?? 0) + 1);
+		}
+	}
+	return counts;
+}

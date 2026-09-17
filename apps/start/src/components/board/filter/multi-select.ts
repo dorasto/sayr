@@ -71,6 +71,51 @@ export function toggleMultiValue(filterState: FilterState, conditionId: string, 
 	};
 }
 
+/**
+ * Toggles one or more values (a merged cross-org option's mergedValues, or a single value's
+ * own [value]) in/out of `field`'s multi-select condition — creating the condition if none
+ * exists yet, removing it entirely if the toggle empties it out. This is the quick-filter
+ * panel's click handler; unlike toggleMultiValue above it doesn't need a conditionId up
+ * front (a quick filter can be the first condition ever added for that field) and unlike
+ * mergeOrAppendCondition it's a true toggle (add OR remove), not append-only.
+ */
+export function toggleFieldValues(
+	filterState: FilterState,
+	field: FilterField,
+	defaultOperator: FilterOperator,
+	values: string[]
+): FilterState {
+	const existing = filterState.groups
+		.flatMap((g) => g.conditions)
+		.find((c) => c.field === field && isMultiCondition(c));
+
+	if (!existing) {
+		return mergeOrAppendCondition(filterState, {
+			id: `filter-${field}-${Date.now()}`,
+			field,
+			operator: defaultOperator,
+			value: values,
+		});
+	}
+
+	const current = Array.isArray(existing.value) ? existing.value : existing.value ? [existing.value as string] : [];
+	const allSelected = values.every((v) => current.includes(v));
+	const next = allSelected ? current.filter((v) => !values.includes(v)) : Array.from(new Set([...current, ...values]));
+
+	return {
+		...filterState,
+		groups: filterState.groups
+			.map((g) => ({
+				...g,
+				conditions:
+					next.length === 0
+						? g.conditions.filter((c) => c.id !== existing.id)
+						: g.conditions.map((c) => (c.id === existing.id ? { ...c, value: next } : c)),
+			}))
+			.filter((g) => g.conditions.length > 0),
+	};
+}
+
 export function updateConditionOperator(
 	filterState: FilterState,
 	filterId: string,
