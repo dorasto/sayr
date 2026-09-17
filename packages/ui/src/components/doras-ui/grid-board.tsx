@@ -1,32 +1,22 @@
 "use client";
 
-import type {
-  DragEndEvent,
-  DragOverEvent,
-  DragStartEvent,
-} from "@dnd-kit/core";
+import type { DragEndEvent, DragOverEvent, DragStartEvent } from "@dnd-kit/core";
 import {
-  closestCenter,
-  DndContext,
-  DragOverlay,
-  KeyboardSensor,
-  MouseSensor,
-  TouchSensor,
-  useDroppable,
-  useSensor,
-  useSensors,
+	closestCenter,
+	DndContext,
+	DragOverlay,
+	KeyboardSensor,
+	MouseSensor,
+	TouchSensor,
+	useDroppable,
+	useSensor,
+	useSensors,
 } from "@dnd-kit/core";
 import { SortableContext, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Badge } from "@repo/ui/components/badge";
 import { cn } from "@repo/ui/lib/utils";
-import {
-  createContext,
-  type HTMLAttributes,
-  type ReactNode,
-  useContext,
-  useState,
-} from "react";
+import { createContext, type HTMLAttributes, type ReactNode, useContext, useState } from "react";
 import { createPortal } from "react-dom";
 import tunnel from "tunnel-rat";
 
@@ -37,38 +27,36 @@ const t = tunnel();
 // ============================================================================
 
 export interface GridBoardColumnData {
-  id: string;
-  label: string;
-  count: number;
-  icon?: ReactNode;
-  accentClassName?: string;
+	id: string;
+	label: string;
+	count: number;
+	icon?: ReactNode;
+	accentClassName?: string;
 }
 
 export interface GridBoardRowData {
-  id: string;
-  label: string;
-  count?: number;
-  icon?: ReactNode;
-  accentClassName?: string;
+	id: string;
+	label: string;
+	count?: number;
+	icon?: ReactNode;
+	accentClassName?: string;
 }
 
 export type GridBoardItemBase = {
-  id: string;
-  columnId: string;
-  rowId?: string;
+	id: string;
+	columnId: string;
+	rowId?: string;
 };
 
 /** Event data passed to onDragEnd - includes the target cell info */
-export type GridBoardDragEndEvent<
-  TItem extends GridBoardItemBase = GridBoardItemBase,
-> = {
-  item: TItem;
-  fromColumnId: string;
-  fromRowId?: string;
-  toColumnId: string;
-  toRowId?: string;
-  /** The original dnd-kit event */
-  event: DragEndEvent;
+export type GridBoardDragEndEvent<TItem extends GridBoardItemBase = GridBoardItemBase> = {
+	item: TItem;
+	fromColumnId: string;
+	fromRowId?: string;
+	toColumnId: string;
+	toRowId?: string;
+	/** The original dnd-kit event */
+	event: DragEndEvent;
 };
 
 // ============================================================================
@@ -78,37 +66,31 @@ export type GridBoardDragEndEvent<
 export type GridBoardMode = "grid" | "kanban";
 
 type GridBoardContextProps<
-  TItem extends GridBoardItemBase = GridBoardItemBase,
-  TColumn extends GridBoardColumnData = GridBoardColumnData,
-  TRow extends GridBoardRowData = GridBoardRowData,
+	TItem extends GridBoardItemBase = GridBoardItemBase,
+	TColumn extends GridBoardColumnData = GridBoardColumnData,
+	TRow extends GridBoardRowData = GridBoardRowData,
 > = {
-  columns: TColumn[];
-  rows?: TRow[];
-  items: TItem[];
-  getItemsForCell: (columnId: string, rowId?: string) => TItem[];
-  activeItemId: string | null;
-  renderDragOverlay?: (item: TItem) => ReactNode;
-  mode: GridBoardMode;
+	columns: TColumn[];
+	rows?: TRow[];
+	items: TItem[];
+	getItemsForCell: (columnId: string, rowId?: string) => TItem[];
+	activeItemId: string | null;
+	renderDragOverlay?: (item: TItem) => ReactNode;
+	mode: GridBoardMode;
 };
 
 const GridBoardContext = createContext<GridBoardContextProps | null>(null);
 
 function useGridBoardContext<
-  TItem extends GridBoardItemBase = GridBoardItemBase,
-  TColumn extends GridBoardColumnData = GridBoardColumnData,
-  TRow extends GridBoardRowData = GridBoardRowData,
+	TItem extends GridBoardItemBase = GridBoardItemBase,
+	TColumn extends GridBoardColumnData = GridBoardColumnData,
+	TRow extends GridBoardRowData = GridBoardRowData,
 >() {
-  const context = useContext(GridBoardContext) as GridBoardContextProps<
-    TItem,
-    TColumn,
-    TRow
-  > | null;
-  if (!context) {
-    throw new Error(
-      "GridBoard components must be used within a GridBoardProvider",
-    );
-  }
-  return context;
+	const context = useContext(GridBoardContext) as GridBoardContextProps<TItem, TColumn, TRow> | null;
+	if (!context) {
+		throw new Error("GridBoard components must be used within a GridBoardProvider");
+	}
+	return context;
 }
 
 // ============================================================================
@@ -122,22 +104,20 @@ function useGridBoardContext<
  * We use a different delimiter to separate column from row
  */
 function makeCellId(columnId: string, rowId?: string): string {
-  // Use | as delimiter between columnId and rowId since : is used within IDs
-  return rowId ? `cell|${columnId}|${rowId}` : `cell|${columnId}`;
+	// Use | as delimiter between columnId and rowId since : is used within IDs
+	return rowId ? `cell|${columnId}|${rowId}` : `cell|${columnId}`;
 }
 
-function parseCellId(
-  cellId: string,
-): { columnId: string; rowId?: string } | null {
-  if (!cellId.startsWith("cell|")) return null;
-  const parts = cellId.split("|");
-  if (parts.length === 2 && parts[1]) {
-    return { columnId: parts[1] };
-  }
-  if (parts.length === 3 && parts[1] && parts[2]) {
-    return { columnId: parts[1], rowId: parts[2] };
-  }
-  return null;
+function parseCellId(cellId: string): { columnId: string; rowId?: string } | null {
+	if (!cellId.startsWith("cell|")) return null;
+	const parts = cellId.split("|");
+	if (parts.length === 2 && parts[1]) {
+		return { columnId: parts[1] };
+	}
+	if (parts.length === 3 && parts[1] && parts[2]) {
+		return { columnId: parts[1], rowId: parts[2] };
+	}
+	return null;
 }
 
 // ============================================================================
@@ -145,240 +125,231 @@ function parseCellId(
 // ============================================================================
 
 export type GridBoardProviderProps<
-  TItem extends GridBoardItemBase = GridBoardItemBase,
-  TColumn extends GridBoardColumnData = GridBoardColumnData,
-  TRow extends GridBoardRowData = GridBoardRowData,
+	TItem extends GridBoardItemBase = GridBoardItemBase,
+	TColumn extends GridBoardColumnData = GridBoardColumnData,
+	TRow extends GridBoardRowData = GridBoardRowData,
 > = {
-  columns: TColumn[];
-  rows?: TRow[];
-  items: TItem[];
-  /** Custom function to get items for a cell. If not provided, filters items by columnId/rowId */
-  getItemsForCell?: (columnId: string, rowId?: string) => TItem[];
-  /** Called when an item is dropped into a new cell */
-  onDragEnd?: (event: GridBoardDragEndEvent<TItem>) => void;
-  /** Called when drag starts */
-  onDragStart?: (event: DragStartEvent) => void;
-  /** Custom render function for the drag overlay */
-  renderDragOverlay?: (item: TItem) => ReactNode;
-  /**
-   * Display mode:
-   * - "grid": 2D grid with rows (sub-groups), global scroll (default)
-   * - "kanban": Traditional kanban with full-height columns, each column scrolls independently
-   */
-  mode?: GridBoardMode;
-  children: ReactNode;
-  className?: string;
+	columns: TColumn[];
+	rows?: TRow[];
+	items: TItem[];
+	/** Custom function to get items for a cell. If not provided, filters items by columnId/rowId */
+	getItemsForCell?: (columnId: string, rowId?: string) => TItem[];
+	/** Called when an item is dropped into a new cell */
+	onDragEnd?: (event: GridBoardDragEndEvent<TItem>) => void;
+	/** Called when drag starts */
+	onDragStart?: (event: DragStartEvent) => void;
+	/** Custom render function for the drag overlay */
+	renderDragOverlay?: (item: TItem) => ReactNode;
+	/**
+	 * Display mode:
+	 * - "grid": 2D grid with rows (sub-groups), global scroll (default)
+	 * - "kanban": Traditional kanban with full-height columns, each column scrolls independently
+	 */
+	mode?: GridBoardMode;
+	children: ReactNode;
+	className?: string;
 };
 
 export function GridBoardProvider<
-  TItem extends GridBoardItemBase = GridBoardItemBase,
-  TColumn extends GridBoardColumnData = GridBoardColumnData,
-  TRow extends GridBoardRowData = GridBoardRowData,
+	TItem extends GridBoardItemBase = GridBoardItemBase,
+	TColumn extends GridBoardColumnData = GridBoardColumnData,
+	TRow extends GridBoardRowData = GridBoardRowData,
 >({
-  columns,
-  rows,
-  items,
-  getItemsForCell,
-  onDragEnd,
-  onDragStart,
-  renderDragOverlay,
-  mode = "grid",
-  children,
-  className,
+	columns,
+	rows,
+	items,
+	getItemsForCell,
+	onDragEnd,
+	onDragStart,
+	renderDragOverlay,
+	mode = "grid",
+	children,
+	className,
 }: GridBoardProviderProps<TItem, TColumn, TRow>) {
-  const [activeItemId, setActiveItemId] = useState<string | null>(null);
-  const hasRows = rows && rows.length > 0;
-  // In kanban mode without rows, we use full-height columns
-  const isKanbanMode = mode === "kanban";
+	const [activeItemId, setActiveItemId] = useState<string | null>(null);
+	const hasRows = rows && rows.length > 0;
+	// In kanban mode without rows, we use full-height columns
+	const isKanbanMode = mode === "kanban";
 
-  // Sensors for drag detection
-  const sensors = useSensors(
-    useSensor(MouseSensor, {
-      activationConstraint: {
-        distance: 10,
-      },
-    }),
-    useSensor(TouchSensor, {
-      activationConstraint: {
-        delay: 250,
-        tolerance: 5,
-      },
-    }),
-    useSensor(KeyboardSensor),
-  );
+	// Sensors for drag detection
+	const sensors = useSensors(
+		useSensor(MouseSensor, {
+			activationConstraint: {
+				distance: 10,
+			},
+		}),
+		useSensor(TouchSensor, {
+			activationConstraint: {
+				delay: 250,
+				tolerance: 5,
+			},
+		}),
+		useSensor(KeyboardSensor)
+	);
 
-  // Default implementation for getting items in a cell
-  const defaultGetItemsForCell = (
-    columnId: string,
-    rowId?: string,
-  ): TItem[] => {
-    return items.filter((item) => {
-      if (item.columnId !== columnId) return false;
-      if (rowId !== undefined && item.rowId !== rowId) return false;
-      if (rowId === undefined && hasRows && item.rowId !== undefined)
-        return false;
-      return true;
-    });
-  };
+	// Default implementation for getting items in a cell
+	const defaultGetItemsForCell = (columnId: string, rowId?: string): TItem[] => {
+		return items.filter((item) => {
+			if (item.columnId !== columnId) return false;
+			if (rowId !== undefined && item.rowId !== rowId) return false;
+			if (rowId === undefined && hasRows && item.rowId !== undefined) return false;
+			return true;
+		});
+	};
 
-  const getCellItems = getItemsForCell ?? defaultGetItemsForCell;
+	const getCellItems = getItemsForCell ?? defaultGetItemsForCell;
 
-  const handleDragStart = (event: DragStartEvent) => {
-    setActiveItemId(event.active.id as string);
-    onDragStart?.(event);
-  };
+	const handleDragStart = (event: DragStartEvent) => {
+		setActiveItemId(event.active.id as string);
+		onDragStart?.(event);
+	};
 
-  const handleDragOver = (_event: DragOverEvent) => {
-    // Could add visual feedback here if needed
-  };
+	const handleDragOver = (_event: DragOverEvent) => {
+		// Could add visual feedback here if needed
+	};
 
-  const handleDragEnd = (event: DragEndEvent) => {
-    setActiveItemId(null);
+	const handleDragEnd = (event: DragEndEvent) => {
+		setActiveItemId(null);
 
-    const { active, over } = event;
-    if (!over) {
-      return;
-    }
+		const { active, over } = event;
+		if (!over) {
+			return;
+		}
 
-    const itemId = active.id as string;
-    const overId = over.id as string;
+		const itemId = active.id as string;
+		const overId = over.id as string;
 
-    // Find the dragged item
-    const item = items.find((i) => i.id === itemId);
-    if (!item) {
-      return;
-    }
+		// Find the dragged item
+		const item = items.find((i) => i.id === itemId);
+		if (!item) {
+			return;
+		}
 
-    // Determine target cell - could be dropping on a cell or on another item
-    let targetColumnId: string | undefined;
-    let targetRowId: string | undefined;
+		// Determine target cell - could be dropping on a cell or on another item
+		let targetColumnId: string | undefined;
+		let targetRowId: string | undefined;
 
-    // First, check if we dropped on a cell directly
-    const cellInfo = parseCellId(overId);
-    if (cellInfo) {
-      targetColumnId = cellInfo.columnId;
-      targetRowId = cellInfo.rowId;
-    } else {
-      // Dropped on an item - find which cell that item belongs to
-      const overItem = items.find((i) => i.id === overId);
-      if (overItem) {
-        targetColumnId = overItem.columnId;
-        targetRowId = overItem.rowId;
-      }
-    }
+		// First, check if we dropped on a cell directly
+		const cellInfo = parseCellId(overId);
+		if (cellInfo) {
+			targetColumnId = cellInfo.columnId;
+			targetRowId = cellInfo.rowId;
+		} else {
+			// Dropped on an item - find which cell that item belongs to
+			const overItem = items.find((i) => i.id === overId);
+			if (overItem) {
+				targetColumnId = overItem.columnId;
+				targetRowId = overItem.rowId;
+			}
+		}
 
-    // If we couldn't determine target, abort
-    if (!targetColumnId) {
-      return;
-    }
+		// If we couldn't determine target, abort
+		if (!targetColumnId) {
+			return;
+		}
 
-    // Check if anything actually changed
-    const fromColumnId = item.columnId;
-    const fromRowId = item.rowId;
-    if (fromColumnId === targetColumnId && fromRowId === targetRowId) {
-      return;
-    }
+		// Check if anything actually changed
+		const fromColumnId = item.columnId;
+		const fromRowId = item.rowId;
+		if (fromColumnId === targetColumnId && fromRowId === targetRowId) {
+			return;
+		}
 
-    // Call the handler with rich event data
-    onDragEnd?.({
-      item: item as TItem,
-      fromColumnId,
-      fromRowId,
-      toColumnId: targetColumnId,
-      toRowId: targetRowId,
-      event,
-    });
-  };
+		// Call the handler with rich event data
+		onDragEnd?.({
+			item: item as TItem,
+			fromColumnId,
+			fromRowId,
+			toColumnId: targetColumnId,
+			toRowId: targetRowId,
+			event,
+		});
+	};
 
-  const contextValue: GridBoardContextProps<TItem, TColumn, TRow> = {
-    columns,
-    rows,
-    items,
-    getItemsForCell: getCellItems,
-    activeItemId,
-    renderDragOverlay,
-    mode,
-  };
+	const contextValue: GridBoardContextProps<TItem, TColumn, TRow> = {
+		columns,
+		rows,
+		items,
+		getItemsForCell: getCellItems,
+		activeItemId,
+		renderDragOverlay,
+		mode,
+	};
 
-  const activeItem = activeItemId
-    ? items.find((i) => i.id === activeItemId)
-    : null;
+	const activeItem = activeItemId ? items.find((i) => i.id === activeItemId) : null;
 
-  return (
-    <GridBoardContext.Provider
-      value={contextValue as unknown as GridBoardContextProps}
-    >
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragStart={handleDragStart}
-        onDragOver={handleDragOver}
-        onDragEnd={handleDragEnd}
-      >
-        <div
-          className={cn(
-            "h-full",
-            // Grid mode: global scroll for the entire board
-            !isKanbanMode && "overflow-auto",
-            // Kanban mode: flex layout, horizontal scroll, columns handle vertical scroll
-            isKanbanMode && "flex flex-col overflow-x-auto overflow-y-hidden",
-            className,
-          )}
-        >
-          <div
-            className={cn(
-              // Grid mode: column layout, fit content width
-              !isKanbanMode && "flex flex-col min-w-full w-fit",
-              // Kanban mode: row layout for columns, fill height, fit content width but at least full width
-              isKanbanMode && "flex flex-col flex-1 min-h-0 min-w-full w-fit",
-              // With rows (sub-grouping), column headers stand alone as complete pills with a
-              // gap before the first row-band. Without rows, the gap is zero on purpose — the
-              // column header and its single cells row are meant to read as one attached piece
-              // (see GridBoardColumnHeader/GridBoardDroppableCell's matching flat-edge rounding).
-              hasRows && "gap-3",
-            )}
-          >
-            {children}
-          </div>
-        </div>
+	return (
+		<GridBoardContext.Provider value={contextValue as unknown as GridBoardContextProps}>
+			<DndContext
+				sensors={sensors}
+				collisionDetection={closestCenter}
+				onDragStart={handleDragStart}
+				onDragOver={handleDragOver}
+				onDragEnd={handleDragEnd}
+			>
+				<div
+					className={cn(
+						"h-full",
+						// Grid mode: global scroll for the entire board
+						!isKanbanMode && "overflow-auto",
+						// Kanban mode: flex layout, horizontal scroll, columns handle vertical scroll
+						isKanbanMode && "flex flex-col overflow-x-auto overflow-y-hidden",
+						className
+					)}
+				>
+					<div
+						className={cn(
+							// Grid mode: column layout, fit content width
+							!isKanbanMode && "flex flex-col min-w-full w-fit",
+							// Kanban mode: row layout for columns, fill height, fit content width but at least full width
+							isKanbanMode && "flex flex-col flex-1 min-h-0 min-w-full w-fit",
+							// With rows (sub-grouping), column headers stand alone as complete pills with a
+							// gap before the first row-band. Without rows, the gap is zero on purpose — the
+							// column header and its single cells row are meant to read as one attached piece
+							// (see GridBoardColumnHeader/GridBoardDroppableCell's matching flat-edge rounding).
+							hasRows && "gap-3"
+						)}
+					>
+						{children}
+					</div>
+				</div>
 
-        {/* Drag overlay portal */}
-        {typeof window !== "undefined" &&
-          createPortal(
-            <DragOverlay dropAnimation={{ duration: 200, easing: "ease" }}>
-              {activeItem && renderDragOverlay ? (
-                renderDragOverlay(activeItem as TItem)
-              ) : (
-                <t.Out />
-              )}
-            </DragOverlay>,
-            document.body,
-          )}
-      </DndContext>
-    </GridBoardContext.Provider>
-  );
+				{/* Drag overlay portal */}
+				{typeof window !== "undefined" &&
+					createPortal(
+						<DragOverlay dropAnimation={{ duration: 200, easing: "ease" }}>
+							{activeItem && renderDragOverlay ? renderDragOverlay(activeItem as TItem) : <t.Out />}
+						</DragOverlay>,
+						document.body
+					)}
+			</DndContext>
+		</GridBoardContext.Provider>
+	);
 }
 
 // ============================================================================
 // GridBoardColumns - Renders column headers with render prop
 // ============================================================================
 
-export type GridBoardColumnsProps<
-  TColumn extends GridBoardColumnData = GridBoardColumnData,
-> = Omit<HTMLAttributes<HTMLDivElement>, "children"> & {
-  children: (column: TColumn) => ReactNode;
+export type GridBoardColumnsProps<TColumn extends GridBoardColumnData = GridBoardColumnData> = Omit<
+	HTMLAttributes<HTMLDivElement>,
+	"children"
+> & {
+	children: (column: TColumn) => ReactNode;
 };
 
-export function GridBoardColumns<
-  TColumn extends GridBoardColumnData = GridBoardColumnData,
->({ children, className, ...props }: GridBoardColumnsProps<TColumn>) {
-  const { columns } = useGridBoardContext<GridBoardItemBase, TColumn>();
+export function GridBoardColumns<TColumn extends GridBoardColumnData = GridBoardColumnData>({
+	children,
+	className,
+	...props
+}: GridBoardColumnsProps<TColumn>) {
+	const { columns } = useGridBoardContext<GridBoardItemBase, TColumn>();
 
-  return (
-    <div className={cn("flex gap-3 sticky top-0 z-30", className)} {...props}>
-      {columns.map((column) => children(column))}
-    </div>
-  );
+	return (
+		<div className={cn("flex gap-3 sticky top-0 z-30", className)} {...props}>
+			{columns.map((column) => children(column))}
+		</div>
+	);
 }
 
 // ============================================================================
@@ -386,42 +357,32 @@ export function GridBoardColumns<
 // ============================================================================
 
 export type GridBoardColumnHeaderProps = HTMLAttributes<HTMLDivElement> & {
-  column: GridBoardColumnData;
+	column: GridBoardColumnData;
 };
 
-export function GridBoardColumnHeader({
-  column,
-  className,
-  ...props
-}: GridBoardColumnHeaderProps) {
-  const { rows } = useGridBoardContext();
-  const hasRows = !!rows && rows.length > 0;
-  return (
-    <div
-      className={cn(
-        "flex items-center justify-between px-3.5 py-2.5 bg-muted border border-border min-w-[280px] flex-1 gap-2",
-        // With rows, this header stands alone (full rounding) — the row-band below has its own
-        // header that attaches to its own cells instead. Without rows, it attaches directly to the
-        // single cells row beneath it (flat bottom, no bottom border, zero gap — see the provider's
-        // own conditional gap above and GridBoardDroppableCell's matching flat top).
-        hasRows ? "rounded-xl" : "rounded-t-xl",
-        className,
-      )}
-      {...props}
-    >
-      <div className="flex items-center gap-2 w-full">
-        {column.icon && (
-          <span className={cn("text-sm", column.accentClassName)}>
-            {column.icon}
-          </span>
-        )}
-        <span className="text-sm font-semibold">{column.label}</span>
-        <span className="text-sm text-muted-foreground ml-auto">
-          {column.count}
-        </span>
-      </div>
-    </div>
-  );
+export function GridBoardColumnHeader({ column, className, ...props }: GridBoardColumnHeaderProps) {
+	const { rows } = useGridBoardContext();
+	const hasRows = !!rows && rows.length > 0;
+	return (
+		<div
+			className={cn(
+				"flex items-center justify-between px-3.5 py-2.5 bg-muted border border-border min-w-[280px] flex-1 gap-2",
+				// With rows, this header stands alone (full rounding) — the row-band below has its own
+				// header that attaches to its own cells instead. Without rows, it attaches directly to the
+				// single cells row beneath it (flat bottom, no bottom border, zero gap — see the provider's
+				// own conditional gap above and GridBoardDroppableCell's matching flat top).
+				hasRows ? "rounded-xl" : "rounded-t-xl",
+				className
+			)}
+			{...props}
+		>
+			<div className="flex items-center gap-2 w-full">
+				{column.icon && <span className={cn("text-sm", column.accentClassName)}>{column.icon}</span>}
+				<span className="text-sm font-semibold">{column.label}</span>
+				<span className="text-sm text-muted-foreground ml-auto">{column.count}</span>
+			</div>
+		</div>
+	);
 }
 
 // ============================================================================
@@ -429,31 +390,27 @@ export function GridBoardColumnHeader({
 // ============================================================================
 
 export type GridBoardRowsProps<
-  TRow extends GridBoardRowData = GridBoardRowData,
-  TColumn extends GridBoardColumnData = GridBoardColumnData,
+	TRow extends GridBoardRowData = GridBoardRowData,
+	TColumn extends GridBoardColumnData = GridBoardColumnData,
 > = Omit<HTMLAttributes<HTMLDivElement>, "children"> & {
-  children: (row: TRow, columns: TColumn[]) => ReactNode;
+	children: (row: TRow, columns: TColumn[]) => ReactNode;
 };
 
 export function GridBoardRows<
-  TRow extends GridBoardRowData = GridBoardRowData,
-  TColumn extends GridBoardColumnData = GridBoardColumnData,
+	TRow extends GridBoardRowData = GridBoardRowData,
+	TColumn extends GridBoardColumnData = GridBoardColumnData,
 >({ children, className, ...props }: GridBoardRowsProps<TRow, TColumn>) {
-  const { rows, columns } = useGridBoardContext<
-    GridBoardItemBase,
-    TColumn,
-    TRow
-  >();
+	const { rows, columns } = useGridBoardContext<GridBoardItemBase, TColumn, TRow>();
 
-  if (!rows || rows.length === 0) {
-    return null;
-  }
+	if (!rows || rows.length === 0) {
+		return null;
+	}
 
-  return (
-    <div className={cn("flex flex-col gap-3", className)} {...props}>
-      {rows.map((row) => children(row, columns))}
-    </div>
-  );
+	return (
+		<div className={cn("flex flex-col gap-3", className)} {...props}>
+			{rows.map((row) => children(row, columns))}
+		</div>
+	);
 }
 
 // ============================================================================
@@ -461,44 +418,38 @@ export function GridBoardRows<
 // ============================================================================
 
 export type GridBoardRowHeaderProps = HTMLAttributes<HTMLDivElement> & {
-  row: GridBoardRowData;
-  count?: number;
+	row: GridBoardRowData;
+	count?: number;
 };
 
-export function GridBoardRowHeader({
-  row,
-  count,
-  className,
-  ...props
-}: GridBoardRowHeaderProps) {
-  const displayCount = count ?? row.count ?? 0;
+export function GridBoardRowHeader({ row, count, className, ...props }: GridBoardRowHeaderProps) {
+	const displayCount = count ?? row.count ?? 0;
 
-  return (
-    <div
-      className={cn(
-        // A sub-group header is a secondary level, not a peer of GridBoardColumnHeader — same
-        // attached-card mechanic (flat bottom, zero gap into the cells below) but deliberately
-        // lighter weight (bg-background not bg-muted, smaller text, plain count not a Badge),
-        // matching board-list-view's own sub-group header convention (group-header.tsx) instead
-        // of competing visually with the real column headers above it.
-        "flex items-center gap-1.5 px-2.5 py-1.5 rounded-t-xl bg-background border border-b-0 border-border/40 sticky top-[42px] z-20",
-        className,
-      )}
-      {...props}
-    >
-      <div className="flex items-center gap-1.5 z-10 sticky left-2.5">
-        {row.icon && (
-          <span className={cn("text-sm", row.accentClassName)}>{row.icon}</span>
-        )}
-        <span className="text-xs font-medium whitespace-nowrap">
-          {row.label}
-        </span>
-        <span className="text-xs text-muted-foreground tabular-nums">
-          {displayCount}
-        </span>
-      </div>
-    </div>
-  );
+	return (
+		<div
+			className={cn(
+				// A sub-group header is a secondary level, not a peer of GridBoardColumnHeader — same
+				// attached-card mechanic (flat bottom, zero gap into the cells below) but deliberately
+				// lighter weight (bg-background not bg-muted, smaller text, plain count not a Badge),
+				// matching board-list-view's own sub-group header convention (group-header.tsx) instead
+				// of competing visually with the real column headers above it.
+				// top-[54px] = GridBoardColumns' own height (42px, measured live) + the gap-3 (12px) the
+				// provider renders before the row-band stack. Without adding that 12px back in here, this
+				// header would pin flush against the column headers only once scrolled, while sitting a
+				// visible 12px below them at rest — the gap would inconsistently vanish as you scroll
+				// instead of staying constant.
+				"flex items-center gap-1.5 px-2.5 py-1.5 rounded-t-xl bg-background border border-b-0 border-border/40 sticky top-[54px] z-20",
+				className
+			)}
+			{...props}
+		>
+			<div className="flex items-center gap-1.5 z-10 sticky left-2.5">
+				{row.icon && <span className={cn("text-sm", row.accentClassName)}>{row.icon}</span>}
+				<span className="text-xs font-medium whitespace-nowrap">{row.label}</span>
+				<span className="text-xs text-muted-foreground tabular-nums">{displayCount}</span>
+			</div>
+		</div>
+	);
 }
 
 // ============================================================================
@@ -506,67 +457,66 @@ export function GridBoardRowHeader({
 // ============================================================================
 
 export type GridBoardCellsProps<
-  TItem extends GridBoardItemBase = GridBoardItemBase,
-  TColumn extends GridBoardColumnData = GridBoardColumnData,
+	TItem extends GridBoardItemBase = GridBoardItemBase,
+	TColumn extends GridBoardColumnData = GridBoardColumnData,
 > = Omit<HTMLAttributes<HTMLDivElement>, "children"> & {
-  /** The row ID to get items for (undefined = no row grouping) */
-  rowId?: string;
-  /** Render function for each item in a cell */
-  children: (item: TItem, column: TColumn, rowId?: string) => ReactNode;
-  /** Render empty cell content */
-  renderEmpty?: () => ReactNode;
+	/** The row ID to get items for (undefined = no row grouping) */
+	rowId?: string;
+	/** Render function for each item in a cell */
+	children: (item: TItem, column: TColumn, rowId?: string) => ReactNode;
+	/** Render empty cell content */
+	renderEmpty?: () => ReactNode;
 };
 
 export function GridBoardCells<
-  TItem extends GridBoardItemBase = GridBoardItemBase,
-  TColumn extends GridBoardColumnData = GridBoardColumnData,
->({
-  rowId,
-  children,
-  renderEmpty,
-  className,
-  ...props
-}: GridBoardCellsProps<TItem, TColumn>) {
-  const { columns, getItemsForCell, mode } = useGridBoardContext<
-    TItem,
-    TColumn
-  >();
-  const isKanbanMode = mode === "kanban";
+	TItem extends GridBoardItemBase = GridBoardItemBase,
+	TColumn extends GridBoardColumnData = GridBoardColumnData,
+>({ rowId, children, renderEmpty, className, ...props }: GridBoardCellsProps<TItem, TColumn>) {
+	const { columns, getItemsForCell, mode, rows } = useGridBoardContext<TItem, TColumn>();
+	const isKanbanMode = mode === "kanban";
+	const hasRows = !!rows && rows.length > 0;
 
-  const defaultRenderEmpty = () => <div className="h-8" />;
-  const emptyRenderer = renderEmpty ?? defaultRenderEmpty;
+	const defaultRenderEmpty = () => <div className="h-8" />;
+	const emptyRenderer = renderEmpty ?? defaultRenderEmpty;
 
-  return (
-    <div
-      className={cn(
-        "flex gap-3",
-        // Kanban mode: fill available height
-        isKanbanMode && "flex-1 min-h-0",
-        className,
-      )}
-      {...props}
-    >
-      {columns.map((column) => {
-        const cellItems = getItemsForCell(column.id, rowId) as TItem[];
-        const cellId = makeCellId(column.id, rowId);
+	return (
+		<div
+			className={cn(
+				"flex",
+				// With rows (sub-grouping), a row-band's cells read as one continuous strip —
+				// shared rounding/border/background, thin dividers between columns — so they
+				// pair correctly with the single continuous GridBoardRowHeader above instead of
+				// fragmenting into separately-boxed, gapped columns under one unbroken bar.
+				// Without rows, each column keeps its own fully-rounded attached box (see
+				// GridBoardDroppableCell).
+				hasRows
+					? "divide-x divide-border/40 rounded-b-xl rounded-t-none border border-t-0 border-border/40 bg-muted/60 overflow-hidden"
+					: "gap-3",
+				isKanbanMode && "flex-1 min-h-0",
+				className
+			)}
+			{...props}
+		>
+			{columns.map((column) => {
+				const cellItems = getItemsForCell(column.id, rowId) as TItem[];
+				const cellId = makeCellId(column.id, rowId);
 
-        return (
-          <GridBoardDroppableCell
-            key={cellId}
-            cellId={cellId}
-            isEmpty={cellItems.length === 0}
-            isKanbanMode={isKanbanMode}
-          >
-            <SortableContext items={cellItems.map((item) => item.id)}>
-              {cellItems.length > 0
-                ? cellItems.map((item) => children(item, column, rowId))
-                : emptyRenderer()}
-            </SortableContext>
-          </GridBoardDroppableCell>
-        );
-      })}
-    </div>
-  );
+				return (
+					<GridBoardDroppableCell
+						key={cellId}
+						cellId={cellId}
+						isEmpty={cellItems.length === 0}
+						isKanbanMode={isKanbanMode}
+						hasRows={hasRows}
+					>
+						<SortableContext items={cellItems.map((item) => item.id)}>
+							{cellItems.length > 0 ? cellItems.map((item) => children(item, column, rowId)) : emptyRenderer()}
+						</SortableContext>
+					</GridBoardDroppableCell>
+				);
+			})}
+		</div>
+	);
 }
 
 // ============================================================================
@@ -574,100 +524,85 @@ export function GridBoardCells<
 // ============================================================================
 
 type GridBoardDroppableCellProps = {
-  cellId: string;
-  isEmpty: boolean;
-  isKanbanMode: boolean;
-  children: ReactNode;
+	cellId: string;
+	isEmpty: boolean;
+	isKanbanMode: boolean;
+	hasRows: boolean;
+	children: ReactNode;
 };
 
-function GridBoardDroppableCell({
-  cellId,
-  isEmpty,
-  isKanbanMode,
-  children,
-}: GridBoardDroppableCellProps) {
-  const { isOver, setNodeRef } = useDroppable({
-    id: cellId,
-  });
+function GridBoardDroppableCell({ cellId, isEmpty, isKanbanMode, hasRows, children }: GridBoardDroppableCellProps) {
+	const { isOver, setNodeRef } = useDroppable({
+		id: cellId,
+	});
 
-  return (
-    <div
-      ref={setNodeRef}
-      className={cn(
-        // Always flat-topped/no top border — this cell always sits directly beneath either
-        // GridBoardColumnHeader (no rows) or GridBoardRowHeader (rows), both of which are
-        // themselves flat-bottomed for the same reason, so the pair reads as one attached piece.
-        "min-w-[280px] flex-1 flex flex-col gap-2.5 rounded-b-xl rounded-t-none bg-muted/60 border border-t-0 border-border p-2.5 transition-colors",
-        isOver && "bg-primary/10 ring-1 ring-primary/30 ring-inset",
-        // Grid mode: minimal height when empty
-        !isKanbanMode && isEmpty && "min-h-[40px]",
-        // Kanban mode: full height with independent Y scroll. No h-full here on
-        // purpose — height:100% doesn't reliably resolve against this row's
-        // flex-grow-derived height in every nesting this renders inside (reproduced:
-        // columns silently shrink-to-content instead of stretching). min-h-0 +
-        // default align-items:stretch (row's cross axis) does the same job without
-        // depending on percentage-height resolution.
-        isKanbanMode && "overflow-y-auto min-h-0",
-      )}
-    >
-      {children}
-    </div>
-  );
+	return (
+		<div
+			ref={setNodeRef}
+			className={cn(
+				"min-w-[280px] flex-1 flex flex-col gap-2.5 p-2.5 transition-colors",
+				// No rows: this cell is its own attached card, flat-topped directly beneath
+				// GridBoardColumnHeader. With rows: the shared strip wrapper in GridBoardCells
+				// owns the rounding/border/background for the whole row-band instead — this is
+				// just a plain divided slot within it (see GridBoardCells' hasRows branch).
+				hasRows ? "bg-transparent" : "rounded-b-xl rounded-t-none bg-muted/60 border border-t-0 border-border",
+				isOver && "bg-primary/10 ring-1 ring-primary/30 ring-inset",
+				// Grid mode: minimal height when empty
+				!isKanbanMode && isEmpty && "min-h-[40px]",
+				// Kanban mode: full height with independent Y scroll. No h-full here on
+				// purpose — height:100% doesn't reliably resolve against this row's
+				// flex-grow-derived height in every nesting this renders inside (reproduced:
+				// columns silently shrink-to-content instead of stretching). min-h-0 +
+				// default align-items:stretch (row's cross axis) does the same job without
+				// depending on percentage-height resolution.
+				isKanbanMode && "overflow-y-auto min-h-0"
+			)}
+		>
+			{children}
+		</div>
+	);
 }
 
 // ============================================================================
 // GridBoardItem - Draggable item wrapper
 // ============================================================================
 
-export type GridBoardItemProps<
-  TItem extends GridBoardItemBase = GridBoardItemBase,
-> = {
-  item: TItem;
-  children: ReactNode;
-  className?: string;
+export type GridBoardItemProps<TItem extends GridBoardItemBase = GridBoardItemBase> = {
+	item: TItem;
+	children: ReactNode;
+	className?: string;
 };
 
-export function GridBoardItem<
-  TItem extends GridBoardItemBase = GridBoardItemBase,
->({ item, children, className }: GridBoardItemProps<TItem>) {
-  const { activeItemId, renderDragOverlay } = useGridBoardContext<TItem>();
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({
-    id: item.id,
-  });
+export function GridBoardItem<TItem extends GridBoardItemBase = GridBoardItemBase>({
+	item,
+	children,
+	className,
+}: GridBoardItemProps<TItem>) {
+	const { activeItemId, renderDragOverlay } = useGridBoardContext<TItem>();
+	const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+		id: item.id,
+	});
 
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  };
+	const style = {
+		transform: CSS.Transform.toString(transform),
+		transition,
+	};
 
-  return (
-    <>
-      <div
-        ref={setNodeRef}
-        style={style}
-        {...attributes}
-        {...listeners}
-        className={cn(
-          "cursor-grab active:cursor-grabbing",
-          isDragging && "opacity-30",
-          className,
-        )}
-      >
-        {children}
-      </div>
-      {/* Tunnel the content to the drag overlay when this item is being dragged */}
-      {activeItemId === item.id && !renderDragOverlay && (
-        <t.In>{children}</t.In>
-      )}
-    </>
-  );
+	return (
+		<>
+			<div
+				ref={setNodeRef}
+				style={style}
+				{...attributes}
+				{...listeners}
+				className={cn("cursor-grab active:cursor-grabbing", isDragging && "opacity-30", className)}
+			>
+				{children}
+			</div>
+			{/* Tunnel the content to the drag overlay when this item is being dragged */}
+			{activeItemId === item.id && !renderDragOverlay && <t.In>{children}</t.In>}
+		</>
+	);
 }
 
 // ============================================================================
@@ -675,26 +610,21 @@ export function GridBoardItem<
 // ============================================================================
 
 export type GridBoardCellProps = HTMLAttributes<HTMLDivElement> & {
-  isEmpty?: boolean;
+	isEmpty?: boolean;
 };
 
-export function GridBoardCell({
-  children,
-  className,
-  isEmpty,
-  ...props
-}: GridBoardCellProps) {
-  return (
-    <div
-      className={cn(
-        "min-w-[280px] flex-1 flex flex-col gap-2.5 rounded-b-xl rounded-t-none bg-muted/60 border border-t-0 border-border/40 p-2.5",
-        className,
-      )}
-      {...props}
-    >
-      {isEmpty ? <div className="h-8" /> : children}
-    </div>
-  );
+export function GridBoardCell({ children, className, isEmpty, ...props }: GridBoardCellProps) {
+	return (
+		<div
+			className={cn(
+				"min-w-[280px] flex-1 flex flex-col gap-2.5 rounded-b-xl rounded-t-none bg-muted/60 border border-t-0 border-border/40 p-2.5",
+				className
+			)}
+			{...props}
+		>
+			{isEmpty ? <div className="h-8" /> : children}
+		</div>
+	);
 }
 
 // ============================================================================
@@ -702,11 +632,11 @@ export function GridBoardCell({
 // ============================================================================
 
 export function useGridBoard<
-  TItem extends GridBoardItemBase = GridBoardItemBase,
-  TColumn extends GridBoardColumnData = GridBoardColumnData,
-  TRow extends GridBoardRowData = GridBoardRowData,
+	TItem extends GridBoardItemBase = GridBoardItemBase,
+	TColumn extends GridBoardColumnData = GridBoardColumnData,
+	TRow extends GridBoardRowData = GridBoardRowData,
 >() {
-  return useGridBoardContext<TItem, TColumn, TRow>();
+	return useGridBoardContext<TItem, TColumn, TRow>();
 }
 
 // ============================================================================
