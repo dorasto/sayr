@@ -9,12 +9,13 @@ import {
 	GridBoardRowHeader,
 	GridBoardRows,
 } from "@repo/ui/components/doras-ui/grid-board";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLanderData } from "@/contexts/ContextLander";
 import { applyNestedGrouping, groupTasks } from "../config/groupings";
 import { useBoardViewState } from "../filter/use-board-view-state";
 import { BoardCard } from "./board-card";
 import { type BoardDragMutation, BoardDragMutationExecutor } from "./board-drag-actions";
+import { GroupHeaderContent } from "./group-header";
 
 interface BoardKanbanViewProps {
 	tasks: schema.TaskWithLabels[];
@@ -78,9 +79,28 @@ export function BoardKanbanView({ tasks }: BoardKanbanViewProps) {
 							label: group.label,
 							count: group.tasks.length,
 							icon: group.icon,
+							toneClassName: group.toneClassName,
+							color: group.color,
 						})),
 		[options, subGrouping, tasks]
 	);
+	// Kanban rows never include empty groups to begin with (filtered above), so unlike list
+	// view's collapsedSections this doesn't need a "default-collapse empty groups" pass — just
+	// a reset so stale ids from a previous subGrouping don't linger (e.g. a priority id that
+	// happens to collide with a differently-typed group id under a different subGrouping).
+	const [collapsedRows, setCollapsedRows] = useState<Set<string>>(new Set());
+	// biome-ignore lint/correctness/useExhaustiveDependencies: intentionally only reset on subGrouping change, not read inside
+	useEffect(() => {
+		setCollapsedRows(new Set());
+	}, [subGrouping]);
+	const toggleRow = useCallback((rowId: string) => {
+		setCollapsedRows((prev) => {
+			const next = new Set(prev);
+			if (next.has(rowId)) next.delete(rowId);
+			else next.add(rowId);
+			return next;
+		});
+	}, []);
 	const hasAssigneeGrouping = grouping === "assignee" || subGrouping === "assignee";
 	const items = useMemo<BoardGridItem[]>(() => {
 		if (subGrouping === "none") {
@@ -141,18 +161,34 @@ export function BoardKanbanView({ tasks }: BoardKanbanViewProps) {
 				<GridBoardColumns className="">{(column) => <GridBoardColumnHeader column={column} />}</GridBoardColumns>
 				{rows ? (
 					<GridBoardRows>
-						{(row, _columns, isLast) => (
-							<div key={row.id}>
-								<GridBoardRowHeader row={row} />
-								<GridBoardCells<BoardGridItem> rowId={row.id} isLast={isLast}>
-									{(item) => (
-										<GridBoardItem key={item.id} item={item}>
-											<BoardCard task={item.task} />
-										</GridBoardItem>
+						{(row, _columns, isLast) => {
+							const isExpanded = !collapsedRows.has(row.id);
+							return (
+								<div key={row.id}>
+									<GridBoardRowHeader row={row} isLast={isLast && !isExpanded}>
+										<GroupHeaderContent
+											label={row.label}
+											icon={row.icon}
+											count={row.count ?? 0}
+											toneClassName={row.toneClassName}
+											color={row.color}
+											isSubGroup
+											expanded={isExpanded}
+											onToggleExpanded={() => toggleRow(row.id)}
+										/>
+									</GridBoardRowHeader>
+									{isExpanded && (
+										<GridBoardCells<BoardGridItem> rowId={row.id} isLast={isLast}>
+											{(item) => (
+												<GridBoardItem key={item.id} item={item}>
+													<BoardCard task={item.task} />
+												</GridBoardItem>
+											)}
+										</GridBoardCells>
 									)}
-								</GridBoardCells>
-							</div>
-						)}
+								</div>
+							);
+						}}
 					</GridBoardRows>
 				) : (
 					<GridBoardCells<BoardGridItem>>
