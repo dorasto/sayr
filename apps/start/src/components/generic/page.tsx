@@ -1,20 +1,29 @@
 import { Button } from "@repo/ui/components/button";
 import {
-	IndentDrawer,
-	type IndentDrawerActions,
-	IndentDrawerContent,
-	IndentDrawerIndentBackground,
-	IndentDrawerProvider,
-	IndentDrawerRegion,
+  IndentDrawer,
+  type IndentDrawerActions,
+  IndentDrawerContent,
+  IndentDrawerIndentBackground,
+  IndentDrawerProvider,
+  IndentDrawerRegion,
 } from "@repo/ui/components/doras-ui/indent-drawer";
 import { SidebarContext } from "@repo/ui/components/doras-ui/sidebar";
 import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
 import { cn } from "@repo/ui/lib/utils";
 import { IconLoader2, IconX } from "@tabler/icons-react";
 import { useStore } from "@tanstack/react-store";
-import { isValidElement, useCallback, useEffect, useRef, useState } from "react";
+import {
+  isValidElement,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { PageHeader } from "@/components/generic/PageHeader";
-import type { PanelHeaderConfig, PanelTabConfig } from "@/lib/sidebar/sidebar-store";
+import type {
+  PanelHeaderConfig,
+  PanelTabConfig,
+} from "@/lib/sidebar/sidebar-store";
 import { sidebarActions, sidebarStore } from "@/lib/sidebar/sidebar-store";
 
 // Helper to check if a header is a PanelHeaderConfig object rather than a
@@ -24,177 +33,187 @@ import { sidebarActions, sidebarStore } from "@/lib/sidebar/sidebar-store";
 // React element (or primitive/array passed as children) is a ReactNode;
 // any other plain object is a config.
 function isPanelHeaderConfig(header: unknown): header is PanelHeaderConfig {
-	return typeof header === "object" && header !== null && !Array.isArray(header) && !isValidElement(header);
+  return (
+    typeof header === "object" &&
+    header !== null &&
+    !Array.isArray(header) &&
+    !isValidElement(header)
+  );
 }
 
 // Panel configuration. Every panel renders through the same non-modal
 // IndentDrawer/float system, on every breakpoint — a floating card that
 // pushes (not covers) the page's main content, animated open/close.
 export interface PanelConfig {
-	id: string;
-	header?: React.ReactNode | PanelHeaderConfig;
-	tabs?: Array<PanelTabConfig>;
-	defaultTab?: string;
-	defaultOpen?: boolean;
-	/** If false, ignores persisted open state and always resets to defaultOpen on load — CRUD panels. @default true */
-	persistOpenState?: boolean;
-	/** Desktop drawer/push width. @default "380px" */
-	width?: string;
-	/** Mobile drawer/push height (max-height + vertical push). @default "38dvh" */
-	height?: string;
-	/** Mobile only, opt-in: also shrink the pushed content by this factor (e.g. 0.85) while open. */
-	mobileZoom?: number;
-	/**
-	 * Renders with a dimming backdrop, focus trap, and blocked background
-	 * interaction (Base UI's own `modal` handling), instead of the default
-	 * non-modal push-content behavior. Backdrop clicks dismiss the panel
-	 * unless overridden.
-	 * @default false on desktop, true on mobile — leave unset to get that;
-	 * set explicitly to opt a panel out of (or force into) modal on mobile.
-	 */
-	modal?: boolean;
-	/** Renders as a small popover pinned to its trigger element instead of a drawer. */
-	anchored?: boolean;
-	/** Desktop-only drag-to-resize on the panel's near edge. Ignored for anchored panels. @default true */
-	resizable?: boolean;
-	/** @default 280 */
-	minWidth?: number;
-	/** @default 720 */
-	maxWidth?: number;
+  id: string;
+  header?: React.ReactNode | PanelHeaderConfig;
+  tabs?: Array<PanelTabConfig>;
+  defaultTab?: string;
+  defaultOpen?: boolean;
+  /** If false, ignores persisted open state and always resets to defaultOpen on load — CRUD panels. @default true */
+  persistOpenState?: boolean;
+  /** Desktop drawer/push width. @default "380px" */
+  width?: string;
+  /** Mobile drawer/push height (max-height + vertical push). @default "38dvh" */
+  height?: string;
+  /** Mobile only, opt-in: also shrink the pushed content by this factor (e.g. 0.85) while open. */
+  mobileZoom?: number;
+  /**
+   * Renders with a dimming backdrop, focus trap, and blocked background
+   * interaction (Base UI's own `modal` handling), instead of the default
+   * non-modal push-content behavior. Backdrop clicks dismiss the panel
+   * unless overridden.
+   * @default false on desktop, true on mobile — leave unset to get that;
+   * set explicitly to opt a panel out of (or force into) modal on mobile.
+   */
+  modal?: boolean;
+  /** Renders as a small popover pinned to its trigger element instead of a drawer. */
+  anchored?: boolean;
+  /** Desktop-only drag-to-resize on the panel's near edge. Ignored for anchored panels. @default true */
+  resizable?: boolean;
+  /** @default 280 */
+  minWidth?: number;
+  /** @default 720 */
+  maxWidth?: number;
 }
 
 export interface PageProps {
-	children: React.ReactNode;
-	header?: React.ReactNode;
-	toolbar?: React.ReactNode;
-	panels?: { left?: PanelConfig; right?: PanelConfig };
-	className?: string;
+  children: React.ReactNode;
+  header?: React.ReactNode;
+  toolbar?: React.ReactNode;
+  panels?: { left?: PanelConfig; right?: PanelConfig };
+  className?: string;
 }
 
 function PanelHeader({
-	header,
-	panelId,
-	onClose,
+  header,
+  panelId,
+  onClose,
 }: {
-	header: PanelHeaderConfig;
-	panelId: string;
-	onClose?: () => void;
+  header: PanelHeaderConfig;
+  panelId: string;
+  onClose?: () => void;
 }) {
-	const { title, icon, actions, showClose = true } = header;
-	return (
-		<div className="flex h-11 w-full shrink-0 items-center border-b px-3">
-			{(title || icon) && (
-				<div className="flex min-w-0 flex-1 items-center gap-2">
-					{icon}
-					{title && <span className="shrink truncate text-xs font-medium">{title}</span>}
-				</div>
-			)}
-			<div className="ml-auto flex shrink-0 items-center gap-1">
-				{actions}
-				{showClose && (
-					<Button
-						variant="ghost"
-						size="icon"
-						onClick={(e) => {
-							e.stopPropagation();
-							onClose ? onClose() : sidebarActions.setOpen(panelId, false);
-						}}
-					>
-						<IconX />
-					</Button>
-				)}
-			</div>
-		</div>
-	);
+  const { title, icon, actions, showClose = true } = header;
+  return (
+    <div className="flex h-11 w-full shrink-0 items-center border-b px-3">
+      {(title || icon) && (
+        <div className="flex min-w-0 flex-1 items-center gap-2">
+          {icon}
+          {title && (
+            <span className="shrink truncate text-xs font-medium">{title}</span>
+          )}
+        </div>
+      )}
+      <div className="ml-auto flex shrink-0 items-center gap-1">
+        {actions}
+        {showClose && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={(e) => {
+              e.stopPropagation();
+              onClose ? onClose() : sidebarActions.setOpen(panelId, false);
+            }}
+          >
+            <IconX />
+          </Button>
+        )}
+      </div>
+    </div>
+  );
 }
 
 function PanelTabBar({
-	panelId,
-	tabs,
-	currentTab,
-	header,
-	onClose,
+  panelId,
+  tabs,
+  currentTab,
+  header,
+  onClose,
 }: {
-	panelId: string;
-	tabs: Array<PanelTabConfig>;
-	currentTab: string | undefined;
-	header: PanelHeaderConfig | undefined;
-	onClose?: () => void;
+  panelId: string;
+  tabs: Array<PanelTabConfig>;
+  currentTab: string | undefined;
+  header: PanelHeaderConfig | undefined;
+  onClose?: () => void;
 }) {
-	return (
-		<div className="flex h-11 shrink-0 items-center border-b px-2">
-			<div className="scrollbar-hide flex min-w-0 items-center gap-1 overflow-x-auto">
-				{tabs.map((tab) => (
-					<button
-						key={tab.id}
-						type="button"
-						onClick={() => sidebarActions.setActiveTab(panelId, tab.id)}
-						className={cn(
-							"flex shrink-0 items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium transition-colors",
-							currentTab === tab.id
-								? "bg-accent text-accent-foreground"
-								: "text-muted-foreground hover:text-foreground"
-						)}
-					>
-						{tab.icon}
-						{tab.label}
-					</button>
-				))}
-			</div>
-			<div className="ml-auto flex shrink-0 items-center gap-1">
-				{header?.actions}
-				{(header?.showClose ?? true) && (
-					<Button
-						variant="ghost"
-						size="icon"
-						className="size-8"
-						onClick={(e) => {
-							e.stopPropagation();
-							onClose ? onClose() : sidebarActions.setOpen(panelId, false);
-						}}
-					>
-						<IconX className="size-4" />
-					</Button>
-				)}
-			</div>
-		</div>
-	);
+  return (
+    <div className="flex h-11 shrink-0 items-center border-b px-2">
+      <div className="scrollbar-hide flex min-w-0 items-center gap-1 overflow-x-auto">
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            onClick={() => sidebarActions.setActiveTab(panelId, tab.id)}
+            className={cn(
+              "flex shrink-0 items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium transition-colors",
+              currentTab === tab.id
+                ? "bg-accent text-accent-foreground"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {tab.icon}
+            {tab.label}
+          </button>
+        ))}
+      </div>
+      <div className="ml-auto flex shrink-0 items-center gap-1">
+        {header?.actions}
+        {(header?.showClose ?? true) && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-8"
+            onClick={(e) => {
+              e.stopPropagation();
+              onClose ? onClose() : sidebarActions.setOpen(panelId, false);
+            }}
+          >
+            <IconX className="size-4" />
+          </Button>
+        )}
+      </div>
+    </div>
+  );
 }
 
 // Exported so usePanelTrigger can render it inside a Popover for anchored panels.
 export function PanelContent({
-	panelId,
-	fallbackHeader,
-	hideHeader = false,
-	isPopover = false,
-	onClose,
+  panelId,
+  fallbackHeader,
+  hideHeader = false,
+  isPopover = false,
+  onClose,
 }: {
-	panelId: string;
-	fallbackHeader?: React.ReactNode | PanelHeaderConfig;
-	hideHeader?: boolean;
-	isPopover?: boolean;
-	onClose?: () => void;
+  panelId: string;
+  fallbackHeader?: React.ReactNode | PanelHeaderConfig;
+  hideHeader?: boolean;
+  isPopover?: boolean;
+  onClose?: () => void;
 }) {
-	const panelState = useStore(
-		sidebarStore,
-		useCallback((state: { sidebars: Record<string, any> }) => state.sidebars[panelId], [panelId])
-	);
+  const panelState = useStore(
+    sidebarStore,
+    useCallback(
+      (state: { sidebars: Record<string, any> }) => state.sidebars[panelId],
+      [panelId],
+    ),
+  );
 
-	const isOpen = panelState?.open ?? false;
-	const header = panelState?.header as PanelHeaderConfig | undefined;
-	const content = panelState?.content as React.ReactNode;
-	const tabs = panelState?.tabs as Array<PanelTabConfig> | undefined;
-	const activeTab = panelState?.activeTab as string | undefined;
-	const lastTriggerId = panelState?.lastTriggerId as string | undefined;
+  const isOpen = panelState?.open ?? false;
+  const header = panelState?.header as PanelHeaderConfig | undefined;
+  const content = panelState?.content as React.ReactNode;
+  const tabs = panelState?.tabs as Array<PanelTabConfig> | undefined;
+  const activeTab = panelState?.activeTab as string | undefined;
+  const lastTriggerId = panelState?.lastTriggerId as string | undefined;
 
-	if (!isOpen) return null;
+  if (!isOpen) return null;
 
-	const hasTabs = tabs && tabs.length > 0;
-	const currentTab = activeTab ?? tabs?.[0]?.id;
+  const hasTabs = tabs && tabs.length > 0;
+  const currentTab = activeTab ?? tabs?.[0]?.id;
 
-	return (
-		<SidebarContext.Provider value={{ id: panelId, isCollapsed: false }}>
-			{/* min-h-0 is required here, not optional: without it this flex column
+  return (
+    <SidebarContext.Provider value={{ id: panelId, isCollapsed: false }}>
+      {/* min-h-0 is required here, not optional: without it this flex column
 			    defaults to min-height:auto and grows to fit its full content
 			    (header + content) instead of respecting the drawer's bounded
 			    height, which breaks the inner content div's own flex-1 +
@@ -204,420 +223,492 @@ export function PanelContent({
 			    outer container was independently scrollable (the header-scrolls
 			    bug), and became a real "can't scroll at all" regression the
 			    moment that outer scroll was removed without this. */}
-			<div className={isPopover ? "flex min-h-0 flex-1 flex-col" : "flex h-full min-h-0 flex-col"}>
-				{hasTabs ? (
-					<>
-						{!hideHeader && (
-							<PanelTabBar
-								panelId={panelId}
-								tabs={tabs}
-								currentTab={currentTab}
-								header={header}
-								onClose={onClose}
-							/>
-						)}
-						{/* key forces remount when switching items */}
-						<div key={lastTriggerId} className="flex-1 overflow-y-auto p-2">
-							{tabs.find((t) => t.id === currentTab)?.content ?? <div />}
-						</div>
-					</>
-				) : (
-					<>
-						{!hideHeader &&
-							(header ? (
-								<PanelHeader header={header} panelId={panelId} onClose={onClose} />
-							) : fallbackHeader && isPanelHeaderConfig(fallbackHeader) ? (
-								<PanelHeader header={fallbackHeader} panelId={panelId} onClose={onClose} />
-							) : (
-								fallbackHeader && (
-									<div className="flex h-11 shrink-0 items-center border-b px-3">{fallbackHeader}</div>
-								)
-							))}
-						<div className="flex-1 overflow-y-auto p-2">{content || <div />}</div>
-					</>
-				)}
-			</div>
-		</SidebarContext.Provider>
-	);
+      <div
+        className={
+          isPopover
+            ? "flex min-h-0 flex-1 flex-col"
+            : "flex h-full min-h-0 flex-col"
+        }
+      >
+        {hasTabs ? (
+          <>
+            {!hideHeader && (
+              <PanelTabBar
+                panelId={panelId}
+                tabs={tabs}
+                currentTab={currentTab}
+                header={header}
+                onClose={onClose}
+              />
+            )}
+            {/* key forces remount when switching items */}
+            <div key={lastTriggerId} className="flex-1 overflow-y-auto p-2">
+              {tabs.find((t) => t.id === currentTab)?.content ?? <div />}
+            </div>
+          </>
+        ) : (
+          <>
+            {!hideHeader &&
+              (header ? (
+                <PanelHeader
+                  header={header}
+                  panelId={panelId}
+                  onClose={onClose}
+                />
+              ) : fallbackHeader && isPanelHeaderConfig(fallbackHeader) ? (
+                <PanelHeader
+                  header={fallbackHeader}
+                  panelId={panelId}
+                  onClose={onClose}
+                />
+              ) : (
+                fallbackHeader && (
+                  <div className="flex h-11 shrink-0 items-center border-b px-3">
+                    {fallbackHeader}
+                  </div>
+                )
+              ))}
+            <div className="flex-1 overflow-y-auto p-2">
+              {content || <div />}
+            </div>
+          </>
+        )}
+      </div>
+    </SidebarContext.Provider>
+  );
 }
 
 function PageLoader() {
-	return (
-		<div className="flex h-full w-full items-center justify-center">
-			<IconLoader2 className="size-5 animate-spin text-muted-foreground" />
-		</div>
-	);
+  return (
+    <div className="flex h-full w-full items-center justify-center">
+      <IconLoader2 className="size-5 animate-spin text-muted-foreground" />
+    </div>
+  );
 }
 
-export function Page({ children, header, toolbar, panels, className }: PageProps) {
-	const [isClient, setIsClient] = useState(false);
-	// Where a `modal` panel's backdrop portals to, so it covers the whole
-	// page (including the sticky header below) instead of just the drawer's
-	// own confined push-region — see IndentDrawerContent's backdropContainer.
-	const [pageRootContainer, setPageRootContainer] = useState<HTMLDivElement | null>(null);
-	const [leftFloatContainer, setLeftFloatContainer] = useState<HTMLDivElement | null>(null);
-	const [rightFloatContainer, setRightFloatContainer] = useState<HTMLDivElement | null>(null);
+export function Page({
+  children,
+  header,
+  toolbar,
+  panels,
+  className,
+}: PageProps) {
+  const [isClient, setIsClient] = useState(false);
+  // Where a `modal` panel's backdrop portals to, so it covers the whole
+  // page (including the sticky header below) instead of just the drawer's
+  // own confined push-region — see IndentDrawerContent's backdropContainer.
+  const [pageRootContainer, setPageRootContainer] =
+    useState<HTMLDivElement | null>(null);
+  const [leftFloatContainer, setLeftFloatContainer] =
+    useState<HTMLDivElement | null>(null);
+  const [rightFloatContainer, setRightFloatContainer] =
+    useState<HTMLDivElement | null>(null);
 
-	// See sidebar-store.ts's drawerHandles doc comment.
-	const leftDrawerActionsRef = useRef<IndentDrawerActions | null>(null);
-	const rightDrawerActionsRef = useRef<IndentDrawerActions | null>(null);
-	const hasRegistered = useRef<{ left: boolean; right: boolean }>({ left: false, right: false });
+  // See sidebar-store.ts's drawerHandles doc comment.
+  const leftDrawerActionsRef = useRef<IndentDrawerActions | null>(null);
+  const rightDrawerActionsRef = useRef<IndentDrawerActions | null>(null);
+  const hasRegistered = useRef<{ left: boolean; right: boolean }>({
+    left: false,
+    right: false,
+  });
 
-	// Base UI's Drawer doesn't reliably play an exit transition for a close
-	// requested before its own OPEN transition has finished settling —
-	// confirmed empirically (not from docs): calling the imperative close
-	// action (or, equally, just flipping the controlled `open` prop — both
-	// race identically) within roughly the first 20-40ms after opening
-	// removes the popup instantly with no `data-ending-style` phase at all;
-	// waiting past that window animates correctly every time. That's exactly
-	// "the close button sometimes doesn't animate" — it depends on how
-	// quickly the user clicks close after the panel opens, which is why it
-	// only shows up sometimes. `onOpenChangeComplete(true)` is Base UI's own
-	// signal that the open transition is genuinely done (not a guessed
-	// delay), so a close requested before that fires is queued and replayed
-	// once it does, instead of narrowing the race with an arbitrary timeout.
-	const leftOpenSettledRef = useRef(true);
-	const leftPendingCloseRef = useRef(false);
-	const rightOpenSettledRef = useRef(true);
-	const rightPendingCloseRef = useRef(false);
+  // Base UI's Drawer doesn't reliably play an exit transition for a close
+  // requested before its own OPEN transition has finished settling —
+  // confirmed empirically (not from docs): calling the imperative close
+  // action (or, equally, just flipping the controlled `open` prop — both
+  // race identically) within roughly the first 20-40ms after opening
+  // removes the popup instantly with no `data-ending-style` phase at all;
+  // waiting past that window animates correctly every time. That's exactly
+  // "the close button sometimes doesn't animate" — it depends on how
+  // quickly the user clicks close after the panel opens, which is why it
+  // only shows up sometimes. `onOpenChangeComplete(true)` is Base UI's own
+  // signal that the open transition is genuinely done (not a guessed
+  // delay), so a close requested before that fires is queued and replayed
+  // once it does, instead of narrowing the race with an arbitrary timeout.
+  const leftOpenSettledRef = useRef(true);
+  const leftPendingCloseRef = useRef(false);
+  const rightOpenSettledRef = useRef(true);
+  const rightPendingCloseRef = useRef(false);
 
-	const leftPanelState = useStore(
-		sidebarStore,
-		useCallback(
-			(state: { sidebars: Record<string, any> }) => (panels?.left?.id ? state.sidebars[panels.left.id] : undefined),
-			[panels?.left?.id]
-		)
-	);
-	const rightPanelState = useStore(
-		sidebarStore,
-		useCallback(
-			(state: { sidebars: Record<string, any> }) =>
-				panels?.right?.id ? state.sidebars[panels.right.id] : undefined,
-			[panels?.right?.id]
-		)
-	);
+  const leftPanelState = useStore(
+    sidebarStore,
+    useCallback(
+      (state: { sidebars: Record<string, any> }) =>
+        panels?.left?.id ? state.sidebars[panels.left.id] : undefined,
+      [panels?.left?.id],
+    ),
+  );
+  const rightPanelState = useStore(
+    sidebarStore,
+    useCallback(
+      (state: { sidebars: Record<string, any> }) =>
+        panels?.right?.id ? state.sidebars[panels.right.id] : undefined,
+      [panels?.right?.id],
+    ),
+  );
 
-	// Used below both to default `modal` on mobile and to force-close a panel
-	// that's open when we detect mobile (see that effect further down).
-	const isMobile = useIsMobile();
+  // Used below both to default `modal` on mobile and to force-close a panel
+  // that's open when we detect mobile (see that effect further down).
+  const isMobile = useIsMobile();
 
-	// Before a panel has ever been registered in the store (a brand-new
-	// visitor, or a cleared/expired localStorage entry — exactly the case
-	// `defaultOpen` exists for, since a returning visitor already has a
-	// persisted `open` value), these fall back straight to `defaultOpen` with
-	// no mobile awareness of their own. On a mobile viewport that briefly
-	// renders (and, via registerSidebar below, PERSISTS) the panel open
-	// before the force-close effect further down ever gets a chance to run —
-	// that effect can only correct an *existing* store entry (setOpen no-ops
-	// otherwise), and it doesn't re-fire once `isMobile` stops changing, so a
-	// first-ever mobile visit to a `defaultOpen: true` panel stayed open with
-	// no later correction. Folding the mobile check in here, at the one
-	// place `defaultOpen` actually feeds into "is this panel open", fixes it
-	// at the source instead of relying on a corrective effect timing out
-	// right — see also the matching guards on registerSidebar's initial
-	// `open` and the `!shouldPersist` reset below.
-	const isLeftOpen = panels?.left
-		? (leftPanelState?.open ?? (isMobile ? false : (panels.left.defaultOpen ?? false)))
-		: false;
-	const isRightOpen = panels?.right
-		? (rightPanelState?.open ?? (isMobile ? false : (panels.right.defaultOpen ?? false)))
-		: false;
-	const leftLastTriggerId = leftPanelState?.lastTriggerId as string | undefined;
-	const rightLastTriggerId = rightPanelState?.lastTriggerId as string | undefined;
-	// A route's explicit `modal` choice always wins. Left unset, a panel
-	// defaults to non-modal on desktop (unchanged) but MODAL on mobile: a
-	// non-modal panel is a push, and on a narrow screen the push has nowhere
-	// left to go — it ends up covering most/all of the content anyway, except
-	// now without a backdrop, a focus trap, or click-outside-to-dismiss, so it
-	// reads as a confusing, half-broken overlay instead of an obvious dialog.
-	const leftModal = panels?.left?.modal ?? isMobile;
-	const rightModal = panels?.right?.modal ?? isMobile;
+  // Before a panel has ever been registered in the store (a brand-new
+  // visitor, or a cleared/expired localStorage entry — exactly the case
+  // `defaultOpen` exists for, since a returning visitor already has a
+  // persisted `open` value), these fall back straight to `defaultOpen` with
+  // no mobile awareness of their own. On a mobile viewport that briefly
+  // renders (and, via registerSidebar below, PERSISTS) the panel open
+  // before the force-close effect further down ever gets a chance to run —
+  // that effect can only correct an *existing* store entry (setOpen no-ops
+  // otherwise), and it doesn't re-fire once `isMobile` stops changing, so a
+  // first-ever mobile visit to a `defaultOpen: true` panel stayed open with
+  // no later correction. Folding the mobile check in here, at the one
+  // place `defaultOpen` actually feeds into "is this panel open", fixes it
+  // at the source instead of relying on a corrective effect timing out
+  // right — see also the matching guards on registerSidebar's initial
+  // `open` and the `!shouldPersist` reset below.
+  const isLeftOpen = panels?.left
+    ? (leftPanelState?.open ??
+      (isMobile ? false : (panels.left.defaultOpen ?? false)))
+    : false;
+  const isRightOpen = panels?.right
+    ? (rightPanelState?.open ??
+      (isMobile ? false : (panels.right.defaultOpen ?? false)))
+    : false;
+  const leftLastTriggerId = leftPanelState?.lastTriggerId as string | undefined;
+  const rightLastTriggerId = rightPanelState?.lastTriggerId as
+    | string
+    | undefined;
+  // A route's explicit `modal` choice always wins. Left unset, a panel
+  // defaults to non-modal on desktop (unchanged) but MODAL on mobile: a
+  // non-modal panel is a push, and on a narrow screen the push has nowhere
+  // left to go — it ends up covering most/all of the content anyway, except
+  // now without a backdrop, a focus trap, or click-outside-to-dismiss, so it
+  // reads as a confusing, half-broken overlay instead of an obvious dialog.
+  const leftModal = panels?.left?.modal ?? isMobile;
+  const rightModal = panels?.right?.modal ?? isMobile;
 
-	// A fresh open starts an unsettled window (see the refs' own comment
-	// above) — mark it the instant `isLeftOpen`/`isRightOpen` flips true,
-	// covering every open, not just the very first: a route's `defaultOpen`,
-	// a row click, a regenerate swap, all go through this same state.
-	useEffect(() => {
-		if (isLeftOpen) leftOpenSettledRef.current = false;
-	}, [isLeftOpen]);
-	useEffect(() => {
-		if (isRightOpen) rightOpenSettledRef.current = false;
-	}, [isRightOpen]);
+  // A fresh open starts an unsettled window (see the refs' own comment
+  // above) — mark it the instant `isLeftOpen`/`isRightOpen` flips true,
+  // covering every open, not just the very first: a route's `defaultOpen`,
+  // a row click, a regenerate swap, all go through this same state.
+  useEffect(() => {
+    if (isLeftOpen) leftOpenSettledRef.current = false;
+  }, [isLeftOpen]);
+  useEffect(() => {
+    if (isRightOpen) rightOpenSettledRef.current = false;
+  }, [isRightOpen]);
 
-	// A user's drag-resize (px, sticky across visits) always wins over the
-	// route's own configured default — see resizedWidth's doc comment in
-	// sidebar-store.ts. Fed to BOTH IndentDrawerRegion and IndentDrawerContent
-	// below so the push-margin and the drawer's own rendered width can never
-	// drift apart, regardless of whether the underlying value is a px number
-	// or the route's original width string (fixed px, %, whatever).
-	const leftWidth = leftPanelState?.resizedWidth ? `${leftPanelState.resizedWidth}px` : panels?.left?.width;
-	const rightWidth = rightPanelState?.resizedWidth ? `${rightPanelState.resizedWidth}px` : panels?.right?.width;
+  // A user's drag-resize (px, sticky across visits) always wins over the
+  // route's own configured default — see resizedWidth's doc comment in
+  // sidebar-store.ts. Fed to BOTH IndentDrawerRegion and IndentDrawerContent
+  // below so the push-margin and the drawer's own rendered width can never
+  // drift apart, regardless of whether the underlying value is a px number
+  // or the route's original width string (fixed px, %, whatever).
+  const leftWidth = leftPanelState?.resizedWidth
+    ? `${leftPanelState.resizedWidth}px`
+    : panels?.left?.width;
+  const rightWidth = rightPanelState?.resizedWidth
+    ? `${rightPanelState.resizedWidth}px`
+    : panels?.right?.width;
 
-	useEffect(() => {
-		setIsClient(true);
-	}, []);
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
-	// A panel open on mobile is a `defaultOpen: true` route, or — just as
-	// often in practice — persisted `open: true` from a *previous* visit at a
-	// wider viewport (open state survives across visits in localStorage; see
-	// registerSidebar). Neither is a deliberate mobile action, and on a narrow
-	// screen a panel covering most of the content with no clear affordance of
-	// what it is or how to dismiss it is a bad landing experience — even more
-	// so now that it also defaults to modal there (above). So force-closed
-	// once we know we're on mobile, regardless of why it was open. `isMobile`
-	// is declared above (also feeds the modal default); this effect is
-	// deliberately NOT gated by a one-shot ref like the registration effect
-	// below — `isMobile` starts false and only becomes accurate a render
-	// after its own effect resolves, so this must be free to re-fire on that
-	// transition. It only depends on `isMobile` (plus the panel ids), not on
-	// open state, so it runs once per mobile viewport determination and never
-	// re-fires just because the user opens a panel themselves afterwards.
-	const leftPanelId = panels?.left?.id;
-	const rightPanelId = panels?.right?.id;
-	useEffect(() => {
-		if (!isMobile) return;
-		if (leftPanelId) sidebarActions.setOpen(leftPanelId, false);
-		if (rightPanelId) sidebarActions.setOpen(rightPanelId, false);
-	}, [isMobile, leftPanelId, rightPanelId]);
+  // A panel open on mobile is a `defaultOpen: true` route, or — just as
+  // often in practice — persisted `open: true` from a *previous* visit at a
+  // wider viewport (open state survives across visits in localStorage; see
+  // registerSidebar). Neither is a deliberate mobile action, and on a narrow
+  // screen a panel covering most of the content with no clear affordance of
+  // what it is or how to dismiss it is a bad landing experience — even more
+  // so now that it also defaults to modal there (above). So force-closed
+  // once we know we're on mobile, regardless of why it was open. `isMobile`
+  // is declared above (also feeds the modal default); this effect is
+  // deliberately NOT gated by a one-shot ref like the registration effect
+  // below — `isMobile` starts false and only becomes accurate a render
+  // after its own effect resolves, so this must be free to re-fire on that
+  // transition. It only depends on `isMobile` (plus the panel ids), not on
+  // open state, so it runs once per mobile viewport determination and never
+  // re-fires just because the user opens a panel themselves afterwards.
+  const leftPanelId = panels?.left?.id;
+  const rightPanelId = panels?.right?.id;
+  useEffect(() => {
+    if (!isMobile) return;
+    if (leftPanelId) sidebarActions.setOpen(leftPanelId, false);
+    if (rightPanelId) sidebarActions.setOpen(rightPanelId, false);
+  }, [isMobile, leftPanelId, rightPanelId]);
 
-	// Register panels and handle defaultOpen.
-	useEffect(() => {
-		if (!isClient) return;
+  // Register panels and handle defaultOpen.
+  useEffect(() => {
+    if (!isClient) return;
 
-		if (panels?.left && !hasRegistered.current.left) {
-			const existing = sidebarStore.state.sidebars[panels.left.id];
-			const shouldPersist = panels.left.persistOpenState ?? true;
+    if (panels?.left && !hasRegistered.current.left) {
+      const existing = sidebarStore.state.sidebars[panels.left.id];
+      const shouldPersist = panels.left.persistOpenState ?? true;
 
-			if (!existing) {
-				// See isLeftOpen/isRightOpen's own comment above — same mobile
-				// guard, applied here too so a first-ever registration never
-				// PERSISTS `open: true` for a panel that must never have
-				// auto-opened in the first place.
-				sidebarActions.registerSidebar(panels.left.id, {
-					open: isMobile ? false : (panels.left.defaultOpen ?? false),
-					side: "left",
-					variant: "panel",
-					anchored: panels.left.anchored,
-					width: panels.left.width,
-					height: panels.left.height,
-					mobileZoom: panels.left.mobileZoom,
-				});
-			} else {
-				// See syncPanelConfig's doc comment in sidebar-store.ts — this is
-				// NOT optional, skipping it reintroduces the stale-config bug.
-				sidebarActions.syncPanelConfig(panels.left.id, {
-					anchored: panels.left.anchored,
-					width: panels.left.width,
-					height: panels.left.height,
-					mobileZoom: panels.left.mobileZoom,
-				});
-				if (!shouldPersist)
-					sidebarActions.setOpen(panels.left.id, isMobile ? false : (panels.left.defaultOpen ?? false));
-			}
-			if (panels.left.tabs) sidebarActions.setTabs(panels.left.id, panels.left.tabs);
-			if (panels.left.defaultTab) sidebarActions.setActiveTab(panels.left.id, panels.left.defaultTab);
-			hasRegistered.current.left = true;
-		}
+      if (!existing) {
+        // See isLeftOpen/isRightOpen's own comment above — same mobile
+        // guard, applied here too so a first-ever registration never
+        // PERSISTS `open: true` for a panel that must never have
+        // auto-opened in the first place.
+        sidebarActions.registerSidebar(panels.left.id, {
+          open: isMobile ? false : (panels.left.defaultOpen ?? false),
+          side: "left",
+          variant: "panel",
+          anchored: panels.left.anchored,
+          width: panels.left.width,
+          height: panels.left.height,
+          mobileZoom: panels.left.mobileZoom,
+        });
+      } else {
+        // See syncPanelConfig's doc comment in sidebar-store.ts — this is
+        // NOT optional, skipping it reintroduces the stale-config bug.
+        sidebarActions.syncPanelConfig(panels.left.id, {
+          anchored: panels.left.anchored,
+          width: panels.left.width,
+          height: panels.left.height,
+          mobileZoom: panels.left.mobileZoom,
+        });
+        if (!shouldPersist)
+          sidebarActions.setOpen(
+            panels.left.id,
+            isMobile ? false : (panels.left.defaultOpen ?? false),
+          );
+      }
+      if (panels.left.tabs)
+        sidebarActions.setTabs(panels.left.id, panels.left.tabs);
+      if (panels.left.defaultTab)
+        sidebarActions.setActiveTab(panels.left.id, panels.left.defaultTab);
+      hasRegistered.current.left = true;
+    }
 
-		if (panels?.right && !hasRegistered.current.right) {
-			const existing = sidebarStore.state.sidebars[panels.right.id];
-			const shouldPersist = panels.right.persistOpenState ?? true;
+    if (panels?.right && !hasRegistered.current.right) {
+      const existing = sidebarStore.state.sidebars[panels.right.id];
+      const shouldPersist = panels.right.persistOpenState ?? true;
 
-			if (!existing) {
-				sidebarActions.registerSidebar(panels.right.id, {
-					open: isMobile ? false : (panels.right.defaultOpen ?? false),
-					side: "right",
-					variant: "panel",
-					anchored: panels.right.anchored,
-					width: panels.right.width,
-					height: panels.right.height,
-					mobileZoom: panels.right.mobileZoom,
-				});
-			} else {
-				sidebarActions.syncPanelConfig(panels.right.id, {
-					anchored: panels.right.anchored,
-					width: panels.right.width,
-					height: panels.right.height,
-					mobileZoom: panels.right.mobileZoom,
-				});
-				if (!shouldPersist)
-					sidebarActions.setOpen(panels.right.id, isMobile ? false : (panels.right.defaultOpen ?? false));
-			}
-			if (panels.right.tabs) sidebarActions.setTabs(panels.right.id, panels.right.tabs);
-			if (panels.right.defaultTab) sidebarActions.setActiveTab(panels.right.id, panels.right.defaultTab);
-			hasRegistered.current.right = true;
-		}
-	}, [isClient, panels, isMobile]);
+      if (!existing) {
+        sidebarActions.registerSidebar(panels.right.id, {
+          open: isMobile ? false : (panels.right.defaultOpen ?? false),
+          side: "right",
+          variant: "panel",
+          anchored: panels.right.anchored,
+          width: panels.right.width,
+          height: panels.right.height,
+          mobileZoom: panels.right.mobileZoom,
+        });
+      } else {
+        sidebarActions.syncPanelConfig(panels.right.id, {
+          anchored: panels.right.anchored,
+          width: panels.right.width,
+          height: panels.right.height,
+          mobileZoom: panels.right.mobileZoom,
+        });
+        if (!shouldPersist)
+          sidebarActions.setOpen(
+            panels.right.id,
+            isMobile ? false : (panels.right.defaultOpen ?? false),
+          );
+      }
+      if (panels.right.tabs)
+        sidebarActions.setTabs(panels.right.id, panels.right.tabs);
+      if (panels.right.defaultTab)
+        sidebarActions.setActiveTab(panels.right.id, panels.right.defaultTab);
+      hasRegistered.current.right = true;
+    }
+  }, [isClient, panels, isMobile]);
 
-	// Register/unregister this panel's imperative drawer-close handle —
-	// skipped for anchored panels, which never mount an IndentDrawer here.
-	// Deferred (not called directly) while the panel's own open transition
-	// hasn't settled yet — see the settle refs' comment above.
-	useEffect(() => {
-		if (!panels?.left?.id || panels.left.anchored) return;
-		const id = panels.left.id;
-		sidebarActions.registerDrawerHandle(id, {
-			close: () => {
-				if (!leftOpenSettledRef.current) {
-					leftPendingCloseRef.current = true;
-					return;
-				}
-				leftDrawerActionsRef.current?.close();
-			},
-		});
-		return () => sidebarActions.unregisterDrawerHandle(id);
-	}, [panels?.left?.id, panels?.left?.anchored]);
+  // Register/unregister this panel's imperative drawer-close handle —
+  // skipped for anchored panels, which never mount an IndentDrawer here.
+  // Deferred (not called directly) while the panel's own open transition
+  // hasn't settled yet — see the settle refs' comment above.
+  useEffect(() => {
+    if (!panels?.left?.id || panels.left.anchored) return;
+    const id = panels.left.id;
+    sidebarActions.registerDrawerHandle(id, {
+      close: () => {
+        if (!leftOpenSettledRef.current) {
+          leftPendingCloseRef.current = true;
+          return;
+        }
+        leftDrawerActionsRef.current?.close();
+      },
+    });
+    return () => sidebarActions.unregisterDrawerHandle(id);
+  }, [panels?.left?.id, panels?.left?.anchored]);
 
-	useEffect(() => {
-		if (!panels?.right?.id || panels.right.anchored) return;
-		const id = panels.right.id;
-		sidebarActions.registerDrawerHandle(id, {
-			close: () => {
-				if (!rightOpenSettledRef.current) {
-					rightPendingCloseRef.current = true;
-					return;
-				}
-				rightDrawerActionsRef.current?.close();
-			},
-		});
-		return () => sidebarActions.unregisterDrawerHandle(id);
-	}, [panels?.right?.id, panels?.right?.anchored]);
+  useEffect(() => {
+    if (!panels?.right?.id || panels.right.anchored) return;
+    const id = panels.right.id;
+    sidebarActions.registerDrawerHandle(id, {
+      close: () => {
+        if (!rightOpenSettledRef.current) {
+          rightPendingCloseRef.current = true;
+          return;
+        }
+        rightDrawerActionsRef.current?.close();
+      },
+    });
+    return () => sidebarActions.unregisterDrawerHandle(id);
+  }, [panels?.right?.id, panels?.right?.anchored]);
 
-	if (!isClient) {
-		return (
-			<div className={cn("flex h-full w-full items-center justify-center", className)}>
-				<PageLoader />
-			</div>
-		);
-	}
+  if (!isClient) {
+    return (
+      <div
+        className={cn(
+          "flex h-full w-full items-center justify-center",
+          className,
+        )}
+      >
+        <PageLoader />
+      </div>
+    );
+  }
 
-	// Anchored panels render entirely at their own trigger's call site (see
-	// usePanelTrigger's panelPopover) — Page skips them here.
-	const showRightDrawer = panels?.right && !panels.right.anchored;
-	const showLeftDrawer = panels?.left && !panels.left.anchored;
+  // Anchored panels render entirely at their own trigger's call site (see
+  // usePanelTrigger's panelPopover) — Page skips them here.
+  const showRightDrawer = panels?.right && !panels.right.anchored;
+  const showLeftDrawer = panels?.left && !panels.left.anchored;
 
-	// The route's own content needs its own scroll container — neither this
-	// outer wrapper (overflow-hidden, just clips) nor IndentDrawerRegion
-	// below (also overflow-hidden by design — it's clipping the
-	// push-animation area, not limiting content) provide one.
-	let content: React.ReactNode = <div className="min-h-0 flex-1 overflow-y-auto">{children}</div>;
+  // The route's own content needs its own scroll container — neither this
+  // outer wrapper (overflow-hidden, just clips) nor IndentDrawerRegion
+  // below (also overflow-hidden by design — it's clipping the
+  // push-animation area, not limiting content) provide one.
+  let content: React.ReactNode = (
+    <div className="min-h-0 flex-1 overflow-y-auto">{children}</div>
+  );
 
-	if (showRightDrawer && panels?.right) {
-		content = (
-			<IndentDrawerProvider>
-				<div ref={setRightFloatContainer} className="relative min-h-0 flex-1">
-					<IndentDrawerIndentBackground />
-					<IndentDrawerRegion
-						side="right"
-						width={rightWidth}
-						height={panels.right.height}
-						mobileZoom={panels.right.mobileZoom}
-					>
-						{content}
-					</IndentDrawerRegion>
-					<IndentDrawer
-						side="right"
-						open={isRightOpen}
-						modal={rightModal}
-						actionsRef={rightDrawerActionsRef}
-						onOpenChange={(open: boolean) => sidebarActions.setOpen(panels.right!.id, open)}
-						// Base UI's own signal that the open transition genuinely
-						// finished — see the settle refs' comment above for why this
-						// (not a guessed delay) is what gates a deferred close.
-						onOpenChangeComplete={(open: boolean) => {
-							if (!open) return;
-							rightOpenSettledRef.current = true;
-							if (rightPendingCloseRef.current) {
-								rightPendingCloseRef.current = false;
-								rightDrawerActionsRef.current?.close();
-							}
-						}}
-					>
-						<IndentDrawerContent
-							container={rightFloatContainer}
-							backdropContainer={pageRootContainer}
-							side="right"
-							width={rightWidth}
-							height={panels.right.height}
-							modal={rightModal}
-							resizable={panels.right.resizable ?? true}
-							onResize={(px) => sidebarActions.setResizedWidth(panels.right!.id, px)}
-							minWidth={panels.right.minWidth}
-							maxWidth={panels.right.maxWidth}
-						>
-							<PanelContent
-								key={rightLastTriggerId}
-								panelId={panels.right.id}
-								fallbackHeader={panels.right.header}
-								onClose={() => sidebarActions.close(panels.right!.id)}
-							/>
-						</IndentDrawerContent>
-					</IndentDrawer>
-				</div>
-			</IndentDrawerProvider>
-		);
-	}
+  if (showRightDrawer && panels?.right) {
+    content = (
+      <IndentDrawerProvider>
+        <div ref={setRightFloatContainer} className="relative min-h-0 flex-1">
+          <IndentDrawerIndentBackground />
+          <IndentDrawerRegion
+            side="right"
+            width={rightWidth}
+            height={panels.right.height}
+            mobileZoom={panels.right.mobileZoom}
+          >
+            {content}
+          </IndentDrawerRegion>
+          <IndentDrawer
+            side="right"
+            open={isRightOpen}
+            modal={rightModal}
+            actionsRef={rightDrawerActionsRef}
+            onOpenChange={(open: boolean) =>
+              sidebarActions.setOpen(panels.right!.id, open)
+            }
+            // Base UI's own signal that the open transition genuinely
+            // finished — see the settle refs' comment above for why this
+            // (not a guessed delay) is what gates a deferred close.
+            onOpenChangeComplete={(open: boolean) => {
+              if (!open) return;
+              rightOpenSettledRef.current = true;
+              if (rightPendingCloseRef.current) {
+                rightPendingCloseRef.current = false;
+                rightDrawerActionsRef.current?.close();
+              }
+            }}
+          >
+            <IndentDrawerContent
+              container={rightFloatContainer}
+              backdropContainer={pageRootContainer}
+              side="right"
+              width={rightWidth}
+              height={panels.right.height}
+              modal={rightModal}
+              resizable={panels.right.resizable ?? true}
+              onResize={(px) =>
+                sidebarActions.setResizedWidth(panels.right!.id, px)
+              }
+              minWidth={panels.right.minWidth}
+              maxWidth={panels.right.maxWidth}
+            >
+              <PanelContent
+                key={rightLastTriggerId}
+                panelId={panels.right.id}
+                fallbackHeader={panels.right.header}
+                onClose={() => sidebarActions.close(panels.right!.id)}
+              />
+            </IndentDrawerContent>
+          </IndentDrawer>
+        </div>
+      </IndentDrawerProvider>
+    );
+  }
 
-	if (showLeftDrawer && panels?.left) {
-		content = (
-			<IndentDrawerProvider>
-				<div ref={setLeftFloatContainer} className="relative min-h-0 flex-1">
-					<IndentDrawerIndentBackground />
-					<IndentDrawerRegion
-						side="left"
-						width={leftWidth}
-						height={panels.left.height}
-						mobileZoom={panels.left.mobileZoom}
-					>
-						{content}
-					</IndentDrawerRegion>
-					<IndentDrawer
-						side="left"
-						open={isLeftOpen}
-						modal={leftModal}
-						actionsRef={leftDrawerActionsRef}
-						onOpenChange={(open: boolean) => sidebarActions.setOpen(panels.left!.id, open)}
-						onOpenChangeComplete={(open: boolean) => {
-							if (!open) return;
-							leftOpenSettledRef.current = true;
-							if (leftPendingCloseRef.current) {
-								leftPendingCloseRef.current = false;
-								leftDrawerActionsRef.current?.close();
-							}
-						}}
-					>
-						<IndentDrawerContent
-							container={leftFloatContainer}
-							backdropContainer={pageRootContainer}
-							side="left"
-							width={leftWidth}
-							height={panels.left.height}
-							modal={leftModal}
-							resizable={panels.left.resizable ?? true}
-							onResize={(px) => sidebarActions.setResizedWidth(panels.left!.id, px)}
-							minWidth={panels.left.minWidth}
-							maxWidth={panels.left.maxWidth}
-						>
-							<PanelContent
-								key={leftLastTriggerId}
-								panelId={panels.left.id}
-								fallbackHeader={panels.left.header}
-								onClose={() => sidebarActions.close(panels.left!.id)}
-							/>
-						</IndentDrawerContent>
-					</IndentDrawer>
-				</div>
-			</IndentDrawerProvider>
-		);
-	}
+  if (showLeftDrawer && panels?.left) {
+    content = (
+      <IndentDrawerProvider>
+        <div ref={setLeftFloatContainer} className="relative min-h-0 flex-1">
+          <IndentDrawerIndentBackground />
+          <IndentDrawerRegion
+            side="left"
+            width={leftWidth}
+            height={panels.left.height}
+            mobileZoom={panels.left.mobileZoom}
+          >
+            {content}
+          </IndentDrawerRegion>
+          <IndentDrawer
+            side="left"
+            open={isLeftOpen}
+            modal={leftModal}
+            actionsRef={leftDrawerActionsRef}
+            onOpenChange={(open: boolean) =>
+              sidebarActions.setOpen(panels.left!.id, open)
+            }
+            onOpenChangeComplete={(open: boolean) => {
+              if (!open) return;
+              leftOpenSettledRef.current = true;
+              if (leftPendingCloseRef.current) {
+                leftPendingCloseRef.current = false;
+                leftDrawerActionsRef.current?.close();
+              }
+            }}
+          >
+            <IndentDrawerContent
+              container={leftFloatContainer}
+              backdropContainer={pageRootContainer}
+              side="left"
+              width={leftWidth}
+              height={panels.left.height}
+              modal={leftModal}
+              resizable={panels.left.resizable ?? true}
+              onResize={(px) =>
+                sidebarActions.setResizedWidth(panels.left!.id, px)
+              }
+              minWidth={panels.left.minWidth}
+              maxWidth={panels.left.maxWidth}
+            >
+              <PanelContent
+                key={leftLastTriggerId}
+                panelId={panels.left.id}
+                fallbackHeader={panels.left.header}
+                onClose={() => sidebarActions.close(panels.left!.id)}
+              />
+            </IndentDrawerContent>
+          </IndentDrawer>
+        </div>
+      </IndentDrawerProvider>
+    );
+  }
 
-	return (
-		<div ref={setPageRootContainer} className={cn("relative flex h-full w-full flex-col overflow-hidden", className)}>
-			{header && <PageHeader>{header}</PageHeader>}
-			{toolbar && (
-				<div className="flex h-11 shrink-0 items-center gap-1 border-b px-2 md:gap-2 md:px-3">{toolbar}</div>
-			)}
-			{/* No extra wrapping div here on purpose: `content`'s own outermost
+  return (
+    <div
+      ref={setPageRootContainer}
+      className={cn(
+        "relative flex h-full w-full flex-col overflow-hidden",
+        className,
+      )}
+    >
+      {header && <PageHeader>{header}</PageHeader>}
+      {toolbar && (
+        <div className="flex h-11 shrink-0 items-center gap-1 border-b px-2 md:gap-2 md:px-3">
+          {toolbar}
+        </div>
+      )}
+      {/* No extra wrapping div here on purpose: `content`'s own outermost
 			    element already carries `relative min-h-0 flex-1` (set on the
 			    innermost ref={setXFloatContainer} div above, which becomes the
 			    outermost one once any drawer wrapping is applied). An extra
@@ -627,7 +718,7 @@ export function Page({ children, header, toolbar, panels, className }: PageProps
 			    available viewport space — which pushes the portalled drawer
 			    far off-screen on mobile. Direct flex-item child of this
 			    flex-col root is what makes the sizing chain work. */}
-			{content}
-		</div>
-	);
+      {content}
+    </div>
+  );
 }

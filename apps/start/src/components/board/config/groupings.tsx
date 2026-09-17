@@ -1,5 +1,9 @@
 import type { schema } from "@repo/database";
-import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@repo/ui/components/avatar";
 import { getInitials } from "@repo/util";
 import type { ReactNode } from "react";
 import type { TaskGroupingId } from "../filter/types";
@@ -12,50 +16,50 @@ export const NO_RELEASE_GROUP_ID = "__no_release__";
 export const NO_ORG_GROUP_ID = "__no_org__";
 
 export interface BoardTaskGroup {
-	id: string;
-	label: string;
-	icon?: ReactNode;
-	/**
-	 * Semantic header tint for status/priority groups — a Tailwind class
-	 * (e.g. "bg-primary/5") tied to the app's theme tokens, not a raw color,
-	 * so it stays correct across themes. See STATUS_TONE_CLASSES/
-	 * PRIORITY_TONE_CLASSES below.
-	 */
-	toneClassName?: string;
-	/** Raw hex tint for category/release groups — these are user-picked colors with no theme-token equivalent. */
-	color?: string;
-	tasks: schema.TaskWithLabels[];
-	subGroups?: BoardTaskGroup[];
+  id: string;
+  label: string;
+  icon?: ReactNode;
+  /**
+   * Semantic header tint for status/priority groups — a Tailwind class
+   * (e.g. "bg-primary/5") tied to the app's theme tokens, not a raw color,
+   * so it stays correct across themes. See STATUS_TONE_CLASSES/
+   * PRIORITY_TONE_CLASSES below.
+   */
+  toneClassName?: string;
+  /** Raw hex tint for category/release groups — these are user-picked colors with no theme-token equivalent. */
+  color?: string;
+  tasks: schema.TaskWithLabels[];
+  subGroups?: BoardTaskGroup[];
 }
 
 export interface BoardGroupingOptions {
-	categories?: schema.categoryType[];
-	releases?: schema.releaseType[];
-	/**
-	 * When false, the Done/Canceled status groups are dropped from the
-	 * returned array entirely (not left present-but-empty for the UI to
-	 * collapse) — matches the org-scoped system's statusGrouping.group(),
-	 * which does the same .filter() for the identical reason: those two
-	 * statuses ARE "completed", so this toggle is specifically about them,
-	 * not a generic empty-group rule. Applies whenever status is the
-	 * grouping OR the sub-grouping, since both route through this same
-	 * function. Board.tsx already filters completed tasks out of the input
-	 * before grouping, so unlike the old system this doesn't also need to
-	 * re-filter tasks here — only the two group entries themselves.
-	 */
-	showCompletedTasks?: boolean;
+  categories?: schema.categoryType[];
+  releases?: schema.releaseType[];
+  /**
+   * When false, the Done/Canceled status groups are dropped from the
+   * returned array entirely (not left present-but-empty for the UI to
+   * collapse) — matches the org-scoped system's statusGrouping.group(),
+   * which does the same .filter() for the identical reason: those two
+   * statuses ARE "completed", so this toggle is specifically about them,
+   * not a generic empty-group rule. Applies whenever status is the
+   * grouping OR the sub-grouping, since both route through this same
+   * function. Board.tsx already filters completed tasks out of the input
+   * before grouping, so unlike the old system this doesn't also need to
+   * re-filter tasks here — only the two group entries themselves.
+   */
+  showCompletedTasks?: boolean;
 }
 
 const COMPLETED_STATUSES = new Set<StatusValue>(["done", "canceled"]);
 
 function createGroup(
-	id: string,
-	label: string,
-	tasks: schema.TaskWithLabels[],
-	icon?: ReactNode,
-	tone?: { toneClassName?: string; color?: string }
+  id: string,
+  label: string,
+  tasks: schema.TaskWithLabels[],
+  icon?: ReactNode,
+  tone?: { toneClassName?: string; color?: string },
 ): BoardTaskGroup {
-	return { id, label, icon, tasks, ...tone };
+  return { id, label, icon, tasks, ...tone };
 }
 
 // Same theme-token classes the app's existing group-header styling already
@@ -64,75 +68,99 @@ function createGroup(
 // system. Backlog/todo both read as neutral "not started yet" grays; todo is
 // deliberately a shade more present than backlog.
 const STATUS_TONE_CLASSES: Record<StatusValue, string | undefined> = {
-	backlog: "bg-muted/50",
-	todo: "bg-muted",
-	"in-progress": "bg-primary/5",
-	done: "bg-success/5",
-	canceled: "bg-destructive/5",
+  backlog: "bg-muted/50",
+  todo: "bg-muted",
+  "in-progress": "bg-primary/5",
+  done: "bg-success/5",
+  canceled: "bg-destructive/5",
 };
 
 const PRIORITY_TONE_CLASSES: Record<PriorityValue, string | undefined> = {
-	urgent: "bg-destructive/10",
-	high: "bg-orange-800/15",
-	medium: "bg-primary/5",
-	low: "bg-card/5",
-	none: undefined,
+  urgent: "bg-destructive/10",
+  high: "bg-orange-800/15",
+  medium: "bg-primary/5",
+  low: undefined,
+  none: undefined,
 };
 
 function groupByAssignee(tasks: schema.TaskWithLabels[]): BoardTaskGroup[] {
-	const assignees = new Map<string, schema.UserSummary>();
-	for (const task of tasks) {
-		for (const assignee of task.assignees) {
-			assignees.set(assignee.id, assignee);
-		}
-	}
+  const assignees = new Map<string, schema.UserSummary>();
+  for (const task of tasks) {
+    for (const assignee of task.assignees) {
+      assignees.set(assignee.id, assignee);
+    }
+  }
 
-	return [
-		...Array.from(assignees.values()).map((assignee) =>
-			createGroup(
-				assignee.id,
-				assignee.name ?? "Unknown user",
-				tasks.filter((task) => task.assignees.some((taskAssignee) => taskAssignee.id === assignee.id))
-			)
-		),
-		createGroup(
-			UNASSIGNED_GROUP_ID,
-			"Unassigned",
-			tasks.filter((task) => task.assignees.length === 0)
-		),
-	];
+  return [
+    ...Array.from(assignees.values()).map((assignee) =>
+      createGroup(
+        assignee.id,
+        assignee.name ?? "Unknown user",
+        tasks.filter((task) =>
+          task.assignees.some(
+            (taskAssignee) => taskAssignee.id === assignee.id,
+          ),
+        ),
+      ),
+    ),
+    createGroup(
+      UNASSIGNED_GROUP_ID,
+      "Unassigned",
+      tasks.filter((task) => task.assignees.length === 0),
+    ),
+  ];
 }
 
-function groupByCategory(tasks: schema.TaskWithLabels[], categories: schema.categoryType[]): BoardTaskGroup[] {
-	const categoriesById = new Map(categories.map((category) => [category.id, category]));
-	const knownCategoryGroups = categories.map((category) =>
-		createGroup(
-			category.id,
-			category.name,
-			tasks.filter((task) => task.category === category.id),
-			undefined,
-			{ color: category.color ?? undefined }
-		)
-	);
-	const uncategorizedTasks = tasks.filter((task) => !task.category || !categoriesById.has(task.category));
+function groupByCategory(
+  tasks: schema.TaskWithLabels[],
+  categories: schema.categoryType[],
+): BoardTaskGroup[] {
+  const categoriesById = new Map(
+    categories.map((category) => [category.id, category]),
+  );
+  const knownCategoryGroups = categories.map((category) =>
+    createGroup(
+      category.id,
+      category.name,
+      tasks.filter((task) => task.category === category.id),
+      undefined,
+      { color: category.color ?? undefined },
+    ),
+  );
+  const uncategorizedTasks = tasks.filter(
+    (task) => !task.category || !categoriesById.has(task.category),
+  );
 
-	return [...knownCategoryGroups, createGroup(UNCATEGORIZED_GROUP_ID, "Uncategorized", uncategorizedTasks)];
+  return [
+    ...knownCategoryGroups,
+    createGroup(UNCATEGORIZED_GROUP_ID, "Uncategorized", uncategorizedTasks),
+  ];
 }
 
-function groupByRelease(tasks: schema.TaskWithLabels[], releases: schema.releaseType[]): BoardTaskGroup[] {
-	const releasesById = new Map(releases.map((release) => [release.id, release]));
-	const knownReleaseGroups = releases.map((release) =>
-		createGroup(
-			release.id,
-			release.name,
-			tasks.filter((task) => task.releaseId === release.id),
-			undefined,
-			{ color: release.color ?? undefined }
-		)
-	);
-	const noReleaseTasks = tasks.filter((task) => !task.releaseId || !releasesById.has(task.releaseId));
+function groupByRelease(
+  tasks: schema.TaskWithLabels[],
+  releases: schema.releaseType[],
+): BoardTaskGroup[] {
+  const releasesById = new Map(
+    releases.map((release) => [release.id, release]),
+  );
+  const knownReleaseGroups = releases.map((release) =>
+    createGroup(
+      release.id,
+      release.name,
+      tasks.filter((task) => task.releaseId === release.id),
+      undefined,
+      { color: release.color ?? undefined },
+    ),
+  );
+  const noReleaseTasks = tasks.filter(
+    (task) => !task.releaseId || !releasesById.has(task.releaseId),
+  );
 
-	return [...knownReleaseGroups, createGroup(NO_RELEASE_GROUP_ID, "No release", noReleaseTasks)];
+  return [
+    ...knownReleaseGroups,
+    createGroup(NO_RELEASE_GROUP_ID, "No release", noReleaseTasks),
+  ];
 }
 
 /**
@@ -143,88 +171,107 @@ function groupByRelease(tasks: schema.TaskWithLabels[], releases: schema.release
  * being dropped.
  */
 function groupByOrg(tasks: schema.TaskWithLabels[]): BoardTaskGroup[] {
-	const orgs = new Map<string, NonNullable<schema.TaskWithLabels["organization"]>>();
-	for (const task of tasks) {
-		if (task.organization) orgs.set(task.organization.id, task.organization);
-	}
+  const orgs = new Map<
+    string,
+    NonNullable<schema.TaskWithLabels["organization"]>
+  >();
+  for (const task of tasks) {
+    if (task.organization) orgs.set(task.organization.id, task.organization);
+  }
 
-	const knownOrgGroups = Array.from(orgs.values()).map((org) =>
-		createGroup(
-			org.id,
-			org.name,
-			tasks.filter((task) => task.organizationId === org.id),
-			<Avatar className="size-3.5 rounded-sm">
-				<AvatarImage src={org.logo ?? undefined} alt={org.name} />
-				<AvatarFallback className="rounded-sm text-[7px]">{getInitials(org.name)}</AvatarFallback>
-			</Avatar>
-		)
-	);
-	const noOrgTasks = tasks.filter((task) => !task.organization);
+  const knownOrgGroups = Array.from(orgs.values()).map((org) =>
+    createGroup(
+      org.id,
+      org.name,
+      tasks.filter((task) => task.organizationId === org.id),
+      <Avatar className="size-3.5 rounded-sm">
+        <AvatarImage src={org.logo ?? undefined} alt={org.name} />
+        <AvatarFallback className="rounded-sm text-[7px]">
+          {getInitials(org.name)}
+        </AvatarFallback>
+      </Avatar>,
+    ),
+  );
+  const noOrgTasks = tasks.filter((task) => !task.organization);
 
-	return noOrgTasks.length > 0
-		? [...knownOrgGroups, createGroup(NO_ORG_GROUP_ID, "No organization", noOrgTasks)]
-		: knownOrgGroups;
+  return noOrgTasks.length > 0
+    ? [
+        ...knownOrgGroups,
+        createGroup(NO_ORG_GROUP_ID, "No organization", noOrgTasks),
+      ]
+    : knownOrgGroups;
 }
 
 /** Groups board tasks without importing the retired task-view system. */
 export function groupTasks(
-	tasks: schema.TaskWithLabels[],
-	groupBy: TaskGroupingId,
-	{ categories = [], releases = [], showCompletedTasks = true }: BoardGroupingOptions = {}
+  tasks: schema.TaskWithLabels[],
+  groupBy: TaskGroupingId,
+  {
+    categories = [],
+    releases = [],
+    showCompletedTasks = true,
+  }: BoardGroupingOptions = {},
 ): BoardTaskGroup[] {
-	switch (groupBy) {
-		case "status":
-			return (Object.keys(STATUS_CONFIG) as StatusValue[])
-				.filter((status) => showCompletedTasks || !COMPLETED_STATUSES.has(status))
-				.map((status) => {
-					const config = STATUS_CONFIG[status];
-					return createGroup(
-						status,
-						config.label,
-						tasks.filter((task) => task.status === status),
-						// h-3.5 w-3.5 — matches the glyph size FieldStatus/FieldPriority render
-						// on the rows below (field-status.tsx/field-priority.tsx both call
-						// icon("h-3.5 w-3.5")), so the header's icon isn't visibly larger.
-						config.icon("h-3.5 w-3.5"),
-						{ toneClassName: STATUS_TONE_CLASSES[status] }
-					);
-				});
-		case "priority":
-			return (Object.keys(PRIORITY_CONFIG) as PriorityValue[]).map((priority) => {
-				const config = PRIORITY_CONFIG[priority];
-				return createGroup(
-					priority,
-					config.label,
-					tasks.filter((task) => task.priority === priority),
-					// h-3.5 w-3.5 — matches the glyph size FieldStatus/FieldPriority render
-					// on the rows below (field-status.tsx/field-priority.tsx both call
-					// icon("h-3.5 w-3.5")), so the header's icon isn't visibly larger.
-					config.icon("h-3.5 w-3.5"),
-					{ toneClassName: PRIORITY_TONE_CLASSES[priority] }
-				);
-			});
-		case "assignee":
-			return groupByAssignee(tasks);
-		case "category":
-			return groupByCategory(tasks, categories);
-		case "release":
-			return groupByRelease(tasks, releases);
-		case "org":
-			return groupByOrg(tasks);
-	}
+  switch (groupBy) {
+    case "status":
+      return (Object.keys(STATUS_CONFIG) as StatusValue[])
+        .filter(
+          (status) => showCompletedTasks || !COMPLETED_STATUSES.has(status),
+        )
+        .map((status) => {
+          const config = STATUS_CONFIG[status];
+          return createGroup(
+            status,
+            config.label,
+            tasks.filter((task) => task.status === status),
+            // h-3.5 w-3.5 — matches the glyph size FieldStatus/FieldPriority render
+            // on the rows below (field-status.tsx/field-priority.tsx both call
+            // icon("h-3.5 w-3.5")), so the header's icon isn't visibly larger.
+            config.icon("h-3.5 w-3.5"),
+            { toneClassName: STATUS_TONE_CLASSES[status] },
+          );
+        });
+    case "priority":
+      return (Object.keys(PRIORITY_CONFIG) as PriorityValue[]).map(
+        (priority) => {
+          const config = PRIORITY_CONFIG[priority];
+          return createGroup(
+            priority,
+            config.label,
+            tasks.filter((task) => task.priority === priority),
+            // h-3.5 w-3.5 — matches the glyph size FieldStatus/FieldPriority render
+            // on the rows below (field-status.tsx/field-priority.tsx both call
+            // icon("h-3.5 w-3.5")), so the header's icon isn't visibly larger.
+            config.icon("h-3.5 w-3.5"),
+            { toneClassName: PRIORITY_TONE_CLASSES[priority] },
+          );
+        },
+      );
+    case "assignee":
+      return groupByAssignee(tasks);
+    case "category":
+      return groupByCategory(tasks, categories);
+    case "release":
+      return groupByRelease(tasks, releases);
+    case "org":
+      return groupByOrg(tasks);
+  }
 }
 
 /** Applies one optional subgrouping level for the list and kanban board views. */
 export function applyNestedGrouping(
-	tasks: schema.TaskWithLabels[],
-	groupBy: TaskGroupingId,
-	subGroupBy: TaskGroupingId | "none",
-	options: BoardGroupingOptions = {}
+  tasks: schema.TaskWithLabels[],
+  groupBy: TaskGroupingId,
+  subGroupBy: TaskGroupingId | "none",
+  options: BoardGroupingOptions = {},
 ): BoardTaskGroup[] {
-	return groupTasks(tasks, groupBy, options).map((group) => ({
-		...group,
-		subGroups: subGroupBy === "none" ? undefined : groupTasks(group.tasks, subGroupBy, options),
-	}));
+  return groupTasks(tasks, groupBy, options).map((group) => ({
+    ...group,
+    subGroups:
+      subGroupBy === "none"
+        ? undefined
+        : groupTasks(group.tasks, subGroupBy, options),
+  }));
 }
 
 // Same order the status grouping itself uses (backlog → canceled) — reused
@@ -243,9 +290,11 @@ const STATUS_ORDER = Object.keys(STATUS_CONFIG) as StatusValue[];
  * A subtask whose parent isn't in the list (different org, filtered out,
  * etc.) has nowhere to nest under, so it's treated as top-level.
  */
-export function getTopLevelTasks(tasks: schema.TaskWithLabels[]): schema.TaskWithLabels[] {
-	const ids = new Set(tasks.map((task) => task.id));
-	return tasks.filter((task) => !task.parentId || !ids.has(task.parentId));
+export function getTopLevelTasks(
+  tasks: schema.TaskWithLabels[],
+): schema.TaskWithLabels[] {
+  const ids = new Set(tasks.map((task) => task.id));
+  return tasks.filter((task) => !task.parentId || !ids.has(task.parentId));
 }
 
 /**
@@ -254,22 +303,26 @@ export function getTopLevelTasks(tasks: schema.TaskWithLabels[]): schema.TaskWit
  * returns every task in the org as flat rows, subtasks included, so no
  * extra fetch is needed). Sorted with anything not done/canceled first.
  */
-export function buildSubtaskMap(tasks: schema.TaskWithLabels[]): Map<string, schema.TaskWithLabels[]> {
-	const ids = new Set(tasks.map((task) => task.id));
-	const map = new Map<string, schema.TaskWithLabels[]>();
+export function buildSubtaskMap(
+  tasks: schema.TaskWithLabels[],
+): Map<string, schema.TaskWithLabels[]> {
+  const ids = new Set(tasks.map((task) => task.id));
+  const map = new Map<string, schema.TaskWithLabels[]>();
 
-	for (const task of tasks) {
-		if (!task.parentId || !ids.has(task.parentId)) continue;
-		const siblings = map.get(task.parentId) ?? [];
-		siblings.push(task);
-		map.set(task.parentId, siblings);
-	}
+  for (const task of tasks) {
+    if (!task.parentId || !ids.has(task.parentId)) continue;
+    const siblings = map.get(task.parentId) ?? [];
+    siblings.push(task);
+    map.set(task.parentId, siblings);
+  }
 
-	for (const siblings of map.values()) {
-		siblings.sort(
-			(a, b) => STATUS_ORDER.indexOf(a.status as StatusValue) - STATUS_ORDER.indexOf(b.status as StatusValue)
-		);
-	}
+  for (const siblings of map.values()) {
+    siblings.sort(
+      (a, b) =>
+        STATUS_ORDER.indexOf(a.status as StatusValue) -
+        STATUS_ORDER.indexOf(b.status as StatusValue),
+    );
+  }
 
-	return map;
+  return map;
 }
