@@ -15,40 +15,55 @@ const PopoverTrigger = PopoverPrimitive.Trigger;
 // the popover migration report for the one known caller relying on this
 // (`usePanelTrigger` in apps/start).
 function PopoverAnchor({
-	virtualRef: _virtualRef,
-	..._props
-}: { virtualRef?: React.RefObject<{ getBoundingClientRect(): DOMRect } | null> } & React.ComponentProps<"span">) {
-	return null;
+  virtualRef: _virtualRef,
+  ..._props
+}: {
+  virtualRef?: React.RefObject<{ getBoundingClientRect(): DOMRect } | null>;
+} & React.ComponentProps<"span">) {
+  return null;
 }
 
 const PopoverContent = React.forwardRef<
-	React.ElementRef<typeof PopoverPrimitive.Popup>,
-	React.ComponentPropsWithoutRef<typeof PopoverPrimitive.Popup> &
-		Pick<
-			React.ComponentProps<typeof PopoverPrimitive.Positioner>,
-			"align" | "alignOffset" | "side" | "sideOffset" | "anchor"
-		>
->(({ className, align = "center", alignOffset, side, sideOffset = 4, anchor, ...props }, ref) => (
-	<PopoverPrimitive.Portal container={overlayPortalContainer}>
-		<PopoverPrimitive.Positioner
-			align={align}
-			alignOffset={alignOffset}
-			side={side}
-			sideOffset={sideOffset}
-			anchor={anchor}
-			className="isolate z-50"
-		>
-			<PopoverPrimitive.Popup
-				ref={ref}
-				className={cn(
-					"z-50 w-72 rounded-xl! border bg-popover p-4 text-popover-foreground shadow-md outline-none data-open:animate-in data-closed:animate-out data-closed:fade-out-0 data-open:fade-in-0 data-closed:zoom-out-95 data-open:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 origin-(--transform-origin)",
-					className
-				)}
-				{...props}
-			/>
-		</PopoverPrimitive.Positioner>
-	</PopoverPrimitive.Portal>
-));
+  React.ElementRef<typeof PopoverPrimitive.Popup>,
+  React.ComponentPropsWithoutRef<typeof PopoverPrimitive.Popup> &
+    Pick<
+      React.ComponentProps<typeof PopoverPrimitive.Positioner>,
+      "align" | "alignOffset" | "side" | "sideOffset" | "anchor"
+    >
+>(
+  (
+    {
+      className,
+      align = "center",
+      alignOffset,
+      side,
+      sideOffset = 4,
+      anchor,
+      ...props
+    },
+    ref,
+  ) => (
+    <PopoverPrimitive.Portal container={overlayPortalContainer}>
+      <PopoverPrimitive.Positioner
+        align={align}
+        alignOffset={alignOffset}
+        side={side}
+        sideOffset={sideOffset}
+        anchor={anchor}
+        className="isolate z-50"
+      >
+        <PopoverPrimitive.Popup
+          ref={ref}
+          className={cn(
+            "z-50 w-72 rounded-xl! border bg-popover p-2 text-popover-foreground shadow-md outline-none data-open:animate-in data-closed:animate-out data-closed:fade-out-0 data-open:fade-in-0 data-closed:zoom-out-95 data-open:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 origin-(--transform-origin)",
+            className,
+          )}
+          {...props}
+        />
+      </PopoverPrimitive.Positioner>
+    </PopoverPrimitive.Portal>
+  ),
+);
 PopoverContent.displayName = "PopoverContent";
 
 export { Popover, PopoverTrigger, PopoverAnchor, PopoverContent };

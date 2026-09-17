@@ -56,26 +56,30 @@ export default function AdminHomePage({
     <>
       <PageHeader.Identity
         actions={
-          <Button
-            type="button"
-            onClick={() =>
-              panel.isOpen
-                ? closePanel(LANDER_PANEL_ID)
-                : sidebarActions.setOpen(LANDER_PANEL_ID, true)
-            }
-            title={panel.isOpen ? "Close side panel" : "Open side panel"}
-            variant="accent"
-            className={cn(
-              "gap-2 h-6 w-fit bg-accent border-transparent p-1",
-              !panel.isOpen && "bg-transparent",
-            )}
-          >
-            {panel.isOpen ? (
-              <IconLayoutSidebarRightFilled className="size-4" />
-            ) : (
-              <IconLayoutSidebarRight className="size-4" />
-            )}
-          </Button>
+          <>
+            <BoardViewOptions />
+            <Button
+              type="button"
+              onClick={() =>
+                panel.isOpen
+                  ? closePanel(LANDER_PANEL_ID)
+                  : sidebarActions.setOpen(LANDER_PANEL_ID, true)
+              }
+              title={panel.isOpen ? "Close side panel" : "Open side panel"}
+              variant="accent"
+              size={"sm"}
+              className={cn(
+                "gap-2 h-6 w-6 bg-accent border-transparent p-1",
+                !panel.isOpen && "bg-transparent",
+              )}
+            >
+              {panel.isOpen ? (
+                <IconLayoutSidebarRightFilled className="size-4" />
+              ) : (
+                <IconLayoutSidebarRight className="size-4" />
+              )}
+            </Button>
+          </>
         }
       >
         <Button
