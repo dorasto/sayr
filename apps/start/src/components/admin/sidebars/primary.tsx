@@ -15,6 +15,7 @@ import { Kbd } from "@repo/ui/components/kbd";
 import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
 import { cn } from "@repo/ui/lib/utils";
 import {
+	IconBuilding,
 	IconLayoutSidebar,
 	IconLayoutSidebarFilled,
 	IconPlus,
@@ -23,6 +24,7 @@ import {
 } from "@tabler/icons-react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useStore } from "@tanstack/react-store";
+import { useState } from "react";
 import { useLayoutData } from "@/components/admin/shell/context";
 import { StatusBar } from "@/components/generic/status";
 import CreateOrganizationDialog from "@/components/organization/create-organization-dialog";
@@ -33,6 +35,7 @@ import { sidebarActions, sidebarStore } from "@/lib/sidebar/sidebar-store";
 import { notificationStore } from "@/lib/stores/notification-store";
 import { FavouritesSection } from "./favourites-section";
 import OrgSection from "./primary-org";
+import { SidebarGroupToggle } from "./sidebar-group-toggle";
 import UserDropdown from "./user-dropdown";
 export function PrimarySidebar() {
 	const sidebarId = "primary-sidebar";
@@ -45,6 +48,7 @@ export function PrimarySidebar() {
 	const sidebar = useStore(sidebarStore, (state) => state.sidebars[sidebarId]);
 	const isSidebarOpen = sidebar?.open ?? true;
 	const inboxCount = useStore(notificationStore, (state) => state.unreadCount);
+	const [organizationsOpen, setOrganizationsOpen] = useState(true);
 	const closeMobileSidebar = () => {
 		if (isMobile) {
 			sidebarActions.setOpenForBreakpoint(sidebarId, false, true);
@@ -153,24 +157,42 @@ export function PrimarySidebar() {
 				))}
 				<FavouritesSection isSidebarOpen={isSidebarOpen} />
 				<SidebarGroup>
-					<SidebarGroupLabel className={cn(isSidebarOpen ? "" : "hidden")}>Organizations</SidebarGroupLabel>
-
-					<SidebarMenu className={cn("org-sidebar-menu", isSidebarOpen && "gap-0.5")}>
-						{organizations
-							.flatMap((org) => [
-								<OrgSection closeMobileSidebar={closeMobileSidebar} key={org.id} organization={org} />,
-							])
-							.filter(Boolean)}
-						<SidebarMenuItem className="min-h-auto">
-							<CreateOrganizationDialog
-								trigger={
-									<SidebarMenuButton size="small" tooltip="Create Organization" icon={<IconPlus size={16} />}>
-										<span>Create</span>
-									</SidebarMenuButton>
-								}
-							/>
-						</SidebarMenuItem>
-					</SidebarMenu>
+					{(() => {
+						const orgList = (
+							<SidebarMenu className={cn("org-sidebar-menu", isSidebarOpen && "gap-0.5")}>
+								{organizations
+									.flatMap((org) => [
+										<OrgSection closeMobileSidebar={closeMobileSidebar} key={org.id} organization={org} />,
+									])
+									.filter(Boolean)}
+								<SidebarMenuItem className="min-h-auto">
+									<CreateOrganizationDialog
+										trigger={
+											<SidebarMenuButton
+												size="small"
+												tooltip="Create Organization"
+												icon={<IconPlus size={16} />}
+											>
+												<span>Create</span>
+											</SidebarMenuButton>
+										}
+									/>
+								</SidebarMenuItem>
+							</SidebarMenu>
+						);
+						return isSidebarOpen ? (
+							<SidebarGroupToggle
+								label="Organizations"
+								icon={<IconBuilding />}
+								open={organizationsOpen}
+								onOpenChange={setOrganizationsOpen}
+							>
+								{orgList}
+							</SidebarGroupToggle>
+						) : (
+							orgList
+						);
+					})()}
 				</SidebarGroup>
 			</SidebarContent>
 			<SidebarFooter className="border-t-transparent">
