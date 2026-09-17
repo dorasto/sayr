@@ -141,10 +141,10 @@ export function BoardKanbanView({ tasks }: BoardKanbanViewProps) {
 				<GridBoardColumns className="">{(column) => <GridBoardColumnHeader column={column} />}</GridBoardColumns>
 				{rows ? (
 					<GridBoardRows>
-						{(row) => (
+						{(row, _columns, isLast) => (
 							<div key={row.id}>
 								<GridBoardRowHeader row={row} />
-								<GridBoardCells<BoardGridItem> rowId={row.id}>
+								<GridBoardCells<BoardGridItem> rowId={row.id} isLast={isLast}>
 									{(item) => (
 										<GridBoardItem key={item.id} item={item}>
 											<BoardCard task={item.task} />

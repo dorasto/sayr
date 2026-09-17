@@ -14,7 +14,6 @@ import {
 } from "@dnd-kit/core";
 import { SortableContext, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Badge } from "@repo/ui/components/badge";
 import { cn } from "@repo/ui/lib/utils";
 import { createContext, type HTMLAttributes, type ReactNode, useContext, useState } from "react";
 import { createPortal } from "react-dom";
@@ -302,12 +301,12 @@ export function GridBoardProvider<
 							// Grid mode: column layout, fit content width
 							!isKanbanMode && "flex flex-col min-w-full w-fit",
 							// Kanban mode: row layout for columns, fill height, fit content width but at least full width
-							isKanbanMode && "flex flex-col flex-1 min-h-0 min-w-full w-fit",
-							// With rows (sub-grouping), column headers stand alone as complete pills with a
-							// gap before the first row-band. Without rows, the gap is zero on purpose — the
-							// column header and its single cells row are meant to read as one attached piece
-							// (see GridBoardColumnHeader/GridBoardDroppableCell's matching flat-edge rounding).
-							hasRows && "gap-3"
+							isKanbanMode && "flex flex-col flex-1 min-h-0 min-w-full w-fit"
+							// Always zero gap here — the column header attaches directly into whatever's
+							// beneath it (the single cells row with no sub-grouping, or the row-band stack
+							// with it) so the whole column reads as one continuous piece, never a floating
+							// pill sitting above a gap (see GridBoardColumnHeader/GridBoardRowHeader/
+							// GridBoardCells' matching flat-edge rounding and zero inter-row gap).
 						)}
 					>
 						{children}
@@ -361,17 +360,13 @@ export type GridBoardColumnHeaderProps = HTMLAttributes<HTMLDivElement> & {
 };
 
 export function GridBoardColumnHeader({ column, className, ...props }: GridBoardColumnHeaderProps) {
-	const { rows } = useGridBoardContext();
-	const hasRows = !!rows && rows.length > 0;
 	return (
 		<div
 			className={cn(
-				"flex items-center justify-between px-3.5 py-2.5 bg-muted border border-border min-w-[280px] flex-1 gap-2",
-				// With rows, this header stands alone (full rounding) — the row-band below has its own
-				// header that attaches to its own cells instead. Without rows, it attaches directly to the
-				// single cells row beneath it (flat bottom, no bottom border, zero gap — see the provider's
-				// own conditional gap above and GridBoardDroppableCell's matching flat top).
-				hasRows ? "rounded-xl" : "rounded-t-xl",
+				// Always flat-bottomed and attached directly to whatever's beneath it, zero gap,
+				// zero standalone rounding — matches Linear-style boards where the column header
+				// falls straight into the body below rather than floating as its own rounded pill.
+				"flex items-center justify-between px-3.5 py-2.5 bg-muted border border-border min-w-[280px] flex-1 gap-2 rounded-t-xl",
 				className
 			)}
 			{...props}
@@ -393,7 +388,8 @@ export type GridBoardRowsProps<
 	TRow extends GridBoardRowData = GridBoardRowData,
 	TColumn extends GridBoardColumnData = GridBoardColumnData,
 > = Omit<HTMLAttributes<HTMLDivElement>, "children"> & {
-	children: (row: TRow, columns: TColumn[]) => ReactNode;
+	/** `isLast` marks the final row-band so its cells can close off the column's bottom rounding/border. */
+	children: (row: TRow, columns: TColumn[], isLast: boolean) => ReactNode;
 };
 
 export function GridBoardRows<
@@ -407,8 +403,10 @@ export function GridBoardRows<
 	}
 
 	return (
-		<div className={cn("flex flex-col gap-3", className)} {...props}>
-			{rows.map((row) => children(row, columns))}
+		// Zero gap — row-bands stack continuously beneath the column header (falls inline, "goes
+		// together") instead of reading as separate floating cards.
+		<div className={cn("flex flex-col", className)} {...props}>
+			{rows.map((row, index) => children(row, columns, index === rows.length - 1))}
 		</div>
 	);
 }
@@ -428,17 +426,16 @@ export function GridBoardRowHeader({ row, count, className, ...props }: GridBoar
 	return (
 		<div
 			className={cn(
-				// A sub-group header is a secondary level, not a peer of GridBoardColumnHeader — same
-				// attached-card mechanic (flat bottom, zero gap into the cells below) but deliberately
-				// lighter weight (bg-background not bg-muted, smaller text, plain count not a Badge),
-				// matching board-list-view's own sub-group header convention (group-header.tsx) instead
-				// of competing visually with the real column headers above it.
-				// top-[54px] = GridBoardColumns' own height (42px, measured live) + the gap-3 (12px) the
-				// provider renders before the row-band stack. Without adding that 12px back in here, this
-				// header would pin flush against the column headers only once scrolled, while sitting a
-				// visible 12px below them at rest — the gap would inconsistently vanish as you scroll
-				// instead of staying constant.
-				"flex items-center gap-1.5 px-2.5 py-1.5 rounded-t-xl bg-background border border-b-0 border-border/40 sticky top-[54px] z-20",
+				// A sub-group header is a secondary level, not a peer of GridBoardColumnHeader —
+				// deliberately lighter weight (bg-background not bg-muted, smaller text, plain count
+				// not a Badge), matching board-list-view's own sub-group header convention
+				// (group-header.tsx) instead of competing visually with the real column headers above.
+				// No top/bottom border or rounding of its own — it's always sandwiched flush (zero gap)
+				// between either the column header or the previous row-band's cells above, and its own
+				// cells below, so only the side borders continue that seam. top-[42px] matches
+				// GridBoardColumns' own height (measured live) so whichever row-band is currently
+				// "active" pins directly under the column headers with no visible gap.
+				"flex items-center gap-1.5 px-2.5 py-1.5 bg-background border-x border-border/40 sticky top-[42px] z-20",
 				className
 			)}
 			{...props}
@@ -462,6 +459,8 @@ export type GridBoardCellsProps<
 > = Omit<HTMLAttributes<HTMLDivElement>, "children"> & {
 	/** The row ID to get items for (undefined = no row grouping) */
 	rowId?: string;
+	/** Marks the last row-band so its strip closes off the column's bottom rounding/border. Ignored without rows. */
+	isLast?: boolean;
 	/** Render function for each item in a cell */
 	children: (item: TItem, column: TColumn, rowId?: string) => ReactNode;
 	/** Render empty cell content */
@@ -471,7 +470,7 @@ export type GridBoardCellsProps<
 export function GridBoardCells<
 	TItem extends GridBoardItemBase = GridBoardItemBase,
 	TColumn extends GridBoardColumnData = GridBoardColumnData,
->({ rowId, children, renderEmpty, className, ...props }: GridBoardCellsProps<TItem, TColumn>) {
+>({ rowId, isLast, children, renderEmpty, className, ...props }: GridBoardCellsProps<TItem, TColumn>) {
 	const { columns, getItemsForCell, mode, rows } = useGridBoardContext<TItem, TColumn>();
 	const isKanbanMode = mode === "kanban";
 	const hasRows = !!rows && rows.length > 0;
@@ -484,13 +483,18 @@ export function GridBoardCells<
 			className={cn(
 				"flex",
 				// With rows (sub-grouping), a row-band's cells read as one continuous strip —
-				// shared rounding/border/background, thin dividers between columns — so they
-				// pair correctly with the single continuous GridBoardRowHeader above instead of
-				// fragmenting into separately-boxed, gapped columns under one unbroken bar.
-				// Without rows, each column keeps its own fully-rounded attached box (see
-				// GridBoardDroppableCell).
+				// shared border/background, thin dividers between columns — so they pair correctly
+				// with the single continuous GridBoardRowHeader above instead of fragmenting into
+				// separately-boxed, gapped columns under one unbroken bar. No top border/rounding
+				// ever (flush into the header above); bottom rounding/border only on the last
+				// row-band, so the whole column closes into one shape instead of every band
+				// individually rounding at each internal seam. Without rows, each column keeps its
+				// own fully-rounded attached box (see GridBoardDroppableCell).
 				hasRows
-					? "divide-x divide-border/40 rounded-b-xl rounded-t-none border border-t-0 border-border/40 bg-muted/60 overflow-hidden"
+					? cn(
+							"divide-x divide-border/40 border-x border-border/40 bg-muted/60 overflow-hidden",
+							isLast ? "rounded-b-xl border-b" : "border-b-0"
+						)
 					: "gap-3",
 				isKanbanMode && "flex-1 min-h-0",
 				className
