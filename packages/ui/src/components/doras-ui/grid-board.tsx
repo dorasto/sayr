@@ -14,6 +14,7 @@ import {
 } from "@dnd-kit/core";
 import { SortableContext, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { ScrollArea } from "@repo/ui/components/scroll-area";
 import { cn } from "@repo/ui/lib/utils";
 import { createContext, type HTMLAttributes, type ReactNode, useContext, useState } from "react";
 import { createPortal } from "react-dom";
@@ -557,35 +558,42 @@ function GridBoardDroppableCell({ cellId, isEmpty, isKanbanMode, hasRows, childr
 	const { isOver, setNodeRef } = useDroppable({
 		id: cellId,
 	});
+	const usesCustomScrollbar = isKanbanMode || hasRows;
+	const cellClassName = cn(
+		"min-w-[280px] flex-1 transition-colors",
+		// No rows: this cell is its own attached card, flat-topped directly beneath
+		// GridBoardColumnHeader. With rows: the shared strip wrapper in GridBoardCells
+		// owns the rounding/border/background for the whole row-band instead — this is
+		// just a plain divided slot within it (see GridBoardCells' hasRows branch).
+		hasRows ? "bg-transparent" : "rounded-b-xl rounded-t-none bg-background border border-t-0 border-border",
+		isOver && "bg-primary/10 ring-1 ring-primary/30 ring-inset",
+		// Grid mode: minimal height when empty
+		!isKanbanMode && isEmpty && "min-h-[40px]",
+		// Kanban mode: full height with independent Y scroll. No h-full here on
+		// purpose — height:100% doesn't reliably resolve against this row's
+		// flex-grow-derived height in every nesting this renders inside (reproduced:
+		// columns silently shrink-to-content instead of stretching). min-h-0 +
+		// default align-items:stretch (row's cross axis) does the same job without
+		// depending on percentage-height resolution.
+		isKanbanMode && "min-h-0",
+		// With rows, the page itself scrolls (mode is "grid" whenever there's sub-grouping —
+		// see board-kanban-view.tsx's mode switch), so a row-band's cards can't rely on a
+		// flex-derived remaining-viewport-height the way plain kanban's columns do. A fixed
+		// max-height + its own independent scroll keeps each row-band feeling like a normal
+		// kanban column instead of growing the whole page to fit every card.
+		hasRows && "max-h-[420px]"
+	);
+
+	if (usesCustomScrollbar) {
+		return (
+			<ScrollArea ref={setNodeRef} className={cellClassName}>
+				<div className="flex min-h-full flex-col gap-2.5 p-2.5">{children}</div>
+			</ScrollArea>
+		);
+	}
 
 	return (
-		<div
-			ref={setNodeRef}
-			className={cn(
-				"min-w-[280px] flex-1 flex flex-col gap-2.5 p-2.5 transition-colors",
-				// No rows: this cell is its own attached card, flat-topped directly beneath
-				// GridBoardColumnHeader. With rows: the shared strip wrapper in GridBoardCells
-				// owns the rounding/border/background for the whole row-band instead — this is
-				// just a plain divided slot within it (see GridBoardCells' hasRows branch).
-				hasRows ? "bg-transparent" : "rounded-b-xl rounded-t-none bg-background border border-t-0 border-border",
-				isOver && "bg-primary/10 ring-1 ring-primary/30 ring-inset",
-				// Grid mode: minimal height when empty
-				!isKanbanMode && isEmpty && "min-h-[40px]",
-				// Kanban mode: full height with independent Y scroll. No h-full here on
-				// purpose — height:100% doesn't reliably resolve against this row's
-				// flex-grow-derived height in every nesting this renders inside (reproduced:
-				// columns silently shrink-to-content instead of stretching). min-h-0 +
-				// default align-items:stretch (row's cross axis) does the same job without
-				// depending on percentage-height resolution.
-				isKanbanMode && "overflow-y-auto min-h-0",
-				// With rows, the page itself scrolls (mode is "grid" whenever there's sub-grouping —
-				// see board-kanban-view.tsx's mode switch), so a row-band's cards can't rely on a
-				// flex-derived remaining-viewport-height the way plain kanban's columns do. A fixed
-				// max-height + its own independent scroll keeps each row-band feeling like a normal
-				// kanban column instead of growing the whole page to fit every card.
-				hasRows && "max-h-[420px] overflow-y-auto"
-			)}
-		>
+		<div ref={setNodeRef} className={cn(cellClassName, "flex flex-col gap-2.5 p-2.5")}>
 			{children}
 		</div>
 	);
