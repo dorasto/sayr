@@ -2,6 +2,7 @@ import type { DragEndEvent } from "@dnd-kit/core";
 import { closestCenter, DndContext, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import type { schema } from "@repo/database";
 import {
 	SidebarGroup,
 	SidebarGroupLabel,
@@ -10,7 +11,6 @@ import {
 	SidebarMenuItem,
 } from "@repo/ui/components/doras-ui/sidebar";
 import { cn } from "@repo/ui/lib/utils";
-import type { schema } from "@repo/database";
 import { IconGripVertical, IconPinnedOff } from "@tabler/icons-react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useStore } from "@tanstack/react-store";
@@ -19,6 +19,9 @@ import { useTasksSearchParams } from "@/hooks/useTasksSearchParams";
 import { personalViewsActions, personalViewsStore } from "@/lib/stores/personal-views-store";
 
 const DEFAULT_VIEW_ICON = "IconBookmark";
+// Matches view-icon-color-trigger.tsx's own DEFAULT_VIEW_COLOR — duplicated locally the same
+// way DEFAULT_VIEW_ICON above already is, rather than importing from board/** into the sidebar.
+const DEFAULT_VIEW_COLOR = "hsla(38, 92%, 50%, 1)";
 
 function FavouriteRow({
 	view,
@@ -76,9 +79,9 @@ function FavouriteRow({
 						icon={
 							<RenderIcon
 								iconName={view.viewConfig?.icon || DEFAULT_VIEW_ICON}
-								color={view.viewConfig?.color}
-								size={16}
-								raw
+								color={view.viewConfig?.color || DEFAULT_VIEW_COLOR}
+								button
+								className="size-5 rounded-md [&_svg]:size-3 shrink-0"
 							/>
 						}
 					>
