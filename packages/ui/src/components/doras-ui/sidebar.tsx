@@ -310,7 +310,7 @@ export function SidebarMenuItem({
 			className={cn(
 				"relative duration-150 flex w-full items-center gap-1 shrink-0 px-1 min-h-10",
 				"flex w-full items-center gap-3 transition-all justify-start text-left flex-1 group/item rounded-lg text-sm",
-
+				"text-muted-foreground",
 				"hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
 				"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
 				isActive && "bg-sidebar-accent font-medium text-sidebar-accent-foreground",
@@ -419,7 +419,7 @@ export function SidebarSubmenu({
 			type="button"
 			onClick={() => !isCollapsed && !forcePopup && setIsOpen(!isOpen)}
 			className={cn(
-				"flex w-full min-w-full items-center gap-3 text-inherit duration-150 transition-all justify-start text-left flex-1 rounded-lg p-2",
+				"flex w-full min-w-full items-center gap-3 text-muted-foreground duration-150 transition-all justify-start text-left flex-1 rounded-lg p-2",
 				"hover:bg-sidebar-accent hover:font-medium hover:text-sidebar-accent-foreground",
 				"focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-transparent",
 				!isCollapsed && isOpen && "bg-sidebar-accent font-medium text-sidebar-accent-foreground"
@@ -481,6 +481,7 @@ export function SidebarSubmenuItem({
 			data-active={isActive}
 			className={cn(
 				"flex w-full items-center gap-2 rounded-md px-3 py-1.5 text-sm transition-colors",
+				"text-muted-foreground",
 				"hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
 				"focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-transparent",
 				isActive && "bg-sidebar-accent font-medium text-sidebar-accent-foreground",
