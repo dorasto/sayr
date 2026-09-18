@@ -257,7 +257,7 @@ export function FavouritesSection({ isSidebarOpen }: { isSidebarOpen: boolean })
 	return (
 		<SidebarGroupToggle
 			label="Favourites"
-			icon={<IconBookmark />}
+			icon={<IconBookmark size={16} />}
 			open={favouritesOpen}
 			onOpenChange={setFavouritesOpen}
 		>

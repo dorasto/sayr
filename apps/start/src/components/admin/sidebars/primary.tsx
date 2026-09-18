@@ -183,7 +183,7 @@ export function PrimarySidebar() {
 						return isSidebarOpen ? (
 							<SidebarGroupToggle
 								label="Organizations"
-								icon={<IconBuilding />}
+								icon={<IconBuilding size={16} />}
 								open={organizationsOpen}
 								onOpenChange={setOrganizationsOpen}
 							>
