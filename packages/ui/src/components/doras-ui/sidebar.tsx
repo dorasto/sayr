@@ -364,8 +364,15 @@ export function SidebarMenuButton({
 			type="button"
 			data-active={isActive}
 			className={cn(
-				"flex w-full items-center gap-3 text-inherit transition-all justify-start text-left flex-1 rounded-lg p-2 min-h-10",
-				"",
+				"flex w-full items-center gap-3 transition-all justify-start text-left flex-1 rounded-lg p-2 min-h-10",
+				// Explicit color here, not text-inherit — this is the actual visible text, so it needs
+				// its own transition driven by the exact same :hover/data-active state change as the
+				// wrapping SidebarMenuItem's own background, not a value it merely inherits (and which
+				// would then be re-animated a second time on the way down through this element's own
+				// transition, reading as a lag between the two). group/item comes from that wrapping
+				// SidebarMenuItem — see its own className.
+				"text-muted-foreground group-hover/item:text-sidebar-accent-foreground",
+				"group-data-[active=true]/item:font-medium group-data-[active=true]/item:text-sidebar-accent-foreground",
 				"focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-transparent",
 				size === "large" && "font-semibold py-3",
 				size === "small" && "text-sm min-h-auto p-1",
