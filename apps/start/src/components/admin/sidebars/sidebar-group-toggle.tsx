@@ -1,17 +1,24 @@
 "use client";
 
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@repo/ui/components/collapsible";
-import { SidebarMenuButton, SidebarMenuItem } from "@repo/ui/components/doras-ui/sidebar";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@repo/ui/components/collapsible";
+import {
+  SidebarMenuButton,
+  SidebarMenuItem,
+} from "@repo/ui/components/doras-ui/sidebar";
 import { cn } from "@repo/ui/lib/utils";
 import { IconChevronRight } from "@tabler/icons-react";
 import type { ReactNode } from "react";
 
 interface SidebarGroupToggleProps {
-	label: string;
-	icon: ReactNode;
-	open: boolean;
-	onOpenChange: (open: boolean) => void;
-	children: ReactNode;
+  label: string;
+  icon: ReactNode;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  children: ReactNode;
 }
 
 /**
@@ -24,24 +31,41 @@ interface SidebarGroupToggleProps {
  * doesn't use this at all — see favourites-section.tsx's own icon+flyout-dropdown handling
  * for that case instead.
  */
-export function SidebarGroupToggle({ label, icon, open, onOpenChange, children }: SidebarGroupToggleProps) {
-	return (
-		<Collapsible open={open} onOpenChange={onOpenChange} className="flex flex-col gap-0.5">
-			<SidebarMenuItem className="min-h-auto">
-				<CollapsibleTrigger
-					render={
-						<SidebarMenuButton size="small" className="w-full" icon={icon}>
-							<span className="flex w-full items-center justify-between gap-2">
-								<span className="truncate">{label}</span>
-								<IconChevronRight
-									className={cn("size-3.5 shrink-0 transition-transform duration-200", open && "rotate-90")}
-								/>
-							</span>
-						</SidebarMenuButton>
-					}
-				/>
-			</SidebarMenuItem>
-			<CollapsibleContent>{children}</CollapsibleContent>
-		</Collapsible>
-	);
+export function SidebarGroupToggle({
+  label,
+  icon,
+  open,
+  onOpenChange,
+  children,
+}: SidebarGroupToggleProps) {
+  return (
+    <Collapsible
+      open={open}
+      onOpenChange={onOpenChange}
+      className="flex flex-col gap-0.5"
+    >
+      <SidebarMenuItem className="min-h-auto">
+        <CollapsibleTrigger
+          render={
+            <SidebarMenuButton
+              size="small"
+              className="w-fit text-muted-foreground"
+              icon={icon}
+            >
+              <span className="flex w-full items-center justify-between gap-2">
+                <span className="truncate">{label}</span>
+                <IconChevronRight
+                  className={cn(
+                    "size-3.5 shrink-0 transition-transform duration-200",
+                    open && "rotate-90",
+                  )}
+                />
+              </span>
+            </SidebarMenuButton>
+          }
+        />
+      </SidebarMenuItem>
+      <CollapsibleContent>{children}</CollapsibleContent>
+    </Collapsible>
+  );
 }

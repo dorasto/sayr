@@ -1,16 +1,32 @@
 import type { DragEndEvent } from "@dnd-kit/core";
-import { closestCenter, DndContext, MouseSensor, TouchSensor, useSensor, useSensors } from "@dnd-kit/core";
-import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import {
+  closestCenter,
+  DndContext,
+  MouseSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import type { schema } from "@repo/database";
-import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@repo/ui/components/doras-ui/sidebar";
 import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuGroup,
-	DropdownMenuItem,
-	DropdownMenuLabel,
-	DropdownMenuTrigger,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+} from "@repo/ui/components/doras-ui/sidebar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
 } from "@repo/ui/components/dropdown-menu";
 import { cn } from "@repo/ui/lib/utils";
 import { IconBookmark, IconPinnedOff } from "@tabler/icons-react";
@@ -20,7 +36,10 @@ import type React from "react";
 import { useRef, useState } from "react";
 import RenderIcon from "@/components/generic/RenderIcon";
 import { useTasksSearchParams } from "@/hooks/useTasksSearchParams";
-import { personalViewsActions, personalViewsStore } from "@/lib/stores/personal-views-store";
+import {
+  personalViewsActions,
+  personalViewsStore,
+} from "@/lib/stores/personal-views-store";
 import { SidebarGroupToggle } from "./sidebar-group-toggle";
 
 // Same activation distance the row's own MouseSensor uses below — dnd-kit's built-in
@@ -39,109 +58,116 @@ const DEFAULT_VIEW_COLOR = "hsla(38, 92%, 50%, 1)";
 const VIEW_ICON_SWATCH_CLASS = "size-5 rounded-md [&_svg]:size-3 shrink-0";
 
 function useViewNavigate(isOnHomePage: boolean) {
-	const { setSearchParams } = useTasksSearchParams();
-	return (targetSlug: string, event: { preventDefault: () => void }) => {
-		if (!isOnHomePage) return;
-		// Already on /home — write the URL directly instead of a full router navigation.
-		// TanStack Router's navigate() pipeline is async even for a same-route, search-only
-		// change, and racing it against rapid clicks left the URL and the actually-applied
-		// view/panel out of sync until an unrelated re-render happened to catch up. This
-		// mirrors exactly what useBoardViewState's own selectView() already does for the same
-		// reason.
-		event.preventDefault();
-		setSearchParams({ view: targetSlug, filters: null, category: null });
-	};
+  const { setSearchParams } = useTasksSearchParams();
+  return (targetSlug: string, event: { preventDefault: () => void }) => {
+    if (!isOnHomePage) return;
+    // Already on /home — write the URL directly instead of a full router navigation.
+    // TanStack Router's navigate() pipeline is async even for a same-route, search-only
+    // change, and racing it against rapid clicks left the URL and the actually-applied
+    // view/panel out of sync until an unrelated re-render happened to catch up. This
+    // mirrors exactly what useBoardViewState's own selectView() already does for the same
+    // reason.
+    event.preventDefault();
+    setSearchParams({ view: targetSlug, filters: null, category: null });
+  };
 }
 
 function FavouriteRow({
-	view,
-	isActive,
-	isOnHomePage,
+  view,
+  isActive,
+  isOnHomePage,
 }: {
-	view: schema.savedViewType;
-	isActive: boolean;
-	isOnHomePage: boolean;
+  view: schema.savedViewType;
+  isActive: boolean;
+  isOnHomePage: boolean;
 }) {
-	const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: view.id });
-	const navigate = useViewNavigate(isOnHomePage);
-	const targetSlug = view.slug || view.id;
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: view.id });
+  const navigate = useViewNavigate(isOnHomePage);
+  const targetSlug = view.slug || view.id;
 
-	// Recorded on pointerdown (capture phase, so it runs before dnd-kit's own listener spread
-	// via {...listeners} below), checked on click (also capture phase, so a suppressed click
-	// never even reaches the Link's own bubble-phase onClick). Plain refs, not React state —
-	// both handlers fire synchronously within the same native gesture, so there's no render/
-	// re-render race to worry about, unlike gating this off dnd-kit's own isDragging/active
-	// state (which only updates via React state on the *next* render).
-	const pointerDownPos = useRef<{ x: number; y: number } | null>(null);
+  // Recorded on pointerdown (capture phase, so it runs before dnd-kit's own listener spread
+  // via {...listeners} below), checked on click (also capture phase, so a suppressed click
+  // never even reaches the Link's own bubble-phase onClick). Plain refs, not React state —
+  // both handlers fire synchronously within the same native gesture, so there's no render/
+  // re-render race to worry about, unlike gating this off dnd-kit's own isDragging/active
+  // state (which only updates via React state on the *next* render).
+  const pointerDownPos = useRef<{ x: number; y: number } | null>(null);
 
-	const handlePointerDownCapture = (event: React.PointerEvent) => {
-		pointerDownPos.current = { x: event.clientX, y: event.clientY };
-	};
+  const handlePointerDownCapture = (event: React.PointerEvent) => {
+    pointerDownPos.current = { x: event.clientX, y: event.clientY };
+  };
 
-	const handleClickCapture = (event: React.MouseEvent) => {
-		const start = pointerDownPos.current;
-		pointerDownPos.current = null;
-		if (!start) return;
-		const moved =
-			Math.abs(event.clientX - start.x) > DRAG_CLICK_SUPPRESS_DISTANCE ||
-			Math.abs(event.clientY - start.y) > DRAG_CLICK_SUPPRESS_DISTANCE;
-		if (moved) {
-			event.preventDefault();
-			event.stopPropagation();
-		}
-	};
+  const handleClickCapture = (event: React.MouseEvent) => {
+    const start = pointerDownPos.current;
+    pointerDownPos.current = null;
+    if (!start) return;
+    const moved =
+      Math.abs(event.clientX - start.x) > DRAG_CLICK_SUPPRESS_DISTANCE ||
+      Math.abs(event.clientY - start.y) > DRAG_CLICK_SUPPRESS_DISTANCE;
+    if (moved) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+  };
 
-	return (
-		<SidebarMenuItem isActive={isActive} className="min-h-auto group/fav">
-			<div
-				ref={setNodeRef}
-				style={{ transform: CSS.Transform.toString(transform), transition }}
-				{...attributes}
-				{...listeners}
-				onPointerDownCapture={handlePointerDownCapture}
-				onClickCapture={handleClickCapture}
-				className={cn(
-					"flex items-center w-full gap-0.5 touch-none cursor-grab active:cursor-grabbing",
-					isDragging && "opacity-50"
-				)}
-			>
-				<Link
-					to="/home"
-					search={{ view: targetSlug }}
-					onClick={(event) => navigate(targetSlug, event)}
-					className="min-w-0 flex-1"
-				>
-					<SidebarMenuButton
-						size="small"
-						tooltip={view.name}
-						icon={
-							<RenderIcon
-								iconName={view.viewConfig?.icon || DEFAULT_VIEW_ICON}
-								color={view.viewConfig?.color || DEFAULT_VIEW_COLOR}
-								button
-								className={VIEW_ICON_SWATCH_CLASS}
-							/>
-						}
-					>
-						<span>{view.name}</span>
-					</SidebarMenuButton>
-				</Link>
-				<button
-					type="button"
-					onPointerDown={(event) => event.stopPropagation()}
-					onClick={(event) => {
-						event.preventDefault();
-						event.stopPropagation();
-						personalViewsActions.togglePin(view.id);
-					}}
-					title="Unpin"
-					className="shrink-0 cursor-pointer text-transparent group-hover/fav:text-muted-foreground hover:text-foreground"
-				>
-					<IconPinnedOff className="size-3.5" />
-				</button>
-			</div>
-		</SidebarMenuItem>
-	);
+  return (
+    <SidebarMenuItem isActive={isActive} className="min-h-auto group/fav">
+      <div
+        ref={setNodeRef}
+        style={{ transform: CSS.Transform.toString(transform), transition }}
+        {...attributes}
+        {...listeners}
+        onPointerDownCapture={handlePointerDownCapture}
+        onClickCapture={handleClickCapture}
+        className={cn(
+          "flex items-center w-full gap-0.5 touch-none cursor-grab active:cursor-grabbing",
+          isDragging && "opacity-50",
+        )}
+      >
+        <Link
+          to="/home"
+          search={{ view: targetSlug }}
+          onClick={(event) => navigate(targetSlug, event)}
+          className="min-w-0 flex-1"
+        >
+          <SidebarMenuButton
+            size="small"
+            tooltip={view.name}
+            icon={
+              <RenderIcon
+                iconName={view.viewConfig?.icon || DEFAULT_VIEW_ICON}
+                color={view.viewConfig?.color || DEFAULT_VIEW_COLOR}
+                button
+                className={VIEW_ICON_SWATCH_CLASS}
+              />
+            }
+          >
+            <span>{view.name}</span>
+          </SidebarMenuButton>
+        </Link>
+        <button
+          type="button"
+          onPointerDown={(event) => event.stopPropagation()}
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            personalViewsActions.togglePin(view.id);
+          }}
+          title="Unpin"
+          className="shrink-0 cursor-pointer text-transparent group-hover/fav:text-muted-foreground hover:text-foreground"
+        >
+          <IconPinnedOff className="size-3.5" />
+        </button>
+      </div>
+    </SidebarMenuItem>
+  );
 }
 
 /**
@@ -153,54 +179,60 @@ function FavouriteRow({
  * link + a Settings flyout, not full page management).
  */
 function FavouritesCompactDropdown({
-	pinnedViews,
-	isOnHomePage,
+  pinnedViews,
+  isOnHomePage,
 }: {
-	pinnedViews: schema.savedViewType[];
-	isOnHomePage: boolean;
+  pinnedViews: schema.savedViewType[];
+  isOnHomePage: boolean;
 }) {
-	const navigate = useViewNavigate(isOnHomePage);
+  const navigate = useViewNavigate(isOnHomePage);
 
-	return (
-		<SidebarMenu>
-			<SidebarMenuItem className="min-h-auto">
-				<DropdownMenu>
-					<DropdownMenuTrigger
-						render={<SidebarMenuButton size="small" tooltip="Favourites" icon={<IconBookmark size={16} />} />}
-					/>
-					<DropdownMenuContent side="right" align="start" className="w-60">
-						<DropdownMenuLabel>Favourites</DropdownMenuLabel>
-						<DropdownMenuGroup className="p-1">
-							{pinnedViews.map((view) => {
-								const targetSlug = view.slug || view.id;
-								return (
-									<DropdownMenuItem
-										key={view.id}
-										render={
-											<Link
-												to="/home"
-												search={{ view: targetSlug }}
-												onClick={(event) => navigate(targetSlug, event)}
-												className="flex items-center gap-2"
-											>
-												<RenderIcon
-													iconName={view.viewConfig?.icon || DEFAULT_VIEW_ICON}
-													color={view.viewConfig?.color || DEFAULT_VIEW_COLOR}
-													button
-													className={VIEW_ICON_SWATCH_CLASS}
-												/>
-												<span className="truncate">{view.name}</span>
-											</Link>
-										}
-									/>
-								);
-							})}
-						</DropdownMenuGroup>
-					</DropdownMenuContent>
-				</DropdownMenu>
-			</SidebarMenuItem>
-		</SidebarMenu>
-	);
+  return (
+    <SidebarMenu>
+      <SidebarMenuItem className="min-h-auto">
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            render={
+              <SidebarMenuButton
+                size="small"
+                tooltip="Favourites"
+                icon={<IconBookmark size={16} />}
+              />
+            }
+          />
+          <DropdownMenuContent side="right" align="start" className="w-60">
+            <DropdownMenuLabel>Favourites</DropdownMenuLabel>
+            <DropdownMenuGroup className="p-1">
+              {pinnedViews.map((view) => {
+                const targetSlug = view.slug || view.id;
+                return (
+                  <DropdownMenuItem
+                    key={view.id}
+                    render={
+                      <Link
+                        to="/home"
+                        search={{ view: targetSlug }}
+                        onClick={(event) => navigate(targetSlug, event)}
+                        className="flex items-center gap-2"
+                      >
+                        <RenderIcon
+                          iconName={view.viewConfig?.icon || DEFAULT_VIEW_ICON}
+                          color={view.viewConfig?.color || DEFAULT_VIEW_COLOR}
+                          button
+                          className={VIEW_ICON_SWATCH_CLASS}
+                        />
+                        <span className="truncate">{view.name}</span>
+                      </Link>
+                    }
+                  />
+                );
+              })}
+            </DropdownMenuGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </SidebarMenuItem>
+    </SidebarMenu>
+  );
 }
 
 /**
@@ -221,60 +253,87 @@ function FavouritesCompactDropdown({
  *
  * Compact/icon-only sidebar: FavouritesCompactDropdown instead — see its own doc comment.
  */
-export function FavouritesSection({ isSidebarOpen }: { isSidebarOpen: boolean }) {
-	const pathname = useRouterState({ select: (state) => state.location.pathname });
-	const search = useRouterState({ select: (state) => state.location.search }) as Record<string, unknown>;
-	const normalizedPathname = pathname.length > 1 ? pathname.replace(/\/$/, "") : pathname;
-	const isOnHomePage = normalizedPathname === "/home";
-	const activeViewSlug = isOnHomePage ? (search.view as string | undefined) : undefined;
+export function FavouritesSection({
+  isSidebarOpen,
+}: {
+  isSidebarOpen: boolean;
+}) {
+  const pathname = useRouterState({
+    select: (state) => state.location.pathname,
+  });
+  const search = useRouterState({
+    select: (state) => state.location.search,
+  }) as Record<string, unknown>;
+  const normalizedPathname =
+    pathname.length > 1 ? pathname.replace(/\/$/, "") : pathname;
+  const isOnHomePage = normalizedPathname === "/home";
+  const activeViewSlug = isOnHomePage
+    ? (search.view as string | undefined)
+    : undefined;
 
-	const pinnedViews = useStore(personalViewsStore, (state) => state.views.filter((view) => view.pinned));
-	const [favouritesOpen, setFavouritesOpen] = useState(true);
+  const pinnedViews = useStore(personalViewsStore, (state) =>
+    state.views.filter((view) => view.pinned),
+  );
+  const [favouritesOpen, setFavouritesOpen] = useState(true);
 
-	const sensors = useSensors(
-		useSensor(MouseSensor, { activationConstraint: { distance: 8 } }),
-		useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } })
-	);
+  const sensors = useSensors(
+    useSensor(MouseSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 250, tolerance: 5 },
+    }),
+  );
 
-	const handleDragEnd = (event: DragEndEvent) => {
-		const { active, over } = event;
-		if (!over || active.id === over.id) return;
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
 
-		const oldIndex = pinnedViews.findIndex((view) => view.id === active.id);
-		const newIndex = pinnedViews.findIndex((view) => view.id === over.id);
-		if (oldIndex === -1 || newIndex === -1) return;
+    const oldIndex = pinnedViews.findIndex((view) => view.id === active.id);
+    const newIndex = pinnedViews.findIndex((view) => view.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
 
-		const reordered = arrayMove(pinnedViews, oldIndex, newIndex);
-		personalViewsActions.reorder(reordered.map((view) => view.id));
-	};
+    const reordered = arrayMove(pinnedViews, oldIndex, newIndex);
+    personalViewsActions.reorder(reordered.map((view) => view.id));
+  };
 
-	if (pinnedViews.length === 0) return null;
+  if (pinnedViews.length === 0) return null;
 
-	if (!isSidebarOpen) {
-		return <FavouritesCompactDropdown pinnedViews={pinnedViews} isOnHomePage={isOnHomePage} />;
-	}
+  if (!isSidebarOpen) {
+    return (
+      <FavouritesCompactDropdown
+        pinnedViews={pinnedViews}
+        isOnHomePage={isOnHomePage}
+      />
+    );
+  }
 
-	return (
-		<SidebarGroupToggle
-			label="Favourites"
-			icon={<IconBookmark size={16} />}
-			open={favouritesOpen}
-			onOpenChange={setFavouritesOpen}
-		>
-			<DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-				<SortableContext items={pinnedViews.map((view) => view.id)} strategy={verticalListSortingStrategy}>
-					<SidebarMenu className="gap-0.5">
-						{pinnedViews.map((view) => (
-							<FavouriteRow
-								key={view.id}
-								view={view}
-								isActive={activeViewSlug === (view.slug || view.id)}
-								isOnHomePage={isOnHomePage}
-							/>
-						))}
-					</SidebarMenu>
-				</SortableContext>
-			</DndContext>
-		</SidebarGroupToggle>
-	);
+  return (
+    <SidebarGroupToggle
+      label="Favourites"
+      icon={<IconBookmark size={16} />}
+      open={favouritesOpen}
+      onOpenChange={setFavouritesOpen}
+    >
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={handleDragEnd}
+      >
+        <SortableContext
+          items={pinnedViews.map((view) => view.id)}
+          strategy={verticalListSortingStrategy}
+        >
+          <SidebarMenu className="gap-0.5">
+            {pinnedViews.map((view) => (
+              <FavouriteRow
+                key={view.id}
+                view={view}
+                isActive={activeViewSlug === (view.slug || view.id)}
+                isOnHomePage={isOnHomePage}
+              />
+            ))}
+          </SidebarMenu>
+        </SortableContext>
+      </DndContext>
+    </SidebarGroupToggle>
+  );
 }
