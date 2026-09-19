@@ -71,14 +71,21 @@ interface BoardBulkActionBarProps {
  * that board-row.tsx/board-card.tsx write to, so it just appears/disappears
  * as selection changes with no props/context threaded down for that.
  *
- * The old org-scoped system was single-org, so bulk-assigning one category/
- * release/label id across every selected task was always safe. Board
- * selections can span multiple orgs, and category/release/label rows are
- * per-org (two orgs' "Bug" label are different rows with different ids) —
- * bulk-applying one across orgs would silently misapply. So those three stay
- * gated to a single-org selection; Status/Priority/Visibility (org-agnostic
- * enums) and Assignee (global user id, scoped to users already seen on a
- * task in one of the selected orgs) stay available regardless.
+ * The old org-scoped system was single-org, so bulk-assigning one id across
+ * every selected task was always safe. Board selections can span multiple
+ * orgs, and label/category/release rows are per-org (two orgs' "Bug" label
+ * are different rows with different ids) — bulk-applying one raw id across
+ * orgs would silently misapply. Per-field handling:
+ * - Status/Priority/Visibility: org-agnostic enums, always available.
+ * - Assignee: a real intersection — only users present on a task in EVERY
+ *   selected org (global user id, no resolution needed at apply time).
+ * - Label: intersected BY NAME across every selected org's own label rows
+ *   (the closest cross-org equivalent to "the same label" — mirrors the
+ *   filter-builder's own cross-org name-matching), then resolved back to
+ *   each task's own org-specific id at apply time (applyMultiValueUpdate's
+ *   resolveDelta gets the task, not a shared id list).
+ * - Category/Release: no cross-org equivalent attempted — hidden entirely
+ *   unless every selected task shares one organizationId.
  */
 export function BoardBulkActionBar({ tasks }: BoardBulkActionBarProps) {
 	const { setTasks, categories, releases, labels } = useLanderData();
@@ -94,13 +101,25 @@ export function BoardBulkActionBar({ tasks }: BoardBulkActionBarProps) {
 	const selectedOrgIds = useMemo(() => new Set(selectedTasks.map((task) => task.organizationId)), [selectedTasks]);
 	const singleOrgId = selectedOrgIds.size === 1 ? [...selectedOrgIds][0] : undefined;
 
+	// Intersection, not union — a user must appear (as an assignee on some
+	// already-loaded task) in EVERY selected org, not just one, or bulk-
+	// assigning them would be meaningless for tasks in the orgs they're
+	// missing from. Reduces to that org's own full set when only one org is
+	// selected, so single-org behavior is unchanged.
 	const availableUsers = useMemo(() => {
-		const users = new Map<string, schema.UserSummary>();
+		if (selectedOrgIds.size === 0) return [];
+		const usersByOrg = new Map<string, Map<string, schema.UserSummary>>();
 		for (const task of tasks) {
 			if (!selectedOrgIds.has(task.organizationId)) continue;
-			for (const user of task.assignees) users.set(user.id, user);
+			const orgUsers = usersByOrg.get(task.organizationId) ?? new Map<string, schema.UserSummary>();
+			for (const user of task.assignees) orgUsers.set(user.id, user);
+			usersByOrg.set(task.organizationId, orgUsers);
 		}
-		return Array.from(users.values());
+		const orgUserMaps = Array.from(usersByOrg.values());
+		if (orgUserMaps.length < selectedOrgIds.size) return [];
+		const [first, ...rest] = orgUserMaps;
+		if (!first) return [];
+		return Array.from(first.values()).filter((user) => rest.every((orgMap) => orgMap.has(user.id)));
 	}, [tasks, selectedOrgIds]);
 
 	const availableCategories = useMemo(
@@ -111,10 +130,31 @@ export function BoardBulkActionBar({ tasks }: BoardBulkActionBarProps) {
 		() => (singleOrgId ? releases.filter((release) => release.organizationId === singleOrgId) : []),
 		[releases, singleOrgId]
 	);
-	const availableLabels = useMemo(
-		() => (singleOrgId ? labels.filter((label) => label.organizationId === singleOrgId) : []),
-		[labels, singleOrgId]
-	);
+
+	// Cross-org name intersection, not a raw per-org filter — group every
+	// selected org's own labels by name, keep only names present in ALL of
+	// them. One representative row per common name (for display only); the
+	// id it carries is only ever valid for ITS OWN org, so apply-time code
+	// must always re-resolve by name against `labels` per task, never reuse
+	// this row's id directly. Reduces to that org's own full label list when
+	// only one org is selected.
+	const availableLabels = useMemo(() => {
+		if (selectedOrgIds.size === 0) return [];
+		const namesByOrg = new Map<string, Map<string, schema.labelType>>();
+		for (const label of labels) {
+			if (!selectedOrgIds.has(label.organizationId)) continue;
+			const forOrg = namesByOrg.get(label.organizationId) ?? new Map<string, schema.labelType>();
+			forOrg.set(label.name, label);
+			namesByOrg.set(label.organizationId, forOrg);
+		}
+		const perOrgMaps = Array.from(namesByOrg.values());
+		if (perOrgMaps.length < selectedOrgIds.size) return [];
+		const [first, ...rest] = perOrgMaps;
+		if (!first) return [];
+		return Array.from(first.entries())
+			.filter(([name]) => rest.every((orgLabels) => orgLabels.has(name)))
+			.map(([, label]) => label);
+	}, [labels, selectedOrgIds]);
 
 	/** Optimistic update + one API call per selected task, reconciled from the returned records. Preserves task.organization (updateTaskAction's response doesn't carry the board's cross-org enrichment). */
 	const applySingleValueUpdate = useCallback(
@@ -152,23 +192,29 @@ export function BoardBulkActionBar({ tasks }: BoardBulkActionBarProps) {
 		[selectedTasks, selectedSet, tasks, setTasks, runWithToast, sseClientId, deselectAll]
 	);
 
-	/** Same shape as the single-value path, but each task keeps its own existing ids ± add/remove. */
+	/**
+	 * Same shape as the single-value path, but each task keeps its own
+	 * existing ids ± add/remove. `resolveDelta` is given the task (not a
+	 * shared id list) since a cross-org label toggle needs each task's own
+	 * org-specific label id for "the same" name — assignees just ignore the
+	 * task param and return the same fixed delta for all of them.
+	 */
 	const applyMultiValueUpdate = useCallback(
 		async (
 			actionId: string,
-			add: string[],
-			remove: string[],
+			resolveDelta: (task: schema.TaskWithLabels) => { add: string[]; remove: string[] },
 			optimisticField: "assignees" | "labels",
 			apiFn: (
 				task: schema.TaskWithLabels,
 				nextIds: string[]
 			) => Promise<{ success: boolean; data: schema.TaskWithLabels }>,
-			resolveNext: (nextIds: string[]) => (schema.UserSummary | schema.labelType)[],
+			resolveNext: (nextIds: string[], task: schema.TaskWithLabels) => (schema.UserSummary | schema.labelType)[],
 			toastMessages: Parameters<typeof runWithToast>[1]
 		) => {
 			const orgById = new Map(selectedTasks.map((task) => [task.id, task.organization]));
 			const nextIdsByTask = new Map(
 				selectedTasks.map((task) => {
+					const { add, remove } = resolveDelta(task);
 					const currentIds = (task[optimisticField] as { id: string }[]).map((item) => item.id);
 					const next = Array.from(new Set([...currentIds.filter((id) => !remove.includes(id)), ...add]));
 					return [task.id, next];
@@ -179,7 +225,7 @@ export function BoardBulkActionBar({ tasks }: BoardBulkActionBarProps) {
 				tasks.map((task) => {
 					const nextIds = nextIdsByTask.get(task.id);
 					if (!nextIds) return task;
-					return { ...task, [optimisticField]: resolveNext(nextIds) };
+					return { ...task, [optimisticField]: resolveNext(nextIds, task) };
 				})
 			);
 
@@ -283,8 +329,7 @@ export function BoardBulkActionBar({ tasks }: BoardBulkActionBarProps) {
 				action: () =>
 					applyMultiValueUpdate(
 						"bulk-update-assignees",
-						state === "all" ? [] : [user.id],
-						state === "all" ? [user.id] : [],
+						() => (state === "all" ? { add: [], remove: [user.id] } : { add: [user.id], remove: [] }),
 						"assignees",
 						(task, nextIds) => updateAssigneesToTaskAction(task.organizationId, task.id, nextIds, sseClientId),
 						(nextIds) => availableUsers.filter((u) => nextIds.includes(u.id)),
@@ -297,10 +342,14 @@ export function BoardBulkActionBar({ tasks }: BoardBulkActionBarProps) {
 			};
 		});
 
+		// Tri-state and toggle are computed BY NAME (a task "has" this label if
+		// any of its own org's label rows shares this name) — `label.id` below
+		// is only ever a representative id from whichever org happened to be
+		// first, never assumed valid for the task being updated.
 		const labelItems = availableLabels.map((label) => {
-			const state = computeTriState(selectedTasks, (task) => task.labels.some((l) => l.id === label.id));
+			const state = computeTriState(selectedTasks, (task) => task.labels.some((l) => l.name === label.name));
 			return {
-				id: `board-bulk-label-${label.id}`,
+				id: `board-bulk-label-${label.name}`,
 				label: label.name,
 				icon: (
 					<span
@@ -313,11 +362,17 @@ export function BoardBulkActionBar({ tasks }: BoardBulkActionBarProps) {
 				action: () =>
 					applyMultiValueUpdate(
 						"bulk-update-labels",
-						state === "all" ? [] : [label.id],
-						state === "all" ? [label.id] : [],
+						(task) => {
+							const targetId = labels.find(
+								(l) => l.organizationId === task.organizationId && l.name === label.name
+							)?.id;
+							if (!targetId) return { add: [], remove: [] };
+							return state === "all" ? { add: [], remove: [targetId] } : { add: [targetId], remove: [] };
+						},
 						"labels",
 						(task, nextIds) => updateLabelToTaskAction(task.organizationId, task.id, nextIds, sseClientId),
-						(nextIds) => availableLabels.filter((l) => nextIds.includes(l.id)),
+						(nextIds, task) =>
+							labels.filter((l) => l.organizationId === task.organizationId && nextIds.includes(l.id)),
 						{
 							loading: { title: "Updating labels..." },
 							success: successMessage,
@@ -489,6 +544,7 @@ export function BoardBulkActionBar({ tasks }: BoardBulkActionBarProps) {
 		availableLabels,
 		availableCategories,
 		availableReleases,
+		labels,
 		singleOrgId,
 		sseClientId,
 		deselectAll,
@@ -498,14 +554,35 @@ export function BoardBulkActionBar({ tasks }: BoardBulkActionBarProps) {
 
 	useRegisterCommands("board-bulk-commands", selectedCount > 0 ? commands : null);
 
+	// `fixed` to the viewport — both `absolute` (scrolls away with the list
+	// content) and `sticky` (relative to whichever scrolling ancestor is
+	// nearest, which differs between list view and kanban's own per-column
+	// scrollers) broke depending on view mode or scroll position. `fixed` is
+	// the boring, correct choice for a floating action bar: it's outside
+	// every scroll container's flow entirely, so it can't be affected by any
+	// of them, in either view mode.
+	//
+	// Confined to the board's own render area (not the whole page, and never
+	// under the side panel) via `[contain:paint]` on the board's own
+	// scrolling wrapper (pages/admin/home/index.tsx) — CSS containment makes
+	// that div the containing block for `position: fixed` descendants and
+	// clips them to its own box, the standards-based version of the
+	// transform-creates-a-containing-block trick, without needing a
+	// transform (or any JS measurement) at all. No z-index war with the
+	// panel needed either: it structurally can't paint past that box's own
+	// right edge, which the panel sits outside of.
+	//
+	// Plain opacity fade, no `y`/transform slide — the slide was the actual
+	// source of the transient scrollbar on mount/unmount, not the
+	// positioning strategy. Opacity has no layout footprint at all.
 	return (
 		<AnimatePresence>
 			{selectedCount > 0 && (
 				<motion.div
-					initial={{ y: 80, opacity: 0 }}
-					animate={{ y: 0, opacity: 1 }}
-					exit={{ y: 80, opacity: 0 }}
-					transition={{ type: "spring", damping: 25, stiffness: 300 }}
+					initial={{ opacity: 0 }}
+					animate={{ opacity: 1 }}
+					exit={{ opacity: 0 }}
+					transition={{ duration: 0.15 }}
 					className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-1 rounded-xl border bg-background/95 backdrop-blur-sm shadow-lg px-2 py-1.5"
 				>
 					<div className="flex items-center gap-2 px-2">
@@ -539,19 +616,26 @@ export function BoardBulkActionBar({ tasks }: BoardBulkActionBarProps) {
 							)
 						}
 					/>
-					{singleOrgId && availableLabels.length > 0 && (
+					{availableLabels.length > 0 && (
 						<LabelBulkPicker
 							availableLabels={availableLabels}
 							selectedTasks={selectedTasks}
-							onSelect={({ add, remove }) =>
+							onSelect={({ addNames, removeNames }) =>
 								applyMultiValueUpdate(
 									"bulk-update-labels",
-									add,
-									remove,
+									(task) => {
+										const resolve = (name: string) =>
+											labels.find((l) => l.organizationId === task.organizationId && l.name === name)?.id;
+										return {
+											add: addNames.map(resolve).filter((id): id is string => !!id),
+											remove: removeNames.map(resolve).filter((id): id is string => !!id),
+										};
+									},
 									"labels",
 									(task, nextIds) =>
 										updateLabelToTaskAction(task.organizationId, task.id, nextIds, sseClientId),
-									(nextIds) => availableLabels.filter((label) => nextIds.includes(label.id)),
+									(nextIds, task) =>
+										labels.filter((l) => l.organizationId === task.organizationId && nextIds.includes(l.id)),
 									{
 										loading: { title: "Updating labels..." },
 										success: { title: `Updated ${selectedCount} tasks` },
@@ -628,6 +712,13 @@ function StatusBulkPicker({
 	);
 }
 
+/**
+ * Keyed by label NAME throughout, not id — `availableLabels` is a cross-org
+ * name-intersected list (see availableLabels above in BoardBulkActionBar),
+ * so a given row's own `.id` is only valid for whichever org it happened to
+ * come from. The caller (onSelect) re-resolves each name to the correct
+ * per-task-org id at apply time.
+ */
 function LabelBulkPicker({
 	availableLabels,
 	selectedTasks,
@@ -635,7 +726,7 @@ function LabelBulkPicker({
 }: {
 	availableLabels: schema.labelType[];
 	selectedTasks: schema.TaskWithLabels[];
-	onSelect: (value: { add: string[]; remove: string[] }) => void;
+	onSelect: (value: { addNames: string[]; removeNames: string[] }) => void;
 }) {
 	const [open, setOpen] = useState(false);
 	const [search, setSearch] = useState("");
@@ -645,8 +736,8 @@ function LabelBulkPicker({
 		const map = new Map<string, TriState>();
 		for (const label of availableLabels) {
 			map.set(
-				label.id,
-				computeTriState(selectedTasks, (task) => task.labels.some((l) => l.id === label.id))
+				label.name,
+				computeTriState(selectedTasks, (task) => task.labels.some((l) => l.name === label.name))
 			);
 		}
 		return map;
@@ -654,23 +745,23 @@ function LabelBulkPicker({
 
 	const filteredLabels = availableLabels.filter((label) => label.name.toLowerCase().includes(search.toLowerCase()));
 
-	const getEffectiveState = (labelId: string): TriState => {
-		const override = overrides.get(labelId);
+	const getEffectiveState = (labelName: string): TriState => {
+		const override = overrides.get(labelName);
 		if (override === true) return "all";
 		if (override === false) return "none";
-		return initialStates.get(labelId) ?? "none";
+		return initialStates.get(labelName) ?? "none";
 	};
 
-	const handleToggle = (labelId: string) => {
-		const current = getEffectiveState(labelId);
+	const handleToggle = (labelName: string) => {
+		const current = getEffectiveState(labelName);
 		const next = new Map(overrides);
-		next.set(labelId, current !== "all");
+		next.set(labelName, current !== "all");
 		setOverrides(next);
 	};
 
 	const hasChanges = useMemo(() => {
-		for (const [labelId, wantLabel] of overrides) {
-			const initial = initialStates.get(labelId) ?? "none";
+		for (const [labelName, wantLabel] of overrides) {
+			const initial = initialStates.get(labelName) ?? "none";
 			if (wantLabel && initial !== "all") return true;
 			if (!wantLabel && initial !== "none") return true;
 		}
@@ -678,14 +769,14 @@ function LabelBulkPicker({
 	}, [overrides, initialStates]);
 
 	const handleApply = () => {
-		const add: string[] = [];
-		const remove: string[] = [];
-		for (const [labelId, wantLabel] of overrides) {
-			const initial = initialStates.get(labelId) ?? "none";
-			if (wantLabel && initial !== "all") add.push(labelId);
-			else if (!wantLabel && initial !== "none") remove.push(labelId);
+		const addNames: string[] = [];
+		const removeNames: string[] = [];
+		for (const [labelName, wantLabel] of overrides) {
+			const initial = initialStates.get(labelName) ?? "none";
+			if (wantLabel && initial !== "all") addNames.push(labelName);
+			else if (!wantLabel && initial !== "none") removeNames.push(labelName);
 		}
-		if (add.length > 0 || remove.length > 0) onSelect({ add, remove });
+		if (addNames.length > 0 || removeNames.length > 0) onSelect({ addNames, removeNames });
 		setOpen(false);
 		setOverrides(new Map());
 		setSearch("");
@@ -725,12 +816,12 @@ function LabelBulkPicker({
 						{filteredLabels.length > 0 ? (
 							filteredLabels.map((label) => (
 								<button
-									key={label.id}
+									key={label.name}
 									type="button"
 									className="flex items-center gap-2 px-2 py-1.5 text-sm rounded-md hover:bg-accent transition-colors w-full cursor-pointer"
-									onClick={() => handleToggle(label.id)}
+									onClick={() => handleToggle(label.name)}
 								>
-									<TriStateCheckbox state={getEffectiveState(label.id)} className="pointer-events-none" />
+									<TriStateCheckbox state={getEffectiveState(label.name)} className="pointer-events-none" />
 									<span
 										className="size-2 rounded-full shrink-0"
 										style={{ backgroundColor: label.color ?? "#9CA3AF" }}
