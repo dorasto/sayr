@@ -34,6 +34,8 @@ interface NamedOrgRow {
 	name: string;
 	organizationId: string;
 	color?: string | null;
+	/** Only present on label rows — carried through so the Label tab's option can show a lock icon. */
+	visible?: schema.labelType["visible"];
 }
 
 /**
@@ -59,6 +61,7 @@ function groupOptionsByName(rows: NamedOrgRow[], orgNameMap: Map<string, string>
 				label: first.name,
 				color: first.color || "#cccccc",
 				orgName: orgNameMap.get(first.organizationId),
+				visible: first.visible,
 			};
 		}
 		return {
@@ -66,6 +69,7 @@ function groupOptionsByName(rows: NamedOrgRow[], orgNameMap: Map<string, string>
 			label: first.name,
 			color: first.color || "#cccccc",
 			mergedValues: group.map((r) => r.id),
+			visible: first.visible,
 		};
 	});
 }

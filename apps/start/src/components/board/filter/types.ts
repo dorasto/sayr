@@ -119,6 +119,8 @@ export interface FilterOption {
 	orgName?: string;
 	/** Set when 2+ orgs share this name — selecting the option toggles all of these ids as one unit. */
 	mergedValues?: string[];
+	/** Set only for label options — drives the LabelBadge lock icon when private. */
+	visible?: schema.labelType["visible"];
 }
 
 export interface FilterFieldConfig {

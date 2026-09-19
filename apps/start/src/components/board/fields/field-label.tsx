@@ -11,8 +11,9 @@ import {
 	ComboBoxTrigger,
 } from "@repo/ui/components/tomui/combo-box-unified";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
-import { updateLabelToTaskAction } from "@/lib/fetches/task";
 import { useLanderData } from "@/contexts/ContextLander";
+import { updateLabelToTaskAction } from "@/lib/fetches/task";
+import { LabelBadge } from "./label-badge";
 import { useBoardTaskFieldAction } from "./use-board-task-field-action";
 
 const MAX_VISIBLE_LABELS = 2;
@@ -71,11 +72,7 @@ export function FieldLabel({ task }: FieldLabelProps) {
 							variant="secondary"
 							className="flex h-5 max-w-20 items-center gap-1 px-1.5 text-[11px] font-medium"
 						>
-							<span
-								className="size-1.5 rounded-full shrink-0"
-								style={{ backgroundColor: label.color ?? "#9CA3AF" }}
-							/>
-							<span className="truncate">{label.name}</span>
+							<LabelBadge label={label} />
 						</Badge>
 					))}
 					{overflowCount > 0 && (
@@ -92,8 +89,7 @@ export function FieldLabel({ task }: FieldLabelProps) {
 					<ComboBoxGroup>
 						{availableLabels.map((label) => (
 							<ComboBoxItem key={label.id} value={label.id} searchValue={label.name}>
-								<span className="size-2 rounded-full" style={{ backgroundColor: label.color ?? "#9CA3AF" }} />
-								<span>{label.name}</span>
+								<LabelBadge label={label} />
 							</ComboBoxItem>
 						))}
 					</ComboBoxGroup>

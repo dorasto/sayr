@@ -1,8 +1,10 @@
-import { Button } from "@repo/ui/components/button";
+import { Button, type ButtonProps } from "@repo/ui/components/button";
 import { headlessToast } from "@repo/ui/components/headless-toast";
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@repo/ui/components/input-group";
 import { Popover, PopoverContent, PopoverTrigger } from "@repo/ui/components/popover";
+import { cn } from "@repo/ui/lib/utils";
 import { IconDeviceFloppy } from "@tabler/icons-react";
+import type React from "react";
 import { useState } from "react";
 import { serializeFilters } from "../filter/serialization";
 import { useBoardViewState } from "../filter/use-board-view-state";
@@ -14,12 +16,32 @@ const DEFAULT_ICON_COLOR = {
 	color: DEFAULT_VIEW_COLOR,
 };
 
+// Stops a nested-Popover interaction (trigger click, content click) from
+// bubbling up into an outer overlay (e.g. ActiveViewSwitcher's DropdownMenu)
+// and closing it — same pattern edit-view-popover.tsx already uses for the
+// identical reason (Popover nested inside a Dropdown/ComboBox row).
+const stopRowSelect = (event: React.SyntheticEvent) => event.stopPropagation();
+
+interface SaveViewPopoverProps {
+	triggerLabel?: string;
+	triggerClassName?: string;
+	triggerVariant?: ButtonProps["variant"];
+}
+
 /**
  * "Save current filters + grouping/view state as a personal view" flow —
  * a small popover, not a full dialog, since the only real input is a name
- * (plus the icon/color trigger next to it).
+ * (plus the icon/color trigger next to it). Used standalone in the top bar
+ * (PresetSwitcher, as a pill button) and nested inside ActiveViewSwitcher's
+ * dropdown for the "save as new view" case (styled to match a plain
+ * DropdownMenuItem row there, not a pill) — `triggerLabel`/`triggerClassName`/
+ * `triggerVariant` let each caller adapt the trigger without forking the popover.
  */
-export function SaveViewPopover() {
+export function SaveViewPopover({
+	triggerLabel = "Save view",
+	triggerClassName,
+	triggerVariant = "outline",
+}: SaveViewPopoverProps = {}) {
 	const [open, setOpen] = useState(false);
 	const [name, setName] = useState("");
 	const [iconColor, setIconColor] = useState(DEFAULT_ICON_COLOR);
@@ -66,16 +88,18 @@ export function SaveViewPopover() {
 				render={
 					<Button
 						type="button"
-						variant="outline"
+						variant={triggerVariant}
 						data-command-target="save-view-trigger"
-						className="h-6 gap-1.5 rounded-full px-2 text-xs shrink-0"
+						onPointerDown={stopRowSelect}
+						onClick={stopRowSelect}
+						className={cn("h-6 gap-1.5 rounded-full px-2 text-xs shrink-0", triggerClassName)}
 					>
-						<IconDeviceFloppy className="size-3.5" />
-						Save view
+						<IconDeviceFloppy className="size-4" />
+						{triggerLabel}
 					</Button>
 				}
 			/>
-			<PopoverContent className="w-72 p-2" align="start">
+			<PopoverContent className="w-72 p-2" align="start" onClick={stopRowSelect}>
 				<InputGroup>
 					<InputGroupAddon align="inline-start">
 						<ViewIconColorTrigger value={iconColor} onChange={setIconColor} />

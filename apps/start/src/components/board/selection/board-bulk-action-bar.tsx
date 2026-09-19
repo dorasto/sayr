@@ -33,6 +33,7 @@ import {
 	VISIBILITY_CONFIG,
 	type VisibilityValue,
 } from "../config/field-config";
+import { LabelBadge } from "../fields/label-badge";
 import { BOARD_TASK_SELECTION_KEY } from "./board-selection-constants";
 
 // The command-palette sub-view id the "More" button drills straight into.
@@ -351,12 +352,7 @@ export function BoardBulkActionBar({ tasks }: BoardBulkActionBarProps) {
 			return {
 				id: `board-bulk-label-${label.name}`,
 				label: label.name,
-				icon: (
-					<span
-						className="size-2.5 rounded-full inline-block"
-						style={{ backgroundColor: label.color ?? "#9CA3AF" }}
-					/>
-				),
+				icon: <LabelBadge label={label} showName={false} />,
 				metadata: state === "all" ? "Applied" : state === "some" ? "Some" : undefined,
 				closeOnSelect: false,
 				action: () =>
@@ -822,11 +818,7 @@ function LabelBulkPicker({
 									onClick={() => handleToggle(label.name)}
 								>
 									<TriStateCheckbox state={getEffectiveState(label.name)} className="pointer-events-none" />
-									<span
-										className="size-2 rounded-full shrink-0"
-										style={{ backgroundColor: label.color ?? "#9CA3AF" }}
-									/>
-									<span className="text-sm truncate">{label.name}</span>
+									<LabelBadge label={label} />
 								</button>
 							))
 						) : (

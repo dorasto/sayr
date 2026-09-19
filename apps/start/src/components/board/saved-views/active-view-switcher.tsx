@@ -2,23 +2,27 @@ import { Button } from "@repo/ui/components/button";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
+	DropdownMenuGroup,
 	DropdownMenuItem,
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@repo/ui/components/dropdown-menu";
 import { headlessToast } from "@repo/ui/components/headless-toast";
 import { cn } from "@repo/ui/lib/utils";
-import { IconCheck, IconChevronDown, IconRotate2, IconStack2 } from "@tabler/icons-react";
+import { IconCheck, IconChevronDown, IconRotate2, IconStack2, IconTrash } from "@tabler/icons-react";
 import type React from "react";
 import { useState } from "react";
 import RenderIcon from "@/components/generic/RenderIcon";
 import { serializeFilters } from "../filter/serialization";
 import {
 	areStatesEqual,
+	DEFAULT_COMBINED_STATE,
 	getViewCombinedState,
 	mapStateToViewConfig,
 	useBoardViewState,
 } from "../filter/use-board-view-state";
+import { EditViewPopover } from "./edit-view-popover";
+import { SaveViewPopover } from "./save-view-popover";
 import { usePersonalViews } from "./use-personal-views";
 import { DEFAULT_VIEW_COLOR, DEFAULT_VIEW_ICON } from "./view-icon-color-trigger";
 
@@ -35,18 +39,24 @@ const ICON_SWATCH_CLASS = "size-5 rounded-md [&_svg]:size-3 shrink-0";
 
 /**
  * Breadcrumb-style saved-view switcher for /home's PageHeader.Identity zone, mirroring
- * /:orgId/tasks' own view dropdown there. Distinct from PresetSwitcher (board/layout's
- * top-bar/panel view switcher) — that component still owns pin/edit/delete/reorder; this
- * one is select + dirty-aware reset/update only, so there isn't a second place those
- * actions can drift out of sync from.
+ * /:orgId/tasks' own view dropdown there. This is the ONLY place view management lives now —
+ * select, dirty-aware reset/update, edit (rename/icon/color), delete, and save-as-new-view.
+ * Pin/unpin is the one exception, kept in active-view-panel-header.tsx's
+ * ActiveViewPanelPinButton (the panel header's own entry point); board-side-panel.tsx no
+ * longer has any view listing/edit/delete of its own.
  */
 export function ActiveViewSwitcher() {
 	const [updating, setUpdating] = useState(false);
-	const { personalViews, updateView } = usePersonalViews();
+	const { personalViews, updateView, deleteView } = usePersonalViews();
 	const { viewSlug, filters, viewConfig, selectView, resetToSavedView, clearView } = useBoardViewState();
 
 	const activeView = personalViews.find((view) => (view.slug || view.id) === viewSlug);
-	const isDirty = !!activeView && !areStatesEqual({ filters, viewConfig }, getViewCombinedState(activeView));
+	const isDirtyFromActiveView =
+		!!activeView && !areStatesEqual({ filters, viewConfig }, getViewCombinedState(activeView));
+	// No view selected at all, but the current filters/grouping/etc already differ from the
+	// blank default — "dirty" here means "worth offering to save", not "differs from a view".
+	const isDirtyFromBlank = !activeView && !areStatesEqual({ filters, viewConfig }, DEFAULT_COMBINED_STATE);
+	const isDirty = isDirtyFromActiveView || isDirtyFromBlank;
 
 	const handleUpdate = async (event: React.SyntheticEvent) => {
 		stopRowSelect(event);
@@ -99,57 +109,89 @@ export function ActiveViewSwitcher() {
 				{isDirty && <span className="size-1.5 shrink-0 rounded-full bg-primary" title="Unsaved changes" />}
 				<IconChevronDown className="size-3 text-muted-foreground shrink-0" />
 			</DropdownMenuTrigger>
-			<DropdownMenuContent align="start" className="w-64">
+			<DropdownMenuContent align="start" className="w-72 max-w-96">
 				<DropdownMenuItem onClick={() => clearView()} className={cn(!activeView && "bg-accent")}>
 					<IconStack2 className="size-4 text-muted-foreground" />
 					All tasks
 					{!activeView && <IconCheck className="ml-auto size-4 shrink-0" />}
 				</DropdownMenuItem>
-				{personalViews.length > 0 && <DropdownMenuSeparator />}
-				{personalViews.map((view) => {
-					const isActive = activeView?.id === view.id;
-					const showActions = isActive && isDirty;
-					return (
-						<DropdownMenuItem
-							key={view.id}
-							onClick={() => selectView(view)}
-							className={cn(isActive && "bg-accent")}
-						>
-							<RenderIcon
-								iconName={view.viewConfig?.icon || DEFAULT_VIEW_ICON}
-								color={view.viewConfig?.color || DEFAULT_VIEW_COLOR}
-								button
-								className={ICON_SWATCH_CLASS}
-							/>
-							<span className="truncate">{view.name}</span>
-							{showActions ? (
+				{personalViews.length > 0 && <DropdownMenuSeparator className="bg-border" />}
+				<DropdownMenuGroup className={""}>
+					{personalViews.map((view) => {
+						const isActive = activeView?.id === view.id;
+						const showResetUpdate = isActive && isDirtyFromActiveView;
+						return (
+							<DropdownMenuItem
+								key={view.id}
+								onClick={() => selectView(view)}
+								className={cn("group/item", isActive && "bg-accent")}
+							>
+								<RenderIcon
+									iconName={view.viewConfig?.icon || DEFAULT_VIEW_ICON}
+									color={view.viewConfig?.color || DEFAULT_VIEW_COLOR}
+									button
+									className={ICON_SWATCH_CLASS}
+								/>
+								<span className="truncate">{view.name}</span>
 								<span className="ml-auto flex items-center gap-0.5 shrink-0">
-									<button
-										type="button"
+									{showResetUpdate && (
+										<>
+											<Button
+												aria-label="Reset changes"
+												onPointerDown={stopRowSelect}
+												onClick={handleReset}
+												className="rounded p-1 text-foreground/0 hover:text-foreground group-hover/item:text-muted-foreground transition-all w-fit h-fit"
+												variant="ghost"
+												tooltipText="Reset changes"
+											>
+												<IconRotate2 className="size-3.5" />
+											</Button>
+											<Button
+												aria-label="Save changes"
+												disabled={updating}
+												onPointerDown={stopRowSelect}
+												onClick={handleUpdate}
+												className="rounded p-1 text-foreground/0 hover:text-foreground group-hover/item:text-muted-foreground transition-all w-fit h-fit disabled:opacity-50"
+												variant="ghost"
+												tooltipText="Save changes"
+											>
+												<IconCheck className="size-3.5" />
+											</Button>
+										</>
+									)}
+									{!showResetUpdate && isActive && <IconCheck className="size-4 shrink-0" />}
+									<EditViewPopover
+										view={view}
+										triggerClassName="text-foreground/0 hover:text-foreground group-hover/item:text-muted-foreground transition-all"
+									/>
+									<Button
+										aria-label="Delete view"
 										onPointerDown={stopRowSelect}
-										onClick={handleReset}
-										title="Reset changes"
-										className="rounded p-1 text-muted-foreground hover:text-foreground hover:bg-background"
+										onClick={(event) => {
+											stopRowSelect(event);
+											deleteView(view.id);
+										}}
+										className="rounded p-1 text-foreground/0 hover:text-destructive group-hover/item:text-muted-foreground transition-all w-fit h-fit"
+										variant="ghost"
+										tooltipText="Delete view"
 									>
-										<IconRotate2 className="size-3.5" />
-									</button>
-									<button
-										type="button"
-										disabled={updating}
-										onPointerDown={stopRowSelect}
-										onClick={handleUpdate}
-										title="Save changes"
-										className="rounded p-1 text-muted-foreground hover:text-foreground hover:bg-background disabled:opacity-50"
-									>
-										<IconCheck className="size-3.5" />
-									</button>
+										<IconTrash className="size-3.5" />
+									</Button>
 								</span>
-							) : (
-								isActive && <IconCheck className="ml-auto size-4 shrink-0" />
-							)}
-						</DropdownMenuItem>
-					);
-				})}
+							</DropdownMenuItem>
+						);
+					})}
+				</DropdownMenuGroup>
+				{isDirty && (
+					<>
+						<DropdownMenuSeparator />
+						<SaveViewPopover
+							triggerLabel={activeView ? "Save as new view" : "Save view"}
+							triggerVariant="ghost"
+							triggerClassName="w-full h-auto justify-start gap-2 rounded-xl px-2 py-1.5 text-sm font-normal text-foreground hover:bg-accent hover:text-accent-foreground"
+						/>
+					</>
+				)}
 			</DropdownMenuContent>
 		</DropdownMenu>
 	);
