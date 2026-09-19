@@ -2,25 +2,28 @@ import type { schema } from "@repo/database";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { useEffect, useRef } from "react";
 import { useLayoutData } from "@/components/admin/shell/context";
+import type useServerEvents from "@/lib/serverEvents";
 import type { ServerEventMessage } from "../lib/serverEvents";
 import { useWSMessageHandler, type WSMessageHandler } from "./useWSMessageHandler";
-import useServerEvents from "@/lib/serverEvents";
 
 interface UseSSESubscriptionOptions {
 	serverEvents: ReturnType<typeof useServerEvents>;
 	orgId?: string | null;
+	/** Multi-org subscribe (e.g. the cross-org board on /home) — mutually exclusive with `orgId`. */
+	orgIds?: string[];
 	channel?: string | null;
 	organization?: schema.OrganizationWithMembers | null;
 	setOrganization?: (newValue: schema.OrganizationWithMembers) => void;
 }
 
 interface UseSSEReturn {
-	sseSubscribedState: { orgId?: string; channel?: string } | null;
+	sseSubscribedState: { orgId?: string; orgIds?: string[]; channel?: string } | null;
 }
 
 export function useServerEventsSubscription({
 	serverEvents,
 	orgId,
+	orgIds,
 	channel,
 	organization,
 	setOrganization,
@@ -29,6 +32,7 @@ export function useServerEventsSubscription({
 
 	const { value: sseSubscribedState, setValue: setSSESubscribedState } = useStateManagement<{
 		orgId?: string;
+		orgIds?: string[];
 		channel?: string;
 	} | null>("sse-subscribe-state", null);
 
@@ -54,25 +58,36 @@ export function useServerEventsSubscription({
 
 		const currOrgId = orgId ?? null;
 		const currChannel = channel ?? null;
+		const currOrgIds = orgIds && orgIds.length > 0 ? [...orgIds].sort() : null;
 
 		const prevOrgId = sseSubscribedState?.orgId ?? null;
 		const prevChannel = sseSubscribedState?.channel ?? null;
+		const prevOrgIds = sseSubscribedState?.orgIds ? [...sseSubscribedState.orgIds].sort() : null;
+
+		const orgIdsUnchanged =
+			currOrgIds === null
+				? prevOrgIds === null
+				: prevOrgIds !== null &&
+					currOrgIds.length === prevOrgIds.length &&
+					currOrgIds.every((id, index) => id === prevOrgIds[index]);
 
 		// skip if unchanged
-		if (prevOrgId === currOrgId && prevChannel === currChannel) return;
+		if (prevOrgId === currOrgId && prevChannel === currChannel && orgIdsUnchanged) return;
 
-		se.connect(currOrgId ?? undefined, currChannel ?? undefined);
+		se.connect(currOrgId ?? undefined, currChannel ?? undefined, currOrgIds ?? undefined);
 
 		setSSESubscribedState({
 			orgId: currOrgId ?? undefined,
+			orgIds: currOrgIds ?? undefined,
 			channel: currChannel ?? undefined,
 		});
 
 		console.info("🔄 SSE Connected", {
 			orgId: currOrgId,
+			orgIds: currOrgIds,
 			channel: currChannel,
 		});
-	}, [orgId, channel, setSSESubscribedState]); // removed sseSubscribedState
+	}, [orgId, orgIds, channel, setSSESubscribedState]); // removed sseSubscribedState
 
 	// subscribe to SSE messages
 	useEffect(() => {

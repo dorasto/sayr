@@ -1,5 +1,3 @@
-"use client";
-
 import { useStore } from "@tanstack/react-store";
 import { userPreferencesStore } from "@/lib/stores/user-preferences-store";
 import { FilterBuilderContent } from "../filter/filter-builder";
@@ -18,23 +16,26 @@ import { SaveViewPopover } from "../saved-views/save-view-popover";
  * id/registration itself is the page's concern, not board's.
  */
 export function BoardSidePanelContent() {
-	const landerLayout = useStore(userPreferencesStore, (state) => state.landerLayout);
+  const landerLayout = useStore(
+    userPreferencesStore,
+    (state) => state.landerLayout,
+  );
 
-	return (
-		<div className="flex flex-col gap-2 p-3">
-			<QuickFilterPanel />
-			<div className="border-t border-border pt-2">
-				{landerLayout === "presetTop" ? (
-					<FilterBuilderContent />
-				) : (
-					<>
-						<PresetSwitcherContent />
-						<div className="pt-2 mt-1 border-t border-border">
-							<SaveViewPopover />
-						</div>
-					</>
-				)}
-			</div>
-		</div>
-	);
+  return (
+    <div className="flex flex-col gap-2">
+      <QuickFilterPanel />
+      <div className="border-t border-border">
+        {landerLayout === "presetTop" ? (
+          <FilterBuilderContent />
+        ) : (
+          <>
+            <PresetSwitcherContent />
+            <div className="pt-2 mt-1 border-t border-border">
+              <SaveViewPopover />
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
 }

@@ -1,21 +1,22 @@
-import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
-import { createServerFn } from "@tanstack/react-start";
 import type { schema } from "@repo/database";
 import {
 	db,
 	getLabels,
 	getOrganizations,
+	getOrgPermissions,
 	getPersonalViews,
 	getReleases,
-	getOrgPermissions,
 	getTasksByOrganizationId,
 	type TeamPermissions,
 } from "@repo/database";
 import { ensureCdnUrl } from "@repo/util";
+import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
+import { createServerFn } from "@tanstack/react-start";
 import { inArray } from "drizzle-orm";
 import { useEffect } from "react";
-import { useLanderCommands } from "@/hooks/commands/useLanderCommands";
 import { RootProviderLander } from "@/contexts/ContextLander";
+import { useLanderCommands } from "@/hooks/commands/useLanderCommands";
+import { useLanderServerEventsSubscription } from "@/hooks/useLanderServerEventsSubscription";
 import { personalViewsActions } from "@/lib/stores/personal-views-store";
 import { seo } from "@/seo";
 
@@ -128,6 +129,12 @@ function LanderCommandRegistrar() {
 	return null;
 }
 
+/** Subscribes the board to live cross-org task updates — needs to be inside RootProviderLander since useLanderServerEventsSubscription reads useLanderData(). */
+function LanderServerEventsRegistrar() {
+	useLanderServerEventsSubscription();
+	return null;
+}
+
 function HomeLayout() {
 	const { tasks, labels, personalViews, categories, releases, permissionsByOrg } = Route.useLoaderData();
 
@@ -146,6 +153,7 @@ function HomeLayout() {
 			permissionsByOrg={permissionsByOrg}
 		>
 			<LanderCommandRegistrar />
+			<LanderServerEventsRegistrar />
 			<Outlet />
 		</RootProviderLander>
 	);

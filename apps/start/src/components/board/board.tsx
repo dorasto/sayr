@@ -4,6 +4,7 @@ import { applyFilters } from "./filter/filter-config";
 import { sortTasks } from "./filter/sort-config";
 import { useBoardViewState } from "./filter/use-board-view-state";
 import { usePersonalViews } from "./saved-views/use-personal-views";
+import { BoardBulkActionBar } from "./selection/board-bulk-action-bar";
 import { BoardViewShell } from "./views/board-view-shell";
 
 interface BoardProps {
@@ -38,5 +39,10 @@ export function Board({ tasks }: BoardProps) {
 		return sortBy !== "none" ? sortTasks(scoped, sortBy, sortDirection) : scoped;
 	}, [tasks, filters, showCompletedTasks, sortBy, sortDirection]);
 
-	return <BoardViewShell tasks={visibleTasks} />;
+	return (
+		<>
+			<BoardViewShell tasks={visibleTasks} />
+			<BoardBulkActionBar tasks={visibleTasks} />
+		</>
+	);
 }
