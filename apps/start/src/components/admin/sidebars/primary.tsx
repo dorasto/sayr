@@ -47,12 +47,12 @@ export function PrimarySidebar() {
   const { organizations } = useLayoutData();
   const { clearSearchParams } = useTasksSearchParams();
   const sidebar = useStore(sidebarStore, (state) => state.sidebars[sidebarId]);
-  const isSidebarOpen = sidebar?.open ?? true;
+  const isSidebarOpen = sidebar ? sidebar.open || sidebar.overlayOpen === true : true;
   const inboxCount = useStore(notificationStore, (state) => state.unreadCount);
   const [organizationsOpen, setOrganizationsOpen] = useState(true);
   const closeMobileSidebar = () => {
     if (isMobile) {
-      sidebarActions.setOpenForBreakpoint(sidebarId, false, true);
+      sidebarActions.closeSidebarOverlay(sidebarId);
     }
   };
   return (
@@ -104,7 +104,6 @@ export function PrimarySidebar() {
             {!isMobile && (
               <SidebarMenuItem
                 className="min-w-0 min-h-auto max-w-fit size-7! aspect-square! m-auto"
-                hideWhenCollapsed
               >
                 <SidebarMenuButton
                   size="small"
@@ -118,7 +117,6 @@ export function PrimarySidebar() {
             {!isMobile && (
               <SidebarMenuItem
                 className="min-w-0 min-h-auto max-w-fit size-7! aspect-square! m-auto text-primary! transition-all"
-                hideWhenCollapsed
               >
                 <SidebarMenuButton
                   size="small"
@@ -172,7 +170,7 @@ export function PrimarySidebar() {
             </SidebarMenu>
           </SidebarGroup>
         ))}
-        <FavouritesSection isSidebarOpen={isSidebarOpen} />
+        <FavouritesSection />
         <SidebarGroup>
           {(() => {
             const orgList = (
@@ -221,20 +219,6 @@ export function PrimarySidebar() {
       <SidebarFooter className="border-t-transparent">
         <StatusBar />
         <SidebarMenu className="gap-0.5">
-          <SidebarMenuItem className="min-h-auto" showWhenCollapsed>
-            <SidebarMenuButton
-              size="small"
-              tooltip={"Search"}
-              icon={<IconSearch />}
-              onClick={() => commandActions.open()}
-            >
-              {" "}
-              Search
-            </SidebarMenuButton>
-            <SidebarMenuSub className="">
-              <Kbd>⌘K</Kbd>
-            </SidebarMenuSub>
-          </SidebarMenuItem>
           {isMobile && (
             <SidebarMenuItem className="min-h-auto">
               <SidebarMenuButton

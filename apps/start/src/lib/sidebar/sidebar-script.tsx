@@ -13,7 +13,7 @@ export function SidebarScript() {
 						var hasResizedWidth = typeof resizedWidth === 'number' && isFinite(resizedWidth) && resizedWidth > 0;
 						var width = sidebar.open
 							? hasResizedWidth ? Math.min(480, Math.max(224, resizedWidth)) + 'px' : '16rem'
-							: '3.5rem';
+							: '0px';
 						document.documentElement.style.setProperty('--sidebar-' + id + '-width', width);
 					});
 				}

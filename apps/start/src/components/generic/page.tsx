@@ -212,7 +212,7 @@ export function PanelContent({
   const currentTab = activeTab ?? tabs?.[0]?.id;
 
   return (
-    <SidebarContext.Provider value={{ id: panelId, isCollapsed: false }}>
+    <SidebarContext.Provider value={{ id: panelId }}>
       {/* min-h-0 is required here, not optional: without it this flex column
 			    defaults to min-height:auto and grows to fit its full content
 			    (header + content) instead of respecting the drawer's bounded

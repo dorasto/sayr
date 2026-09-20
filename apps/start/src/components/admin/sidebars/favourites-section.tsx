@@ -20,14 +20,6 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@repo/ui/components/doras-ui/sidebar";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuTrigger,
-} from "@repo/ui/components/dropdown-menu";
 import { cn } from "@repo/ui/lib/utils";
 import { IconBookmark, IconPinnedOff } from "@tabler/icons-react";
 import { Link, useRouterState } from "@tanstack/react-router";
@@ -171,78 +163,13 @@ function FavouriteRow({
 }
 
 /**
- * Icon-only compact-sidebar form — one "Favourites" trigger (matching how an individual org
- * collapses to just its avatar icon in compact mode) instead of N separate pinned-view rows,
- * since a stack of bare icons with no group affordance doesn't read as a set the way a single
- * trigger + flyout does. Deliberately simpler than the open-sidebar row: a plain clickable
- * list, no drag-reorder and no unpin — same scope org's own compact dropdown keeps (Tasks
- * link + a Settings flyout, not full page management).
- */
-function FavouritesCompactDropdown({
-  pinnedViews,
-  isOnHomePage,
-}: {
-  pinnedViews: schema.savedViewType[];
-  isOnHomePage: boolean;
-}) {
-  const navigate = useViewNavigate(isOnHomePage);
-
-  return (
-    <SidebarMenu>
-      <SidebarMenuItem className="min-h-auto">
-        <DropdownMenu>
-          <DropdownMenuTrigger
-            render={
-              <SidebarMenuButton
-                size="small"
-                tooltip="Favourites"
-                icon={<IconBookmark size={16} />}
-              />
-            }
-          />
-          <DropdownMenuContent side="right" align="start" className="w-60">
-            <DropdownMenuLabel>Favourites</DropdownMenuLabel>
-            <DropdownMenuGroup className="p-1">
-              {pinnedViews.map((view) => {
-                const targetSlug = view.slug || view.id;
-                return (
-                  <DropdownMenuItem
-                    key={view.id}
-                    render={
-                      <Link
-                        to="/home"
-                        search={{ view: targetSlug }}
-                        onClick={(event) => navigate(targetSlug, event)}
-                        className="flex items-center gap-2"
-                      >
-                        <RenderIcon
-                          iconName={view.viewConfig?.icon || DEFAULT_VIEW_ICON}
-                          color={view.viewConfig?.color || DEFAULT_VIEW_COLOR}
-                          button
-                          className={VIEW_ICON_SWATCH_CLASS}
-                        />
-                        <span className="truncate">{view.name}</span>
-                      </Link>
-                    }
-                  />
-                );
-              })}
-            </DropdownMenuGroup>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </SidebarMenuItem>
-    </SidebarMenu>
-  );
-}
-
-/**
  * Pinned personal views, rendered above the Organizations group — the sidebar half of
  * pinning a saved view from /home (see board/saved-views/*). Reads the same global
  * personal-views-store the /home page itself uses, so pin/unpin/reorder/rename there
  * shows up here immediately with no separate fetch. Hidden entirely when nothing is
  * pinned, matching how Organizations always has content but this optionally doesn't.
  *
- * Open sidebar: a SidebarGroupToggle (collapse/expand, no page of its own) wraps the
+ * A SidebarGroupToggle (collapse/expand, no page of its own) wraps the
  * draggable list. The whole row is the drag target (no dedicated handle) — a distance-based
  * MouseSensor means dnd-kit only starts tracking a reorder past 8px of movement;
  * FavouriteRow separately suppresses the click that same gesture would otherwise leave
@@ -250,14 +177,8 @@ function FavouritesCompactDropdown({
  * instead of distance (a press-and-hold, not a press-and-move) since touch scrolling
  * already uses movement — same two-sensor split grid-board.tsx's drag-and-drop uses for
  * the identical reason.
- *
- * Compact/icon-only sidebar: FavouritesCompactDropdown instead — see its own doc comment.
  */
-export function FavouritesSection({
-  isSidebarOpen,
-}: {
-  isSidebarOpen: boolean;
-}) {
+export function FavouritesSection() {
   const pathname = useRouterState({
     select: (state) => state.location.pathname,
   });
@@ -296,15 +217,6 @@ export function FavouritesSection({
   };
 
   if (pinnedViews.length === 0) return null;
-
-  if (!isSidebarOpen) {
-    return (
-      <FavouritesCompactDropdown
-        pinnedViews={pinnedViews}
-        isOnHomePage={isOnHomePage}
-      />
-    );
-  }
 
   return (
     <SidebarGroupToggle
