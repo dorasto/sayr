@@ -93,20 +93,27 @@ export const CommentSchema = z.looseObject({
 });
 
 /**
+ * Upper bound for an explicit `page`/`limit`. `Number("1e300")` is a finite
+ * "integer", so without one a huge `page` becomes an offset no database accepts
+ * and surfaces as a 500. Callers still clamp `limit` to their own maximum.
+ */
+const MAX_PAGINATION_PARAM = 1_000_000;
+
+/**
  * Parses an explicit `page`/`limit` query param as a finite positive integer.
  * Returns `{}` when the param was omitted entirely, so the caller's existing
  * default keeps applying unchanged — only a param that was *provided* but
- * isn't a valid positive integer (negative, fractional, non-finite, non-numeric)
- * produces `{ error }`, which callers should surface as a 400. Shared by every
- * `/me/*` route that paginates, so all of them reject the same malformed input
- * the same way.
+ * isn't a valid positive integer (negative, fractional, non-finite, non-numeric,
+ * or above `MAX_PAGINATION_PARAM`) produces `{ error }`, which callers should
+ * surface as a 400. Shared by every `/me/*` route that paginates, so all of them
+ * reject the same malformed input the same way.
  */
 export function parsePaginationParam(value: string | undefined, fieldName: string): { value?: number; error?: string } {
 	if (value === undefined || value === "") return {};
 
 	const parsed = Number(value);
-	if (!Number.isFinite(parsed) || !Number.isInteger(parsed) || parsed < 1) {
-		return { error: `"${fieldName}" must be a positive integer` };
+	if (!Number.isFinite(parsed) || !Number.isInteger(parsed) || parsed < 1 || parsed > MAX_PAGINATION_PARAM) {
+		return { error: `"${fieldName}" must be a positive integer no larger than ${MAX_PAGINATION_PARAM}` };
 	}
 
 	return { value: parsed };

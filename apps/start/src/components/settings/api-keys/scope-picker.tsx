@@ -120,9 +120,9 @@ export function ScopePicker({ value, onChange, disabled = false }: ScopePickerPr
 			<Alert>
 				<IconInfoCircle className="size-4" />
 				<AlertDescription className="text-xs text-muted-foreground">
-					A key can never do more than your own permissions allow in each organization — if your access changes,
-					the key's access changes with it. Scopes are recorded on the key now, but are not yet enforced on every
-					endpoint, so treat any key as capable of everything your account can do until scope enforcement ships.
+					A scope is a ceiling, not a grant. Every request needs the key to hold the scope and you to hold the
+					matching permission in that organization, so a key can never do more than your own permissions allow — if
+					your access changes, the key's access changes with it.
 				</AlertDescription>
 			</Alert>
 		</div>
