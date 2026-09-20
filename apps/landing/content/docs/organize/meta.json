@@ -1,5 +1,6 @@
 {
-  "title": "Organize",
-  "defaultOpen": false,
-  "icon": "IconFolders"
+	"title": "Organize",
+	"defaultOpen": false,
+	"icon": "IconFolders",
+	"pages": ["labels", "categories", "views", "releases", "..."]
 }

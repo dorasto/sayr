@@ -1,5 +1,6 @@
 {
-  "title": "Tasks",
-  "defaultOpen": false,
-  "icon": "IconLayoutKanban"
+	"title": "Tasks",
+	"defaultOpen": false,
+	"icon": "IconLayoutKanban",
+	"pages": ["tasks", "subtasks", "task-relations", "templates", "..."]
 }

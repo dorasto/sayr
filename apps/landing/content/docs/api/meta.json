@@ -1,5 +1,6 @@
 {
-  "title": "API",
-  "root": true,
-  "icon": "IconApi"
+	"title": "API",
+	"root": true,
+	"icon": "IconApi",
+	"pages": ["overview", "reference", "sdk", "..."]
 }

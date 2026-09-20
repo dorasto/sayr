@@ -1,5 +1,6 @@
 {
-  "title": "Account",
-  "defaultOpen": false,
-  "icon": "IconUserCircle"
+	"title": "Account",
+	"defaultOpen": false,
+	"icon": "IconUserCircle",
+	"pages": ["my-tasks", "notifications", "account-settings", "security", "..."]
 }

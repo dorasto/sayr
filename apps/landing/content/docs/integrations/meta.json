@@ -1,5 +1,6 @@
 {
-  "title": "Integrations",
-  "defaultOpen": false,
-  "icon": "IconPlug"
+	"title": "Integrations",
+	"defaultOpen": false,
+	"icon": "IconPlug",
+	"pages": ["github", "discordbot", "building-integrations", "..."]
 }

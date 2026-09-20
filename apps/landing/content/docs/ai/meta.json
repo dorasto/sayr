@@ -1,5 +1,6 @@
 {
-  "title": "AI Features",
-  "defaultOpen": false,
-  "icon": "IconSparkles"
+	"title": "AI Features",
+	"defaultOpen": false,
+	"icon": "IconSparkles",
+	"pages": ["task-summary", "..."]
 }

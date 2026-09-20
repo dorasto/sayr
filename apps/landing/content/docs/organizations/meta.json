@@ -1,5 +1,6 @@
 {
-  "title": "Organizations",
-  "defaultOpen": false,
-  "icon": "IconBuildingSkyscraper"
+	"title": "Organizations",
+	"defaultOpen": false,
+	"icon": "IconBuildingSkyscraper",
+	"pages": ["overview", "preferences", "members-and-teams", "billing", "danger-zone", "..."]
 }
