@@ -5,6 +5,9 @@ import { categoriesRoute } from "./categories";
 import { commentsRoute } from "./comments";
 import { labelsRoute } from "./labels";
 import { profileRoute } from "./profile";
+import { releaseCommentsRoute } from "./release-comments";
+import { releaseLabelsRoute } from "./release-labels";
+import { releaseStatusUpdatesRoute } from "./release-status-updates";
 import { releasesRoute } from "./releases";
 import { tasksRoute } from "./tasks";
 
@@ -23,4 +26,7 @@ Route.route("/", tasksRoute);
 Route.route("/", commentsRoute);
 Route.route("/", categoriesRoute);
 Route.route("/", releasesRoute);
+Route.route("/", releaseLabelsRoute);
+Route.route("/", releaseStatusUpdatesRoute);
+Route.route("/", releaseCommentsRoute);
 Route.route("/", labelsRoute);

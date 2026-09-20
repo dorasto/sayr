@@ -2,7 +2,7 @@ import { auth } from "@repo/auth";
 import { db, type PermissionPath } from "@repo/database";
 import { createTraceAsync } from "@repo/opentelemetry/trace";
 import type { ApiKeyScope, ApiKeyScopeRecord } from "@repo/util";
-import { keyScopeAllows, scopeToPermissionPath } from "@repo/util";
+import { keyScopeAllows, scopeDefinition, scopeToPermissionPath } from "@repo/util";
 import { eq } from "drizzle-orm";
 import type { Context, MiddlewareHandler } from "hono";
 import type { AppEnv } from "@/index";
@@ -134,4 +134,31 @@ export async function assertApiAccess(c: Context<AppEnv>, orgId: string, scope: 
 	// (not `any`/`never`) is asserting something already checked, not bypassing
 	// a check.
 	return traceOrgPermissionCheck(principal.userId, orgId, scopeToPermissionPath(scope) as PermissionPath);
+}
+
+/**
+ * The 403 for a request `assertApiAccess` rejected. Names WHICH half of the
+ * decision failed so the caller can act on it: the KEY lacks the scope (use a
+ * key that has it), or the key is fine but its OWNER lacks the mapped team
+ * permission in this organization (an admin has to grant it). The CLI prints
+ * only `message`, so the specifics live there.
+ *
+ * Call it only after `assertApiAccess(c, orgId, scope)` returned false. The
+ * scope half is a pure in-memory check, so no second permission lookup is
+ * needed: if the key holds the scope, the owner's permission is what failed.
+ * Used by the release routes; the older inline 403s are left as they are.
+ */
+export function denyApiAccess(c: Context<AppEnv>, action: string, scope: ApiKeyScope) {
+	const permission = scopeToPermissionPath(scope);
+
+	let message: string;
+	if (!keyHasScope(c.get("apiKeyPrincipal"), scope)) {
+		message = `Your API key is missing the ${scope} scope ("${scopeDefinition(scope).label}"). Use a key that includes it.`;
+	} else if (permission === "members") {
+		message = "You are not a member of this organization.";
+	} else {
+		message = `Your role in this organization doesn't include the ${permission} permission. Ask an organization admin to grant it to one of your teams.`;
+	}
+
+	return c.json(errorResponse(`You don't have permission to ${action}.`, message), 403);
 }
