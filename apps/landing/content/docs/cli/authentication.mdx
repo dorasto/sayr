@@ -1,0 +1,119 @@
+---
+title: Authentication & API keys
+description: Create a personal access token, log the Sayr CLI in, and understand which scopes each command needs
+---
+
+The CLI authenticates with a personal access token, the same kind used by any other API client (see the [Public API & SDK](/docs/api/sdk) docs). This page covers creating a key, logging in and out, where the credentials live, and which scopes each command needs.
+
+## Create a personal access token
+
+1. Go to **Settings > API keys** and click **Create key**
+2. Give the key a **name** (up to 32 characters, for example "Local CLI")
+3. Choose when it **expires**: Never, 30 days, 90 days (the default), or 365 days
+4. Pick its **scopes**, either with a preset or one at a time. A key needs at least one scope
+5. Click **Create key** and copy the key from the dialog
+
+<Callout type="warn" title="Copy the key now">
+  The key is shown once. Sayr stores only a hash of it, so it can't be shown
+  again. If you lose it, open the key under **Settings > API keys** and choose
+  **Regenerate** (the old key stops working) or **Revoke**.
+</Callout>
+
+Keys start with `api_`. Treat one like a password and keep it out of source control. Leaving out `--token` when you log in (so the CLI prompts for it) also keeps it out of your shell history.
+
+## Log in
+
+```bash
+sayr login --token api_xxxxxxxx
+```
+
+Omit `--token` and you'll be prompted to paste it instead. Before saving anything, the CLI checks the token by fetching your profile, so a wrong or expired key is rejected up front and nothing is stored.
+
+Pass `--base-url` to point at a self-hosted instance or a local dev server. It defaults to `https://api.sayr.io`:
+
+```bash
+sayr login --token api_xxxxxxxx --base-url https://api.your-instance.com
+```
+
+`login` always connects to the URL you pass or to the default. It never reuses a URL you saved earlier, and it ignores `SAYR_BASE_URL` and `SAYR_TOKEN`, so running a plain `sayr login` after a local-dev login points the CLI back at production.
+
+Need a second, separate login (for example a local dev backend next to production)? Use [`sayr-local`](/docs/cli/configuration#profiles).
+
+## Check who you are
+
+```bash
+sayr whoami
+```
+
+Prints your name, email, and user id (`--json` for the raw object). It needs a valid key but no particular scope. It's the quickest way to confirm the CLI is logged in.
+
+## Log out
+
+```bash
+sayr logout
+```
+
+Empties the config file for the active profile, which removes the stored token, base URL, and default organization. It doesn't revoke the key itself: to do that, revoke it under **Settings > API keys**. A `SAYR_TOKEN` environment variable is unaffected by `logout`.
+
+## Where credentials are stored
+
+Credentials live in `~/.sayr/config.json`, created with owner-only permissions (`0600`). Other profiles use `~/.sayr/config.<profile>.json`. The [Configuration reference](/docs/cli/configuration) lists every field in the file.
+
+In CI, skip the file entirely and set `SAYR_TOKEN` (and `SAYR_BASE_URL` for a self-hosted instance). See [Scripting & automation](/docs/cli/scripting).
+
+## Scopes
+
+A key only works for the scopes you gave it. This is what each scope allows and which commands need it.
+
+| Scope                        | Shown in Sayr as     | What it allows                                                                         | Commands that need it                                                                                                                                                                                                                                                       |
+| ---------------------------- | -------------------- | -------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `tasks.read`                 | Read tasks           | List, search, and read tasks and releases                                              | Every read command: `task list`, `task view`, `comment list`, `comment replies`, `categories list`, `labels list`, `releases list`, `releases view`, and the `releases` status-update, comment, and pull-request `list` commands. Also `task update`, `releases publish`, `releases delete`, and `releases pr unlink`, which read first, and any command given a category or label **name** (`--category`, `task label --set`, `releases label`), which looks the name up first. Guided mode's lists are reads too |
+| `tasks.create`               | Create tasks         | Create new tasks                                                                       | `task create`                                                                                                                                                                                                                                                               |
+| `tasks.comment`              | Post comments        | Write comments on tasks and releases; edit task comments; edit and delete your own     | `comment create`, `comment update`, `comment delete` (your own), `releases comment create`, and `releases comment update` / `delete` (your own)                                                                                                                              |
+| `tasks.editAny`              | Edit tasks           | Change task title, description, category, release, and visibility                      | `task update` with `--title`, `--description`, `--category`, `--release`, `--no-release`, or `--visible`                                                                                                                                                                    |
+| `tasks.assign`               | Assign tasks         | Add or remove assignees on a task                                                      | `task assign`                                                                                                                                                                                                                                                               |
+| `tasks.changeStatus`         | Change status        | Move tasks between backlog, todo, in-progress, done, and canceled                      | `task update --status`                                                                                                                                                                                                                                                      |
+| `tasks.changePriority`       | Change priority      | Set task priority                                                                      | `task update --priority`                                                                                                                                                                                                                                                    |
+| `content.manageLabels`       | Manage labels        | Add or remove labels on tasks                                                          | `task label`, `labels create`                                                                                                                                                                                                                                               |
+| `content.manageCategories`   | Manage categories    | Read and assign task categories                                                        | None of the current commands. `categories list` only needs `tasks.read`                                                                                                                                                                                                     |
+| `content.manageReleases`     | Manage releases      | Create, edit, publish, and delete releases; manage their labels, status updates, and linked pull requests | `releases create`, `update`, `publish`, `delete`, `label`, `status-update create` / `update` / `delete`, and `pr link` / `unlink`                                                                                                                                            |
+| `moderation.manageComments`  | Moderate comments    | Delete task comments written by others; edit or delete others' release comments        | `comment delete` and `releases comment update` / `delete` on someone else's comment                                                                                                                                                                                         |
+
+`whoami` and `orgs list` need only a valid key, no scope. Editing a task comment needs `tasks.comment` only: any organization member can edit any task comment, not just the author.
+
+### Presets
+
+The key form offers three one-click presets:
+
+| Preset          | Scopes                                                                                                                                | Good for                                                                                          |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| Read only       | `tasks.read`                                                                                                                          | Dashboards, and agents that should only look. Cannot change anything                              |
+| Task management | `tasks.read`, `tasks.create`, `tasks.comment`, `tasks.editAny`, `tasks.assign`, `tasks.changeStatus`, `tasks.changePriority`, `content.manageLabels` | Day-to-day work on tasks, labels, assignees, and comments. Deliberately leaves out release changes |
+| Full access     | Every scope above                                                                                                                     | Trusted personal use. Still never includes member, team, or billing management                    |
+
+## A key is a ceiling, never a grant
+
+Every request is checked twice: does the key hold the scope, and does the key's **owner** hold the matching permission in that organization right now? Both have to be true.
+
+- A key can never do more than its owner can. A "Full access" key belonging to a read-only member is still read-only.
+- Owner permissions are checked on every request, not stored on the key, so if you lose a permission, your keys lose that access immediately.
+- Member, team, and billing management aren't available to any key, whatever its scopes.
+- `tasks.read` and `tasks.comment` just need you to be a member of the organization. The other scopes each map to a team permission of the same name, so for example `content.manageReleases` also needs you to hold **Manage releases** (see [Members & Teams](/docs/organizations/members-and-teams)).
+
+When a request is refused, the CLI prints the reason. For release commands it says which half failed: the key is missing a scope, or your role is missing the permission.
+
+<Callout type="warn" title="Existing keys gain release access">
+  Keys that already hold `content.manageReleases`, including full-access keys,
+  can now change releases through the CLI and the API. Keys that hold
+  `tasks.comment` (including the task-management preset) can now comment on
+  releases, and keys with `moderation.manageComments` can edit or delete other
+  people's release comments. Narrow or revoke them if that isn't what you want.
+  The key owner still needs the matching permission in the organization. For
+  changing releases, that's **Manage releases**.
+</Callout>
+
+## Related
+
+- [Configuration reference](/docs/cli/configuration): the config file, profiles, and environment variables
+- [Scripting & automation](/docs/cli/scripting): using a key from CI and agents
+- [Public API & SDK](/docs/api/sdk)

@@ -1,0 +1,176 @@
+---
+title: Guided mode
+description: Let the Sayr CLI ask for what you left out, with choices pulled from your organization
+---
+
+Guided mode makes the CLI interactive when it needs to be. If you're at a terminal and a command is missing something it requires, the CLI asks for it instead of failing. Choices such as categories, releases, labels, and organizations come from your organization, so you pick from a list and never have to paste an id.
+
+```bash
+sayr task create        # asks for a title, then offers optional details
+sayr task update 123    # asks what to change
+sayr task label 123     # lets you pick the task's labels
+sayr task list          # no organization set? asks which one
+```
+
+Guided mode only fills in what's missing. A command that already has everything it needs runs exactly as it always has, with no extra questions.
+
+## When it asks
+
+Prompts appear only when all of these are true:
+
+- The CLI's input **and** output are both a terminal
+- You haven't passed `--json`
+- `SAYR_NO_INTERACTIVE` isn't turned on (see [Turning it off](#turning-it-off))
+
+When they are, the CLI asks in exactly four situations:
+
+| Situation                                | Commands                                                                                                                                                     |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| A required argument is missing           | `sayr task create` with no title, and `sayr releases create` with no name                                                                                    |
+| No field flags at all                    | `sayr task update <taskId>` and `sayr releases update <release>`. This is the case that otherwise prints "Nothing to update"                                 |
+| No `--set`                               | `sayr task label <taskId>`. `--set ""` is a value (it clears every label), so it doesn't prompt                                                              |
+| No `--org` and no default organization   | Every command that takes `--org`, read-only ones such as `task list` included. See [Organizations](/docs/cli/organizations#choosing-an-organization)         |
+
+Anything you already passed as a flag is kept and isn't asked about again. `sayr task create --priority high` only asks for the rest.
+
+A guided run also reads from your organization to fill its lists, so the key needs `tasks.read` on top of whatever the write itself needs. See [Authentication & API keys](/docs/cli/authentication#scopes).
+
+## When it never asks
+
+Everywhere else (scripts, CI jobs, pipes and redirects, agents, `--json`, and `SAYR_NO_INTERACTIVE` turned on) a command behaves exactly as it did before guided mode: the same error text, the same exit code, the same requests. For example:
+
+| Missing                             | What you get                                                                  |
+| ----------------------------------- | ----------------------------------------------------------------------------- |
+| The title or name on `create`       | `error: missing required argument 'title'` (or `'name'`), exit code 1         |
+| `--set` on `task label`             | `error: required option '--set <ids>' not specified`, exit code 1             |
+| Field flags on `update`             | "Nothing to update", exit code 0, no request made                             |
+| An organization                     | The `MISSING_ORG` error, exit code 1                                          |
+
+That makes it safe to leave the CLI in scripts: nothing can hang waiting for an answer. See [Scripting & automation](/docs/cli/scripting).
+
+`sayr task create --help` and `sayr releases create --help` show `<title>` and `<name>` rather than `[title]` and `[name]`, because scripts and agents have to pass one. The command listings (`sayr task --help`, `sayr releases --help`) show them in square brackets since a terminal can leave them out.
+
+## What each command asks
+
+### Choosing an organization
+
+With no `--org` and no default organization, the CLI first works out which organization you mean:
+
+- If you belong to **one** organization, it uses it and prints a short note saying so
+- If you belong to **several**, it shows a "Which organization?" picker with each one's name, short ID, and slug
+- If you belong to **none**, you get the usual `MISSING_ORG` error
+
+Either way it also suggests `sayr config set-org <slug>`, which makes that organization your default so you aren't asked again. This happens before anything else the command asks.
+
+### Creating a task
+
+`sayr task create` with no title asks for:
+
+1. The **title**, which can't be empty
+2. Which **optional details** to add, from Description, Status, Priority, Category, and Release. Nothing is ticked by default, so pressing Enter skips them, and any detail you already passed as a flag isn't offered
+3. A value for each detail you ticked: the description as a line of Markdown, status and priority from a list, and category and release from your organization's own lists. If the organization has none, the CLI says so and skips that detail
+
+It then creates the task with the same request as `sayr task create <title>` plus those flags.
+
+### Updating a task
+
+`sayr task update <taskId>` with no field flags shows the task's key and title, then asks **what to change**. You must tick at least one of Title, Status, Priority, Category, Release, and Visibility, and each option shows its current value. It then asks for a new value for each one you ticked, starting from the current value. The Release list includes a "No release" choice, which does what `--no-release` does.
+
+The description isn't offered, because `task update` only takes plain text there (see [Tasks](/docs/cli/tasks#update-a-task)). Use `--description` for that.
+
+### Labelling a task
+
+`sayr task label <taskId>` with no `--set` shows the task's key and title, then a list of your organization's labels with the task's current labels already ticked. Private labels are marked. Tick and untick to taste, and unticking everything clears every label. If the organization has no labels, the CLI says so and sends nothing.
+
+### Creating a release
+
+`sayr releases create` with no name asks for:
+
+1. The release **name**, which can't be empty
+2. Its **status**, defaulting to `planned`
+3. An optional **target date**, checked the way `--target-date` is. Leave it empty to skip
+4. Which **optional details** to add, from Slug, Description, and Colour. Nothing is ticked by default
+
+A status or target date you already passed as a flag isn't asked again. Colour is a pick from a palette: Blue, Green, Red, Orange, Yellow, Purple, Pink, and Gray. The icon isn't offered, so use `--icon` for that.
+
+### Updating a release
+
+`sayr releases update <release>` with no field flags shows the release's name, status, and slug, then asks **what to change**. You must tick at least one of Name, Slug, Description, Status, Target date, Released at, and Colour, and most options show their current value. Each prompt starts from the current value.
+
+- **Target date** and **Released at** are text prompts pre-filled with the current `YYYY-MM-DD` date. Type a new date, or `none` to clear it, as `--target-date none` and `--released-at none` do
+- **Description** is a line of Markdown. An empty answer clears it. If the current description runs over several lines it isn't pre-filled, and your answer replaces it
+- **Colour** is the same palette pick as on create
+
+`--lead` and `--icon` are flag-only and never offered. Passing either counts as a field flag, so it turns the guided prompts off for that command.
+
+## The equivalent command
+
+After a guided run that fills in missing input (a `create` with no title or name, an `update` with no field flags, or a `task label` with no `--set`) succeeds, the CLI prints a dim line with the command that does the same thing, so next time you can skip the questions or paste it into a script:
+
+```text
+Tip: sayr task update 123 --status in-progress --priority high
+```
+
+- Values with spaces or special characters are quoted for the shell, so you can copy the line as it is. That's single quotes, or double quotes on Windows
+- `--org <slug>` is included when the organization came from `--org` or from the picker, and left out when it came from your default organization
+- Category and label values are shown as names when a name alone identifies the item (it's unique, ignoring case, and has no comma), and as ids otherwise
+- If you keep the default `planned` status in a guided `releases create`, `--status` is left out of the request and the line, since that's what you get anyway
+- Under `sayr-local` (or `SAYR_PROFILE=local`) the line says `sayr-local`. For any other profile it says `sayr` and doesn't include `SAYR_PROFILE`, so add it yourself if you reuse the line
+- No tip is printed if the request fails or you cancel
+
+If only the organization was missing, the CLI doesn't print an equivalent command. It just suggests `sayr config set-org`.
+
+## Names instead of ids
+
+Where a command needs a category or label id, you can pass a name instead:
+
+| Flag                                                  | Accepts                                      |
+| ----------------------------------------------------- | -------------------------------------------- |
+| `--category <category>` on `task create`, `update`, `list` | A category's name or its id             |
+| `--set <ids>` on `task label`                         | Comma-separated label names or ids           |
+| `--add <labels>` and `--remove <labels>` on `releases label` | Comma-separated label names or ids    |
+
+```bash
+sayr task create "Add dark mode" --category Design
+sayr task label 123 --set "Backend,Needs review"
+sayr releases label v1-2-0 --add Backend --remove Frontend
+```
+
+The rules:
+
+- A value shaped like a UUID is sent as it is, with **no lookup**, so existing commands and scripts are unchanged. That's the sturdier choice in a script: a name is looked up on every run, so renaming a label would break it
+- Any other value is matched against the organization's categories or labels by **exact name, ignoring case**. Spaces are fine, and partial matches aren't: `bug` finds "Bug" but not "Bugfix"
+- A value that isn't a name but is exactly an id also works, for ids that aren't UUID-shaped
+- A name that matches nothing, or matches more than one, is an `INVALID_ARGUMENT` error that lists your organization's names or asks for the id. It happens before any write request is made
+- `--set ""` still clears every label
+- A name that contains a comma can't be used in a comma-separated list, so use its id
+- Looking up a name reads the organization's categories or labels, which needs the `tasks.read` scope. An id doesn't
+- Assignees have no names option: `task assign` still takes user ids. Releases already take a slug or an id
+
+```text
+Invalid value for --category: "Bugz". Expected a category id or one of these names: Bug, Feature, Needs Review.
+Ambiguous value for --category: "bug" matches 2 categories (Bug, id ...; bug, id ...). Pass the id instead.
+```
+
+## Cancelling
+
+Press Ctrl+C or Esc at any prompt to cancel. The CLI prints a dim "Cancelled.", exits with code 1, and makes no write request. It may already have made read requests to fill a list. No error is shown.
+
+## Turning it off
+
+Set `SAYR_NO_INTERACTIVE=1` to switch guided mode off for every command, for example in a shell profile, a CI image, or an agent's environment. `--json` switches it off for a single command.
+
+Prompts stay **on** when the variable is unset, empty, or set to `0`, `false`, `no`, or `off` (in any case, ignoring surrounding spaces). Any other value turns them **off**, but `1` is the one to use. The [Configuration reference](/docs/cli/configuration#environment-variables) lists every environment variable.
+
+## Not part of guided mode
+
+Two other prompts follow their own rules and ignore `SAYR_NO_INTERACTIVE`:
+
+- `sayr login` asks for a token when you leave out `--token`. See [Authentication & API keys](/docs/cli/authentication#log-in)
+- `releases publish` and `releases delete` ask you to confirm. They follow `--yes`, `--json`, and whether there's a terminal, so at a terminal without `--yes` they still ask even when `SAYR_NO_INTERACTIVE=1`. See [Releases](/docs/cli/releases#confirmation-for-publish-and-delete)
+
+## Related
+
+- [Tasks](/docs/cli/tasks)
+- [Releases](/docs/cli/releases)
+- [Scripting & automation](/docs/cli/scripting)

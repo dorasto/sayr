@@ -37,7 +37,7 @@ export function registerReleasePrCommand(releases: Command): void {
 		.option("--json", "Output raw JSON")
 		.action(async (release: string, opts: { org?: string; json?: boolean }) => {
 			try {
-				const orgId = await resolveOrg(opts.org);
+				const orgId = await resolveOrg(opts.org, opts);
 				const { githubPullRequests } = await fetchReleaseDetail(orgId, release);
 
 				if (opts.json) {
@@ -69,7 +69,7 @@ export function registerReleasePrCommand(releases: Command): void {
 		.action(async (release: string, prUrl: string, opts: { org?: string; json?: boolean }) => {
 			try {
 				assertPullRequestUrl(prUrl);
-				const orgId = await resolveOrg(opts.org);
+				const orgId = await resolveOrg(opts.org, opts);
 
 				const linked = await apiRequest<ReleasePullRequest>(`${releasePath(release)}/github-prs`, {
 					method: "POST",
@@ -97,7 +97,7 @@ export function registerReleasePrCommand(releases: Command): void {
 		.action(async (release: string, prUrl: string, opts: { org?: string; json?: boolean }) => {
 			try {
 				assertPullRequestUrl(prUrl);
-				const orgId = await resolveOrg(opts.org);
+				const orgId = await resolveOrg(opts.org, opts);
 
 				// The API unlinks by the link's own id, which only the release detail exposes.
 				const { githubPullRequests } = await fetchReleaseDetail(orgId, release);

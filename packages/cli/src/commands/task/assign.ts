@@ -18,7 +18,7 @@ export function registerAssignCommand(task: Command): void {
 		.option("--json", "Output raw JSON")
 		.action(async (taskId: string, opts: { set: string; org?: string; json?: boolean }) => {
 			try {
-				const orgId = await resolveOrg(opts.org);
+				const orgId = await resolveOrg(opts.org, opts);
 				const assigneeIds = parseIdList(opts.set);
 
 				const t = await apiRequest<Task>(`/tasks/${encodeURIComponent(taskId)}/assignees`, {

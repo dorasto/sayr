@@ -1,0 +1,72 @@
+---
+title: CLI
+description: Manage Sayr tasks, comments, and releases from your terminal with the sayr command-line tool
+---
+
+The Sayr CLI (`@sayrio/cli`, binary `sayr`) wraps the same personal-access-token API (`/v1/me/*`) that powers integrations and bots. List, create, and update tasks, manage labels and assignees, post comments, and run your releases (create, update, publish, and manage their labels, status updates, comments, and linked pull requests), all without opening a browser.
+
+## Installation
+
+The CLI needs Node.js 18 or newer.
+
+```bash
+npm install -g @sayrio/cli
+sayr --help
+```
+
+<Callout type="warn" title="Windows users">
+  Running `npm install -g @sayrio/cli` may appear to succeed, but `sayr`
+  commands can then fail with errors. The workaround is to run the install
+  command from a terminal with administrator privileges. After that, `sayr`
+  commands should work in non-admin terminals too.
+</Callout>
+
+To try it without a global install, run `npx -p @sayrio/cli sayr --help`. The package ships two commands, `sayr` and [`sayr-local`](/docs/cli/configuration#profiles), so `npx` needs `-p` to know which one you mean.
+
+## Quick start
+
+```bash
+# 1. Log in with a personal access token (create one under Settings > API keys)
+sayr login --token api_xxxxxxxx
+
+# 2. Set a default organization so you can leave out --org
+sayr config set-org platform
+
+# 3. See what's on the board
+sayr task list --limit 5
+
+# 4. Create a task
+sayr task create "Fix the flaky deploy check" --priority high --status todo
+
+# 5. Update it (123 is the task's number: the 123 in SAY-123)
+sayr task update 123 --status in-progress
+```
+
+Commands that act on an existing task take its number, the part after the dash in a key like `SAY-123`. `task list` prints keys, and `task create` prints the task's URL, which ends in the number too.
+
+Missing a detail, such as a title or an organization? At a terminal the CLI asks for it instead of failing. See [Guided mode](/docs/cli/guided-mode).
+
+## How permissions work
+
+The CLI can only do what your API key's scopes, and your own role in the organization, allow. A key is a ceiling, never a grant: it can never do more than its owner can, and it can never touch member, team, or billing management, whatever scopes it holds. Give each key only the scopes it needs, and if a command is refused the CLI prints the reason. See [Authentication & API keys](/docs/cli/authentication) for the full scope list.
+
+## Command groups at a glance
+
+| Commands                          | What they do                                                                                        | Page                                                          |
+| --------------------------------- | --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| `login`, `logout`, `whoami`       | Sign in, sign out, and check who you're signed in as                                                | [Authentication & API keys](/docs/cli/authentication)         |
+| `task`                            | Create, list, view, update, label, and assign tasks                                                 | [Tasks](/docs/cli/tasks)                                      |
+| `comment`                         | Read, post, edit, and delete task comments                                                          | [Comments](/docs/cli/comments)                                |
+| `releases`                        | Create, update, publish, and delete releases; their labels, status updates, comments, pull requests | [Releases](/docs/cli/releases)                                |
+| `orgs`, `labels`, `categories`    | List your organizations, labels, and categories; create labels; choose an organization              | [Organizations, labels & categories](/docs/cli/organizations) |
+| Any command with missing input    | Have the CLI ask for what you left out                                                              | [Guided mode](/docs/cli/guided-mode)                          |
+| `--json`, `--yes`, exit codes     | Run the CLI from scripts, CI, and agents                                                            | [Scripting & automation](/docs/cli/scripting)                 |
+| `config`                          | Config file, profiles, environment variables, precedence, and error codes                           | [Configuration reference](/docs/cli/configuration)            |
+
+Every command takes `--help` (for example `sayr releases publish --help`) to print its full flag list.
+
+## Related
+
+- [Public API & SDK](/docs/api/sdk)
+- [API Reference](/docs/api/overview)
+- [Releases](/docs/organize/releases): the product feature behind `sayr releases`

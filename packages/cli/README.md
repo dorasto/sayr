@@ -11,7 +11,7 @@ npm install -g @sayrio/cli
 sayr --help
 ```
 
-Prefer a one-off run without a global install? `npx @sayrio/cli --help` works the same way.
+Prefer a one-off run without a global install? Use `npx -p @sayrio/cli sayr --help`. The package ships two commands (`sayr` and `sayr-local`), so plain `npx @sayrio/cli` can't pick one to run.
 
 ## Authentication
 
@@ -97,6 +97,42 @@ Every command accepts `--json` for scriptable output, and `sayr <command> --help
 `<release>` is a release's slug or id — `sayr releases list` shows both. The same value works for `--release` on `task create`, `task update`, and `task list`; `task update --no-release` takes a task out of its release. Release descriptions, status updates, and release comments accept Markdown on both create and update.
 
 `releases publish` and `releases delete` can't be undone, so they ask for confirmation first. With `--yes` they skip the prompt; without a terminal, or together with `--json`, they refuse to run unless you pass `--yes`. Note that `releases update --status released` only changes the status — `releases publish` is what also closes the release's open tasks. Publishing a release that's already released closes any tasks still open, and does nothing if there are none.
+
+## Guided mode
+
+At a terminal, a command that's missing something it needs asks for it, with pickers filled in from your organization, instead of failing — nothing to look up or paste:
+
+- `sayr task create` with no title asks for one, then offers to add a description, status, priority, category and release.
+- `sayr task update <taskId>` with no field flags shows the task and asks what to change: title, status, priority, category, release or visibility.
+- `sayr task label <taskId>` with no `--set` lists the organization's labels with the task's current ones ticked.
+- `sayr releases create` with no name asks for the name, status and target date, then offers a slug, description and colour.
+- `sayr releases update <release>` with no field flags asks what to change: name, slug, description, status, target date, released date or colour. Type `none` to clear a date.
+- Any command with no `--org` and no default organization asks which one — or just uses it, if you belong to only one. `sayr config set-org <org>` makes it stick.
+
+Guided mode only fills in what's missing. A command you've fully specified runs exactly as it always did, and the prompts never appear with `--json`, when stdin or stdout isn't a terminal (scripts, CI, pipes, agents), or when `SAYR_NO_INTERACTIVE` is set (`SAYR_NO_INTERACTIVE=1` is the usual form; empty, `0`, `false`, `no` and `off` leave prompts on); in those cases you get the same errors as before. Ctrl+C or Esc at any prompt cancels ("Cancelled.", exit code 1) before anything is written. When a guided run succeeds, the CLI prints the flag-based command that does the same thing, so the next one can skip the prompts.
+
+```text
+$ sayr task update 79
+SAY-79  Fix the flaky deploy check
+◇  What do you want to change?
+│  Status, Priority
+◇  New status
+│  done
+◇  New priority
+│  high
+✓ Updated Fix the flaky deploy check
+Tip: sayr task update 79 --org platform --status done --priority high
+```
+
+### Names instead of ids
+
+Wherever a category or label id was needed, a name works too — `--category` on `task create`, `task update` and `task list`, `task label --set`, and `releases label --add` / `--remove`. Names are matched exactly, ignoring case (`--category bug` finds "Bug"). A name that matches nothing is an error that lists the names your organization has; one that matches several asks you to use the id instead. Anything that already looks like an id is sent as it is, without a lookup, so existing commands and scripts are unchanged.
+
+```bash
+sayr task create "Fix login" --category Bug
+sayr task label 123 --set "Backend,Needs review"
+sayr releases label v1-2-0 --add Backend --remove Frontend
+```
 
 ## Examples
 

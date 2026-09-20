@@ -30,7 +30,7 @@ export function registerReleaseStatusUpdateCommand(releases: Command): void {
 		.option("--json", "Output raw JSON")
 		.action(async (release: string, opts: { org?: string; json?: boolean }) => {
 			try {
-				const orgId = await resolveOrg(opts.org);
+				const orgId = await resolveOrg(opts.org, opts);
 				const updates = await apiRequest<ReleaseStatusUpdate[]>(statusUpdatePath(release), { query: { orgId } });
 
 				if (opts.json) {
@@ -76,7 +76,7 @@ export function registerReleaseStatusUpdateCommand(releases: Command): void {
 		.option("--json", "Output raw JSON")
 		.action(async (release: string, content: string | undefined, opts: FieldOptions) => {
 			try {
-				const orgId = await resolveOrg(opts.org);
+				const orgId = await resolveOrg(opts.org, opts);
 				const health = assertOneOf(opts.health, RELEASE_HEALTHS, "--health");
 				const visibility = assertOneOf(opts.visibility, VISIBILITIES, "--visibility");
 
@@ -109,7 +109,7 @@ export function registerReleaseStatusUpdateCommand(releases: Command): void {
 		.option("--json", "Output raw JSON")
 		.action(async (release: string, updateId: string, content: string | undefined, opts: FieldOptions) => {
 			try {
-				const orgId = await resolveOrg(opts.org);
+				const orgId = await resolveOrg(opts.org, opts);
 				const health = assertOneOf(opts.health, RELEASE_HEALTHS, "--health");
 				const visibility = assertOneOf(opts.visibility, VISIBILITIES, "--visibility");
 
@@ -143,7 +143,7 @@ export function registerReleaseStatusUpdateCommand(releases: Command): void {
 		.option("--json", "Output raw JSON")
 		.action(async (release: string, updateId: string, opts: { org?: string; json?: boolean }) => {
 			try {
-				const orgId = await resolveOrg(opts.org);
+				const orgId = await resolveOrg(opts.org, opts);
 				const result = await apiRequest<{ id: string }>(statusUpdatePath(release, updateId), {
 					method: "DELETE",
 					query: { orgId },

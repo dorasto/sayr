@@ -1,11 +1,18 @@
 import pc from "picocolors";
 import { ApiClientError } from "./client";
+import { PromptCancelledError } from "./interactive";
 
 export function printJson(value: unknown): void {
 	console.log(JSON.stringify(value, null, 2));
 }
 
 export function printError(err: unknown): void {
+	// Backing out of a prompt isn't a failure: say so quietly, like a declined confirmation does. The caller
+	// still sets the exit code to 1 (the same convention as `releases publish` answering no).
+	if (err instanceof PromptCancelledError) {
+		console.log(pc.dim("Cancelled."));
+		return;
+	}
 	if (err instanceof ApiClientError) {
 		console.error(`${pc.red("✗")} ${err.message}`);
 		if (process.env.SAYR_DEBUG) console.error(pc.dim(`  (${err.code}, status ${err.status})`));

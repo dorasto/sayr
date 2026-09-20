@@ -27,7 +27,7 @@ export function registerDeleteCommand(releases: Command): void {
 				// First thing, before any network call: a refused command must never touch the API.
 				assertCanConfirm(opts);
 
-				const orgId = await resolveOrg(opts.org);
+				const orgId = await resolveOrg(opts.org, opts);
 				const detail = await fetchReleaseDetail(orgId, release);
 
 				const { total } = detail.taskCounts;

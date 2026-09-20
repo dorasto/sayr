@@ -1,0 +1,17 @@
+{
+	"title": "CLI",
+	"defaultOpen": false,
+	"icon": "IconTerminal2",
+	"pages": [
+		"index",
+		"authentication",
+		"tasks",
+		"comments",
+		"releases",
+		"organizations",
+		"guided-mode",
+		"scripting",
+		"configuration",
+		"..."
+	]
+}

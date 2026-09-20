@@ -27,7 +27,7 @@ Docs live in `apps/landing/content/docs/` (all paths below are relative to it). 
 - `visibility/` - Visibility controls and public pages
 - `account/` - My tasks, notifications, account settings, security
 - `organizations/` - Organization management (overview, preferences, members & teams, billing, danger zone)
-- `ai/`, `integrations/`, `cli.mdx` - AI features, third-party integrations, the `sayr` CLI
+- `ai/`, `integrations/`, `cli/` - AI features, third-party integrations, the `sayr` CLI (overview, one page per feature, configuration reference)
 - `self-hosting/` - Deployment and self-hosting guides
 - `api/` - **Separate "API" tab.** `overview.md` and `sdk.mdx` are hand-written; `reference/**` is generated (see Rules)
 - `knowledge-base/` - **Separate "Knowledge Base" tab** (FAQ and troubleshooting)

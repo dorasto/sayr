@@ -27,7 +27,7 @@ export function registerViewCommand(releases: Command): void {
 		.option("--json", "Output raw JSON")
 		.action(async (release: string, opts: { org?: string; json?: boolean }) => {
 			try {
-				const orgId = await resolveOrg(opts.org);
+				const orgId = await resolveOrg(opts.org, opts);
 				const detail = await fetchReleaseDetail(orgId, release);
 
 				// Best-effort: a status-updates fetch failure shouldn't hide the release itself.

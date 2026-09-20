@@ -17,7 +17,7 @@ export function registerCreateCommand(comment: Command): void {
 		.option("--json", "Output raw JSON")
 		.action(async (taskId: string, content: string, opts: { org?: string; visibility?: string; json?: boolean }) => {
 			try {
-				const orgId = await resolveOrg(opts.org);
+				const orgId = await resolveOrg(opts.org, opts);
 				const visibility = assertOneOf(opts.visibility, VISIBILITIES, "--visibility");
 
 				const result = await apiRequest<{ id: string }>("/create_comment", {

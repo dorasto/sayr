@@ -10,6 +10,7 @@ import {
 	IconPlug,
 	IconServer,
 	IconSparkles,
+	IconTerminal2,
 	IconUserCircle,
 } from "@tabler/icons-react";
 import { docs } from "collections/server";
@@ -30,6 +31,7 @@ const icons = {
 	IconPlug,
 	IconServer,
 	IconSparkles,
+	IconTerminal2,
 	IconUserCircle,
 };
 

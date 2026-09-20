@@ -51,7 +51,7 @@ export function registerReleaseCommentCommand(releases: Command): void {
 				opts: { org?: string; statusUpdate?: string; page?: string; limit?: string; json?: boolean }
 			) => {
 				try {
-					const orgId = await resolveOrg(opts.org);
+					const orgId = await resolveOrg(opts.org, opts);
 
 					const { data: comments, pagination } = await apiRequestPaginated<ReleaseComment[]>(
 						`${releasePath(release)}/comments`,
@@ -116,7 +116,7 @@ export function registerReleaseCommentCommand(releases: Command): void {
 				opts: { org?: string; replyTo?: string; statusUpdate?: string; visibility?: string; json?: boolean }
 			) => {
 				try {
-					const orgId = await resolveOrg(opts.org);
+					const orgId = await resolveOrg(opts.org, opts);
 					const visibility = assertOneOf(opts.visibility, VISIBILITIES, "--visibility");
 
 					const body: CreateReleaseCommentInput = {

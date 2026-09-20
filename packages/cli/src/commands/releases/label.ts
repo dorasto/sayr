@@ -4,6 +4,7 @@ import { apiRequest } from "../../lib/client";
 import { printError, printJson } from "../../lib/output";
 import { parseIdList } from "../../lib/parse-id-list";
 import { resolveOrg } from "../../lib/require-org";
+import { resolveLabels } from "../../lib/resolve-names";
 import type { Label } from "../../types";
 import { releasePath } from "./shared";
 
@@ -21,15 +22,16 @@ export function registerLabelCommand(releases: Command): void {
 		.description(
 			"Add and/or remove labels on a release (slug or id). Each label is its own request and re-applying one is harmless, so a failed run is safe to repeat. Needs the manageReleases permission."
 		)
-		.option("--add <ids>", "Comma-separated label ids to add")
-		.option("--remove <ids>", "Comma-separated label ids to remove")
+		.option("--add <labels>", "Comma-separated label names or ids to add")
+		.option("--remove <labels>", "Comma-separated label names or ids to remove")
 		.option("--org <org>", "Organization slug or id")
 		.option("--json", "Output raw JSON")
 		.action(async (release: string, opts: LabelOptions) => {
 			try {
-				const orgId = await resolveOrg(opts.org);
-				const added = parseIdList(opts.add ?? "");
-				const removed = parseIdList(opts.remove ?? "");
+				const orgId = await resolveOrg(opts.org, opts);
+				// Names or ids in, ids out. (UUIDs are sent untouched, with no lookup.)
+				const added = await resolveLabels(orgId, parseIdList(opts.add ?? ""), "--add");
+				const removed = await resolveLabels(orgId, parseIdList(opts.remove ?? ""), "--remove");
 
 				if (added.length === 0 && removed.length === 0) {
 					console.log(pc.dim("Nothing to do — pass --add and/or --remove with at least one label id."));
