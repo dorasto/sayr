@@ -56,7 +56,7 @@ export function PrimarySidebar() {
     }
   };
   return (
-    <Sidebar id={sidebarId} collapsible keyboardShortcut="b" className="">
+    <Sidebar id={sidebarId} collapsible resizable keyboardShortcut="b" className="">
       <SidebarHeader className="pt-3.5">
         {heading.map((section) => (
           <SidebarMenu

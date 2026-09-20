@@ -13,6 +13,112 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../too
 
 const SIDEBAR_WIDTH = "16rem";
 const SIDEBAR_WIDTH_COLLAPSED = "3.5rem";
+const SIDEBAR_MIN_RESIZED_WIDTH = 224;
+const SIDEBAR_MAX_RESIZED_WIDTH = 480;
+const SIDEBAR_MIN_CONTENT_WIDTH = 320;
+
+function SidebarResizeHandle({ id, side }: { id: string; side: "left" | "right" }) {
+	const cleanupRef = React.useRef<(() => void) | null>(null);
+
+	React.useEffect(() => () => cleanupRef.current?.(), []);
+
+	const resizeTo = (width: number) => {
+		const maxWidth = Math.min(SIDEBAR_MAX_RESIZED_WIDTH, window.innerWidth - SIDEBAR_MIN_CONTENT_WIDTH);
+		return Math.round(Math.min(maxWidth, Math.max(SIDEBAR_MIN_RESIZED_WIDTH, width)));
+	};
+
+	const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+		if (event.button !== 0) return;
+		const aside = event.currentTarget.closest<HTMLElement>("aside");
+		if (!aside) return;
+
+		event.preventDefault();
+		event.stopPropagation();
+
+		const startWidth = aside.getBoundingClientRect().width;
+		const startX = event.clientX;
+		const pointerId = event.pointerId;
+		const widthProperty = `--sidebar-${id}-width`;
+		const previousWidth = document.documentElement.style.getPropertyValue(widthProperty);
+		const previousCursor = document.body.style.cursor;
+		const previousUserSelect = document.body.style.userSelect;
+		let nextWidth = startWidth;
+
+		aside.dataset.resizing = "true";
+		document.body.style.cursor = "col-resize";
+		document.body.style.userSelect = "none";
+
+		const cleanup = () => {
+			document.removeEventListener("pointermove", handleMove, true);
+			document.removeEventListener("pointerup", handleUp, true);
+			document.removeEventListener("pointercancel", handleCancel, true);
+			window.removeEventListener("blur", handleBlur);
+			delete aside.dataset.resizing;
+			document.body.style.cursor = previousCursor;
+			document.body.style.userSelect = previousUserSelect;
+			cleanupRef.current = null;
+		};
+		const handleMove = (moveEvent: PointerEvent) => {
+			if (moveEvent.pointerId !== pointerId) return;
+			moveEvent.stopPropagation();
+			const delta = moveEvent.clientX - startX;
+			nextWidth = resizeTo(startWidth + (side === "left" ? delta : -delta));
+			document.documentElement.style.setProperty(widthProperty, `${nextWidth}px`);
+		};
+		const handleUp = (upEvent: PointerEvent) => {
+			if (upEvent.pointerId !== pointerId) return;
+			handleMove(upEvent);
+			cleanup();
+			if (nextWidth !== startWidth) sidebarActions.setResizedWidth(id, nextWidth);
+		};
+		const handleCancel = (cancelEvent?: PointerEvent) => {
+			if (cancelEvent && cancelEvent.pointerId !== pointerId) return;
+			cleanup();
+			if (previousWidth) document.documentElement.style.setProperty(widthProperty, previousWidth);
+			else document.documentElement.style.removeProperty(widthProperty);
+		};
+		const handleBlur = () => handleCancel();
+
+		cleanupRef.current = handleCancel;
+		document.addEventListener("pointermove", handleMove, true);
+		document.addEventListener("pointerup", handleUp, true);
+		document.addEventListener("pointercancel", handleCancel, true);
+		window.addEventListener("blur", handleBlur);
+	};
+
+	const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+		if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+		const aside = event.currentTarget.closest<HTMLElement>("aside");
+		if (!aside) return;
+
+		event.preventDefault();
+		const direction = event.key === "ArrowRight" ? 1 : -1;
+		const step = event.shiftKey ? 32 : 8;
+		const nextWidth = resizeTo(
+			aside.getBoundingClientRect().width + (side === "left" ? direction : -direction) * step
+		);
+		sidebarActions.setResizedWidth(id, nextWidth);
+	};
+
+	return (
+		<div
+			role="separator"
+			aria-label="Resize sidebar"
+			aria-orientation="vertical"
+			aria-valuemin={SIDEBAR_MIN_RESIZED_WIDTH}
+			aria-valuemax={SIDEBAR_MAX_RESIZED_WIDTH}
+			aria-valuenow={sidebarStore.state.sidebars[id]?.resizedWidth ?? 256}
+			tabIndex={0}
+			onPointerDown={handlePointerDown}
+			onKeyDown={handleKeyDown}
+			className={cn(
+				"absolute inset-y-0 z-10 w-2 cursor-col-resize touch-none select-none focus-visible:outline-2 focus-visible:outline-primary",
+				"after:absolute after:inset-y-0 after:w-px after:bg-transparent hover:after:bg-primary/40",
+				side === "left" ? "right-0 after:right-0" : "left-0 after:left-0"
+			)}
+		/>
+	);
+}
 
 // Context for sidebar ID
 interface SidebarContextProps {
@@ -68,6 +174,7 @@ interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {
 	defaultOpen?: boolean;
 	width?: string;
 	collapsedWidth?: string;
+	resizable?: boolean;
 	keyboardShortcut?: string;
 	rootClassName?: string;
 	isCollapsed?: boolean;
@@ -81,6 +188,7 @@ export function Sidebar({
 	defaultOpen = true,
 	width = SIDEBAR_WIDTH,
 	collapsedWidth = SIDEBAR_WIDTH_COLLAPSED,
+	resizable = false,
 	keyboardShortcut,
 	className,
 	rootClassName,
@@ -148,17 +256,26 @@ export function Sidebar({
 		return () => window.removeEventListener("keydown", handleKeyDown);
 	}, [id, keyboardShortcut]);
 
+	const isOpen = isCollapsed ? false : (sidebar?.open ?? defaultOpen);
+	const savedWidth = sidebar?.resizedWidth;
+	const expandedWidth =
+		resizable && savedWidth !== undefined && Number.isFinite(savedWidth) && savedWidth > 0
+			? `${Math.min(SIDEBAR_MAX_RESIZED_WIDTH, Math.max(SIDEBAR_MIN_RESIZED_WIDTH, savedWidth))}px`
+			: width;
+	const currentWidth = isOpen ? expandedWidth : collapsedWidth;
+	const cssWidth = `var(--sidebar-${id}-width, ${currentWidth})`;
+	const renderedWidth = resizable ? `min(${cssWidth}, calc(100vw - ${SIDEBAR_MIN_CONTENT_WIDTH}px))` : cssWidth;
+	const skeletonWidth = `var(--sidebar-${id}-width, ${isCollapsed ? collapsedWidth : defaultOpen ? width : collapsedWidth})`;
+	const renderedSkeletonWidth = resizable
+		? `min(${skeletonWidth}, calc(100vw - ${SIDEBAR_MIN_CONTENT_WIDTH}px))`
+		: skeletonWidth;
+
 	// Update CSS variable when sidebar state changes
 	React.useEffect(() => {
 		if (sidebar) {
-			const newWidth = sidebar.open ? width : collapsedWidth;
-			document.documentElement.style.setProperty(`--sidebar-${id}-width`, newWidth);
+			document.documentElement.style.setProperty(`--sidebar-${id}-width`, currentWidth);
 		}
-	}, [sidebar?.open, id, width, collapsedWidth, sidebar]);
-
-	// Use sidebar state if available, otherwise defaultOpen
-	const isOpen = isCollapsed ? false : sidebar ? (isMobile ? sidebar.openMobile : sidebar.open) : defaultOpen;
-	const currentWidth = isOpen ? width : collapsedWidth;
+	}, [sidebar, id, currentWidth]);
 
 	// Mobile: show Sheet
 	if (isMobile) {
@@ -180,7 +297,7 @@ export function Sidebar({
 		);
 	}
 
-	const baseStyles = "sticky top-0 h-full overflow-hidden transition-all";
+	const baseStyles = "sticky top-0 h-full overflow-hidden transition-all data-[resizing=true]:transition-none";
 	const variantRootStyles = {
 		default: "",
 		floating: "m-3",
@@ -200,9 +317,9 @@ export function Sidebar({
 					data-variant={variant}
 					data-side={side}
 					style={{
-						width: `var(--sidebar-${id}-width, ${isCollapsed ? collapsedWidth : defaultOpen ? width : collapsedWidth})`,
-						minWidth: `var(--sidebar-${id}-width, ${isCollapsed ? collapsedWidth : defaultOpen ? width : collapsedWidth})`,
-						maxWidth: `var(--sidebar-${id}-width, ${isCollapsed ? collapsedWidth : defaultOpen ? width : collapsedWidth})`,
+						width: renderedSkeletonWidth,
+						minWidth: renderedSkeletonWidth,
+						maxWidth: renderedSkeletonWidth,
 					}}
 					className={cn(baseStyles, variantStyles[variant], className, "")}
 					{...props}
@@ -211,7 +328,7 @@ export function Sidebar({
 					<div
 						className="flex h-full flex-col overflow-hidden"
 						style={{
-							width: `var(--sidebar-${id}-width, ${isCollapsed ? collapsedWidth : defaultOpen ? width : collapsedWidth})`,
+							width: renderedSkeletonWidth,
 						}}
 					></div>
 				</aside>
@@ -230,19 +347,17 @@ export function Sidebar({
 						data-variant={variant}
 						data-side={side}
 						style={{
-							width: `var(--sidebar-${id}-width, ${currentWidth})`,
-							minWidth: `var(--sidebar-${id}-width, ${currentWidth})`,
-							maxWidth: `var(--sidebar-${id}-width, ${currentWidth})`,
+							width: renderedWidth,
+							minWidth: renderedWidth,
+							maxWidth: renderedWidth,
 						}}
 						className={cn(baseStyles, variantStyles[variant], className)}
 						{...props}
 					>
-						<div
-							className="flex h-full flex-col overflow-hidden"
-							style={{ width: `var(--sidebar-${id}-width, ${currentWidth})` }}
-						>
+						<div className="flex h-full flex-col overflow-hidden" style={{ width: renderedWidth }}>
 							{children}
 						</div>
+						{resizable && isOpen && <SidebarResizeHandle id={id} side={side} />}
 					</aside>
 				</div>
 			</TooltipProvider>

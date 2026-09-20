@@ -9,7 +9,11 @@ export function SidebarScript() {
 					// Set CSS variables for each sidebar
 					Object.keys(state.sidebars || {}).forEach(function(id) {
 						var sidebar = state.sidebars[id];
-						var width = sidebar.open ? '16rem' : '3.5rem';
+						var resizedWidth = sidebar.resizedWidth;
+						var hasResizedWidth = typeof resizedWidth === 'number' && isFinite(resizedWidth) && resizedWidth > 0;
+						var width = sidebar.open
+							? hasResizedWidth ? Math.min(480, Math.max(224, resizedWidth)) + 'px' : '16rem'
+							: '3.5rem';
 						document.documentElement.style.setProperty('--sidebar-' + id + '-width', width);
 					});
 				}
