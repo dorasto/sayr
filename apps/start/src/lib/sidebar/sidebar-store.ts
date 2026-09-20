@@ -71,8 +71,10 @@ export interface SidebarStoreState {
 const STORAGE_KEY = "sidebar-state";
 const OVERLAY_OPEN_DELAY = 200;
 const OVERLAY_CLOSE_DELAY = 150;
+const OVERLAY_MIN_VISIBLE_DURATION = 400;
 const sidebarOverlayOpenTimers = new Map<string, ReturnType<typeof setTimeout>>();
 const sidebarOverlayCloseTimers = new Map<string, ReturnType<typeof setTimeout>>();
+const sidebarOverlayOpenedAt = new Map<string, number>();
 
 function clearSidebarOverlayOpenTimer(id: string) {
 	const timer = sidebarOverlayOpenTimers.get(id);
@@ -243,6 +245,7 @@ export const sidebarActions = {
 	setOpen: (id: string, open: boolean) => {
 		clearSidebarOverlayOpenTimer(id);
 		clearSidebarOverlayCloseTimer(id);
+		sidebarOverlayOpenedAt.delete(id);
 		sidebarStore.setState((state) => {
 			const sidebar = state.sidebars[id];
 			if (!sidebar) return state;
@@ -260,6 +263,8 @@ export const sidebarActions = {
 	setSidebarOverlayOpen: (id: string, open: boolean) => {
 		clearSidebarOverlayOpenTimer(id);
 		clearSidebarOverlayCloseTimer(id);
+		if (open) sidebarOverlayOpenedAt.set(id, Date.now());
+		else sidebarOverlayOpenedAt.delete(id);
 		sidebarStore.setState((state) => {
 			const sidebar = state.sidebars[id];
 			if (!sidebar) return state;
@@ -300,11 +305,18 @@ export const sidebarActions = {
 	scheduleSidebarOverlayClose: (id: string) => {
 		clearSidebarOverlayOpenTimer(id);
 		clearSidebarOverlayCloseTimer(id);
+		const openedAt = sidebarOverlayOpenedAt.get(id);
+		const remainingVisibleDuration = openedAt
+			? Math.max(0, OVERLAY_MIN_VISIBLE_DURATION - (Date.now() - openedAt))
+			: 0;
 		sidebarOverlayCloseTimers.set(
 			id,
-			setTimeout(() => {
-				sidebarActions.closeSidebarOverlay(id);
-			}, OVERLAY_CLOSE_DELAY)
+			setTimeout(
+				() => {
+					sidebarActions.closeSidebarOverlay(id);
+				},
+				Math.max(OVERLAY_CLOSE_DELAY, remainingVisibleDuration)
+			)
 		);
 	},
 
@@ -322,6 +334,7 @@ export const sidebarActions = {
 		if (!isMobile) {
 			clearSidebarOverlayOpenTimer(id);
 			clearSidebarOverlayCloseTimer(id);
+			sidebarOverlayOpenedAt.delete(id);
 		}
 		sidebarStore.setState((state) => {
 			const sidebar = state.sidebars[id];

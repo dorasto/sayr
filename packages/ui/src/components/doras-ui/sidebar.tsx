@@ -775,8 +775,8 @@ export function SidebarTrigger({
 
   return (
     <Button
-      variant="ghost"
-      size="icon"
+      variant="accent"
+      size="sm"
       className={cn("", className)}
       onClick={(event) => {
         onClick?.(event);
@@ -793,7 +793,6 @@ export function SidebarTrigger({
         onPointerLeave?.(event);
         if (!isMobile && !isDockedOpen) {
           sidebarActions.cancelSidebarOverlayOpen(sidebarId);
-          sidebarActions.scheduleSidebarOverlayClose(sidebarId);
         }
       }}
       {...props}

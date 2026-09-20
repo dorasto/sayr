@@ -1,4 +1,7 @@
-import { SidebarTrigger, useSidebar } from "@repo/ui/components/doras-ui/sidebar";
+import {
+  SidebarTrigger,
+  useSidebar,
+} from "@repo/ui/components/doras-ui/sidebar";
 import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
 import { cn } from "@repo/ui/lib/utils";
 
@@ -67,7 +70,10 @@ function Identity({
     >
       <div className="flex items-center gap-2 min-w-0 flex-1">
         {(isMobile || isSidebarHidden) && (
-          <SidebarTrigger sidebarId="primary-sidebar" className="w-10 h-10" />
+          <SidebarTrigger
+            sidebarId="primary-sidebar"
+            className="w-6 h-6 [&_svg]:size-4 gap-2 bg-transparent border-transparent p-1"
+          />
         )}
         {children ?? (
           <>
