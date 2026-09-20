@@ -312,7 +312,7 @@ Before adding a new type, function, component, or utility anywhere in this repo:
 | `board-saved-views/` | Personal saved views on the board — global store, breadcrumb switcher + panel header, dirty-state reset/update, Favourites sidebar |
 | `command-palette/` | Cmd+K command palette — registering commands, sub-views, auto-drill, badges |
 | `edition/` | Edition detection, capabilities, and plan limits (`@repo/edition`) |
-| `document-feature/` | Writing user-facing docs for `apps/marketing`'s Starlight docs site |
+| `document-feature/` | Writing user-facing docs for `apps/landing`'s Fumadocs site — frontmatter, `meta.json` page ordering, new folders/tabs, internal links |
 | `update-pr/` | Generating a PR title/description from the diff |
 | `agent-docs-maintenance/` | Checking `AGENTS.md`/skills for staleness, writing a new skill, updating an existing one |
 | `read-tasks/` | Looking up a SAY-<n> / platform.sayr.io task via the `sayr` CLI (`--org platform --json`) instead of a web fetch |
