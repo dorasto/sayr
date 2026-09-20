@@ -1,5 +1,6 @@
 {
-  "title": "Self Hosting",
-  "defaultOpen": false,
-  "icon": "IconServer"
+	"title": "Self Hosting",
+	"defaultOpen": false,
+	"icon": "IconServer",
+	"pages": ["get-started", "editions", "authentication", "..."]
 }
