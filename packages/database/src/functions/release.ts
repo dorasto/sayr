@@ -42,11 +42,14 @@ export async function getReleaseBySlug(orgId: string, slug: string): Promise<sch
  * Fetches all releases for an organization, ordered by slug/targetDate.
  *
  * @param orgId - The organization ID
+ * @param status - Optional status filter; omit to return releases in every status
  * @returns Promise resolving to array of releases
  */
-export async function getReleases(orgId: string): Promise<schema.releaseType[]> {
+export async function getReleases(orgId: string, status?: ReleaseStatus): Promise<schema.releaseType[]> {
 	const releases = await db.query.release.findMany({
-		where: eq(schema.release.organizationId, orgId),
+		where: status
+			? and(eq(schema.release.organizationId, orgId), eq(schema.release.status, status))
+			: eq(schema.release.organizationId, orgId),
 		orderBy: [
 			// Order by targetDate descending (nulls last), then by slug
 			desc(schema.release.targetDate),
@@ -239,6 +242,7 @@ export async function createRelease(data: {
 	description?: schema.NodeJSON;
 	status?: "planned" | "in-progress" | "released" | "archived";
 	targetDate?: Date;
+	releasedAt?: Date;
 	color?: string;
 	icon?: string;
 	leadId?: string;
@@ -254,6 +258,7 @@ export async function createRelease(data: {
 			description: data.description,
 			status: data.status || "planned",
 			targetDate: data.targetDate,
+			releasedAt: data.releasedAt,
 			color: data.color || "hsla(0, 0%, 0%, 1)",
 			icon: data.icon,
 			leadId: data.leadId,
@@ -321,22 +326,26 @@ export async function deleteRelease(releaseId: string): Promise<void> {
 
 /**
  * Marks a release as released and updates all incomplete tasks to "done".
- * Tasks with status "canceled" are not updated.
+ * Tasks with status "canceled" are not updated. Only tasks in the release's own
+ * organization are considered.
  *
  * @param releaseId - The unique ID of the release to mark as released
  * @param actorId - The user ID of the person marking the release
+ * @param options.releasedAt - The release date to record. Defaults to now; pass the
+ *   release's existing date to keep it.
  * @returns Promise resolving to updated release and array of updated task IDs
  */
 export async function markReleaseAsReleased(
 	releaseId: string,
-	actorId: string
+	actorId: string,
+	options: { releasedAt?: Date } = {}
 ): Promise<{ release: schema.releaseType; updatedTaskIds: string[] }> {
 	// Update the release status
 	const [release] = await db
 		.update(schema.release)
 		.set({
 			status: "released",
-			releasedAt: new Date(),
+			releasedAt: options.releasedAt ?? new Date(),
 			updatedAt: new Date(),
 		})
 		.where(eq(schema.release.id, releaseId))
@@ -350,6 +359,7 @@ export async function markReleaseAsReleased(
 	const tasksToUpdate = await db.query.task.findMany({
 		where: and(
 			eq(schema.task.releaseId, releaseId),
+			eq(schema.task.organizationId, release.organizationId),
 			not(eq(schema.task.status, "done")),
 			not(eq(schema.task.status, "canceled"))
 		),
@@ -368,7 +378,7 @@ export async function markReleaseAsReleased(
 				status: "done",
 				updatedAt: new Date(),
 			})
-			.where(inArray(schema.task.id, taskIds));
+			.where(and(inArray(schema.task.id, taskIds), eq(schema.task.organizationId, release.organizationId)));
 	}
 
 	return {

@@ -105,7 +105,7 @@ Turborepo monorepo for Sayr.io, a transparent, collaborative project management 
 | `@repo/create-integration` | Scaffolding CLI for new integrations (`pnpm create-integration`) |
 | `@repo/typescript-config` | Shared `tsconfig.json` bases |
 | `@sayrio/public` | Public read-only JS/TS SDK for Sayr.io (REST + SSE), published separately |
-| `@sayrio/cli` | `sayr`/`sayr-local` command-line interface — task/comment CRUD over `/v1/me/*`, published separately (`packages/cli`) |
+| `@sayrio/cli` | `sayr`/`sayr-local` command-line interface — task/comment/release CRUD over `/v1/me/*`, published separately (`packages/cli`) |
 | `@repo/paseo-plugin` | Paseo plugin (SAY-71) — sidebar board of Sayr tasks, comment/reply threads, AI summaries, and "send task to agent"; shells out to the `sayr` CLI rather than calling the API directly |
 
 ## Commands

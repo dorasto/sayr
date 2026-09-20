@@ -10,6 +10,10 @@ import type { ProsekitDoc } from "../types";
  * own — and that parser lives in `apps/backend` (a Bun-only module), not
  * something this CLI can reach. So updates only support plain text for now;
  * Markdown syntax (headers, bold, lists, ...) will show up as literal text.
+ *
+ * Release descriptions, status updates and release comments are the exception:
+ * their endpoints take Markdown on update as well as create, so the release
+ * commands send the raw string and never go through this.
  */
 export function toPlainProsekitDoc(text: string): ProsekitDoc {
 	const blocks = text
@@ -60,4 +64,15 @@ export function renderProsekitPlainText(doc: unknown): string {
 	if (current) lines.push(current);
 
 	return lines.filter((line) => line.length > 0).join("\n\n");
+}
+
+/**
+ * Display text for a piece of release content: the server's own Markdown
+ * rendering when it sent one (`contentMarkdown` / `descriptionMarkdown`),
+ * otherwise the plain-text walk of the ProseKit document. Empty string when
+ * there's nothing to show.
+ */
+export function renderMarkdownOrPlainText(markdown: string | null | undefined, doc: unknown): string {
+	if (markdown?.trim()) return markdown.trim();
+	return doc ? renderProsekitPlainText(doc) : "";
 }
