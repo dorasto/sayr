@@ -14,6 +14,7 @@ interface ListOptions {
 	org?: string;
 	query?: string;
 	category?: string;
+	release?: string;
 	includeClosed?: boolean;
 	page?: string;
 	limit?: string;
@@ -28,6 +29,7 @@ export function registerListCommand(task: Command): void {
 		.option("--org <org>", "Organization slug or id")
 		.option("-q, --query <text>", "Search query")
 		.option("--category <categoryId>", "Filter by category id")
+		.option("--release <release>", "Filter by release (slug or id)")
 		.option("--include-closed", "Include done/canceled tasks")
 		.option("--page <page>", "Page number")
 		.option("--limit <limit>", "Results per page (max 30)")
@@ -43,6 +45,7 @@ export function registerListCommand(task: Command): void {
 						orgId,
 						q: opts.query,
 						categoryId: opts.category,
+						releaseId: opts.release,
 						includeClosed: opts.includeClosed,
 						page: opts.page,
 						limit: opts.limit,
