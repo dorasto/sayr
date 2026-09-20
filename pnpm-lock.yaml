@@ -1021,10 +1021,6 @@ importers:
         version: 24.0.14
 
   packages/paseo-plugin:
-    dependencies:
-      '@getpaseo/plugin':
-        specifier: 0.8.0
-        version: 0.8.0(@getpaseo/client@0.8.0)(@getpaseo/protocol@0.8.0)(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.2.8)(react@19.1.0))(react@19.1.0)(zod@4.6.2)
     devDependencies:
       '@biomejs/biome':
         specifier: ^2.1.1
@@ -1032,6 +1028,9 @@ importers:
       '@getpaseo/client':
         specifier: 0.8.0
         version: 0.8.0
+      '@getpaseo/plugin':
+        specifier: 0.8.0
+        version: 0.8.0(@getpaseo/client@0.8.0)(@getpaseo/protocol@0.8.0)(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.2.8)(react@19.1.0))(react@19.1.0)(zod@4.6.2)
       '@getpaseo/protocol':
         specifier: 0.8.0
         version: 0.8.0

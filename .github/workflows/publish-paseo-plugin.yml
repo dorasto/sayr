@@ -1,0 +1,211 @@
+name: Publish Paseo plugin
+
+# Runs only when a merged PR to main actually touched packages/paseo-plugin —
+# most PRs never trigger this at all. Fully automatic by default: a plain
+# merge with no label publishes a patch release. Labels are optional overrides
+# for the rarer cases (a bigger bump, or skipping a release entirely) — unlike
+# release-on-merge.yml's release:* labels, they are never required.
+#
+# Deliberately a copy of publish-cli.yml rather than a shared reusable
+# workflow: npm Trusted Publishers bind to a workflow *filename*, so folding
+# both into one file (or a reusable workflow) risks breaking the existing
+# @sayrio/cli publisher. Keep the two in step by hand.
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - main
+    paths:
+      - "packages/paseo-plugin/**"
+
+# queue: max — GitHub's default (without this) cancels not just an in-progress
+# run's rival but any *pending* run in the group as soon as a newer one queues
+# behind it. With multiple packages/paseo-plugin merges close together that
+# silently drops a queued release (and its intended version bump) with no
+# error surfaced anywhere. queue: max lets runs queue up instead of being
+# canceled.
+concurrency:
+  group: publish-paseo-plugin
+  cancel-in-progress: false
+  queue: max
+
+jobs:
+  detect:
+    name: Detect Paseo plugin release
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      version: ${{ steps.bump.outputs.version }}
+      publish: ${{ steps.bump.outputs.publish }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Determine bump from labels
+        id: bump
+        env:
+          PR_LABELS: ${{ toJson(github.event.pull_request.labels.*.name) }}
+        run: |
+          echo "Labels: $PR_LABELS"
+
+          # No label at all is the common case and defaults to "patch" — the
+          # whole point is that merging needs no extra step.
+          # paseo-plugin-release:major/minor/skip are optional overrides for
+          # the rarer cases. Each pattern is quoted to anchor on the exact
+          # JSON array entry, so a cli-release:* or release:* label can never
+          # be mistaken for a plugin label (or the other way round).
+          BUMP_TYPE="patch"
+          if echo "$PR_LABELS" | grep -q '"paseo-plugin-release:major"'; then
+            BUMP_TYPE="major"
+          elif echo "$PR_LABELS" | grep -q '"paseo-plugin-release:minor"'; then
+            BUMP_TYPE="minor"
+          elif echo "$PR_LABELS" | grep -q '"paseo-plugin-release:skip"'; then
+            BUMP_TYPE="skip"
+          fi
+
+          if [ "$BUMP_TYPE" = "skip" ]; then
+            echo "paseo-plugin-release:skip — no version bump."
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Versioned off paseo-plugin-v* tags (not
+          # packages/paseo-plugin/package.json) — same reasoning as
+          # release-on-merge.yml versioning off v* tags: it avoids the
+          # workflow needing to push a version-bump commit back to a possibly
+          # branch-protected main.
+          LATEST_TAG=$(git tag --list 'paseo-plugin-v*' --sort=-v:refname | head -n 1)
+          LATEST_TAG=${LATEST_TAG:-paseo-plugin-v0.0.0}
+          TAG_VERSION=${LATEST_TAG#paseo-plugin-v}
+
+          # Cross-check against what's actually live on npm — a version can
+          # exist there without a matching tag (e.g. a manual bootstrap
+          # publish). Without this, a missing tag would understate the
+          # baseline and risk publishing a lower version, which would move
+          # npm's `latest` dist-tag backward. Take whichever is higher.
+          NPM_VERSION=$(npm view @sayrio/paseo-plugin version 2>/dev/null || echo "0.0.0")
+          CURRENT_VERSION=$(printf '%s\n%s\n' "$TAG_VERSION" "$NPM_VERSION" | sort -V | tail -n 1)
+          echo "Tag baseline: $TAG_VERSION, npm baseline: $NPM_VERSION -> using $CURRENT_VERSION"
+
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
+
+          if [ "$BUMP_TYPE" = "major" ]; then
+            MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0
+          elif [ "$BUMP_TYPE" = "minor" ]; then
+            MINOR=$((MINOR + 1)); PATCH=0
+          elif [ "$BUMP_TYPE" = "patch" ]; then
+            PATCH=$((PATCH + 1))
+          fi
+
+          NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}"
+          echo "Baseline: $CURRENT_VERSION -> New: paseo-plugin-v${NEW_VERSION} (${BUMP_TYPE})"
+          echo "version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
+          echo "publish=true" >> "$GITHUB_OUTPUT"
+
+  publish:
+    name: Verify, publish to npm, and tag
+    needs: detect
+    if: needs.detect.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      # Lets npm exchange this run's OIDC identity for a short-lived publish
+      # token via Trusted Publishing — no NPM_TOKEN secret needed. Requires
+      # @sayrio/paseo-plugin to have a Trusted Publisher configured on
+      # npmjs.com (package Settings) pointing at this repo + this workflow
+      # filename (publish-paseo-plugin.yml).
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          # Pin to the actual merge commit landing on main. actions/checkout's
+          # default ref for a `pull_request` event is the synthetic
+          # refs/pull/<PR>/merge test-merge ref, which can reflect a stale
+          # snapshot of the PR (e.g. missing a last-minute commit) rather than
+          # what actually merged — this bit us once already, publishing a
+          # package.json that predated the PR's final commit.
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
+          fetch-depth: 0
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Ensure npm supports Trusted Publishing
+        # Trusted Publishing (OIDC) needs npm CLI >=11.5.1 — newer than what
+        # some Node 22 setups bundle, so upgrade explicitly rather than
+        # relying on whatever ships with the runner's Node install.
+        run: npm install -g npm@latest
+
+      # There is no build step — Paseo compiles the plugin's TypeScript source
+      # itself, so the tarball ships raw .ts/.tsx. The typecheck is the only
+      # gate before publishing (this package's `typecheck` script isn't part
+      # of the root check-types), and the dry-run lists exactly what the
+      # `files` whitelist in package.json will ship, so an unintended file is
+      # visible in the log.
+      - name: Typecheck plugin
+        run: pnpm -F @sayrio/paseo-plugin typecheck
+
+      - name: Preview package contents
+        working-directory: packages/paseo-plugin
+        run: npm pack --dry-run
+
+      - name: Guard against republishing an existing version
+        run: |
+          if npm view "@sayrio/paseo-plugin@${{ needs.detect.outputs.version }}" version 2>/dev/null; then
+            echo "::error::@sayrio/paseo-plugin@${{ needs.detect.outputs.version }} is already on npm — refusing to overwrite. Check for a stale/duplicate paseo-plugin-release label or a missing tag push from a previous run."
+            exit 1
+          fi
+
+      - name: Set package version for publish
+        working-directory: packages/paseo-plugin
+        run: npm version "${{ needs.detect.outputs.version }}" --no-git-tag-version --allow-same-version
+
+      - name: Publish to npm
+        working-directory: packages/paseo-plugin
+        # No NODE_AUTH_TOKEN — npm authenticates via this job's OIDC token
+        # against the package's configured Trusted Publisher instead.
+        run: npm publish --access public --provenance
+
+      - name: Tag release
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag "paseo-plugin-v${{ needs.detect.outputs.version }}"
+          git push origin "paseo-plugin-v${{ needs.detect.outputs.version }}"
+
+      - name: Create GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          VERSION: ${{ needs.detect.outputs.version }}
+        run: |
+          cat > release_notes.md <<EOF
+          ${PR_BODY}
+
+          ---
+
+          **Full Changelog**: https://github.com/${{ github.repository }}/pull/${PR_NUMBER}
+          EOF
+
+          gh release create "paseo-plugin-v${VERSION}" \
+            --title "Paseo plugin v${VERSION} - ${PR_TITLE}" \
+            --notes-file release_notes.md
