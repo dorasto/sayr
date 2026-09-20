@@ -18,7 +18,8 @@ interface UpdateOptions {
 	status?: string;
 	priority?: string;
 	category?: string;
-	release?: string;
+	/** `--release <r>` gives a string; `--no-release` gives `false`; neither leaves it `undefined`. */
+	release?: string | false;
 	visible?: string;
 	json?: boolean;
 }
@@ -36,7 +37,8 @@ export function registerUpdateCommand(task: Command): void {
 		.option("--status <status>", `New status (${STATUSES.join(", ")})`)
 		.option("--priority <priority>", `New priority (${PRIORITIES.join(", ")})`)
 		.option("--category <categoryId>", "New category id")
-		.option("--release <releaseId>", "New release id")
+		.option("--release <release>", "Assign to a release (slug or id)")
+		.option("--no-release", "Remove the task from its release")
 		.option("--visible <visibility>", `New visibility (${VISIBILITIES.join(", ")})`)
 		.option("--json", "Output raw JSON")
 		.addHelpText(
@@ -56,10 +58,12 @@ export function registerUpdateCommand(task: Command): void {
 					status,
 					priority,
 					category: opts.category,
-					releaseId: opts.release,
+					// `--no-release` becomes `null` (unassign) — a value to send, unlike `undefined` (flag not passed).
+					releaseId: opts.release === false ? null : opts.release,
 					visible,
 				};
 
+				// Only `undefined` counts as "not passed" — `null` (from `--no-release`) is a real update.
 				if (Object.values(updates).every((v) => v === undefined)) {
 					console.log(pc.dim("Nothing to update — pass at least one field flag."));
 					return;

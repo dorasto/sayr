@@ -9,12 +9,14 @@ import {
 	deleteRelease,
 	deleteReleaseComment,
 	deleteReleaseStatusUpdate,
+	getLabel,
 	getRelease,
 	getReleaseBySlug,
 	getReleaseCommentReplies,
 	getReleaseComments,
 	getReleaseStatusUpdates,
 	getReleaseWithTasks,
+	isOrganizationMember,
 	markReleaseAsReleased,
 	removeReleaseCommentReaction,
 	removeReleaseLabel,
@@ -33,6 +35,38 @@ import { and, eq } from "drizzle-orm";
 import { canCreateResource, getLimitReachedMessage } from "@repo/edition";
 
 export const apiRouteAdminRelease = new Hono<AppEnv>();
+
+/**
+ * Loads a release only if it belongs to the given organization. Every
+ * `/:releaseId/*` route that is sent an `org_id` calls this after its permission
+ * check (which is made against that caller-supplied `org_id`), so a sub-resource
+ * is only ever read or changed through a release that lives in the organization
+ * the caller was authorised against. The one route that isn't sent an `org_id`
+ * (removing a comment reaction) takes the organization from the release row
+ * instead.
+ */
+async function loadReleaseInOrg(releaseId: string, orgId: string) {
+	const release = await getRelease(releaseId);
+	return release && release.organizationId === orgId ? release : null;
+}
+
+/** The status update, only if it belongs to the given release. */
+function findStatusUpdateInRelease(updateId: string, releaseId: string) {
+	return db.query.releaseStatusUpdate.findFirst({
+		where: and(eq(schema.releaseStatusUpdate.id, updateId), eq(schema.releaseStatusUpdate.releaseId, releaseId)),
+	});
+}
+
+/** The comment, only if it belongs to the given release and organization. */
+function findCommentInRelease(commentId: string, releaseId: string, orgId: string) {
+	return db.query.releaseComment.findFirst({
+		where: and(
+			eq(schema.releaseComment.id, commentId),
+			eq(schema.releaseComment.releaseId, releaseId),
+			eq(schema.releaseComment.organizationId, orgId)
+		),
+	});
+}
 
 // Create a new release
 apiRouteAdminRelease.post("/create", async (c) => {
@@ -229,7 +263,14 @@ apiRouteAdminRelease.patch("/update", async (c) => {
 		updateData.releasedAt = updates.releasedAt ? new Date(updates.releasedAt) : null;
 	if (updates.color !== undefined) updateData.color = updates.color;
 	if (updates.icon !== undefined) updateData.icon = updates.icon;
-	if ("leadId" in updates) updateData.leadId = updates.leadId ?? null;
+	if ("leadId" in updates) {
+		// The lead must be a member of the organization (or null, to clear it).
+		const leadId: string | null = updates.leadId ?? null;
+		if (leadId !== null && (typeof leadId !== "string" || !(await isOrganizationMember(orgId, leadId)))) {
+			return c.json({ success: false, error: "The release lead must be a member of this organization." }, 400);
+		}
+		updateData.leadId = leadId;
+	}
 
 	// Update the release
 	const updatedRelease = await traceAsync("release.update.save", () => updateRelease(releaseId, updateData), {
@@ -516,8 +557,12 @@ apiRouteAdminRelease.post("/:releaseId/labels", async (c) => {
 	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "content.manageReleases");
 	if (!isAuthorized) return c.json({ success: false, error: "Permission denied" }, 401);
 
-	const existing = await getRelease(releaseId);
-	if (!existing || existing.organizationId !== orgId) return c.json({ success: false, error: "Release not found" }, 404);
+	const existing = await loadReleaseInOrg(releaseId, orgId);
+	if (!existing) return c.json({ success: false, error: "Release not found" }, 404);
+
+	// The label must belong to the same organization as the release.
+	const label = typeof labelId === "string" ? await getLabel(orgId, labelId) : null;
+	if (!label) return c.json({ success: false, error: "Label not found" }, 404);
 
 	await addReleaseLabel(releaseId, orgId, labelId);
 
@@ -538,6 +583,9 @@ apiRouteAdminRelease.delete("/:releaseId/labels/:labelId", async (c) => {
 	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "content.manageReleases");
 	if (!isAuthorized) return c.json({ success: false, error: "Permission denied" }, 401);
 
+	const existing = await loadReleaseInOrg(releaseId, orgId);
+	if (!existing) return c.json({ success: false, error: "Release not found" }, 404);
+
 	await removeReleaseLabel(releaseId, labelId);
 
 	return c.json({ success: true });
@@ -554,6 +602,9 @@ apiRouteAdminRelease.get("/:releaseId/status-updates", async (c) => {
 	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "members");
 	if (!isAuthorized) return c.json({ success: false, error: "Permission denied" }, 401);
 
+	const existing = await loadReleaseInOrg(releaseId, orgId);
+	if (!existing) return c.json({ success: false, error: "Release not found" }, 404);
+
 	const updates = await getReleaseStatusUpdates(releaseId, "all");
 	return c.json({ success: true, data: updates });
 });
@@ -568,6 +619,9 @@ apiRouteAdminRelease.post("/:releaseId/status-updates", async (c) => {
 	if (!isAuthorized) return c.json({ success: false, error: "Permission denied" }, 401);
 
 	if (!session?.userId) return c.json({ success: false, error: "Unauthorized" }, 401);
+
+	const existing = await loadReleaseInOrg(releaseId, orgId);
+	if (!existing) return c.json({ success: false, error: "Release not found" }, 404);
 
 	const update = await createReleaseStatusUpdate({
 		releaseId,
@@ -596,6 +650,13 @@ apiRouteAdminRelease.patch("/:releaseId/status-updates/:updateId", async (c) => 
 	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "content.manageReleases");
 	if (!isAuthorized) return c.json({ success: false, error: "Permission denied" }, 401);
 
+	const existing = await loadReleaseInOrg(releaseId, orgId);
+	if (!existing) return c.json({ success: false, error: "Release not found" }, 404);
+
+	// The status update must belong to this release.
+	const existingUpdate = await findStatusUpdateInRelease(updateId, releaseId);
+	if (!existingUpdate) return c.json({ success: false, error: "Status update not found" }, 404);
+
 	const updated = await updateReleaseStatusUpdate(updateId, { content, health, visibility });
 
 	const found = findClientBysseId(sseClientId);
@@ -615,6 +676,13 @@ apiRouteAdminRelease.delete("/:releaseId/status-updates/:updateId", async (c) =>
 
 	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "content.manageReleases");
 	if (!isAuthorized) return c.json({ success: false, error: "Permission denied" }, 401);
+
+	const existing = await loadReleaseInOrg(releaseId, orgId);
+	if (!existing) return c.json({ success: false, error: "Release not found" }, 404);
+
+	// The status update must belong to this release.
+	const existingUpdate = await findStatusUpdateInRelease(updateId, releaseId);
+	if (!existingUpdate) return c.json({ success: false, error: "Status update not found" }, 404);
 
 	await deleteReleaseStatusUpdate(updateId);
 
@@ -639,6 +707,9 @@ apiRouteAdminRelease.get("/:releaseId/comments", async (c) => {
 
 	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "members");
 	if (!isAuthorized) return c.json({ success: false, error: "Permission denied" }, 401);
+
+	const existing = await loadReleaseInOrg(releaseId, orgId);
+	if (!existing) return c.json({ success: false, error: "Release not found" }, 404);
 
 	const limit = Math.min(Number(limitParam) || 10, 50);
 	const page = Math.max(Number(pageParam) || 1, 1);
@@ -678,6 +749,9 @@ apiRouteAdminRelease.get("/:releaseId/comments/:commentId/replies", async (c) =>
 	const isAuthorized = await traceOrgPermissionCheck(session?.userId || "", orgId, "members");
 	if (!isAuthorized) return c.json({ success: false, error: "Permission denied" }, 401);
 
+	const existing = await loadReleaseInOrg(releaseId, orgId);
+	if (!existing) return c.json({ success: false, error: "Release not found" }, 404);
+
 	const replies = await getReleaseCommentReplies(releaseId, commentId);
 
 	return c.json({ success: true, data: replies });
@@ -693,6 +767,21 @@ apiRouteAdminRelease.post("/:releaseId/comments", async (c) => {
 
 	const isAuthorized = await traceOrgPermissionCheck(session.userId, orgId, "members");
 	if (!isAuthorized) return c.json({ success: false, error: "Permission denied" }, 401);
+
+	const existing = await loadReleaseInOrg(releaseId, orgId);
+	if (!existing) return c.json({ success: false, error: "Release not found" }, 404);
+
+	// A status update or parent comment referenced by the new comment must belong to this release.
+	if (statusUpdateId) {
+		const statusUpdate = await findStatusUpdateInRelease(statusUpdateId, releaseId);
+		if (!statusUpdate) return c.json({ success: false, error: "Status update not found" }, 404);
+	}
+	if (parentId) {
+		const parentComment = await db.query.releaseComment.findFirst({
+			where: and(eq(schema.releaseComment.id, parentId), eq(schema.releaseComment.releaseId, releaseId)),
+		});
+		if (!parentComment) return c.json({ success: false, error: "Comment not found" }, 404);
+	}
 
 	const comment = await createReleaseComment({
 		releaseId,
@@ -723,7 +812,11 @@ apiRouteAdminRelease.patch("/:releaseId/comments/:commentId", async (c) => {
 
 	if (!session?.userId) return c.json({ success: false, error: "Unauthorized" }, 401);
 
-	const existingComment = await db.query.releaseComment.findFirst({ where: eq(schema.releaseComment.id, commentId) });
+	const existing = await loadReleaseInOrg(releaseId, orgId);
+	if (!existing) return c.json({ success: false, error: "Release not found" }, 404);
+
+	// The comment must belong to this release (and organization) before ownership is considered.
+	const existingComment = await findCommentInRelease(commentId, releaseId, orgId);
 	if (!existingComment) return c.json({ success: false, error: "Comment not found" }, 404);
 
 	const isOwner = existingComment.createdBy === session.userId;
@@ -751,7 +844,11 @@ apiRouteAdminRelease.delete("/:releaseId/comments/:commentId", async (c) => {
 
 	if (!session?.userId) return c.json({ success: false, error: "Unauthorized" }, 401);
 
-	const existingComment = await db.query.releaseComment.findFirst({ where: eq(schema.releaseComment.id, commentId) });
+	const existing = await loadReleaseInOrg(releaseId, orgId);
+	if (!existing) return c.json({ success: false, error: "Release not found" }, 404);
+
+	// The comment must belong to this release (and organization) before ownership is considered.
+	const existingComment = await findCommentInRelease(commentId, releaseId, orgId);
 	if (!existingComment) return c.json({ success: false, error: "Comment not found" }, 404);
 
 	const isOwner = existingComment.createdBy === session.userId;
@@ -782,6 +879,13 @@ apiRouteAdminRelease.post("/:releaseId/comments/:commentId/reactions", async (c)
 	const isAuthorized = await traceOrgPermissionCheck(session.userId, orgId, "members");
 	if (!isAuthorized) return c.json({ success: false, error: "Permission denied" }, 401);
 
+	const existing = await loadReleaseInOrg(releaseId, orgId);
+	if (!existing) return c.json({ success: false, error: "Release not found" }, 404);
+
+	// The comment must belong to this release (and organization).
+	const existingComment = await findCommentInRelease(commentId, releaseId, orgId);
+	if (!existingComment) return c.json({ success: false, error: "Comment not found" }, 404);
+
 	await addReleaseCommentReaction(orgId, commentId, session.userId, emoji);
 
 	const found = findClientBysseId(sseClientId);
@@ -794,10 +898,23 @@ apiRouteAdminRelease.post("/:releaseId/comments/:commentId/reactions", async (c)
 // DELETE /release/:releaseId/comments/:commentId/reactions/:emoji
 apiRouteAdminRelease.delete("/:releaseId/comments/:commentId/reactions/:emoji", async (c) => {
 	const session = c.get("session");
+	const releaseId = c.req.param("releaseId");
 	const commentId = c.req.param("commentId");
 	const emoji = c.req.param("emoji");
 
 	if (!session?.userId) return c.json({ success: false, error: "Unauthorized" }, 401);
+
+	// This route is not sent an `org_id`, so authorise against the organization the release belongs to.
+	const release = await getRelease(releaseId);
+	if (!release) return c.json({ success: false, error: "Release not found" }, 404);
+	const isAuthorized = await traceOrgPermissionCheck(session.userId, release.organizationId, "members");
+	if (!isAuthorized) return c.json({ success: false, error: "Permission denied" }, 401);
+
+	// The comment must belong to this release.
+	const existingComment = await db.query.releaseComment.findFirst({
+		where: and(eq(schema.releaseComment.id, commentId), eq(schema.releaseComment.releaseId, releaseId)),
+	});
+	if (!existingComment) return c.json({ success: false, error: "Comment not found" }, 404);
 
 	await removeReleaseCommentReaction(commentId, session.userId, emoji);
 
@@ -817,6 +934,9 @@ apiRouteAdminRelease.post("/:releaseId/github_prs/link", async (c) => {
 	const isAuthorized = await traceOrgPermissionCheck(session.userId, orgId, "content.manageReleases");
 	if (!isAuthorized) return c.json({ success: false, error: "Permission denied" }, 401);
 
+	const existingRelease = await loadReleaseInOrg(releaseId, orgId);
+	if (!existingRelease) return c.json({ success: false, error: "Release not found" }, 404);
+
 	const body = await c.req.json();
 	const {
 		prNumber,
@@ -831,6 +951,18 @@ apiRouteAdminRelease.post("/:releaseId/github_prs/link", async (c) => {
 		mergeCommitSha,
 		repositoryId,
 	} = body;
+
+	// The repository must belong to the same organization as the release.
+	const repository =
+		typeof repositoryId === "string"
+			? await db.query.githubRepository.findFirst({
+					where: and(
+						eq(schema.githubRepository.id, repositoryId),
+						eq(schema.githubRepository.organizationId, orgId)
+					),
+				})
+			: undefined;
+	if (!repository) return c.json({ success: false, error: "Repository not found" }, 404);
 
 	try {
 		// Create or update the GitHub PR record
@@ -852,6 +984,10 @@ apiRouteAdminRelease.post("/:releaseId/github_prs/link", async (c) => {
 
 		let githubPR;
 		if (existingPR) {
+			// A PR row that belongs to another organization is never reused or overwritten.
+			if (existingPR.organizationId !== orgId) {
+				return c.json({ success: false, error: "GitHub PR not found" }, 404);
+			}
 			if (existingPR.releaseId && existingPR.releaseId !== releaseId) {
 				recordWideError({
 					name: "release.link.github-pr-conflict",
@@ -937,6 +1073,9 @@ apiRouteAdminRelease.delete("/:releaseId/github_prs/:githubPRId/unlink", async (
 	if (!session?.userId) return c.json({ success: false, error: "Unauthorized" }, 401);
 	const isAuthorized = await traceOrgPermissionCheck(session.userId, orgId, "content.manageReleases");
 	if (!isAuthorized) return c.json({ success: false, error: "Permission denied" }, 401);
+
+	const existingRelease = await loadReleaseInOrg(releaseId, orgId);
+	if (!existingRelease) return c.json({ success: false, error: "Release not found" }, 404);
 
 	try {
 		// Update the GitHub PR to remove the release association

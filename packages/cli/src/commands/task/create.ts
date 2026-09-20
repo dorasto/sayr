@@ -15,6 +15,7 @@ interface CreateOptions {
 	status?: string;
 	priority?: string;
 	category?: string;
+	release?: string;
 	json?: boolean;
 }
 
@@ -27,6 +28,7 @@ export function registerCreateCommand(task: Command): void {
 		.option("--status <status>", `Task status (${STATUSES.join(", ")})`)
 		.option("--priority <priority>", `Task priority (${PRIORITIES.join(", ")})`)
 		.option("--category <categoryId>", "Category id")
+		.option("--release <release>", "Release slug or id")
 		.option("--json", "Output raw JSON")
 		.action(async (title: string, opts: CreateOptions) => {
 			try {
@@ -41,6 +43,7 @@ export function registerCreateCommand(task: Command): void {
 					status,
 					priority,
 					category: opts.category,
+					releaseId: opts.release,
 				};
 
 				const created = await apiRequest<TaskCreated>("/task", { method: "POST", body });

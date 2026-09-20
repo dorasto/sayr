@@ -21,7 +21,7 @@ const resources = [
   {
     title: "API Reference",
     desc: "REST API and SDK docs",
-    href: "/docs/api/reference-v1",
+    href: "/docs/api/overview",
   },
   {
     title: "Self-Hosting",

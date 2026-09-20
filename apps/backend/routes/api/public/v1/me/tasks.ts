@@ -25,7 +25,7 @@ import {
 import type { ServerEventBaseMessage } from "@/routes/events/types";
 import { checkTaskSummaryAccess, getTaskAiSummary } from "../../../../../lib/ai/task-summary";
 import { assertApiAccess } from "../../../../../lib/apiKeyAuth";
-import { resolveOrganizationId, resolveTaskId } from "../../../../../lib/apiRefs";
+import { resolveOrganizationId, resolveReleaseId, resolveTaskId } from "../../../../../lib/apiRefs";
 import { updateTaskService } from "../../../../../lib/tasks/updateTask";
 import {
 	TaskNotFoundError as AssigneesTaskNotFoundError,
@@ -44,6 +44,38 @@ const COMMENTS_MAX_LIMIT = 30;
 
 export const tasksRoute = new Hono<AppEnv>();
 
+const RELEASE_NOT_FOUND = errorResponse("Release not found", 'Pass the release slug (e.g. "v1.2.0") or its id.');
+
+type TaskReleaseRef =
+	| { ok: true; releaseId: string | null }
+	| { ok: false; status: 400 | 404; body: ReturnType<typeof errorResponse> };
+
+/**
+ * Resolves the `releaseId` a caller sent (a release slug or id) to a release id
+ * in `orgId`. `null` means "no release" and passes through, so callers can
+ * clear a task's release. Anything else that isn't a non-empty string is
+ * rejected up front instead of reaching the database as a foreign-key error.
+ */
+async function resolveTaskReleaseRef(orgId: string, ref: unknown): Promise<TaskReleaseRef> {
+	if (ref === null) return { ok: true, releaseId: null };
+
+	if (typeof ref !== "string" || !ref.trim()) {
+		return {
+			ok: false,
+			status: 400,
+			body: errorResponse(
+				"Invalid release",
+				"releaseId must be a release slug or id, or null to remove the task from its release."
+			),
+		};
+	}
+
+	const releaseId = await resolveReleaseId(orgId, ref);
+	if (!releaseId) return { ok: false, status: 404, body: RELEASE_NOT_FOUND };
+
+	return { ok: true, releaseId };
+}
+
 export const CreateTaskSchema = {
 	type: "object",
 	required: ["title", "orgId"],
@@ -59,6 +91,10 @@ export const CreateTaskSchema = {
 			enum: ["none", "low", "medium", "high", "urgent"],
 		},
 		category: { type: "string" },
+		releaseId: {
+			type: "string",
+			description: 'Release slug (e.g. "v1.2.0") or release id. The task is created in this release.',
+		},
 		orgId: {
 			type: "string",
 			description: 'Organization slug (e.g. "platform") or organization id.',
@@ -111,7 +147,17 @@ tasksRoute.post(
 		if (!principal) return c.json(errorResponse("Unauthorized"), 401);
 
 		const body = await c.req.json();
-		const { orgId: orgRef, title, description, status, priority, category, integration, createdBy } = body;
+		const {
+			orgId: orgRef,
+			title,
+			description,
+			status,
+			priority,
+			category,
+			releaseId: releaseRef,
+			integration,
+			createdBy,
+		} = body;
 
 		// Accept a slug ("platform") or an id, so callers can use what the UI shows them.
 		const orgId = await resolveOrganizationId(orgRef);
@@ -138,6 +184,15 @@ tasksRoute.post(
 			);
 		}
 
+		// Optional: put the new task straight into a release (slug or id, resolved
+		// within this organization — a release from another org is a 404).
+		let releaseId: string | null = null;
+		if (releaseRef !== undefined && releaseRef !== null) {
+			const resolved = await resolveTaskReleaseRef(orgId, releaseRef);
+			if (!resolved.ok) return c.json(resolved.body, resolved.status);
+			releaseId = resolved.releaseId;
+		}
+
 		const descriptionProsekit = description ? markdownToProsekitJSON(description) : undefined;
 		const task = await traceAsync(
 			"task.create.insert",
@@ -150,7 +205,7 @@ tasksRoute.post(
 						status,
 						priority,
 						category,
-						releaseId: null,
+						releaseId,
 						visible: "public",
 						parentId: null,
 					},
@@ -158,7 +213,7 @@ tasksRoute.post(
 				),
 			{
 				description: "Creating task record",
-				data: { orgId, title, status, priority, category },
+				data: { orgId, title, status, priority, category, releaseId },
 			}
 		);
 
@@ -386,6 +441,12 @@ tasksRoute.get(
 			},
 			{ name: "q", in: "query", schema: { type: "string" }, description: "Search query." },
 			{ name: "categoryId", in: "query", schema: { type: "string" } },
+			{
+				name: "releaseId",
+				in: "query",
+				schema: { type: "string" },
+				description: 'Only tasks in this release: a release slug (e.g. "v1.2.0") or release id.',
+			},
 			{ name: "includeClosed", in: "query", schema: { type: "boolean" } },
 			{ name: "page", in: "query", schema: { type: "integer", minimum: 1 } },
 			{ name: "limit", in: "query", schema: { type: "integer", minimum: 1, maximum: 30 } },
@@ -435,16 +496,25 @@ tasksRoute.get(
 		const limit = Math.min(requestedLimit || 30, 30);
 		const offset = (page - 1) * limit;
 
+		// Optional release filter (slug or id). Resolved within this organization, so
+		// another org's release is a 404 rather than an empty list.
+		let releaseFilter: string | undefined;
+		if (typeof query.releaseId === "string" && query.releaseId.trim()) {
+			const releaseId = await resolveReleaseId(orgId, query.releaseId);
+			if (!releaseId) return c.json(RELEASE_NOT_FOUND, 404);
+			releaseFilter = releaseId;
+		}
+
 		// Caller is a verified member at this point, so always query without the
 		// public-only visibility filter — members see public + private, same as
 		// the internal route does for members (`isPublic: false`).
+		const baseWhere = baseTaskWhere(orgId, categoryId, searchQuery, includeClosed, false);
+		const where = releaseFilter ? and(baseWhere, eq(schema.task.releaseId, releaseFilter)) : baseWhere;
+
 		const totalItems = await traceAsync(
 			"me.tasks.count",
 			async () => {
-				const [result] = await db
-					.select({ count: sql<number>`count(*)` })
-					.from(schema.task)
-					.where(baseTaskWhere(orgId, categoryId, searchQuery, includeClosed, false));
+				const [result] = await db.select({ count: sql<number>`count(*)` }).from(schema.task).where(where);
 
 				return Number(result?.count ?? 0);
 			},
@@ -457,7 +527,7 @@ tasksRoute.get(
 			"me.tasks.fetch",
 			async () =>
 				db.query.task.findMany({
-					where: baseTaskWhere(orgId, categoryId, searchQuery, includeClosed, false),
+					where,
 					// Exclude the 1024-dim pgvector embedding — this list response has
 					// no consumer that needs it (unlike getTaskById, used by similarity
 					// search elsewhere), so there's no reason to fetch or ship it here.
@@ -749,7 +819,10 @@ const UpdateTaskSchemaBody = {
 			enum: ["none", "low", "medium", "high", "urgent"],
 		},
 		category: { type: "string" },
-		releaseId: { type: "string" },
+		releaseId: {
+			type: ["string", "null"],
+			description: 'Release slug (e.g. "v1.2.0") or release id, or null to remove the task from its release.',
+		},
 		visible: { type: "string", enum: ["public", "private"] },
 	},
 };
@@ -773,7 +846,7 @@ tasksRoute.patch(
 	describeOkNotFound({
 		summary: "Update Task",
 		description:
-			"Update one or more fields of a task. `status` needs the changeStatus scope, `priority` needs changePriority, and title/description/category/releaseId/visible need editAny — in addition to the base read scope.",
+			"Update one or more fields of a task. `status` needs the changeStatus scope, `priority` needs changePriority, and title/description/category/releaseId/visible need editAny — in addition to the base read scope. `releaseId` takes a release slug or id in this organization, or null to remove the task from its release.",
 		dataSchema: TaskSchema,
 		bodySchema: UpdateTaskSchemaBody,
 		bodyExample: { orgId: "platform", status: "done" },
@@ -844,11 +917,21 @@ tasksRoute.patch(
 			}
 		}
 
+		// `releaseId` is a release slug or id (or null to clear). Resolve it within
+		// THIS organization before it reaches the update, so a release from another
+		// org is a 404 and a malformed value is a 400 rather than a foreign-key error.
+		let taskUpdates = updates;
+		if (updates.releaseId !== undefined) {
+			const resolved = await resolveTaskReleaseRef(orgId, updates.releaseId);
+			if (!resolved.ok) return c.json(resolved.body, resolved.status);
+			taskUpdates = { ...updates, releaseId: resolved.releaseId };
+		}
+
 		const taskWithData = await updateTaskService({
 			orgId,
 			taskId,
 			existingTask,
-			updates,
+			updates: taskUpdates,
 			actorUserId: principal.userId,
 			sseClientId: undefined,
 		});

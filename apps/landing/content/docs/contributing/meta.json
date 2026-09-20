@@ -1,5 +1,15 @@
 {
-  "title": "Contributing",
-  "root": true,
-  "icon": "IconCode"
+	"title": "Contributing",
+	"root": true,
+	"icon": "IconCode",
+	"pages": [
+		"local-development",
+		"architecture",
+		"database",
+		"adding-features",
+		"documentation",
+		"edition-system",
+		"guidelines",
+		"..."
+	]
 }

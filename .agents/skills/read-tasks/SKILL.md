@@ -69,10 +69,17 @@ sayr comment replies <commentId> --json
 
 - `--org platform` is specific to *this* repo's own tracker. Don't carry it over when looking up a
   task that belongs to a different project.
-- The CLI holds a real personal access token and can create/update tasks and comments. Per
-  `docs/agents/issue-tracker.md`, agents stay read-only here — `task view`, `task list`,
-  `comment list`, and `comment replies` are reads and fine to run freely. Never run `task create`,
-  `task update`, `task label`, `task assign`, `comment create`, `comment update`, or
-  `comment delete` unless a human explicitly asks you to write to the tracker.
+- The CLI holds a real personal access token and can create/update tasks, comments, and releases.
+  Per `docs/agents/issue-tracker.md`, agents stay read-only here — `task view`, `task list`,
+  `comment list`, `comment replies`, `releases list`, `releases view`, `releases status-update list`,
+  `releases comment list`, `releases comment replies`, and `releases pr list` are reads and fine to
+  run freely. Never run `task create`, `task update`, `task label`, `task assign`, `comment create`,
+  `comment update`, `comment delete`, `releases create`, `releases update`, `releases publish` (alias
+  `mark-released`), `releases delete`, `releases label`, `releases status-update create`,
+  `releases status-update update`, `releases status-update delete`, `releases comment create`,
+  `releases comment update`, `releases comment delete`, `releases pr link`, or `releases pr unlink`
+  unless a human explicitly asks you to write to the tracker. That includes `task create` and
+  `task update` with `--release` (or `--no-release`) — assigning a task to a release is a write;
+  `task list --release` is only a filter and is fine.
 - Don't read or echo the contents of `~/.sayr/config.json` (holds the personal access token) as
   part of answering a task-lookup question — it's not needed for any read command.

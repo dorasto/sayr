@@ -6,11 +6,11 @@ import { and, eq } from "drizzle-orm";
  *
  * Callers of `/v1/me/*` are humans writing scripts, and the only identifiers they
  * can actually see are the ones the UI shows them: an organization's slug
- * (`platform`, straight out of the URL) and a task's short id (`123`, the number
- * in `SAY-123`). Requiring internal UUIDs made the API effectively unusable
- * without first querying for ids.
+ * (`platform`, straight out of the URL), a task's short id (`123`, the number
+ * in `SAY-123`) and a release's slug (`v1.2.0`). Requiring internal UUIDs made
+ * the API effectively unusable without first querying for ids.
  *
- * Both resolvers also accept the raw UUID so existing integrations keep working.
+ * Every resolver also accepts the raw UUID so existing integrations keep working.
  *
  * Note the `SAY-` prefix is deliberately NOT parsed: `organization.short_id` is a
  * plain text column defaulting to "SAY" with no unique constraint, so the prefix
@@ -90,6 +90,43 @@ export async function resolveTaskId(orgId: string, ref: unknown): Promise<string
 
 	const shortId = Number.parseInt(trimmed, 10);
 	return Number.isSafeInteger(shortId) ? await taskIdByShortId(orgId, shortId) : null;
+}
+
+/**
+ * Resolves a release reference to its id, scoped to an organization.
+ *
+ * Accepts a slug (`"v1.2.0"`, straight out of the release URL) or a UUID. The
+ * org scope is required and enforced in every query — release slugs are unique
+ * only per organization (`release_organization_slug_unique`), and scoping the
+ * UUID branch too stops a caller reaching a release in an org they passed a
+ * different id for.
+ *
+ * A UUID that matches no release in the org falls through to the slug lookup,
+ * which keeps a (pathological) UUID-shaped slug reachable — the web app doesn't
+ * forbid one, so one may already exist.
+ */
+export async function resolveReleaseId(orgId: string, ref: unknown): Promise<string | null> {
+	if (typeof ref !== "string") return null;
+
+	const trimmed = ref.trim();
+	if (!trimmed) return null;
+
+	if (looksLikeUuid(trimmed)) {
+		const [byId] = await db
+			.select({ id: schema.release.id })
+			.from(schema.release)
+			.where(and(eq(schema.release.id, trimmed), eq(schema.release.organizationId, orgId)))
+			.limit(1);
+		if (byId) return byId.id;
+	}
+
+	const [bySlug] = await db
+		.select({ id: schema.release.id })
+		.from(schema.release)
+		.where(and(eq(schema.release.organizationId, orgId), eq(schema.release.slug, trimmed)))
+		.limit(1);
+
+	return bySlug?.id ?? null;
 }
 
 async function taskIdByShortId(orgId: string, shortId: number): Promise<string | null> {

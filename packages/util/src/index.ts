@@ -236,6 +236,58 @@ export function extractHslValues(hslaColor: string): string {
 }
 
 /**
+ * Converts a hex color to the `hsla(h, s%, l%, 1)` string format used for
+ * release (and other resource) colors. Hue, saturation and lightness are
+ * rounded to whole numbers, matching what the web color picker stores.
+ *
+ * Accepts `#RRGGBB` or the `#RGB` shorthand; the leading `#` is optional so
+ * callers on a shell (where an unquoted `#` starts a comment) can omit it.
+ *
+ * @param hex - A hex color string (e.g., "#3B82F6")
+ * @returns The equivalent `hsla(...)` string, or `null` if `hex` isn't a valid hex color
+ *
+ * @example
+ * ```ts
+ * hexToHsla("#3B82F6");
+ * // "hsla(217, 91%, 60%, 1)"
+ *
+ * hexToHsla("not a color");
+ * // null
+ * ```
+ */
+export function hexToHsla(hex: string): string | null {
+	const match = /^#?([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(hex.trim());
+	if (!match?.[1]) return null;
+
+	const digits = match[1].length === 3 ? [...match[1]].map((ch) => ch + ch).join("") : match[1];
+	const r = Number.parseInt(digits.slice(0, 2), 16) / 255;
+	const g = Number.parseInt(digits.slice(2, 4), 16) / 255;
+	const b = Number.parseInt(digits.slice(4, 6), 16) / 255;
+
+	const max = Math.max(r, g, b);
+	const min = Math.min(r, g, b);
+	const lightness = (max + min) / 2;
+	const delta = max - min;
+
+	let hue = 0;
+	let saturation = 0;
+	if (delta !== 0) {
+		saturation = delta / (1 - Math.abs(2 * lightness - 1));
+		if (max === r) {
+			hue = ((g - b) / delta) % 6;
+		} else if (max === g) {
+			hue = (b - r) / delta + 2;
+		} else {
+			hue = (r - g) / delta + 4;
+		}
+		hue *= 60;
+		if (hue < 0) hue += 360;
+	}
+
+	return `hsla(${Math.round(hue) % 360}, ${Math.round(saturation * 100)}%, ${Math.round(lightness * 100)}%, 1)`;
+}
+
+/**
  * Converts an HSLA color string to a new HSLA color with the specified opacity.
  *
  * @param hslaColor - An HSLA color string (e.g., "hsla(193, 100%, 50%, 1)")

@@ -208,6 +208,23 @@ export async function getOrganizationMembers(orgId: string): Promise<schema.Orga
 }
 
 /**
+ * Whether a user has a membership row in an organization. Unlike the permission
+ * checks, this has no platform-admin or org-creator bypass: it answers "is this
+ * user actually one of the organization's members".
+ *
+ * @param orgId - The organization ID.
+ * @param userId - The user ID to check.
+ * @returns True if the user is a member of the organization.
+ */
+export async function isOrganizationMember(orgId: string, userId: string): Promise<boolean> {
+	const membership = await db.query.member.findFirst({
+		where: (member) => and(eq(member.organizationId, orgId), eq(member.userId, userId)),
+		columns: { id: true },
+	});
+	return !!membership;
+}
+
+/**
  * Fetches a single organization by its unique slug.
  *
  * @param org_slug - The unique slug identifier of the organization.

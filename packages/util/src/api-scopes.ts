@@ -46,7 +46,7 @@ export const API_KEY_SCOPES = {
 		read: {
 			permission: "members",
 			label: "Read tasks",
-			description: "List, search, and read tasks in your organizations.",
+			description: "List, search, and read tasks and releases in your organizations.",
 		},
 		create: {
 			permission: "tasks.create",
@@ -59,7 +59,7 @@ export const API_KEY_SCOPES = {
 			// comments doesn't also have to be allowed to open tasks.
 			permission: "members",
 			label: "Post comments",
-			description: "Write comments on tasks. Does not allow editing or deleting anyone else's.",
+			description: "Write comments on tasks and releases. Does not allow editing or deleting anyone else's.",
 		},
 		editAny: {
 			permission: "tasks.editAny",
@@ -96,19 +96,22 @@ export const API_KEY_SCOPES = {
 		manageReleases: {
 			permission: "content.manageReleases",
 			label: "Manage releases",
-			description: "Read and assign releases.",
+			description:
+				"Create, edit, publish, and delete releases; manage their labels, status updates, and linked pull requests.",
 		},
 	},
 	moderation: {
 		manageComments: {
 			permission: "moderation.manageComments",
 			label: "Moderate comments",
-			// Deliberately "delete", not "edit or delete": editing an org comment only
-			// requires membership (`tasks.comment` already covers it — any member can
-			// edit any comment in the app, not just their own; there is no author-only
-			// gate on edit). Deleting SOMEONE ELSE's comment is the actual cross-user
-			// action this scope exists for; deleting your own only needs `tasks.comment`.
-			description: "Delete comments written by others.",
+			// For task comments this is "delete", not "edit or delete": editing an org
+			// task comment only requires membership (`tasks.comment` already covers it —
+			// any member can edit any task comment in the app, not just their own; there
+			// is no author-only gate on edit). Deleting SOMEONE ELSE's task comment is
+			// the actual cross-user action this scope exists for; deleting your own only
+			// needs `tasks.comment`. Release comments are stricter, mirroring the web
+			// app: editing OR deleting someone else's release comment needs this scope.
+			description: "Delete task comments written by others, and edit or delete others' release comments.",
 		},
 	},
 } as const satisfies Record<ApiKeyScopeResource, Record<string, ScopeDefinition>>;
@@ -245,13 +248,15 @@ export const API_KEY_SCOPE_PRESETS: {
 	{
 		id: "read-only",
 		label: "Read only",
-		description: "List, search, and read tasks. Cannot change anything.",
+		description: "List, search, and read tasks and releases. Cannot change anything.",
 		scopes: ["tasks.read"],
 	},
 	{
 		id: "task-management",
 		label: "Task management",
 		description: "Read and write tasks, labels, assignees, and comments.",
+		// Deliberately excludes `content.manageReleases`: creating, publishing, and
+		// deleting releases is opt-in, never part of a day-to-day task preset.
 		scopes: [
 			"tasks.read",
 			"tasks.create",
