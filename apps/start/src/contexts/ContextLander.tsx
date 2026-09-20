@@ -7,8 +7,6 @@ interface ContextType {
 	setTasks: (newValue: ContextType["tasks"]) => void;
 	labels: schema.labelType[];
 	setLabels: (newValue: ContextType["labels"]) => void;
-	views: schema.savedViewType[];
-	setViews: (newValue: ContextType["views"]) => void;
 	categories: schema.categoryType[];
 	setCategories: (newValue: ContextType["categories"]) => void;
 	releases: schema.releaseType[];
@@ -16,13 +14,12 @@ interface ContextType {
 	permissionsByOrg: Record<string, TeamPermissions>;
 }
 
-const MyTasksContext = createContext<ContextType | undefined>(undefined);
+const LanderContext = createContext<ContextType | undefined>(undefined);
 
-export function RootProviderMyTasks({
+export function RootProviderLander({
 	children,
 	tasks,
 	labels,
-	views,
 	categories,
 	releases,
 	permissionsByOrg,
@@ -30,42 +27,38 @@ export function RootProviderMyTasks({
 	children: ReactNode;
 	tasks: ContextType["tasks"];
 	labels: ContextType["labels"];
-	views: ContextType["views"];
 	categories: ContextType["categories"];
 	releases: ContextType["releases"];
 	permissionsByOrg: ContextType["permissionsByOrg"];
 }) {
-	const { value: newTasks, setValue: setTasks } = useStateManagement("my-tasks", tasks, 30000);
-	const { value: newLabels, setValue: setLabels } = useStateManagement("my-labels", labels, 30000);
-	const { value: NewViews, setValue: setViews } = useStateManagement("my-views", views, 30000);
-	const { value: NewCategories, setValue: setCategories } = useStateManagement("my-categories", categories, 30000);
-	const { value: NewReleases, setValue: setReleases } = useStateManagement("my-releases", releases, 30000);
+	const { value: newTasks, setValue: setTasks } = useStateManagement("lander-tasks", tasks, 30000);
+	const { value: newLabels, setValue: setLabels } = useStateManagement("lander-labels", labels, 30000);
+	const { value: newCategories, setValue: setCategories } = useStateManagement("lander-categories", categories, 30000);
+	const { value: newReleases, setValue: setReleases } = useStateManagement("lander-releases", releases, 30000);
 
 	return (
-		<MyTasksContext.Provider
+		<LanderContext.Provider
 			value={{
 				tasks: newTasks,
 				setTasks,
 				labels: newLabels,
 				setLabels,
-				views: NewViews,
-				setViews,
-				categories: NewCategories,
+				categories: newCategories,
 				setCategories,
-				releases: NewReleases,
+				releases: newReleases,
 				setReleases,
 				permissionsByOrg,
 			}}
 		>
 			{children}
-		</MyTasksContext.Provider>
+		</LanderContext.Provider>
 	);
 }
 
-export function useMyTasks() {
-	const context = useContext(MyTasksContext);
+export function useLanderData() {
+	const context = useContext(LanderContext);
 	if (context === undefined) {
-		throw new Error("useMyTasks must be used within a RootProviderMyTasks");
+		throw new Error("useLanderData must be used within a RootProviderLander");
 	}
 	return context;
 }

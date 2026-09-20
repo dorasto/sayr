@@ -40,8 +40,8 @@ export function StaffSidebar() {
   const sidebarId = "primary-sidebar"; // Sharing the same ID to maintain state
   const location = useLocation();
   const pathname = location.pathname;
-  const { isCollapsed } = useSidebar(sidebarId);
-  const isSidebarOpen = !isCollapsed;
+  const { sidebar } = useSidebar(sidebarId);
+  const isSidebarOpen = sidebar ? sidebar.open || sidebar.overlayOpen === true : true;
   const isMobile = useIsMobile();
 
   return (

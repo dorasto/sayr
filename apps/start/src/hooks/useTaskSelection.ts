@@ -14,24 +14,18 @@ const defaultState: TaskSelectionState = { selectedIds: [] };
  * Shared between PageHeader (select-all checkbox) and UnifiedTaskView (bulk action bar).
  *
  * @param filteredTaskIds - The current set of visible/filtered task IDs (for select-all logic)
+ * @param storageKey - Cache key to scope selection to a particular surface. Defaults to the
+ * org-scoped task view's own key; the cross-org board passes its own key ("board-task-selection")
+ * so selecting rows on /home doesn't bleed into an org's /tasks page selection or vice versa.
  */
-export function useTaskSelection(filteredTaskIds?: string[]) {
-	const { value, setValue } = useStateManagement<TaskSelectionState>(
-		"task-selection",
-		defaultState,
-	);
+export function useTaskSelection(filteredTaskIds?: string[], storageKey = "task-selection") {
+	const { value, setValue } = useStateManagement<TaskSelectionState>(storageKey, defaultState);
 
-	const selectedSet = useMemo(
-		() => new Set(value.selectedIds),
-		[value.selectedIds],
-	);
+	const selectedSet = useMemo(() => new Set(value.selectedIds), [value.selectedIds]);
 
 	const selectedCount = selectedSet.size;
 
-	const isSelected = useCallback(
-		(taskId: string) => selectedSet.has(taskId),
-		[selectedSet],
-	);
+	const isSelected = useCallback((taskId: string) => selectedSet.has(taskId), [selectedSet]);
 
 	const toggleTask = useCallback(
 		(taskId: string, selected: boolean) => {
@@ -43,14 +37,14 @@ export function useTaskSelection(filteredTaskIds?: string[]) {
 			}
 			setValue({ selectedIds: Array.from(next) });
 		},
-		[selectedSet, setValue],
+		[selectedSet, setValue]
 	);
 
 	const selectAll = useCallback(
 		(ids: string[]) => {
 			setValue({ selectedIds: ids });
 		},
-		[setValue],
+		[setValue]
 	);
 
 	const deselectAll = useCallback(() => {

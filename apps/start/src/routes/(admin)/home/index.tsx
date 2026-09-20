@@ -29,6 +29,10 @@ const fetchPendingInvites = createServerFn({ method: "GET" }).handler(async () =
 });
 
 export const Route = createFileRoute("/(admin)/home/")({
+	validateSearch: (search: Record<string, unknown>): { view?: string } => {
+		const view = search.view as string | undefined;
+		return view ? { view } : {};
+	},
 	loader: async ({ context }) => {
 		if (!context.account) {
 			throw redirect({ to: "/auth/login" });

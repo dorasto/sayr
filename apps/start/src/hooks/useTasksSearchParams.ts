@@ -6,7 +6,8 @@
  * 2. Using History API directly prevents triggering route loaders
  * 3. Prevents unnecessary server calls when switching views/filters
  */
-import { useCallback, useMemo, useSyncExternalStore } from "react";
+import { useRouterState } from "@tanstack/react-router";
+import { useCallback, useEffect, useMemo, useRef, useSyncExternalStore } from "react";
 
 // Custom event name that TanStack Router doesn't listen to
 const SEARCH_PARAMS_CHANGE_EVENT = "task-search-params-change";
@@ -38,6 +39,24 @@ function getServerSnapshot() {
 export function useTasksSearchParams() {
 	// Subscribe to URL changes for reactivity
 	const searchString = useSyncExternalStore(subscribeToUrl, getUrlSnapshot, getServerSnapshot);
+
+	// TanStack Router's own navigations (e.g. clicking a <Link> anywhere in the tree — the
+	// Favourites sidebar is a real example, since it lives outside whatever page mounts this
+	// hook) update window.location.search via the router's internal history handling, which
+	// does NOT dispatch popstate or our own custom event above — so this hook's snapshot can
+	// go stale (URL bar already shows the new value, this hook doesn't) until something
+	// unrelated happens to force a re-render. useRouterState is a real React subscription
+	// through the router's own context and reliably re-renders on every navigation regardless
+	// of trigger source or where in the tree it originated; bridge it into our own
+	// notification channel so the useSyncExternalStore subscription above wakes up too,
+	// without changing how params are actually read (still raw window.location.search).
+	const routerHref = useRouterState({ select: (state) => state.location.href });
+	const lastNotifiedHref = useRef(routerHref);
+	useEffect(() => {
+		if (lastNotifiedHref.current === routerHref) return;
+		lastNotifiedHref.current = routerHref;
+		window.dispatchEvent(new CustomEvent(SEARCH_PARAMS_CHANGE_EVENT));
+	}, [routerHref]);
 
 	// Parse current search params
 	const searchParams = useMemo(() => {

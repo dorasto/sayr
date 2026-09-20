@@ -291,12 +291,12 @@ export function StatusUpdateCard({
 									</Button>
 								</DropdownMenuTrigger>
 								<DropdownMenuContent align="end">
-									<DropdownMenuItem onSelect={() => setIsEditing(true)}>
+									<DropdownMenuItem onClick={() => setIsEditing(true)}>
 										<IconPencil size={16} /> Edit
 									</DropdownMenuItem>
 									<DropdownMenuSeparator />
 									<DropdownMenuItem
-										onSelect={() => setDeleteDialogOpen(true)}
+										onClick={() => setDeleteDialogOpen(true)}
 										className="text-destructive focus:text-destructive"
 									>
 										<IconTrash size={16} /> Delete

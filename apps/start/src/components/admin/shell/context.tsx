@@ -2,6 +2,7 @@ import type { schema } from "@repo/database";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { createContext, type ReactNode, useCallback, useContext, useEffect } from "react";
 import { notificationActions } from "@/lib/stores/notification-store";
+import { personalViewsActions } from "@/lib/stores/personal-views-store";
 import useServerEvents from "@/lib/serverEvents";
 
 interface ContextType {
@@ -37,6 +38,12 @@ export function RootProvider({
 	// Fetch initial unread notification count
 	useEffect(() => {
 		notificationActions.refresh();
+	}, []);
+
+	// Fetch personal views once so the Favourites sidebar (mounted on every admin page) has
+	// them — /home itself overrides this via hydrate() from its own loader, so no flash there.
+	useEffect(() => {
+		personalViewsActions.refresh();
 	}, []);
 
 	// Global WS listener for notification count updates

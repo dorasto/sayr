@@ -11,7 +11,8 @@ import { useRegisterCommands } from "../useRegisterCommands";
 /**
  * Registers global commands available from any admin page:
  * - Create task (opens global create task dialog)
- * - My Tasks (navigate to /mine)
+ * - My Tasks (navigate to /home — the unified cross-org lander; /mine now
+ *   just redirects there, see routes/(admin)/mine/route.tsx)
  * - Switch organization (sub-view with org list)
  */
 export function useGlobalCommands() {
@@ -44,7 +45,7 @@ export function useGlobalCommands() {
 							id: "global-my-tasks",
 							label: "My Tasks",
 							icon: <IconCheckbox size={16} className="opacity-60" aria-hidden="true" />,
-							action: () => navigate({ to: "/mine" }),
+							action: () => navigate({ to: "/home" }),
 							keywords: "assigned personal",
 						},
 						{

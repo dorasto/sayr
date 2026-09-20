@@ -24,6 +24,12 @@ type SSEClient = {
 	connectedAt: number; // timestamp (Date.now())
 	device: string;
 
+	// Every `sseRooms` key this client is registered under — one entry for a
+	// normal single-org connection, N entries for a multi-org subscribe (see
+	// the `orgIds` query param below). Single source of truth for cleanup, so
+	// sseUnsubscribe doesn't need to special-case either mode.
+	roomKeys: string[];
+
 	// Added fields
 	ref?: string;
 };
@@ -48,14 +54,14 @@ function sseUnsubscribe(client: SSEClient) {
 		return;
 	}
 
-	const key = `${client.orgId}:${client.channel}`;
-	const room = sseRooms.get(key);
-	if (!room) return;
+	for (const key of client.roomKeys) {
+		const room = sseRooms.get(key);
+		if (!room) continue;
+		room.delete(client);
+		if (room.size === 0) sseRooms.delete(key);
+	}
 
-	room.delete(client);
 	clientsById.delete(client.id);
-
-	if (room.size === 0) sseRooms.delete(key);
 }
 
 export function sseBroadcastToRoom(
@@ -112,10 +118,12 @@ export function sseBroadcastToRoom(
 			client.send(msg);
 		} catch {
 			client.close();
-			const room = sseRooms.get(`${orgId}:${client.channel}`);
-			if (room) {
-				room.delete(client);
-				if (room.size === 0) sseRooms.delete(`${orgId}:${client.channel}`);
+			for (const key of client.roomKeys) {
+				const room = sseRooms.get(key);
+				if (room) {
+					room.delete(client);
+					if (room.size === 0) sseRooms.delete(key);
+				}
 			}
 		}
 	}
@@ -281,6 +289,17 @@ async function authenticate(
 }
 sseRoute.get("/", async (c) => {
 	const orgId = c.req.query("orgId");
+	// Multi-org subscribe — one connection, many "tasks" rooms at once. Used
+	// by the cross-org board (/home), which needs live task updates across
+	// every org the user belongs to, not just one. Mutually exclusive with
+	// `orgId` — a caller sends one or the other, never both.
+	const orgIdsParam = c.req.query("orgIds");
+	const requestedOrgIds = orgIdsParam
+		? orgIdsParam
+				.split(",")
+				.map((value) => value.trim())
+				.filter(Boolean)
+		: [];
 	let channel = c.req.query("channel");
 	const ref = c.req.query("ref");
 	const userAgent = c.req.raw.headers.get("user-agent");
@@ -291,8 +310,25 @@ sseRoute.get("/", async (c) => {
 	const id = crypto.randomUUID();
 	const token = c.req.header("authorization")?.match(/^Bearer (.+)$/)?.[1] ?? null;
 	const { userId, session, authenticated } = await authenticate(c.req.raw.headers, channel || "", token);
+	// Orgs the caller is actually a member of, out of the requested list —
+	// populated only in the multi-org branch below. An org the user has lost
+	// access to (or a stale id) is silently dropped rather than failing the
+	// whole connection, since the whole point is aggregating many orgs and
+	// one going stale shouldn't break live updates for the rest.
+	let validOrgIds: string[] = [];
 	if (channel === "system" && userId && authenticated) {
 		// no org required, no membership needed
+	} else if (requestedOrgIds.length > 0) {
+		if (!channel || channel === "public") {
+			return c.json({ error: "A non-public channel is required for orgIds" }, 400);
+		}
+		const checks = await Promise.all(
+			requestedOrgIds.map(async (checkOrgId) => ({
+				id: checkOrgId,
+				org: await safeGetOrganization(checkOrgId, session?.user.id || ""),
+			}))
+		);
+		validOrgIds = checks.filter((check) => check.org).map((check) => check.id);
 	} else if (!channel || channel === "public") {
 		// public channel allowed for everyone
 		channel = "public";
@@ -341,12 +377,20 @@ sseRoute.get("/", async (c) => {
 				connectedAt: Date.now(),
 				ref: ref,
 				device: device,
+				roomKeys: [],
 			};
 
 			if (channel === "system" && userId && authenticated) {
 				systemRoom.add(client);
+			} else if (validOrgIds.length > 0) {
+				client.roomKeys = validOrgIds.map((memberOrgId) => `${memberOrgId}:${channel}`);
+				for (const key of client.roomKeys) {
+					if (!sseRooms.has(key)) sseRooms.set(key, new Set());
+					sseRooms.get(key)!.add(client);
+				}
 			} else {
 				const key = `${orgId || ""}:${channel}`;
+				client.roomKeys = [key];
 				if (!sseRooms.has(key)) sseRooms.set(key, new Set());
 				sseRooms.get(key)!.add(client);
 			}

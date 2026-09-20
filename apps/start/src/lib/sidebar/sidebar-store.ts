@@ -19,13 +19,12 @@ export interface PanelTabConfig {
 
 export interface SidebarState {
 	open: boolean;
-	// Kept alongside `open` (not folded into it) specifically for a nav
-	// sidebar's desktop-collapsed-rail vs. mobile-sheet-open — those are
-	// genuinely independent states there. Panels never need them
-	// independent — sidebarActions.setOpen (used by everything
-	// panel-related) always writes both together, so a panel's `open` and
-	// `openMobile` can't drift apart.
+	// Panels use this for their independent mobile state. Navigation always
+	// opens in the temporary overlay below instead of persisting a mobile state.
 	openMobile: boolean;
+	// Navigation-only temporary state. This opens the sidebar above the page
+	// without changing the persisted desktop docking preference.
+	overlayOpen?: boolean;
 	variant: SidebarVariant;
 	side: SidebarSide;
 	keyboardShortcut?: string;
@@ -70,6 +69,26 @@ export interface SidebarStoreState {
 }
 
 const STORAGE_KEY = "sidebar-state";
+const OVERLAY_OPEN_DELAY = 200;
+const OVERLAY_CLOSE_DELAY = 150;
+const OVERLAY_MIN_VISIBLE_DURATION = 400;
+const sidebarOverlayOpenTimers = new Map<string, ReturnType<typeof setTimeout>>();
+const sidebarOverlayCloseTimers = new Map<string, ReturnType<typeof setTimeout>>();
+const sidebarOverlayOpenedAt = new Map<string, number>();
+
+function clearSidebarOverlayOpenTimer(id: string) {
+	const timer = sidebarOverlayOpenTimers.get(id);
+	if (!timer) return;
+
+	clearTimeout(timer);
+	sidebarOverlayOpenTimers.delete(id);
+}
+
+function clearSidebarOverlayCloseTimer(id: string) {
+	const timer = sidebarOverlayCloseTimers.get(id);
+	if (timer) clearTimeout(timer);
+	sidebarOverlayCloseTimers.delete(id);
+}
 
 // Module-level registry of imperative drawer handles, keyed by panel id —
 // populated by whatever is currently rendering a panel through the
@@ -168,6 +187,7 @@ export const sidebarActions = {
 			const newState: SidebarState = {
 				open: true,
 				openMobile: false,
+				overlayOpen: false,
 				variant: "default",
 				side: "left",
 				...initialState,
@@ -207,19 +227,25 @@ export const sidebarActions = {
 		});
 	},
 
-	// Toggle sidebar/panel open state. `isMobile` is only meaningful for a
-	// nav sidebar — panels never pass it (defaults false, and setOpen
-	// mirrors when it's false).
+	// Toggle a docked navigation sidebar on desktop. On mobile, navigation
+	// always opens as an overlay so it never takes space from the page.
 	toggleSidebar: (id: string, isMobile = false) => {
 		const sidebar = sidebarStore.state.sidebars[id];
 		if (!sidebar) return;
-		sidebarActions.setOpenForBreakpoint(id, isMobile ? !sidebar.openMobile : !sidebar.open, isMobile);
+		if (isMobile) {
+			sidebarActions.setSidebarOverlayOpen(id, !sidebar.overlayOpen);
+			return;
+		}
+		sidebarActions.setOpenForBreakpoint(id, !sidebar.open, false);
 	},
 
 	// The default, used by everything panel-related. Always writes BOTH
 	// `open` and `openMobile` together, so a panel can never end up with
 	// the two fields disagreeing.
 	setOpen: (id: string, open: boolean) => {
+		clearSidebarOverlayOpenTimer(id);
+		clearSidebarOverlayCloseTimer(id);
+		sidebarOverlayOpenedAt.delete(id);
 		sidebarStore.setState((state) => {
 			const sidebar = state.sidebars[id];
 			if (!sidebar) return state;
@@ -227,16 +253,89 @@ export const sidebarActions = {
 			return createCompleteState({
 				sidebars: {
 					...state.sidebars,
-					[id]: { ...sidebar, open, openMobile: open },
+					[id]: { ...sidebar, open, openMobile: open, overlayOpen: false },
 				},
 				keyboardShortcuts: state.keyboardShortcuts,
 			});
 		});
 	},
 
+	setSidebarOverlayOpen: (id: string, open: boolean) => {
+		clearSidebarOverlayOpenTimer(id);
+		clearSidebarOverlayCloseTimer(id);
+		if (open) sidebarOverlayOpenedAt.set(id, Date.now());
+		else sidebarOverlayOpenedAt.delete(id);
+		sidebarStore.setState((state) => {
+			const sidebar = state.sidebars[id];
+			if (!sidebar) return state;
+
+			return createCompleteState({
+				sidebars: {
+					...state.sidebars,
+					[id]: { ...sidebar, overlayOpen: open },
+				},
+				keyboardShortcuts: state.keyboardShortcuts,
+			});
+		});
+	},
+
+	openSidebarOverlay: (id: string) => {
+		sidebarActions.setSidebarOverlayOpen(id, true);
+	},
+
+	closeSidebarOverlay: (id: string) => {
+		sidebarActions.setSidebarOverlayOpen(id, false);
+	},
+
+	scheduleSidebarOverlayOpen: (id: string) => {
+		clearSidebarOverlayOpenTimer(id);
+		clearSidebarOverlayCloseTimer(id);
+		sidebarOverlayOpenTimers.set(
+			id,
+			setTimeout(() => {
+				sidebarActions.openSidebarOverlay(id);
+			}, OVERLAY_OPEN_DELAY)
+		);
+	},
+
+	cancelSidebarOverlayOpen: (id: string) => {
+		clearSidebarOverlayOpenTimer(id);
+	},
+
+	scheduleSidebarOverlayClose: (id: string) => {
+		clearSidebarOverlayOpenTimer(id);
+		clearSidebarOverlayCloseTimer(id);
+		const openedAt = sidebarOverlayOpenedAt.get(id);
+		const remainingVisibleDuration = openedAt
+			? Math.max(0, OVERLAY_MIN_VISIBLE_DURATION - (Date.now() - openedAt))
+			: 0;
+		sidebarOverlayCloseTimers.set(
+			id,
+			setTimeout(
+				() => {
+					sidebarActions.closeSidebarOverlay(id);
+				},
+				Math.max(OVERLAY_CLOSE_DELAY, remainingVisibleDuration)
+			)
+		);
+	},
+
+	cancelSidebarOverlayClose: (id: string) => {
+		clearSidebarOverlayCloseTimer(id);
+	},
+
+	collapseSidebar: (id: string) => {
+		sidebarActions.setOpen(id, false);
+	},
+
 	// Sets just one breakpoint's open field, leaving the other alone — only
 	// a genuinely-independent-per-breakpoint nav sidebar should use this.
 	setOpenForBreakpoint: (id: string, open: boolean, isMobile: boolean) => {
+		if (!isMobile) {
+			clearSidebarOverlayOpenTimer(id);
+			clearSidebarOverlayCloseTimer(id);
+			sidebarOverlayOpenedAt.delete(id);
+		}
 		sidebarStore.setState((state) => {
 			const sidebar = state.sidebars[id];
 			if (!sidebar) return state;
@@ -246,7 +345,7 @@ export const sidebarActions = {
 					...state.sidebars,
 					[id]: {
 						...sidebar,
-						...(isMobile ? { openMobile: open } : { open }),
+						...(isMobile ? { openMobile: open } : { open, overlayOpen: false }),
 					},
 				},
 				keyboardShortcuts: state.keyboardShortcuts,

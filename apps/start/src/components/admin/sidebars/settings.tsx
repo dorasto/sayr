@@ -45,8 +45,8 @@ export function SettingsSidebar() {
 	const sidebarId = "primary-sidebar"; // Sharing the same ID to maintain state
 	const location = useLocation();
 	const pathname = location.pathname;
-	const { isCollapsed } = useSidebar(sidebarId);
-	const isSidebarOpen = !isCollapsed;
+	const { sidebar } = useSidebar(sidebarId);
+	const isSidebarOpen = sidebar ? sidebar.open || sidebar.overlayOpen === true : true;
 	const { organizations, aiEnabled } = useLayoutData();
 	const isMobile = useIsMobile();
 	const lastDashboardRoute = useStore(navigationStore, (state) => state.lastDashboardRoute);
@@ -215,7 +215,6 @@ export function SettingsSidebar() {
 									return (
 										<SidebarMenuItem
 											key={item.title}
-											hideWhenCollapsed
 											className="min-h-auto"
 											isActive={isActive}
 										>

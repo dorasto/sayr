@@ -4,6 +4,8 @@ import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
 import { cn } from "@repo/ui/lib/utils";
 import { IconArrowLeft } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
+import { useStore } from "@tanstack/react-store";
+import { sidebarStore } from "@/lib/sidebar/sidebar-store";
 import { PrimarySidebar } from "../admin/sidebars/primary";
 import { SettingsSidebar } from "../admin/sidebars/settings";
 import { StaffSidebar } from "../admin/sidebars/staff";
@@ -26,10 +28,18 @@ interface Props {
 export function Wrapper({ children, className }: Props) {
 	const { isTaskPage, isReleasePage } = useAdminRoute();
 	const isMobile = useIsMobile();
+	const sidebar = useStore(sidebarStore, (state) => state.sidebars["primary-sidebar"]);
+	const isSidebarHidden = sidebar?.open === false;
 
 	return (
 		<div className="flex-1 min-h-0 w-full">
-			<div className={cn("flex flex-1 h-full w-full transition-all pb-2 pt-2 pr-2", isMobile && "p-0")}>
+			<div
+				className={cn(
+					"flex flex-1 h-full w-full transition-all pb-2 pt-2 pr-2",
+					isSidebarHidden && !isMobile && "pl-2",
+					isMobile && "p-0"
+				)}
+			>
 				<div
 					className={cn(
 						"h-full overflow-y-auto w-full mx-auto flex flex-col rounded-2xl bg-background contain-layout border dark:border-transparent",

@@ -1,4 +1,7 @@
-import { SidebarTrigger } from "@repo/ui/components/doras-ui/sidebar";
+import {
+  SidebarTrigger,
+  useSidebar,
+} from "@repo/ui/components/doras-ui/sidebar";
 import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
 import { cn } from "@repo/ui/lib/utils";
 
@@ -22,8 +25,6 @@ interface PageHeaderProps {
  * ```
  */
 export function PageHeader({ children, className }: PageHeaderProps) {
-  const isMobile = useIsMobile();
-
   return (
     <div
       className={cn(
@@ -58,6 +59,8 @@ function Identity({
   className,
 }: IdentityProps) {
   const isMobile = useIsMobile();
+  const { sidebar } = useSidebar("primary-sidebar");
+  const isSidebarHidden = sidebar?.open === false;
   return (
     <div
       className={cn(
@@ -66,8 +69,11 @@ function Identity({
       )}
     >
       <div className="flex items-center gap-2 min-w-0 flex-1">
-        {isMobile && (
-          <SidebarTrigger sidebarId="primary-sidebar" className="w-10 h-10" />
+        {(isMobile || isSidebarHidden) && (
+          <SidebarTrigger
+            sidebarId="primary-sidebar"
+            className="w-6 h-6 [&_svg]:size-4 gap-2 bg-transparent border-transparent p-1"
+          />
         )}
         {children ?? (
           <>
@@ -103,7 +109,7 @@ function Toolbar({ left, right, children, className }: ToolbarProps) {
   return (
     <div
       className={cn(
-        "flex items-center gap-1 px-2 h-11 shrink-0 border-b md:gap-2 md:px-3",
+        "flex items-center gap-1 px-2 h-11 shrink-0 border-b md:border-b-0 md:gap-2 md:px-3",
         className,
       )}
     >
