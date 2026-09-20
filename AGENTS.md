@@ -309,7 +309,7 @@ Before adding a new type, function, component, or utility anywhere in this repo:
 | `page-header/` | `PageHeader` component (identity + toolbar zones), `UnifiedTaskView` integration, single-org vs cross-org patterns |
 | `page-component/` | `Page` layout + panel system (`IndentDrawer`, `sidebar-store`) — adding/toggling/resizing a side panel |
 | `board/` | The reusable cross-org task board (`apps/start/src/components/board/`) — rendering, fields, grouping, filtering, layout, command palette |
-| `board-saved-views/` | Personal saved views on the board — global store, the three view-switcher UIs, dirty-state reset/update, Favourites sidebar |
+| `board-saved-views/` | Personal saved views on the board — global store, breadcrumb switcher + panel header, dirty-state reset/update, Favourites sidebar |
 | `command-palette/` | Cmd+K command palette — registering commands, sub-views, auto-drill, badges |
 | `edition/` | Edition detection, capabilities, and plan limits (`@repo/edition`) |
 | `document-feature/` | Writing user-facing docs for `apps/marketing`'s Starlight docs site |

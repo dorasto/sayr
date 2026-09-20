@@ -25,17 +25,15 @@ import { sidebarActions } from "@/lib/sidebar/sidebar-store";
 import type { PendingInviteWithOrg } from "@/routes/(admin)/home/index";
 import { PendingInvitesSection } from "./pending-invites";
 
-// Exported so useLanderCommands.tsx (the Cmd+K registrar for /home) can
-// drive this same panel from a command action without duplicating the id.
-export const LANDER_PANEL_ID = "lander-side-panel";
+const LANDER_PANEL_ID = "lander-side-panel";
 
 /**
  * The new unified cross-org lander (SAY-73 Phase 1). Uses the shared Page +
  * side-panel system (see the page-component skill) rather than a hand-rolled
- * flex split — same as every other admin page with a panel. The panel and
- * BoardTopBar both swap between showing the personal-view switcher and the
- * filter builder, driven by the landerLayout preference (user-preferences-store.ts);
- * whichever isn't in the top bar renders inline in the panel instead.
+ * flex split — same as every other admin page with a panel. The header carries
+ * the breadcrumb view switcher (ActiveViewSwitcher), the toolbar carries the
+ * task count, the Filter popover and view options, and the panel holds the
+ * quick filters.
  */
 export default function AdminHomePage({
   pendingInvites,
@@ -47,8 +45,8 @@ export default function AdminHomePage({
   const { setPanelContent, closePanel } = usePage();
   const panel = usePanel(LANDER_PANEL_ID);
 
-  // BoardSidePanelContent pulls everything it needs from context/the
-  // preference store itself, so it only needs to be handed to the panel
+  // BoardSidePanelContent pulls everything it needs from context and the
+  // URL-backed view state itself, so it only needs to be handed to the panel
   // once — it stays in sync on its own. Gated on isRegistered, not just
   // mount: Page defers registering the panel to its client-only pass, so a
   // plain `[]`-effect here would race it and silently no-op.

@@ -31,11 +31,10 @@ interface SaveViewPopoverProps {
 /**
  * "Save current filters + grouping/view state as a personal view" flow —
  * a small popover, not a full dialog, since the only real input is a name
- * (plus the icon/color trigger next to it). Used standalone in the top bar
- * (PresetSwitcher, as a pill button) and nested inside ActiveViewSwitcher's
- * dropdown for the "save as new view" case (styled to match a plain
- * DropdownMenuItem row there, not a pill) — `triggerLabel`/`triggerClassName`/
- * `triggerVariant` let each caller adapt the trigger without forking the popover.
+ * (plus the icon/color trigger next to it). Nested inside ActiveViewSwitcher's
+ * dropdown, styled to match a plain DropdownMenuItem row rather than a pill —
+ * `triggerLabel`/`triggerClassName`/`triggerVariant` let a caller adapt the
+ * trigger without forking the popover.
  */
 export function SaveViewPopover({
 	triggerLabel = "Save view",

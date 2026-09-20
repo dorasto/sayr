@@ -1,27 +1,21 @@
 "use client";
 
 import { authClient } from "@repo/auth/client";
-import { IconBookmark, IconDeviceFloppy, IconFilter, IconLayoutSidebarRight, IconStack2 } from "@tabler/icons-react";
+import { IconBookmark, IconDeviceFloppy, IconFilter, IconStack2 } from "@tabler/icons-react";
 import { useMemo } from "react";
 import { useBoardViewState } from "@/components/board/filter/use-board-view-state";
 import { QUICK_FILTERS } from "@/components/board/quick-filters/quick-filter-config";
+import { useActiveView } from "@/components/board/saved-views/use-active-view";
 import { usePersonalViews } from "@/components/board/saved-views/use-personal-views";
-import { LANDER_PANEL_ID } from "@/components/pages/admin/home";
 import { commandActions } from "@/lib/command-store";
-import { sidebarActions } from "@/lib/sidebar/sidebar-store";
-import { userPreferencesActions, userPreferencesStore } from "@/lib/stores/user-preferences-store";
 import type { CommandMap } from "@/types/command";
 import { useRegisterCommands } from "../useRegisterCommands";
 
 /**
- * Whichever of {FilterBuilder, PresetSwitcher} the landerLayout preference
- * put in the top bar is a real popover trigger button there (findable via
- * data-command-target); whichever it put in the side panel instead has no
- * trigger of its own — it's rendered inline — so reaching it means opening
- * the panel first. Same close-palette-then-act pattern useTasksCommands.tsx
- * already uses for "Filter tasks". Reads landerLayout fresh at call time
- * (not captured when commands were built), so it's still correct even if
- * the user toggled layout since the palette last registered its commands.
+ * The "open X" commands act by clicking a real trigger button found via its
+ * data-command-target — the palette closes first, then a short setTimeout covers its close
+ * animation. Same close-palette-then-act pattern useTasksCommands.tsx already uses for
+ * "Filter tasks".
  */
 function clickCommandTarget(selector: string) {
 	document.querySelector<HTMLButtonElement>(`[data-command-target="${selector}"]`)?.click();
@@ -29,38 +23,27 @@ function clickCommandTarget(selector: string) {
 
 function handleOpenFilterBuilder() {
 	commandActions.close();
-	if (userPreferencesStore.state.landerLayout === "presetSide") {
-		setTimeout(() => clickCommandTarget("filter-builder-trigger"), 200);
-	} else {
-		sidebarActions.setOpen(LANDER_PANEL_ID, true);
-	}
+	setTimeout(() => clickCommandTarget("filter-builder-trigger"), 200);
 }
 
+// The Save row only exists inside ActiveViewSwitcher's dropdown, so open that first and give
+// its menu a moment to mount before clicking through.
 function handleSaveCurrentView() {
 	commandActions.close();
-	if (userPreferencesStore.state.landerLayout === "presetTop") {
-		setTimeout(() => clickCommandTarget("save-view-trigger"), 200);
-	} else {
-		sidebarActions.setOpen(LANDER_PANEL_ID, true);
-		setTimeout(() => clickCommandTarget("save-view-trigger"), 250);
-	}
-}
-
-function handleToggleLayout() {
-	const current = userPreferencesStore.state.landerLayout;
-	userPreferencesActions.setLanderLayout(current === "presetTop" ? "presetSide" : "presetTop");
+	setTimeout(() => clickCommandTarget("active-view-switcher-trigger"), 200);
+	setTimeout(() => clickCommandTarget("save-view-trigger"), 450);
 }
 
 /**
- * Registers /home-specific commands: open the filter builder, switch
- * layout, quick filters, switch personal views, save the current view.
- * Registered via LanderCommandRegistrar in routes/(admin)/home/route.tsx,
- * not globally — these only make sense on the lander.
+ * Registers /home-specific commands: open the filter builder, quick filters, switch personal
+ * views, save the current view. Registered via LanderCommandRegistrar in
+ * routes/(admin)/home/route.tsx, not globally — these only make sense on the lander.
  */
 export function useLanderCommands() {
 	const { data: session } = authClient.useSession();
 	const { personalViews } = usePersonalViews();
 	const { selectView, applyFilter } = useBoardViewState();
+	const { isDirty } = useActiveView();
 	const userId = session?.user?.id;
 
 	const commands: CommandMap = useMemo(() => {
@@ -104,13 +87,6 @@ export function useLanderCommands() {
 							keywords: "filters search narrow",
 						},
 						{
-							id: "lander-toggle-layout",
-							label: "Move views/filters to the other side",
-							icon: <IconLayoutSidebarRight size={16} className="opacity-60" aria-hidden="true" />,
-							action: handleToggleLayout,
-							keywords: "layout panel toolbar swap",
-						},
-						{
 							id: "lander-switch-view",
 							label: "Switch view",
 							icon: <IconBookmark size={16} className="opacity-60" aria-hidden="true" />,
@@ -124,6 +100,8 @@ export function useLanderCommands() {
 							icon: <IconDeviceFloppy size={16} className="opacity-60" aria-hidden="true" />,
 							action: handleSaveCurrentView,
 							keywords: "bookmark preset",
+							// Nothing to save until the live state differs from the active view / the blank default.
+							show: isDirty,
 						},
 					],
 				},
@@ -141,7 +119,7 @@ export function useLanderCommands() {
 				},
 			],
 		};
-	}, [applyFilter, personalViews, selectView, userId]);
+	}, [applyFilter, isDirty, personalViews, selectView, userId]);
 
 	useRegisterCommands("lander-commands", commands);
 }

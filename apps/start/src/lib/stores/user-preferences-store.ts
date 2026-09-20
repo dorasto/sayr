@@ -2,24 +2,14 @@ import { Store } from "@tanstack/react-store";
 
 export type TaskOpenMode = "page" | "dialog";
 
-/**
- * Which of the lander's two swappable toolbar components (the personal-view
- * switcher and the filter builder) lives in the top bar vs a side panel —
- * "presetTop" = switcher in the top bar, filter builder in the panel;
- * "presetSide" = the reverse. See board/layout/{board-top-bar,board-side-panel}.tsx.
- */
-export type LanderLayout = "presetTop" | "presetSide";
-
 export interface UserPreferencesState {
 	taskOpenMode: TaskOpenMode;
-	landerLayout: LanderLayout;
 }
 
 const STORAGE_KEY = "user-preferences";
 
 const DEFAULT_STATE: UserPreferencesState = {
 	taskOpenMode: "page",
-	landerLayout: "presetTop",
 };
 
 function loadPersistedState(): UserPreferencesState {
@@ -59,12 +49,6 @@ export const userPreferencesActions = {
 		userPreferencesStore.setState((state) => ({
 			...state,
 			taskOpenMode: mode,
-		}));
-	},
-	setLanderLayout: (layout: LanderLayout) => {
-		userPreferencesStore.setState((state) => ({
-			...state,
-			landerLayout: layout,
 		}));
 	},
 };

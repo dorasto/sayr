@@ -66,6 +66,12 @@ function InputGroupAddon({
 			data-align={align}
 			className={cn(inputGroupAddonVariants({ align }), className)}
 			onClick={(e) => {
+				// A popover/menu whose trigger lives in this addon is portalled out of its DOM but
+				// still bubbles clicks here through the React tree — without this guard every click
+				// inside it (e.g. the icon picker's search box) yanked focus back to the group's input.
+				if (!e.currentTarget.contains(e.target as Node)) {
+					return;
+				}
 				if ((e.target as HTMLElement).closest("button")) {
 					return;
 				}

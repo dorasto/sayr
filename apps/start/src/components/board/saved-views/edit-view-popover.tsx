@@ -25,8 +25,8 @@ interface EditViewPopoverProps {
 
 /**
  * Rename + icon/color edit for an existing personal view — the row-level counterpart to
- * SaveViewPopover's create flow, triggered via a pencil button alongside pin/delete on each
- * row in both PresetSwitcherContent and PresetSwitcher. Pre-fills from the view's current
+ * SaveViewPopover's create flow, triggered via a pencil button alongside delete on each row
+ * of ActiveViewSwitcher's dropdown. Pre-fills from the view's current
  * name/viewConfig, falling back to the shared defaults for legacy views with no icon/color
  * ever set — doesn't crash or clobber unrelated viewConfig fields (mode/groupBy/sortBy/etc)
  * on save, only touches name/icon/color. `triggerClassName` lets a caller adapt the trigger's

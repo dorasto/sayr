@@ -12,7 +12,7 @@ metadata:
 
 The board is genuinely page-agnostic: `<Board tasks={tasks} />` (`board.tsx`) takes exactly one prop, the already-fetched task list. It does not fetch data, and it does not render any page chrome (filter bar, view switcher, save-view button) — those live in the *page's* `PageHeader.Toolbar`, composed from the pieces below. `/home` (`apps/start/src/components/pages/admin/home/index.tsx`) is the only current consumer and the reference integration to copy if this ever gets reused elsewhere.
 
-Saved/personal views (the store, the three different view-switcher UIs, dirty-state detection) are a big enough sub-area to have their own skill — see `board-saved-views`. This skill covers everything else: rendering, fields, grouping, filtering, layout, and command palette wiring.
+Saved/personal views (the store, the breadcrumb switcher / panel header / Favourites sidebar, dirty-state detection) are a big enough sub-area to have their own skill — see `board-saved-views`. This skill covers everything else: rendering, fields, grouping, filtering, layout, and command palette wiring.
 
 ## Key files
 
@@ -31,11 +31,11 @@ Saved/personal views (the store, the three different view-switcher UIs, dirty-st
 | Field pickers | `fields/field-{status,priority,assignee,label,category,release,visibility}.tsx`, `fields/field-toolbar.tsx` | One picker per field, `FieldToolbar` composes a subset via `fields={[...]}` |
 | Filter types | `filter/types.ts` | `FilterField`/`FilterCondition`/`FilterOption`/`FilterFieldConfig` |
 | Filter engine | `filter/filter-config.tsx` | `FIELD_CONFIGS`, `applyFilters`, `evaluateCondition`/`extractFieldValue` |
-| Filter UI | `filter/filter-builder.tsx`, `filter/filter-builder-condition-row.tsx` | Condition list + per-condition value picker |
+| Filter UI | `filter/filter-builder.tsx`, `filter/filter-builder-condition-row.tsx` | `FilterBuilder` (the toolbar's Filter button + popover) wrapping `FilterBuilderContent` — condition list + per-condition value picker. The side panel does not render the builder. |
 | Filter helpers | `filter/multi-select.ts`, `filter/serialization.ts`, `filter/operators.ts`, `filter/sort-config.ts` | Toggle/merge logic, URL round-trip, operator labels, sort fields |
 | State hook | `filter/use-board-view-state.ts` | Combined filter+viewConfig state, URL sync, saved-view apply/reset — see `board-saved-views` |
-| Quick filters | `quick-filters/quick-filter-config.tsx`, `quick-filters/quick-filter-chips.tsx` | `QUICK_FILTERS` array → `ToggleGroup` chips |
-| Layout | `layout/board-top-bar.tsx`, `layout/board-side-panel.tsx`, `layout/board-view-options.tsx` | `landerLayout` preference dispatch, list/kanban/group-by/sort/show-completed popover |
+| Quick filters | `quick-filters/quick-filter-config.tsx`, `quick-filters/quick-filter-panel.tsx`, `quick-filters/quick-filter-chips.tsx` | `QUICK_FILTERS` (consumed by the Cmd+K commands). `QuickFilterPanel` is the right panel's body: a tab per field, listing only values with ≥1 match given the *other* active filters, sorted by count. `quick-filter-chips.tsx` (`ToggleGroup` chips) is currently not mounted anywhere. |
+| Layout | `layout/board-side-panel.tsx`, `layout/board-view-options.tsx`, `layout/task-count-label.tsx` | Right-panel body (`BoardSidePanelContent` → `QuickFilterPanel`); list/kanban/group-by/sort/show-completed popover; the "N tasks" toolbar label |
 | Command palette | `apps/start/src/hooks/commands/useLanderCommands.tsx` | `/home`-only Cmd+K commands, mounted via `LanderCommandRegistrar` inside `RootProviderLander` |
 
 ## Data flow
@@ -78,9 +78,9 @@ Sort order and group/display order for status are **two intentionally different 
 
 ## Layout & command palette
 
-`landerLayout` (`user-preferences-store.ts`, `"presetTop" | "presetSide"`, localStorage-persisted alongside `taskOpenMode` in the same store) drives **complementary, not independent**, slots: `board-top-bar.tsx` puts `PresetSwitcher` in the top bar when `"presetTop"`, else `FilterBuilder`; `board-side-panel.tsx` does the exact inverse for whichever one didn't get the top bar. Changing one file's logic without the other breaks the pairing. `QuickFilterChips` always renders in the top bar regardless of layout.
+`/home` composes the pieces itself (`pages/admin/home/index.tsx`) — `Board` renders none of this chrome. Header identity: a "Home" button (clears the view) and `ActiveViewSwitcher`, with the panel toggle on the right. Toolbar: `TaskCountLabel` on the left; `FilterBuilder` + `BoardViewOptions` on the right. Right panel (the shared `Page` / `IndentDrawer` system — see the `page-component` skill): `panels.right` with `defaultOpen: true`, `persistOpenState: false`, `showClose: false`, header = `ActiveViewPanelHeader` + `ActiveViewPanelPinButton`, body = `BoardSidePanelContent` (just `QuickFilterPanel`). There is no top-bar/panel layout preference: an earlier `landerLayout` swap (filter builder vs view list, in either slot) was removed. Don't reintroduce it, and don't put the filter builder back in the panel — the toolbar's Filter button owns it.
 
-`useLanderCommands.tsx` registers `/home`-only Cmd+K commands (open filter builder, toggle layout, save current view, switch view, one per quick filter). Because `landerLayout` decides which of {FilterBuilder, PresetSwitcher} is a real top-bar trigger vs inline-in-panel content with no trigger, the "open X" commands click through the DOM (`document.querySelector('[data-command-target="..."]')`) after closing the palette and a `setTimeout(200)` for the close animation, reading `userPreferencesStore.state.landerLayout` fresh at click time rather than a captured value — so toggling layout doesn't go stale. `BoardViewOptions` is a separate popover (list/kanban, group-by, sub-group-by excluding the current top-level grouping, sort+direction, show-completed) — all read/write straight through `useBoardViewState()`.
+`useLanderCommands.tsx` registers `/home`-only Cmd+K commands: open filter builder, switch view (sub-menu), save current view, and one per quick filter. The "open X" commands act by clicking a real trigger found via `[data-command-target="..."]` after closing the palette and a `setTimeout` for its close animation (the same pattern `useTasksCommands.tsx` uses for "Filter tasks"): `filter-builder-trigger` for the builder; for "Save current view", `active-view-switcher-trigger` first (the Save row only exists inside the switcher's open dropdown), then `save-view-trigger` on a later timeout. "Save current view" is `show: isDirty` (from `useActiveView`), so it's hidden when there's nothing to save. `BoardViewOptions` is a separate popover (list/kanban, group-by, sub-group-by excluding the current top-level grouping, sort+direction, show-completed) — all read/write straight through `useBoardViewState()`.
 
 ## Rules
 

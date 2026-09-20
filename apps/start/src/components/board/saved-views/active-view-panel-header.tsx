@@ -2,7 +2,7 @@
 
 import { IconPin, IconPinFilled, IconStack2 } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
-import { useBoardViewState } from "../filter/use-board-view-state";
+import { useActiveView } from "./use-active-view";
 import { usePersonalViews } from "./use-personal-views";
 import { DEFAULT_VIEW_COLOR, DEFAULT_VIEW_ICON, ViewIconColorTrigger } from "./view-icon-color-trigger";
 
@@ -18,9 +18,8 @@ import { DEFAULT_VIEW_COLOR, DEFAULT_VIEW_ICON, ViewIconColorTrigger } from "./v
  * chrome on focus, saving on blur (Enter blurs early, Escape reverts).
  */
 export function ActiveViewPanelHeader() {
-	const { personalViews, updateView } = usePersonalViews();
-	const { viewSlug } = useBoardViewState();
-	const activeView = personalViews.find((view) => (view.slug || view.id) === viewSlug);
+	const { updateView } = usePersonalViews();
+	const { activeView } = useActiveView();
 
 	const [name, setName] = useState(activeView?.name ?? "");
 	// biome-ignore lint/correctness/useExhaustiveDependencies: resync only when the active view (or its saved name) changes, not on every local keystroke
@@ -93,9 +92,8 @@ export function ActiveViewPanelHeader() {
  * (renders nothing) with no active view — there's nothing to pin on "All tasks".
  */
 export function ActiveViewPanelPinButton() {
-	const { personalViews, togglePin } = usePersonalViews();
-	const { viewSlug } = useBoardViewState();
-	const activeView = personalViews.find((view) => (view.slug || view.id) === viewSlug);
+	const { togglePin } = usePersonalViews();
+	const { activeView } = useActiveView();
 
 	if (!activeView) return null;
 

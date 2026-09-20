@@ -14,7 +14,7 @@ interface BoardProps {
 /**
  * Top-level assembled board component. Applies the filter/sort/completed-
  * visibility state before handing tasks down to BoardViewShell. The
- * FilterBuilder/QuickFilterChips controls that drive this state live in the
+ * FilterBuilder/BoardViewOptions controls that drive this state live in the
  * page's own PageHeader.Toolbar (see pages/admin/home/index.tsx), matching
  * every other admin page's TaskFilterDropdown-in-PageHeader.Toolbar
  * pattern — not mounted inside Board itself, which only ever receives
