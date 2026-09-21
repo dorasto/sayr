@@ -21,6 +21,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLanderData } from "@/contexts/ContextLander";
 import { useRegisterCommands } from "@/hooks/useRegisterCommands";
 import { useTaskSelection } from "@/hooks/useTaskSelection";
+import { replaceTasks } from "@/lib/board/apply-lander-event";
 import { commandActions, commandStore } from "@/lib/command-store";
 import { updateAssigneesToTaskAction, updateLabelToTaskAction, updateTaskAction } from "@/lib/fetches/task";
 import { useToastAction } from "@/lib/util";
@@ -89,7 +90,7 @@ interface BoardBulkActionBarProps {
  *   unless every selected task shares one organizationId.
  */
 export function BoardBulkActionBar({ tasks }: BoardBulkActionBarProps) {
-	const { setTasks, categories, releases, labels } = useLanderData();
+	const { updateTasks, categories, releases, labels } = useLanderData();
 	const { value: sseClientId } = useStateManagement<string>("sse-clientId", "");
 	const { runWithToast } = useToastAction();
 	const taskIds = useMemo(() => tasks.map((task) => task.id), [tasks]);
@@ -157,16 +158,23 @@ export function BoardBulkActionBar({ tasks }: BoardBulkActionBarProps) {
 			.map(([, label]) => label);
 	}, [labels, selectedOrgIds]);
 
-	/** Optimistic update + one API call per selected task, reconciled from the returned records. Preserves task.organization (updateTaskAction's response doesn't carry the board's cross-org enrichment). */
+	/**
+	 * Optimistic update + one API call per selected task, reconciled from the returned records.
+	 *
+	 * Every store write here is an update of the store's LATEST value (`updateTasks`), never a
+	 * list captured from a render: `tasks` above is only the visible (filtered/sorted) subset, so
+	 * writing it back would silently drop every task the current filters/"show completed" hide,
+	 * and would undo any SSE event that landed in between. `replaceTasks` also preserves
+	 * task.organization (updateTaskAction's response doesn't carry the board's cross-org enrichment).
+	 */
 	const applySingleValueUpdate = useCallback(
 		async (
 			actionId: string,
 			updateData: Parameters<typeof updateTaskAction>[2],
 			toastMessages: Parameters<typeof runWithToast>[1]
 		) => {
-			const orgById = new Map(selectedTasks.map((task) => [task.id, task.organization]));
-			setTasks(
-				tasks.map((task) =>
+			updateTasks((prev) =>
+				prev.map((task) =>
 					selectedSet.has(task.id) ? ({ ...task, ...updateData } as schema.TaskWithLabels) : task
 				)
 			);
@@ -178,19 +186,13 @@ export function BoardBulkActionBar({ tasks }: BoardBulkActionBarProps) {
 				const success = results.every((result) => result.success);
 				if (success) {
 					const updatedById = new Map(results.map((result) => [result.data.id, result.data]));
-					setTasks(
-						tasks.map((task) => {
-							const updated = updatedById.get(task.id);
-							if (!updated) return task;
-							return updated.organization ? updated : { ...updated, organization: orgById.get(task.id) };
-						})
-					);
+					updateTasks((prev) => replaceTasks(prev, updatedById));
 				}
 				return { success };
 			});
 			deselectAll();
 		},
-		[selectedTasks, selectedSet, tasks, setTasks, runWithToast, sseClientId, deselectAll]
+		[selectedTasks, selectedSet, updateTasks, runWithToast, sseClientId, deselectAll]
 	);
 
 	/**
@@ -212,7 +214,6 @@ export function BoardBulkActionBar({ tasks }: BoardBulkActionBarProps) {
 			resolveNext: (nextIds: string[], task: schema.TaskWithLabels) => (schema.UserSummary | schema.labelType)[],
 			toastMessages: Parameters<typeof runWithToast>[1]
 		) => {
-			const orgById = new Map(selectedTasks.map((task) => [task.id, task.organization]));
 			const nextIdsByTask = new Map(
 				selectedTasks.map((task) => {
 					const { add, remove } = resolveDelta(task);
@@ -222,8 +223,8 @@ export function BoardBulkActionBar({ tasks }: BoardBulkActionBarProps) {
 				})
 			);
 
-			setTasks(
-				tasks.map((task) => {
+			updateTasks((prev) =>
+				prev.map((task) => {
 					const nextIds = nextIdsByTask.get(task.id);
 					if (!nextIds) return task;
 					return { ...task, [optimisticField]: resolveNext(nextIds, task) };
@@ -237,19 +238,13 @@ export function BoardBulkActionBar({ tasks }: BoardBulkActionBarProps) {
 				const success = results.every((result) => result.success);
 				if (success) {
 					const updatedById = new Map(results.map((result) => [result.data.id, result.data]));
-					setTasks(
-						tasks.map((task) => {
-							const updated = updatedById.get(task.id);
-							if (!updated) return task;
-							return updated.organization ? updated : { ...updated, organization: orgById.get(task.id) };
-						})
-					);
+					updateTasks((prev) => replaceTasks(prev, updatedById));
 				}
 				return { success };
 			});
 			deselectAll();
 		},
-		[selectedTasks, tasks, setTasks, runWithToast, deselectAll]
+		[selectedTasks, updateTasks, runWithToast, deselectAll]
 	);
 
 	const openBulkActionsMenu = () => {

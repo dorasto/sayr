@@ -3,6 +3,7 @@ import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { useEffect, useRef } from "react";
 import { useLayoutData } from "@/components/admin/shell/context";
 import type useServerEvents from "@/lib/serverEvents";
+import { type ChannelValue, joinChannels, sameChannels } from "@/lib/sse-channels";
 import type { ServerEventMessage } from "../lib/serverEvents";
 import { useWSMessageHandler, type WSMessageHandler } from "./useWSMessageHandler";
 
@@ -11,7 +12,11 @@ interface UseSSESubscriptionOptions {
 	orgId?: string | null;
 	/** Multi-org subscribe (e.g. the cross-org board on /home) — mutually exclusive with `orgId`. */
 	orgIds?: string[];
-	channel?: string | null;
+	/**
+	 * One channel, or — for a multi-org `orgIds` subscription only — several joined over the one
+	 * connection (`["tasks", "releases"]`, primary channel first). See lib/sse-channels.ts.
+	 */
+	channel?: ChannelValue;
 	organization?: schema.OrganizationWithMembers | null;
 	setOrganization?: (newValue: schema.OrganizationWithMembers) => void;
 }
@@ -51,13 +56,17 @@ export function useServerEventsSubscription({
 
 	const handleMessage = useWSMessageHandler<ServerEventMessage>(handlers);
 
+	// One string whatever form `channel` came in (so the effect below depends on a stable value, not on
+	// the identity of a caller's array); stored in "sse-subscribe-state" and sent as the query param.
+	const joinedChannel = joinChannels(channel);
+
 	// connect / reconnect effect (fixed)
 	useEffect(() => {
 		const se = serverEventsRef.current;
 		if (!se) return;
 
 		const currOrgId = orgId ?? null;
-		const currChannel = channel ?? null;
+		const currChannel = joinedChannel;
 		const currOrgIds = orgIds && orgIds.length > 0 ? [...orgIds].sort() : null;
 
 		const prevOrgId = sseSubscribedState?.orgId ?? null;
@@ -71,8 +80,8 @@ export function useServerEventsSubscription({
 					currOrgIds.length === prevOrgIds.length &&
 					currOrgIds.every((id, index) => id === prevOrgIds[index]);
 
-		// skip if unchanged
-		if (prevOrgId === currOrgId && prevChannel === currChannel && orgIdsUnchanged) return;
+		// skip if unchanged (channels compare as a set: ["tasks","releases"] is the same subscription as ["releases","tasks"])
+		if (prevOrgId === currOrgId && sameChannels(prevChannel, currChannel) && orgIdsUnchanged) return;
 
 		se.connect(currOrgId ?? undefined, currChannel ?? undefined, currOrgIds ?? undefined);
 
@@ -87,7 +96,7 @@ export function useServerEventsSubscription({
 			orgIds: currOrgIds,
 			channel: currChannel,
 		});
-	}, [orgId, orgIds, channel, setSSESubscribedState]); // removed sseSubscribedState
+	}, [orgId, orgIds, joinedChannel, setSSESubscribedState]); // removed sseSubscribedState
 
 	// subscribe to SSE messages
 	useEffect(() => {

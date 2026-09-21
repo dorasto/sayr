@@ -10,10 +10,10 @@ import {
 	type TeamPermissions,
 } from "@repo/database";
 import { ensureCdnUrl } from "@repo/util";
-import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
+import { createFileRoute, Outlet, redirect, useRouter } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { inArray } from "drizzle-orm";
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 import { RootProviderLander } from "@/contexts/ContextLander";
 import { useLanderCommands } from "@/hooks/commands/useLanderCommands";
 import { useLanderServerEventsSubscription } from "@/hooks/useLanderServerEventsSubscription";
@@ -120,6 +120,17 @@ export const Route = createFileRoute("/(admin)/home")({
 		}
 		return await getLanderData({ data: { account: context.account } });
 	},
+	// The board is only kept live over SSE while this layout is mounted, so a loader result cached
+	// from an earlier visit is stale by construction. Two settings keep it from being the last word:
+	//  - gcTime: 0 drops the match as soon as /home is left, so re-entering waits for a fresh load
+	//    (the router default replays the old snapshot for up to 5 minutes while it revalidates).
+	//  - staleTime: 0 (the router default, stated so a future `defaultStaleTime` can't quietly change
+	//    it) re-runs the loader on every navigation into or within the route and on every
+	//    router.invalidate() (the SSE resync below). A hover-preloaded match can still paint for the
+	//    moment that re-run takes.
+	// RootProviderLander re-seeds its store whenever the loader returns new data, so a re-run always wins.
+	gcTime: 0,
+	staleTime: 0,
 	component: HomeLayout,
 });
 
@@ -129,9 +140,18 @@ function LanderCommandRegistrar() {
 	return null;
 }
 
-/** Subscribes the board to live cross-org task updates — needs to be inside RootProviderLander since useLanderServerEventsSubscription reads useLanderData(). */
+/**
+ * Subscribes the board to live cross-org updates — needs to be inside RootProviderLander since
+ * useLanderServerEventsSubscription reads useLanderData(). A resync is just a loader re-run:
+ * RootProviderLander picks up the fresh result and re-seeds the store from it.
+ */
 function LanderServerEventsRegistrar() {
-	useLanderServerEventsSubscription();
+	const router = useRouter();
+	const onResyncNeeded = useCallback(() => {
+		void router.invalidate({ filter: (match) => match.routeId === Route.id });
+	}, [router]);
+
+	useLanderServerEventsSubscription({ onResyncNeeded });
 	return null;
 }
 

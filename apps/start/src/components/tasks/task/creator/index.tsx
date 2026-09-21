@@ -26,6 +26,7 @@ import {
 } from "@repo/ui/components/tomui/combo-box-unified";
 import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
 import { useStateManagement, useStateManagementKey } from "@repo/ui/hooks/useStateManagement.ts";
+import { sendWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
 import { cn } from "@repo/ui/lib/utils";
 import { extractTaskText, getInitials } from "@repo/util";
 import {
@@ -47,6 +48,7 @@ import processUploads from "@/components/prosekit/upload";
 import type { MentionContext } from "@/hooks/useMentionUsers";
 import type { OrgTaskSearchResult } from "@/lib/fetches/searchTasks";
 import { createTaskAction } from "@/lib/fetches/task";
+import { createTaskCreatedMessage } from "@/lib/task-created-message";
 import { useToastAction } from "@/lib/util";
 import { TaskFieldToolbar } from "../../shared";
 
@@ -312,6 +314,10 @@ export default function CreateIssueDialog({
 			setParentId(null);
 			setParentTask(null);
 			setTasks?.([...(tasks ?? []), createdTask]);
+			// The request above carries this client's sseClientId, so the server won't echo the task back over SSE.
+			// This dialog is mounted globally (GlobalCreateTaskDialog), far from whichever page holds a live task list
+			// without a `setTasks` here — announce the record so such a page (the /home board today) can apply it.
+			sendWindowMessage(window, createTaskCreatedMessage(createdTask), "*");
 
 			// Override the success toast with one that includes a navigation action
 			headlessToast.success({

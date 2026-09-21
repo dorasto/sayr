@@ -5,7 +5,8 @@ early_access: true
 
 reviews:
   request_changes_workflow: true
-
+  path_filters:
+    - "!apps/landing/content/docs/**"
   high_level_summary: true
   poem: false
   review_status: true
