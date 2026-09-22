@@ -10,21 +10,21 @@ Project management right from your coding agent. View, comment, and manage your 
 
 **Board** — multi-org, status columns, filters
 
-<img src="assets/sayr-plguin-1.png" alt="Sayr plugin board view">
+<img src="https://raw.githubusercontent.com/dorasto/sayr/main/packages/paseo-plugin/assets/sayr-plguin-1.png" alt="Sayr plugin board view">
 
 </td>
 <td width="33%" valign="top">
 
 **Task detail** — inline editing, rich rendering, AI summary
 
-<img src="assets/paseo-plugin-2.png" alt="Sayr plugin task detail sheet">
+<img src="https://raw.githubusercontent.com/dorasto/sayr/main/packages/paseo-plugin/assets/paseo-plugin-2.png" alt="Sayr plugin task detail sheet">
 
 </td>
 <td width="33%" valign="top">
 
 **For reference** — the real Sayr web app the plugin's board mirrors
 
-<img src="assets/sayr.png" alt="Sayr web app board view">
+<img src="https://raw.githubusercontent.com/dorasto/sayr/main/packages/paseo-plugin/assets/sayr.png" alt="Sayr web app board view">
 
 </td>
 </tr>
@@ -40,16 +40,26 @@ Project management right from your coding agent. View, comment, and manage your 
 ## Install
 
 ```bash
+paseo plugin install npm:@sayrio/paseo-plugin
+```
+
+To install a specific release, add a version to the spec (`npm:@sayrio/paseo-plugin@0.2.0`). Pick up
+newer releases later with `paseo plugin update sayr`.
+
+To track the latest source on `main` instead of published npm releases, install from git:
+
+```bash
 paseo plugin add dorasto/sayr --ref main --path packages/paseo-plugin
 ```
 
-Then work through [Requirements](#requirements) below — the plugin is a thin shell over the `sayr`
-CLI, so it can't do anything until that's installed and logged in on the daemon machine.
+Either way the plugin installs under the ID `sayr`. Then work through [Requirements](#requirements)
+below — the plugin is a thin shell over the `sayr` CLI, so it can't do anything until that's
+installed and logged in on the daemon machine.
 
 ## How it works
 
 The plugin doesn't call the Sayr API directly. Every RPC handler shells out to an installed `sayr`
-CLI binary (`@sayrio/cli`, see [`packages/cli/README.md`](../cli/README.md)) on the daemon machine and
+CLI binary (`@sayrio/cli`, see [`packages/cli/README.md`](https://github.com/dorasto/sayr/blob/main/packages/cli/README.md)) on the daemon machine and
 parses its `--json` output. That means:
 
 - Auth is whatever `sayr login` already has stored in `~/.sayr/config.json` on the daemon — the

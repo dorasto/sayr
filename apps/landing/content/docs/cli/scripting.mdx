@@ -1,0 +1,135 @@
+---
+title: Scripting & automation
+description: Use the Sayr CLI from scripts, CI jobs, and coding agents with JSON output, exit codes, and non-interactive confirmation
+---
+
+The CLI is built to be driven by other programs as well as people. This page covers the parts that matter when nothing is watching the terminal: JSON output, exit codes, confirmation, CI authentication, and use from agents.
+
+## JSON output
+
+Every command except `login`, `logout`, `config set-org`, and `config set-base-url` accepts `--json`. It prints the result as pretty-printed JSON on standard output instead of the human-readable text.
+
+```bash
+sayr task view 123 --org platform --json | jq '.status'
+```
+
+Errors never come out as JSON. They print as a short message on standard error, and the command exits with code 1 (see [Exit codes](#exit-codes)), so check the exit code rather than parsing the output of a failed command.
+
+### Output shapes
+
+The shape depends on the command, and two families are worth knowing:
+
+- **Bare arrays.** Commands that list a small, unpaginated set print the array itself.
+- **Paginated results** print an object with the items under a named key plus a `pagination` object.
+
+| Shape                                            | Commands                                                                                                                                              |
+| ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Bare array                                       | `orgs list`, `labels list`, `categories list`, `releases list`, `releases label`, `releases status-update list`, `releases comment replies`, `releases pr list` |
+| `{ tasks, pagination }`                          | `task list`                                                                                                                                           |
+| `{ comments, pagination }`                       | `comment list`, `releases comment list`                                                                                                               |
+| `{ replies, pagination }`                        | `comment replies`                                                                                                                                     |
+| The task, plus `comments` and `commentsTotal`    | `task view`. The comments are the first five top-level ones                                                                                           |
+| The release, plus `latestStatusUpdate`           | `releases view`. `latestStatusUpdate` is `null` when there isn't one                                                                                  |
+| `{ release, updatedTaskCount, alreadyReleased }` | `releases publish`                                                                                                                                    |
+| `{ id, shortId, title, orgSlug, publicPortalUrl }` | `task create`                                                                                                                                       |
+| `{ baseUrl, defaultOrg, hasToken }`              | `config get`. It never includes the token itself                                                                                                      |
+| The object itself                                | `whoami` (the user), `task update`, `task label`, `task assign`, `labels create`, `releases create`, `releases update`, `releases pr link`             |
+| A small object with an `id`                      | `comment create`, `comment update`, `comment delete`, `releases delete`, `releases pr unlink`, `releases comment create` / `update` / `delete`, and `releases status-update update` / `delete`. `releases status-update create` returns `id` and `health` |
+
+`releases list --json` is a bare array, while `task list --json` is `{ "tasks": [...], "pagination": {...} }`. That trips people up, so check the shape before piping.
+
+For task comments, the `id` that `comment create` and `comment update` return is the **task's** id, not the comment's. To find a comment's id, run `sayr comment list <taskId> --json` and read `.comments[].id`.
+
+### Paging through results
+
+The pagination object has `limit`, `page`, `totalPages`, `totalItems`, and `hasMore`. Commands that paginate take `--page` and `--limit`. This loop walks every page of a task list:
+
+```bash
+page=1
+while true; do
+  result=$(sayr task list --org platform --page "$page" --json) || exit 1
+  echo "$result" | jq -r '.tasks[] | "\(.shortId)\t\(.title)"'
+  [ "$(echo "$result" | jq -r '.pagination.hasMore')" = "true" ] || break
+  page=$((page + 1))
+done
+```
+
+### More `jq` recipes
+
+```bash
+# The slugs of every release that's in progress
+sayr releases list --org platform --json | jq -r '.[] | select(.status == "in-progress") | .slug'
+
+# A label's id, looked up by name
+sayr labels list --org platform --json | jq -r '.[] | select(.name == "bug") | .id'
+
+# Comment ids on a task
+sayr comment list 123 --org platform --json | jq -r '.comments[].id'
+
+# Exit 0 only when a release has no open tasks left
+sayr releases view v1-2-0 --org platform --json | jq -e '.taskCounts.open == 0'
+```
+
+## Exit codes
+
+The CLI uses two exit codes:
+
+| Code | Meaning                                                                                                                                                                                  |
+| ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `0`  | The command succeeded. That includes commands that had nothing to do, such as an empty list, "Nothing to update", or a release that's already released, and `--help` and `--version` |
+| `1`  | Anything else: an API error, an invalid argument, a missing organization or login, a refused confirmation, a declined or cancelled prompt, or a usage error such as an unknown command   |
+
+`sayr-local` passes the exit code of the underlying `sayr` run through. The message that explains a failure goes to standard error. Set `SAYR_DEBUG=1` to add the error code and HTTP status. See the [error codes](/docs/cli/configuration#error-codes) reference.
+
+## Running without a terminal
+
+Two things could otherwise wait for a person, and both have a switch for scripts:
+
+- **Confirmation.** `releases publish` and `releases delete` can't be undone, so they ask first. Pass `--yes` to skip the question. Without a terminal, or with `--json`, they refuse to run unless you pass `--yes`, and they do so before making any request. See [Releases](/docs/cli/releases#confirmation-for-publish-and-delete).
+- **Guided mode.** The CLI only asks for missing input at a terminal, and never with `--json`. Set `SAYR_NO_INTERACTIVE=1` to make sure it never does. Missing input then fails with the same error it always did. `SAYR_NO_INTERACTIVE` only governs guided mode, not the confirmation above, which follows `--yes`. See [Guided mode](/docs/cli/guided-mode).
+
+Pass ids rather than names in scripts. A UUID is sent as it is, with no lookup, so the request is the same on every run. A category or label **name** costs an extra read each time, needs `tasks.read`, and stops working if someone renames it or adds a lookalike. See [Names instead of ids](/docs/cli/guided-mode#names-instead-of-ids).
+
+A `task update` or `releases update` with no field flags does nothing and exits `0`, so check that your script actually passes at least one.
+
+## Authenticating in CI
+
+You don't need `sayr login` in CI. Set the token, and the base URL if you're self-hosting, in the environment:
+
+| Variable         | Purpose                                                           |
+| ---------------- | ----------------------------------------------------------------- |
+| `SAYR_TOKEN`     | The personal access token to use                                  |
+| `SAYR_BASE_URL`  | The API base URL, for a self-hosted instance (default `https://api.sayr.io`) |
+
+Both override anything in the config file for that command. There's no environment variable for the organization, so pass `--org` on every command. For example, a GitHub Actions step that publishes a release:
+
+```yaml
+- name: Publish the release
+  env:
+    SAYR_TOKEN: ${{ secrets.SAYR_TOKEN }}
+  run: |
+    npm install -g @sayrio/cli
+    sayr releases publish v1-2-0 --org platform --yes
+```
+
+Create a dedicated key for the job with only the scopes it needs. Publishing a release needs `content.manageReleases` (plus `tasks.read`), and the key's owner needs **Manage releases**. See [Authentication & API keys](/docs/cli/authentication#scopes).
+
+A key can have a rate limit, which its details under **Settings > API keys** show. If a script hits it, the CLI reports "Rate limit exceeded" and doesn't retry, so back off and try again.
+
+## Agents and the Paseo plugin
+
+If a coding agent, bot, or another tool runs the CLI for you, a few habits keep it predictable:
+
+- **Always pass `--json` and `--org`.** JSON output is stable to parse, and the default organization is per-machine state you shouldn't rely on.
+- **Use the task number.** Commands take `123`, not `SAY-123`.
+- **Turn prompts off.** `--json` already disables guided mode. Setting `SAYR_NO_INTERACTIVE=1` in the agent's environment is a second guarantee.
+- **Give the agent its own key with the fewest scopes that work.** The **Read only** preset is enough for looking things up, and it means a mistaken write is refused by the API.
+- **Keep the config file out of its context.** `~/.sayr/config.json` holds the token. `sayr whoami` confirms a login, and `sayr config get` shows the settings without the full token.
+
+The Paseo plugin (`@sayrio/paseo-plugin`) works this way. It doesn't call the API itself: it runs your installed `sayr` with `--json` and parses the result, on the machine where the Paseo daemon runs. It uses whatever login the CLI has there, and it can be pointed at `sayr-local` instead of `sayr` to talk to a local backend. Install and log in to the CLI on that machine first.
+
+## Related
+
+- [Configuration reference](/docs/cli/configuration): environment variables, precedence, and error codes
+- [Guided mode](/docs/cli/guided-mode)
+- [Releases](/docs/cli/releases)

@@ -6,6 +6,7 @@ import { Hono } from "hono";
 import { safeGetApiKey } from "@/getApiKey";
 import { safeGetSession } from "@/getSession";
 import { safeGetOrganization } from "@/util";
+import { buildOrgRoomKeys, parseOrgIdsChannels } from "./channels";
 import type { ServerEventBaseMessage } from "./types";
 
 type SessionValue = Awaited<ReturnType<typeof auth.api.getSession>>;
@@ -15,6 +16,10 @@ export const sseRoute = new Hono();
 type SSEClient = {
 	id: string; // unique connection ID
 	orgId: string;
+	// The connection's primary channel. A multi-org subscription may join several channels
+	// (see `roomKeys`), but this stays the FIRST one requested: the task broadcasters decide
+	// whether to also push an update to a connection individually by comparing this against
+	// "tasks" / `task:<id>`, so it must keep meaning "the tasks client" for a `tasks,releases` one.
 	channel: string;
 	send: (msg: unknown) => void;
 	close: () => void;
@@ -25,9 +30,9 @@ type SSEClient = {
 	device: string;
 
 	// Every `sseRooms` key this client is registered under — one entry for a
-	// normal single-org connection, N entries for a multi-org subscribe (see
-	// the `orgIds` query param below). Single source of truth for cleanup, so
-	// sseUnsubscribe doesn't need to special-case either mode.
+	// normal single-org connection, one per (member org × channel) for a multi-org
+	// subscribe (see the `orgIds` and `channel` query params below). Single source of
+	// truth for cleanup, so sseUnsubscribe doesn't need to special-case either mode.
 	roomKeys: string[];
 
 	// Added fields
@@ -289,10 +294,12 @@ async function authenticate(
 }
 sseRoute.get("/", async (c) => {
 	const orgId = c.req.query("orgId");
-	// Multi-org subscribe — one connection, many "tasks" rooms at once. Used
-	// by the cross-org board (/home), which needs live task updates across
-	// every org the user belongs to, not just one. Mutually exclusive with
-	// `orgId` — a caller sends one or the other, never both.
+	// Multi-org subscribe — one connection, many rooms at once. Used by the
+	// cross-org board (/home), which needs live updates across every org the
+	// user belongs to, not just one. Mutually exclusive with `orgId` — a caller
+	// sends one or the other, never both. `channel` may then be a comma-separated
+	// list (`tasks,releases`) to join several channels' rooms in every org over the
+	// one connection; a single value behaves exactly as it always has.
 	const orgIdsParam = c.req.query("orgIds");
 	const requestedOrgIds = orgIdsParam
 		? orgIdsParam
@@ -316,12 +323,18 @@ sseRoute.get("/", async (c) => {
 	// whole connection, since the whole point is aggregating many orgs and
 	// one going stale shouldn't break live updates for the rest.
 	let validOrgIds: string[] = [];
+	// Channels joined in every valid org — just `[channel]` outside the multi-org branch's list form.
+	let orgIdsChannels: string[] = [];
 	if (channel === "system" && userId && authenticated) {
 		// no org required, no membership needed
 	} else if (requestedOrgIds.length > 0) {
-		if (!channel || channel === "public") {
-			return c.json({ error: "A non-public channel is required for orgIds" }, 400);
+		const parsedChannels = parseOrgIdsChannels(channel);
+		if (!parsedChannels.ok) {
+			return c.json({ error: parsedChannels.error }, 400);
 		}
+		orgIdsChannels = parsedChannels.channels;
+		// The primary channel is what `client.channel` (and the checks against it) sees.
+		channel = parsedChannels.channels[0];
 		const checks = await Promise.all(
 			requestedOrgIds.map(async (checkOrgId) => ({
 				id: checkOrgId,
@@ -383,7 +396,9 @@ sseRoute.get("/", async (c) => {
 			if (channel === "system" && userId && authenticated) {
 				systemRoom.add(client);
 			} else if (validOrgIds.length > 0) {
-				client.roomKeys = validOrgIds.map((memberOrgId) => `${memberOrgId}:${channel}`);
+				// validOrgIds is membership-checked above (safeGetOrganization), so a non-member org's
+				// room is never joined, whichever channels were asked for.
+				client.roomKeys = buildOrgRoomKeys(validOrgIds, orgIdsChannels);
 				for (const key of client.roomKeys) {
 					if (!sseRooms.has(key)) sseRooms.set(key, new Set());
 					sseRooms.get(key)!.add(client);

@@ -37,12 +37,13 @@ Saved/personal views (the store, the breadcrumb switcher / panel header / Favour
 | Quick filters | `quick-filters/quick-filter-config.tsx`, `quick-filters/quick-filter-panel.tsx`, `quick-filters/quick-filter-chips.tsx` | `QUICK_FILTERS` (consumed by the Cmd+K commands). `QuickFilterPanel` is the right panel's body: a tab per field, listing only values with ≥1 match given the *other* active filters, sorted by count. `quick-filter-chips.tsx` (`ToggleGroup` chips) is currently not mounted anywhere. |
 | Layout | `layout/board-side-panel.tsx`, `layout/board-view-options.tsx`, `layout/task-count-label.tsx` | Right-panel body (`BoardSidePanelContent` → `QuickFilterPanel`); list/kanban/group-by/sort/show-completed popover; the "N tasks" toolbar label |
 | Command palette | `apps/start/src/hooks/commands/useLanderCommands.tsx` | `/home`-only Cmd+K commands, mounted via `LanderCommandRegistrar` inside `RootProviderLander` |
+| Live updates | `apps/start/src/lib/board/apply-lander-event.ts`, `apps/start/src/hooks/useLanderServerEventsSubscription.ts`, `apps/start/src/lib/task-created-message.ts` | Pure SSE event / window message → data reducer (+ tests), the thin subscription hook that applies it, and the "task created in this client" message — see "Live updates" below |
 
 ## Data flow
 
 ```
 route loader (getLanderData)          — apps/start/src/routes/(admin)/home/route.tsx
-  → RootProviderLander (ContextLander) — tasks/labels/categories/releases/permissionsByOrg
+  → RootProviderLander (ContextLander) — tasks/labels/categories/releases/permissionsByOrg; re-seeds from the loader whenever it returns new data
     → AdminHomePage                    — pages/admin/home/index.tsx, reads useLanderData().tasks
       → <Board tasks={tasks} />
           filters (useBoardViewState)  → applyFilters(tasks, filters)
@@ -54,7 +55,21 @@ route loader (getLanderData)          — apps/start/src/routes/(admin)/home/rou
                 → BoardRow / BoardCard  → FieldStatus/FieldPriority/FieldAssignee/FieldLabel/...
 ```
 
-`getLanderData` (the route loader) attaches a denormalized `organization: {id,name,slug,shortId,logo}` snapshot onto every task at fetch time — the board never does a client-side org lookup. Cross-org visibility is "every task in every org you have access to" (matches `getTasksByOrganizationId`'s own scope, no extra filtering), **not** "assigned to me" — that distinction is what makes the "Assigned to me" quick filter meaningful instead of a no-op.
+`getLanderData` (the route loader) attaches a denormalized `organization: {id,name,slug,shortId,logo}` snapshot onto every task at fetch time (the SSE hook attaches the same shape to tasks it receives live) — the board never does a client-side org lookup. Cross-org visibility is "every task in every org you have access to" (matches `getTasksByOrganizationId`'s own scope, no extra filtering), **not** "assigned to me" — that distinction is what makes the "Assigned to me" quick filter meaningful instead of a no-op.
+
+## Live updates (SSE)
+
+The loader result is only a **seed**: `RootProviderLander` keeps the data in its own state and replaces it whenever the loader returns new arrays (re-entering `/home`, `router.invalidate()`, a same-route navigation). The route sets `gcTime: 0` / `staleTime: 0` so an earlier visit's snapshot is never replayed — the store is only live while the layout is mounted. Don't move it back into `useStateManagement`: its `defaultValue` is ignored once a cache entry exists, which was the "stale after coming back" bug.
+
+`useLanderServerEventsSubscription` feeds each SSE event through the pure, unit-tested `applyLanderEvent` (`lib/board/apply-lander-event.ts`) as a functional update. It asks for several channels over its ONE `orgIds` connection (`LANDER_CHANNELS = ["tasks", "releases"]`; the backend joins each requested channel's room in every org the user is a *member* of — `apps/backend/routes/events/channels.ts`, list form only for `orgIds`; the shared `useServerEventsSubscription`'s `channel` accepts `string | string[]`, compared order-insensitively, sent comma-joined). **Keep `tasks` first**: the first channel is the connection's primary one and the task broadcasters' "also push individually" fallback checks `client.channel === "tasks"`. To put another entity on the board: add its channel to `LANDER_CHANNELS`, a handler in the hook, a case in the reducer (+ tests). Note room broadcasts carry **no `scope`** on the wire (only public/per-user ones do) — don't gate a handler on `scope === "CHANNEL"`.
+
+Handled: task create/update/vote; per-org label/category list replacement (INDIVIDUAL scope; labels are also pushed into each task's own `task.labels` copy); **releases** — `UPDATE_RELEASES` carries the release *row* as `data` on create/update/publish (the `{releaseId}` / `{taskId, releaseId}` variants are ignored), upserted as exactly the `release` table's columns (`toCatalogRelease`) for orgs the board shows; `DELETE_RELEASE {releaseId}` (org from `meta.orgId`) removes it and nulls `releaseId` on that org's tasks; the release-publish bulk close (`UPDATE_TASK {taskIds, status:"done"}`). Release status-update/comment events are ignored (ids only; comments include internal ones). The bare `UPDATE_TASK {releaseId: null}` a release delete also sends is ignored — `DELETE_RELEASE` already covers it, so it no longer triggers a resync.
+
+**Creating a task**: `CreateIssueDialog` (mounted globally by `GlobalCreateTaskDialog`; the only caller of `createTaskAction`) posts a `task-created` window message with the record the API returned (`lib/task-created-message.ts`), because the create request carries this client's `sseClientId` and the server therefore doesn't echo the task back. The hook applies it through the same reducer path as `CREATE_TASK` (`applyLanderWindowMessage`: org badge attached, only full task records, only orgs the board shows, same-origin only); whether it is *visible* is the board's normal filters' call.
+
+A resync (loader re-run) is triggered only by `SSE_RECONNECTED` now — events sent while the stream was down are gone.
+
+Local task writes (field pickers, bulk bar, drag) must use `useLanderData().updateTasks(prev => …)`, never a list captured from a render — the bulk bar's `tasks` prop is only the *visible* subset, so writing it back would drop every filtered-out task. Local writes are needed at all because edits send the board's `sseClientId`, so the server skips this connection when broadcasting.
 
 ## Filter engine
 

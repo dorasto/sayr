@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
 	ALL_API_KEY_SCOPES,
+	API_KEY_SCOPE_PRESETS,
 	API_KEY_SCOPES,
 	invalidScopes,
 	isApiKeyScope,
@@ -58,6 +59,39 @@ describe("scopeToPermissionPath", () => {
 		// permission path — see the catalog's own comment on why.
 		expect(scopeToPermissionPath("tasks.comment")).toBe("members");
 		expect(scopeToPermissionPath("tasks.read")).toBe("members");
+	});
+
+	it("maps content.manageReleases to the team permission of the same name", () => {
+		// Release writes are gated by BOTH the scope and the owner's real team
+		// permission, so the mapped path must be the exact permission the web
+		// router checks (`content.manageReleases`), not the lower "members" bar.
+		expect(scopeToPermissionPath("content.manageReleases")).toBe("content.manageReleases");
+	});
+});
+
+describe("API_KEY_SCOPE_PRESETS", () => {
+	const preset = (id: string) => {
+		const found = API_KEY_SCOPE_PRESETS.find((p) => p.id === id);
+		if (!found) throw new Error(`Missing preset: ${id}`);
+		return found;
+	};
+
+	it("only contains scopes that exist in the catalog", () => {
+		for (const p of API_KEY_SCOPE_PRESETS) {
+			expect(invalidScopes(p.scopes)).toEqual([]);
+		}
+	});
+
+	it("full-access covers every scope in the catalog", () => {
+		expect([...preset("full-access").scopes].sort()).toEqual([...ALL_API_KEY_SCOPES].sort());
+	});
+
+	it("read-only grants only tasks.read", () => {
+		expect(preset("read-only").scopes).toEqual(["tasks.read"]);
+	});
+
+	it("task-management deliberately excludes release writes", () => {
+		expect(preset("task-management").scopes).not.toContain("content.manageReleases");
 	});
 });
 

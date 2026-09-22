@@ -15,7 +15,7 @@ export function registerCategoriesCommand(program: Command): void {
 		.option("--json", "Output raw JSON")
 		.action(async (opts: { org?: string; json?: boolean }) => {
 			try {
-				const orgId = await resolveOrg(opts.org);
+				const orgId = await resolveOrg(opts.org, opts);
 				const result = await apiRequest<Category[]>("/categories", { query: { orgId } });
 
 				if (opts.json) {

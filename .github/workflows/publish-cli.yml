@@ -175,15 +175,15 @@ jobs:
           PR_TITLE: ${{ github.event.pull_request.title }}
           PR_BODY: ${{ github.event.pull_request.body }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
           VERSION: ${{ needs.detect.outputs.version }}
         run: |
-          cat > release_notes.md <<EOF
-          ${PR_BODY}
-
-          ---
-
-          **Full Changelog**: https://github.com/${{ github.repository }}/pull/${PR_NUMBER}
-          EOF
+          # printf rather than an unquoted heredoc: the PR body is copied through verbatim and is never
+          # treated as shell to expand, whatever it contains.
+          {
+            printf '%s\n' "$PR_BODY"
+            printf '\n---\n\n**Full Changelog**: https://github.com/%s/pull/%s\n' "$REPO" "$PR_NUMBER"
+          } > release_notes.md
 
           gh release create "cli-v${VERSION}" \
             --title "CLI v${VERSION} - ${PR_TITLE}" \

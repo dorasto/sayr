@@ -1,0 +1,151 @@
+---
+title: Tasks
+description: Create, list, view, update, label, and assign Sayr tasks from the command line
+---
+
+The `sayr task` commands cover the everyday task workflow. Each one takes `--org <slug>`. Leave it out and the CLI uses your [default organization](/docs/cli/organizations#choosing-an-organization), or at a terminal asks which one. Each also takes `--json` for [scriptable output](/docs/cli/scripting).
+
+| Command                                 | What it does                                                                  |
+| --------------------------------------- | ----------------------------------------------------------------------------- |
+| `sayr task create [title]`              | Create a task                                                                 |
+| `sayr task list`                        | List tasks: search, filter, sort, and paginate                                |
+| `sayr task view <taskId>`               | Show a single task, its AI summary (if any), and recent comments              |
+| `sayr task update <taskId>`             | Update title, description, status, priority, category, release, or visibility |
+| `sayr task label <taskId> --set <ids>`  | Replace a task's full set of labels                                           |
+| `sayr task assign <taskId> --set <ids>` | Replace a task's full set of assignees                                        |
+
+## Referring to a task
+
+Commands that act on an existing task take `<taskId>`: the task's number (the `123` in a key like `SAY-123`) or its full id. The prefixed key itself, `SAY-123`, isn't accepted, so drop the prefix. `task list` and `task view` print keys, and `task create` prints the task's URL, which ends in the number.
+
+## Create a task
+
+```bash
+sayr task create "Fix the flaky deploy check" --priority high --status todo
+sayr task create "Add dark mode" --description "Follow the **system** setting." --category Design
+sayr task create "Cut the v1.2.0 branch" --release v1-2-0
+```
+
+| Option                  | Description                                                                   |
+| ----------------------- | ----------------------------------------------------------------------------- |
+| `--org <org>`           | Organization slug or id (default: your default organization)                  |
+| `--description <text>`  | Task description. Markdown is supported                                       |
+| `--status <status>`     | `backlog`, `todo`, `in-progress`, `done`, or `canceled`                       |
+| `--priority <priority>` | `none`, `low`, `medium`, `high`, or `urgent`                                  |
+| `--category <category>` | A category's name or id. See [categories](/docs/cli/organizations#categories) |
+| `--release <release>`   | Put the task straight into a release (slug or id)                             |
+| `--json`                | Print the created task's details as JSON                                      |
+
+The title is required, except at a terminal: leave it out and [guided mode](/docs/cli/guided-mode#creating-a-task) asks for it and offers to add a description, status, priority, category, and release. `sayr task create --help` shows `<title>` because scripts and agents have to pass one.
+
+`--category` takes a category's name or its id. A name is matched exactly, ignoring case, and an unknown or ambiguous one is an error that lists your categories. See [Names instead of ids](/docs/cli/guided-mode#names-instead-of-ids).
+
+On success it prints the task's title and URL. With `--json` you get `id`, `shortId`, `title`, `orgSlug`, and `publicPortalUrl`.
+
+<Callout type="info" title="New tasks are public">
+  Tasks created through the CLI start out public. To hide one, run `sayr task update <taskId> --visible private`. See [Visibility Controls](/docs/visibility/overview) for what public means.
+</Callout>
+
+## List tasks
+
+```bash
+sayr task list                                  # open tasks, most popular first
+sayr task list --sort newest --limit 5          # the five newest tasks
+sayr task list -q "deploy" --sort newest        # search, newest first
+sayr task list --release v1-2-0                 # only tasks in a release
+sayr task list --include-closed --limit 10 --page 2
+```
+
+| Option                  | Description                                                                 |
+| ----------------------- | --------------------------------------------------------------------------- |
+| `-q, --query <text>`    | Search text                                                                 |
+| `--category <category>` | Only tasks in this category (name or id)                                    |
+| `--release <release>`   | Only tasks in this release (slug or id)                                     |
+| `--include-closed`      | Also include `done` and `canceled` tasks, which are hidden by default       |
+| `--sort <sort>`         | `newest`, `trending`, or `mostPopular` (the default)                        |
+| `--page <page>`         | Page number, starting at 1                                                  |
+| `--limit <limit>`       | Results per page. The default and the maximum are both 30                   |
+
+As a member you always see both public and private tasks. `mostPopular` puts the most-voted tasks first (newest first among ties), and `trending` favours newer tasks with plenty of votes and comments.
+
+Each task prints as a key, status, priority, and title, followed by a footer with the page and total:
+
+```
+SAY-123  in-progress  high    Fix the flaky deploy check
+SAY-118  todo         medium  Update the onboarding checklist
+
+Page 1 of 3 — 57 total
+```
+
+With `--json` the output is `{ "tasks": [...], "pagination": {...} }`. The pagination object has `limit`, `page`, `totalPages`, `totalItems`, and `hasMore`. See [Scripting & automation](/docs/cli/scripting#paging-through-results) for a loop that walks every page.
+
+## View a task
+
+```bash
+sayr task view 123
+```
+
+Prints the task's key and title, status, priority, category, labels, assignees, and creator, then its description as plain text (inline formatting such as bold and links is dropped). If the task has an [AI summary](/docs/ai/task-summary), that follows, marked "stale" when it's out of date. The CLI only reads a summary that already exists and never generates one. The first five top-level comments come last, and a comment that has replies includes a hint for reading them.
+
+With `--json` you get the full task plus `comments` (the same five) and `commentsTotal`. The description comes back as its raw ProseKit document rather than plain text. For the rest of the comments, see [Comments](/docs/cli/comments).
+
+## Update a task
+
+Only the flags you pass are changed.
+
+```bash
+sayr task update 123 --status in-progress
+sayr task update 123 --priority urgent --release v1-2-0
+sayr task update 123 --no-release
+sayr task update 123 --visible private
+```
+
+| Option                   | Changes                                              | Scope it needs         |
+| ------------------------ | ---------------------------------------------------- | ---------------------- |
+| `--title <title>`        | The title                                            | `tasks.editAny`        |
+| `--description <text>`   | The description (plain text only, see below)         | `tasks.editAny`        |
+| `--status <status>`      | `backlog`, `todo`, `in-progress`, `done`, `canceled` | `tasks.changeStatus`   |
+| `--priority <priority>`  | `none`, `low`, `medium`, `high`, `urgent`            | `tasks.changePriority` |
+| `--category <category>`  | The category (name or id)                            | `tasks.editAny`        |
+| `--release <release>`    | Moves the task into a release (slug or id)           | `tasks.editAny`        |
+| `--no-release`           | Takes the task out of its release                    | `tasks.editAny`        |
+| `--visible <visibility>` | `public` or `private`                                | `tasks.editAny`        |
+
+Every update also needs `tasks.read`. See [Authentication & API keys](/docs/cli/authentication#scopes).
+
+If you pass no field flags at a terminal, [guided mode](/docs/cli/guided-mode#updating-a-task) shows the task and asks what to change: title, status, priority, category, release, or visibility. It starts each prompt from the current value, and the release list includes "No release". The description isn't offered, so use `--description` for that. Anywhere it can't ask (a script, `--json`), the CLI prints "Nothing to update" and makes no request.
+
+<Callout type="info" title="Plain text on task updates">
+  `task update --description` accepts plain text only, not Markdown. Creating a
+  task accepts Markdown (converted server-side), but the update endpoint
+  expects an already-parsed document, which the CLI can't produce from
+  Markdown yet. Markdown syntax such as headers, bold, and lists shows up as
+  literal text.
+</Callout>
+
+## Labels and assignees
+
+Both commands **replace** the whole set. Anything you leave out of `--set` is removed. Pass an empty string to clear it.
+
+```bash
+sayr task label 123 --set bug,frontend      # the task now has exactly these labels
+sayr task label 123 --set ""                # remove every label
+
+sayr task assign 123 --set <user-id>        # the task now has exactly this assignee
+sayr task assign 123 --set ""               # unassign everyone
+```
+
+- **Labels** need `content.manageLabels`. `--set` takes label names or ids, comma-separated. A UUID is sent as it is, and any other value is matched to a label by exact name, ignoring case, so `--set "Backend,Needs review"` works. An unknown or ambiguous name is an error that lists your labels, and a label whose name contains a comma has to be passed by id. To see your labels, run `sayr labels list`. See [Organizations, labels & categories](/docs/cli/organizations#labels) and [Names instead of ids](/docs/cli/guided-mode#names-instead-of-ids).
+- **Assignees** need `tasks.assign` and take user ids, not names. `sayr whoami` prints yours, and `sayr orgs list --json` lists every organization's members with their user ids.
+
+Leave out `--set` on `task label` at a terminal and [guided mode](/docs/cli/guided-mode#labelling-a-task) shows your organization's labels with the task's current ones ticked, so you can tick and untick them. `--set ""` is a value, not a missing option, so it clears the labels without asking.
+
+## Putting tasks in releases
+
+`--release` takes a release's slug or id. It works on `task create`, `task update`, and `task list` (as a filter), and `task update --no-release` takes a task out of its release. `sayr releases list` shows both the slug and the id. See [Releases](/docs/cli/releases).
+
+## Related
+
+- [Comments](/docs/cli/comments): read and post comments on a task
+- [Guided mode](/docs/cli/guided-mode): let the CLI ask for what's missing
+- [Tasks](/docs/tasks/tasks): the product feature

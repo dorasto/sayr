@@ -1,0 +1,100 @@
+---
+title: Organizations, labels & categories
+description: Choose an organization for Sayr CLI commands, and list or create the labels and categories you use on tasks and releases
+---
+
+Most commands act inside one organization. This page covers how to choose it, and the small set of commands that inspect the things you attach to tasks: your organizations, labels, and categories.
+
+| Command                     | What it does                                              |
+| --------------------------- | --------------------------------------------------------- |
+| `sayr orgs list`            | List the organizations you belong to                      |
+| `sayr labels list`          | List an organization's labels                             |
+| `sayr labels create <name>` | Create a label, or return the existing one with that name |
+| `sayr categories list`      | List an organization's categories                         |
+| `sayr config set-org <org>` | Set the default organization                              |
+
+## Choosing an organization
+
+Commands that work inside an organization take `--org <org>`, an organization's **slug** or id. The slug is its short URL name, for example `platform` for `platform.sayr.io`. Rather than repeat it on every command, set a default once:
+
+```bash
+sayr config set-org platform
+sayr task list                  # uses platform
+sayr task list --org acme       # --org always wins
+```
+
+The CLI picks the organization in this order:
+
+1. The `--org` flag on the command
+2. The default organization you saved with `sayr config set-org`
+3. Neither: at a terminal, [guided mode](/docs/cli/guided-mode#choosing-an-organization) picks for you. If you belong to one organization, the CLI uses it and says so. If you belong to several, it shows a "Which organization?" list of names, short IDs, and slugs. Either way it suggests `sayr config set-org <slug>` so you aren't asked again. If you belong to none, or the CLI can't ask (a script, `--json`, no terminal), the command fails with `MISSING_ORG`
+
+Step 3 applies to every command that takes `--org`, including read-only ones such as `task list`.
+
+There is no environment variable for the organization, so in CI pass `--org` explicitly. See [Scripting & automation](/docs/cli/scripting).
+
+Not every command needs an organization:
+
+- `login`, `logout`, `whoami`, `config`, and `orgs list` don't act inside one.
+- `comment replies`, `comment update`, and `comment delete` take no `--org`, and neither do `releases comment replies`, `releases comment update`, and `releases comment delete`, because a comment id already belongs to one organization.
+
+## List your organizations
+
+```bash
+sayr orgs list
+```
+
+Prints each organization as its **short ID**, name, and slug, for example `ACM  Acme Inc (acme)`. The short ID is the prefix in task keys (the `ACM` in `ACM-123`). It isn't something `--org` accepts, so use the slug or the id there.
+
+With `--json` you get a bare array. Each organization has `id`, `slug`, `name`, `shortId`, and `members`, and each member has a `userId` and a `user` with `name`. That's where to find the user ids that `sayr task assign` and `releases update --lead` take:
+
+```bash
+sayr orgs list --json | jq -r '.[] | select(.slug == "platform") | .members[] | "\(.userId)\t\(.user.name)"'
+```
+
+## Labels
+
+Labels are the color-coded tags you apply to tasks and releases. See [Labels](/docs/organize/labels) for how they work in the app.
+
+```bash
+sayr labels list
+sayr labels create "needs-triage" --color "#3B82F6" --visibility private
+```
+
+`labels list` prints each label's name, color, and a `(private)` marker where it applies. It doesn't print ids: add `--json` for a bare array that includes them.
+
+`labels create <name>` makes a label, or returns the existing one if that name is already taken, so it's safe to run twice. It prints the label's name and id.
+
+| Option                      | Description                         |
+| --------------------------- | ----------------------------------- |
+| `--org <org>`               | Organization slug or id             |
+| `--color <hex>`             | A hex color, such as `#3B82F6`      |
+| `--visibility <visibility>` | `public` (the default) or `private` |
+| `--json`                    | Print the label as JSON             |
+
+Creating a label needs the `content.manageLabels` scope and the **Manage labels** permission in the organization. Reading labels needs `tasks.read`.
+
+Wherever a command takes labels (`task label --set`, `releases label --add` and `--remove`), you can pass label names or ids. A UUID is sent as it is, and any other value is matched to a label by exact name, ignoring case. An unknown or ambiguous name is an error that lists your labels, and a label whose name contains a comma has to be passed by id. See [Tasks](/docs/cli/tasks#labels-and-assignees), [Releases](/docs/cli/releases#release-labels), and [Names instead of ids](/docs/cli/guided-mode#names-instead-of-ids).
+
+## Categories
+
+Categories group tasks into sections. See [Categories](/docs/organize/categories) for how they work in the app.
+
+```bash
+sayr categories list
+```
+
+Prints each category's name and id. The CLI only lists categories, so create and edit them in the app. `--json` gives a bare array.
+
+Use a category with `--category <category>` on `task create`, `task update`, and `task list`. It takes a category's name or id. A UUID is sent as it is, and any other value is matched to a category by exact name, ignoring case, so `--category design` finds "Design". An unknown or ambiguous name is an error that lists your categories. Looking up a name reads your categories, so it needs the `tasks.read` scope, and an id doesn't.
+
+```bash
+sayr task list --category Design
+sayr task create "Add dark mode" --category "Needs Review"
+```
+
+## Related
+
+- [Tasks](/docs/cli/tasks)
+- [Configuration reference](/docs/cli/configuration): the `config` commands and where the default organization is stored
+- [Guided mode](/docs/cli/guided-mode)

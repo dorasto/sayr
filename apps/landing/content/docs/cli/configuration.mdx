@@ -1,0 +1,209 @@
+---
+title: Configuration reference
+description: Every Sayr CLI setting in one place, including the config file, profiles, environment variables, precedence, defaults, shared flags, and error codes
+---
+
+This page is the complete reference for how the CLI is configured. For a guided introduction, start with [Authentication & API keys](/docs/cli/authentication) and [Organizations, labels & categories](/docs/cli/organizations).
+
+## Config file
+
+The CLI stores its settings in a JSON file in your home directory:
+
+```text
+~/.sayr/config.json
+```
+
+The file is created the first time something is saved (by `login`, `config set-org`, or `config set-base-url`), with owner-only permissions (`0600`) because it holds your token. A missing file is treated as empty. It looks like this:
+
+```json
+{
+	"token": "api_xxxxxxxx",
+	"baseUrl": "https://api.sayr.io",
+	"defaultOrg": "platform"
+}
+```
+
+| Field        | Set by                                                | What it's for                                                             |
+| ------------ | ----------------------------------------------------- | ------------------------------------------------------------------------- |
+| `token`      | `sayr login`                                          | The personal access token, sent with every request                        |
+| `baseUrl`    | `sayr login` (always), `sayr config set-base-url`     | The API server the CLI talks to                                           |
+| `defaultOrg` | `sayr config set-org`                                 | The organization to use when a command isn't given `--org`                |
+
+`sayr logout` rewrites the file as empty, which removes all three fields. Every field is optional.
+
+## Profiles
+
+One config file holds one login. To keep more than one, for example production and a local dev backend, use a **profile**. A profile is a separate config file, `~/.sayr/config.<profile>.json`, chosen with the `SAYR_PROFILE` environment variable:
+
+```bash
+SAYR_PROFILE=staging sayr login --token api_xxxxxxxx --base-url https://api.staging.example.com
+SAYR_PROFILE=staging sayr task list --org platform
+```
+
+Profile names may contain only letters, digits, `.`, `_`, and `-`. Anything else is an error. An unset or empty `SAYR_PROFILE` means the default `~/.sayr/config.json`.
+
+### `sayr-local`
+
+The package ships a second command, `sayr-local`. It's the same CLI with `SAYR_PROFILE=local` forced on, so it reads and writes `~/.sayr/config.local.json`. That's the easy way to keep a local `sayr` backend beside your normal production login:
+
+```bash
+sayr-local login --token api_xxxxxxxx --base-url http://localhost:5468
+sayr-local task list --org platform
+```
+
+`sayr` and `sayr-local` never interact. `sayr-local` sets the profile even if `SAYR_PROFILE` is already set in your shell.
+
+## Environment variables
+
+These are all the environment variables the CLI reads.
+
+| Variable              | Effect                                                                                                                                               |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SAYR_TOKEN`          | The token to use for this command, instead of the one in the config file. Handy in CI. `login` ignores it, and `config get` doesn't reflect it        |
+| `SAYR_BASE_URL`       | The API base URL for this command, instead of the stored one. `login` ignores it                                                                     |
+| `SAYR_PROFILE`        | Selects the config profile (see above). `sayr-local` sets it to `local`                                                                              |
+| `SAYR_DEBUG`          | Any non-empty value (even `0`) makes error output also print the error code and HTTP status, for example `(NETWORK_ERROR, status 0)`                 |
+| `SAYR_NO_INTERACTIVE` | Set to `1` to turn [guided mode](/docs/cli/guided-mode) off, so the CLI never asks for missing input. See below for the exact values                 |
+
+`SAYR_NO_INTERACTIVE` leaves guided mode **on** when it's unset, empty, or set to `0`, `false`, `no`, or `off` (in any case, ignoring surrounding spaces). Any other value turns it **off**, and `1` is the one to use. It doesn't affect `login`'s token prompt or the confirmation that `releases publish` and `releases delete` ask for. Those follow `--token`, `--yes`, `--json`, and whether there's a terminal.
+
+There is no environment variable for the organization or the output format.
+
+## Precedence
+
+When the same setting can come from more than one place, the first match wins:
+
+| Setting       | 1st                                     | 2nd                            | 3rd                                                                                  |
+| ------------- | --------------------------------------- | ------------------------------ | ------------------------------------------------------------------------------------ |
+| Token         | `SAYR_TOKEN`                            | `token` in the config file     | None: the command fails with `NOT_AUTHENTICATED`                                     |
+| Base URL      | `SAYR_BASE_URL`                         | `baseUrl` in the config file   | The default, `https://api.sayr.io`                                                   |
+| Organization  | The `--org` flag                        | `defaultOrg` in the config file | At a terminal, [guided mode](/docs/cli/guided-mode#choosing-an-organization) uses your only organization or asks which one. Otherwise the command fails with `MISSING_ORG` |
+| Config file   | `SAYR_PROFILE` (`config.<profile>.json`) | `~/.sayr/config.json`          |                                                                                      |
+
+The organization step applies to every command that takes `--org`, including read-only ones such as `task list`. When the organization comes from the picker, the CLI suggests `sayr config set-org` so you aren't asked again.
+
+`login` is the one exception: it uses only its own `--token` and `--base-url` flags (or a prompt for the token, and the default URL), and never the environment or a previously stored token or URL. It does keep the stored `defaultOrg`.
+
+## Defaults
+
+| Setting                                      | Default                                                                                       |
+| -------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| API base URL                                 | `https://api.sayr.io`                                                                         |
+| API path                                     | `/api/public/v1/me`, appended to the base URL                                                 |
+| Organization                                 | None. Pass `--org` or set a default. At a terminal the CLI asks instead of failing            |
+| Guided mode                                  | On at a terminal. Off with `--json`, without a terminal, or when `SAYR_NO_INTERACTIVE` is on  |
+| `task list`                                  | Open tasks only, `--sort mostPopular`, page 1, 30 per page (the maximum)                      |
+| `comment list`                               | 10 per page (maximum 30). `comment replies` is 20 (maximum 50)                                |
+| `releases comment list`                      | 10 per page (maximum 50)                                                                      |
+| `labels create --visibility`                 | `public`                                                                                      |
+| `comment create --visibility`                | `public`. The same for `releases comment create` and `releases status-update create`          |
+| `releases create --status`                   | `planned`                                                                                     |
+| `releases status-update create --health`     | `on_track`                                                                                    |
+
+The CLI always calls `<base URL>/api/public/v1/me/...` with an `Authorization: Bearer <token>` header, and it trims trailing slashes from the base URL. Set the base URL to the API server's address only, such as `http://localhost:5468`, without a path.
+
+## The `config` commands
+
+```bash
+sayr config get
+sayr config set-org platform
+sayr config set-base-url http://localhost:5468
+```
+
+| Command                          | What it does                                                                    |
+| -------------------------------- | ------------------------------------------------------------------------------- |
+| `sayr config get`                | Shows the config file path, the base URL, the default organization, and the token |
+| `sayr config set-org <org>`      | Saves the default organization (a slug or an id)                                |
+| `sayr config set-base-url <url>` | Saves the API base URL                                                          |
+
+`config get` prints the path of the config file it read, the base URL a real request would use (so a `SAYR_BASE_URL` override shows up), the stored default organization or `(none)`, and the stored token cut down to its first eight characters, or `(not set)`:
+
+```text
+Config file: /Users/you/.sayr/config.json
+baseUrl:    https://api.sayr.io
+defaultOrg: platform
+token:      api_xxxx…
+```
+
+With `--json` it prints `{ "baseUrl", "defaultOrg", "hasToken" }`. It never includes any part of the token. `config get` reports what's stored in the file, so it doesn't show a `SAYR_TOKEN` from the environment. `set-org` and `set-base-url` save exactly what you type and don't check it against the API.
+
+## Shared flags by command
+
+`--help` works on every command, and `-V` / `--version` on the top-level `sayr` command.
+
+| Command                                                  | `--org` | `--json` | `--yes` | `--page` / `--limit` | Other flags                                                                                          |
+| -------------------------------------------------------- | :-----: | :------: | :-----: | :------------------: | ---------------------------------------------------------------------------------------------------- |
+| `login`                                                  |         |          |         |                      | `--token`, `--base-url`                                                                              |
+| `logout`                                                 |         |          |         |                      |                                                                                                      |
+| `whoami`                                                 |         |    yes   |         |                      |                                                                                                      |
+| `config get`                                             |         |    yes   |         |                      |                                                                                                      |
+| `config set-org`, `config set-base-url`                  |         |          |         |                      |                                                                                                      |
+| `orgs list`                                              |         |    yes   |         |                      |                                                                                                      |
+| `categories list`                                        |   yes   |    yes   |         |                      |                                                                                                      |
+| `labels list`                                            |   yes   |    yes   |         |                      |                                                                                                      |
+| `labels create`                                          |   yes   |    yes   |         |                      | `--color`, `--visibility`                                                                            |
+| `task create`                                            |   yes   |    yes   |         |                      | `--description`, `--status`, `--priority`, `--category <category>`, `--release`                      |
+| `task list`                                              |   yes   |    yes   |         |          yes         | `-q` / `--query`, `--category <category>`, `--release`, `--include-closed`, `--sort`                 |
+| `task view`                                              |   yes   |    yes   |         |                      |                                                                                                      |
+| `task update`                                            |   yes   |    yes   |         |                      | `--title`, `--description`, `--status`, `--priority`, `--category <category>`, `--release`, `--no-release`, `--visible` |
+| `task label`, `task assign`                              |   yes   |    yes   |         |                      | `--set <ids>` (label names or ids on `task label`, user ids on `task assign`)                        |
+| `comment list`                                           |   yes   |    yes   |         |          yes         |                                                                                                      |
+| `comment replies`                                        |         |    yes   |         |          yes         |                                                                                                      |
+| `comment create`                                         |   yes   |    yes   |         |                      | `--visibility`                                                                                       |
+| `comment update`                                         |         |    yes   |         |                      | `--visibility`                                                                                       |
+| `comment delete`                                         |         |    yes   |         |                      |                                                                                                      |
+| `releases list`                                          |   yes   |    yes   |         |                      | `--status`                                                                                           |
+| `releases view`                                          |   yes   |    yes   |         |                      |                                                                                                      |
+| `releases create`                                        |   yes   |    yes   |         |                      | `--slug`, `--description`, `--status`, `--target-date`, `--color`, `--icon`                          |
+| `releases update`                                        |   yes   |    yes   |         |                      | `--name`, `--slug`, `--description`, `--status`, `--target-date`, `--released-at`, `--color`, `--icon`, `--lead` |
+| `releases publish`, `releases delete`                    |   yes   |    yes   |   yes   |                      |                                                                                                      |
+| `releases label`                                         |   yes   |    yes   |         |                      | `--add <labels>`, `--remove <labels>` (label names or ids)                                           |
+| `releases status-update list`, `delete`                  |   yes   |    yes   |         |                      |                                                                                                      |
+| `releases status-update create`, `update`                |   yes   |    yes   |         |                      | `--health`, `--visibility`                                                                           |
+| `releases comment list`                                  |   yes   |    yes   |         |          yes         | `--status-update`                                                                                    |
+| `releases comment replies`, `delete`                     |         |    yes   |         |                      |                                                                                                      |
+| `releases comment create`                                |   yes   |    yes   |         |                      | `--reply-to`, `--status-update`, `--visibility`                                                      |
+| `releases comment update`                                |         |    yes   |         |                      | `--visibility`                                                                                       |
+| `releases pr list`, `link`, `unlink`                     |   yes   |    yes   |         |                      |                                                                                                      |
+
+The commands with no `--org` either don't work inside an organization (`login`, `whoami`, `config`, `orgs list`) or address a comment by its own id, which already belongs to one organization. `--json` also turns [guided mode](/docs/cli/guided-mode) off for that command.
+
+`task create [title]` and `releases create [name]` take their title or name as an optional argument, which lets a terminal ask for it. Their own `--help` shows `<title>` and `<name>` because scripts must pass one, and without a terminal (or with `--json`) a missing one fails with `error: missing required argument`. `--category` takes a category name or id, and `--set` on `task label` and `--add` / `--remove` on `releases label` take label names or ids. See [Names instead of ids](/docs/cli/guided-mode#names-instead-of-ids).
+
+## Error codes
+
+Errors print as `✗ <message>` on standard error, and the command exits with code 1. Add `SAYR_DEBUG=1` to also print the code and HTTP status in parentheses.
+
+### Codes the CLI raises
+
+| Code                    | Status                | What it means                                                                                                                                                                                               |
+| ----------------------- | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `NOT_AUTHENTICATED`     | 401                   | No token was found in `SAYR_TOKEN` or the config file. Run `sayr login --token <api-key>`, or set `SAYR_TOKEN`. Check you're using the profile you meant to                                                 |
+| `MISSING_ORG`           | 400                   | The command needs an organization and none was given. Pass `--org <slug>`, or run `sayr config set-org <slug>`. At a terminal, guided mode uses your only organization or asks which one, so you only see this error there if you belong to no organization |
+| `INVALID_ARGUMENT`      | 400                   | A flag value isn't one of the allowed values, a date can't be read, a pull request URL isn't a GitHub pull request URL, or a category or label name matches nothing or several items. The message lists what's accepted, or asks for the id. It's caught before any write request is made |
+| `CONFIRMATION_REQUIRED` | 400                   | `releases publish` or `releases delete` needs a yes, but can't ask (`--json`, or no terminal). Re-run with `--yes`                                                                                          |
+| `NETWORK_ERROR`         | 0                     | The request never got an answer: the base URL is wrong, the server is down, you're offline, or something blocked it. The message includes the URL. Check it with `sayr config get`                          |
+| `INVALID_RESPONSE`      | The response's status | Something answered, but not with the Sayr API (the message says "non-JSON response"). Usually the base URL points at a web page or a proxy error page                                                       |
+| `MISSING_PAGINATION`    | 500                   | A list endpoint replied without paging information, which the CLI expects. It's unexpected: update the CLI, and report it if it keeps happening                                                              |
+| `NOT_FOUND`             | 404                   | `releases pr unlink` found no linked pull request matching the URL. `sayr releases pr list <release>` shows what is linked                                                                                  |
+| `REQUEST_FAILED`        | The response's status | The API returned an error that didn't name itself. The CLI prints the API's message, or "Request failed"                                                                                                    |
+
+A few errors have no code and print just the message, such as an invalid `SAYR_PROFILE` name or an invalid `--visibility` on `labels create`. Usage errors from the argument parser, such as a missing argument or an unknown command or option, print as `error: ...` instead.
+
+### Errors from the API
+
+When Sayr's API refuses a request, the CLI prints the message the API sent. With `SAYR_DEBUG` set, the code in parentheses is the API's own short error name. The common ones:
+
+| HTTP status | API error                                    | What it means                                                                                                                                                              |
+| ----------- | -------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 401         | `Invalid API key`                            | The key is invalid, disabled, or expired. Create a new key, or regenerate it, under **Settings > API keys**                                                                |
+| 403         | `You don't have permission to ...`           | The key is missing a scope, or your role in the organization is missing the permission. For release commands the message says which. See [Authentication & API keys](/docs/cli/authentication#scopes) |
+| 404         | `Organization not found`                     | The `--org` value isn't an organization's slug or id. Use `sayr orgs list` to check. The short ID (like `SAY`) isn't accepted                                              |
+| 404         | `Task not found`, `Release not found`, and similar | The task, release, or comment doesn't exist in that organization. Tasks are referred to by number (`123`), not `SAY-123`                                             |
+| 429         | `Rate limit exceeded`                        | The key has hit its rate limit. Wait and try again                                                                                                                         |
+
+## Related
+
+- [Authentication & API keys](/docs/cli/authentication)
+- [Scripting & automation](/docs/cli/scripting)
+- [Guided mode](/docs/cli/guided-mode)

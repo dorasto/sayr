@@ -105,8 +105,8 @@ Turborepo monorepo for Sayr.io, a transparent, collaborative project management 
 | `@repo/create-integration` | Scaffolding CLI for new integrations (`pnpm create-integration`) |
 | `@repo/typescript-config` | Shared `tsconfig.json` bases |
 | `@sayrio/public` | Public read-only JS/TS SDK for Sayr.io (REST + SSE), published separately |
-| `@sayrio/cli` | `sayr`/`sayr-local` command-line interface — task/comment CRUD over `/v1/me/*`, published separately (`packages/cli`) |
-| `@repo/paseo-plugin` | Paseo plugin (SAY-71) — sidebar board of Sayr tasks, comment/reply threads, AI summaries, and "send task to agent"; shells out to the `sayr` CLI rather than calling the API directly |
+| `@sayrio/cli` | `sayr`/`sayr-local` command-line interface — task/comment/release CRUD over `/v1/me/*`, published separately (`packages/cli`) |
+| `@sayrio/paseo-plugin` | Paseo plugin (SAY-71) — sidebar board of Sayr tasks, comment/reply threads, AI summaries, and "send task to agent"; shells out to the `sayr` CLI rather than calling the API directly; published separately to npm like `@sayrio/cli` (`packages/paseo-plugin`, `publish-paseo-plugin.yml`) |
 
 ## Commands
 
@@ -312,7 +312,7 @@ Before adding a new type, function, component, or utility anywhere in this repo:
 | `board-saved-views/` | Personal saved views on the board — global store, breadcrumb switcher + panel header, dirty-state reset/update, Favourites sidebar |
 | `command-palette/` | Cmd+K command palette — registering commands, sub-views, auto-drill, badges |
 | `edition/` | Edition detection, capabilities, and plan limits (`@repo/edition`) |
-| `document-feature/` | Writing user-facing docs for `apps/marketing`'s Starlight docs site |
+| `document-feature/` | Writing user-facing docs for `apps/landing`'s Fumadocs site — frontmatter, `meta.json` page ordering, new folders/tabs, internal links |
 | `update-pr/` | Generating a PR title/description from the diff |
 | `agent-docs-maintenance/` | Checking `AGENTS.md`/skills for staleness, writing a new skill, updating an existing one |
 | `read-tasks/` | Looking up a SAY-<n> / platform.sayr.io task via the `sayr` CLI (`--org platform --json`) instead of a web fetch |

@@ -23,7 +23,7 @@ export function registerListCommand(comment: Command): void {
 		.option("--json", "Output raw JSON")
 		.action(async (taskId: string, opts: ListOptions) => {
 			try {
-				const orgId = await resolveOrg(opts.org);
+				const orgId = await resolveOrg(opts.org, opts);
 
 				const { data: comments, pagination } = await apiRequestPaginated<Comment[]>(
 					`/tasks/${encodeURIComponent(taskId)}/comments`,

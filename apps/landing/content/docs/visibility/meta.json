@@ -1,5 +1,6 @@
 {
-  "title": "Visibility & Pages",
-  "defaultOpen": false,
-  "icon": "IconEye"
+	"title": "Visibility & Pages",
+	"defaultOpen": false,
+	"icon": "IconEye",
+	"pages": ["overview", "public-pages", "..."]
 }

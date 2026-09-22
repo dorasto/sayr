@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Sayr CLI (`@sayrio/cli`, binary `sayr`) wraps the same personal-access-token-authenticated API surface (`/v1/me/*`) that powers integrations and bots — list, create, and update tasks, manage labels and assignees, and post comments, all without opening a browser.
+The Sayr CLI (`@sayrio/cli`, binary `sayr`) wraps the same personal-access-token-authenticated API surface (`/v1/me/*`) that powers integrations and bots — list, create, and update tasks, manage labels and assignees, post comments, and run your releases (create, update, publish, and manage their labels, status updates, comments, and linked pull requests), all without opening a browser.
 
 ## Installation
 
@@ -11,7 +11,7 @@ npm install -g @sayrio/cli
 sayr --help
 ```
 
-Prefer a one-off run without a global install? `npx @sayrio/cli --help` works the same way.
+Prefer a one-off run without a global install? Use `npx -p @sayrio/cli sayr --help`. The package ships two commands (`sayr` and `sayr-local`), so plain `npx @sayrio/cli` can't pick one to run.
 
 ## Authentication
 
@@ -52,29 +52,87 @@ sayr config set-base-url http://localhost:5468
 
 ## Commands
 
-| Command                                     | What it does                                                     |
-| ------------------------------------------- | ---------------------------------------------------------------- |
-| `sayr login [--token] [--base-url]`         | Authenticate and store credentials                               |
-| `sayr logout`                               | Clear stored credentials                                         |
-| `sayr whoami`                               | Show the authenticated user                                      |
-| `sayr orgs list`                            | List organizations you belong to                                 |
-| `sayr categories list`                      | List an organization's categories                                |
-| `sayr releases list`                        | List an organization's releases                                  |
-| `sayr labels list`                          | List an organization's labels                                    |
-| `sayr labels create <name>`                 | Create a label (or return the existing one with that name)       |
-| `sayr task create <title>`                  | Create a task                                                    |
-| `sayr task list`                            | List tasks — search, filter, sort, paginate                      |
-| `sayr task view <taskId>`                   | Show a single task, its AI summary (if any), and recent comments |
-| `sayr task update <taskId>`                 | Update title, status, priority, category, release, or visibility |
-| `sayr task label <taskId> --set <ids>`      | Replace a task's full set of labels                              |
-| `sayr task assign <taskId> --set <ids>`     | Replace a task's full set of assignees                           |
-| `sayr comment list <taskId>`                | List a task's top-level comments, paginated                      |
-| `sayr comment replies <commentId>`          | List replies to a top-level comment, paginated                   |
-| `sayr comment create <taskId> <content>`    | Post a comment on a task                                         |
-| `sayr comment update <commentId> <content>` | Edit a comment                                                   |
-| `sayr comment delete <commentId>`           | Delete a comment                                                 |
+| Command                                                             | What it does                                                                    |
+| ------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `sayr login [--token] [--base-url]`                                 | Authenticate and store credentials                                              |
+| `sayr logout`                                                       | Clear stored credentials                                                        |
+| `sayr whoami`                                                       | Show the authenticated user                                                     |
+| `sayr orgs list`                                                    | List organizations you belong to                                                |
+| `sayr categories list`                                              | List an organization's categories                                               |
+| `sayr labels list`                                                  | List an organization's labels                                                   |
+| `sayr labels create <name>`                                         | Create a label (or return the existing one with that name)                      |
+| `sayr task create <title>`                                          | Create a task                                                                   |
+| `sayr task list`                                                    | List tasks — search, filter, sort, paginate                                     |
+| `sayr task view <taskId>`                                           | Show a single task, its AI summary (if any), and recent comments                |
+| `sayr task update <taskId>`                                         | Update title, status, priority, category, release, or visibility                |
+| `sayr task label <taskId> --set <ids>`                              | Replace a task's full set of labels                                             |
+| `sayr task assign <taskId> --set <ids>`                             | Replace a task's full set of assignees                                          |
+| `sayr comment list <taskId>`                                        | List a task's top-level comments, paginated                                     |
+| `sayr comment replies <commentId>`                                  | List replies to a top-level comment, paginated                                  |
+| `sayr comment create <taskId> <content>`                            | Post a comment on a task                                                        |
+| `sayr comment update <commentId> <content>`                         | Edit a comment                                                                  |
+| `sayr comment delete <commentId>`                                   | Delete a comment                                                                |
+| `sayr releases list`                                                | List an organization's releases, optionally by `--status`                       |
+| `sayr releases view <release>`                                      | Show a release: progress, labels, pull requests, tasks, latest status update    |
+| `sayr releases create <name>`                                       | Create a release                                                                |
+| `sayr releases update <release>`                                    | Update a release's name, slug, description, status, dates, color, icon, or lead |
+| `sayr releases publish <release>`                                   | Mark a release released and close its open tasks as done                        |
+| `sayr releases delete <release>`                                    | Delete a release — its tasks are unlinked, not deleted                          |
+| `sayr releases label <release>`                                     | Add and/or remove labels on a release with `--add` / `--remove`                 |
+| `sayr releases status-update list <release>`                        | List a release's status updates                                                 |
+| `sayr releases status-update create <release> [content]`            | Post a status update with a `--health` and Markdown content                     |
+| `sayr releases status-update update <release> <updateId> [content]` | Edit a status update                                                            |
+| `sayr releases status-update delete <release> <updateId>`           | Delete a status update                                                          |
+| `sayr releases comment list <release>`                              | List a release's top-level comments, paginated                                  |
+| `sayr releases comment replies <commentId>`                         | List replies to a release comment                                               |
+| `sayr releases comment create <release> <content>`                  | Post a comment (or a reply) on a release                                        |
+| `sayr releases comment update <commentId> <content>`                | Edit a release comment                                                          |
+| `sayr releases comment delete <commentId>`                          | Delete a release comment                                                        |
+| `sayr releases pr list <release>`                                   | List the pull requests linked to a release                                      |
+| `sayr releases pr link <release> <prUrl>`                           | Link a GitHub pull request to a release                                         |
+| `sayr releases pr unlink <release> <prUrl>`                         | Unlink a pull request from a release                                            |
 
 Every command accepts `--json` for scriptable output, and `sayr <command> --help` prints its full flag list.
+
+`<release>` is a release's slug or id — `sayr releases list` shows both. The same value works for `--release` on `task create`, `task update`, and `task list`; `task update --no-release` takes a task out of its release. Release descriptions, status updates, and release comments accept Markdown on both create and update.
+
+`releases publish` and `releases delete` can't be undone, so they ask for confirmation first. With `--yes` they skip the prompt; without a terminal, or together with `--json`, they refuse to run unless you pass `--yes`. Note that `releases update --status released` only changes the status — `releases publish` is what also closes the release's open tasks. Publishing a release that's already released closes any tasks still open, and does nothing if there are none.
+
+## Guided mode
+
+At a terminal, a command that's missing something it needs asks for it, with pickers filled in from your organization, instead of failing — nothing to look up or paste:
+
+- `sayr task create` with no title asks for one, then offers to add a description, status, priority, category and release.
+- `sayr task update <taskId>` with no field flags shows the task and asks what to change: title, status, priority, category, release or visibility.
+- `sayr task label <taskId>` with no `--set` lists the organization's labels with the task's current ones ticked.
+- `sayr releases create` with no name asks for the name, status and target date, then offers a slug, description and colour.
+- `sayr releases update <release>` with no field flags asks what to change: name, slug, description, status, target date, released date or colour. Type `none` to clear a date.
+- Any command with no `--org` and no default organization asks which one — or just uses it, if you belong to only one. `sayr config set-org <org>` makes it stick.
+
+Guided mode only fills in what's missing. A command you've fully specified runs exactly as it always did, and the prompts never appear with `--json`, when stdin or stdout isn't a terminal (scripts, CI, pipes, agents), or when `SAYR_NO_INTERACTIVE` is set (`SAYR_NO_INTERACTIVE=1` is the usual form; empty, `0`, `false`, `no` and `off` leave prompts on); in those cases you get the same errors as before. Ctrl+C or Esc at any prompt cancels ("Cancelled.", exit code 1) before anything is written. When a guided run succeeds, the CLI prints the flag-based command that does the same thing, so the next one can skip the prompts.
+
+```text
+$ sayr task update 79
+SAY-79  Fix the flaky deploy check
+◇  What do you want to change?
+│  Status, Priority
+◇  New status
+│  done
+◇  New priority
+│  high
+✓ Updated Fix the flaky deploy check
+Tip: sayr task update 79 --org platform --status done --priority high
+```
+
+### Names instead of ids
+
+Wherever a category or label id was needed, a name works too — `--category` on `task create`, `task update` and `task list`, `task label --set`, and `releases label --add` / `--remove`. Names are matched exactly, ignoring case (`--category bug` finds "Bug"). A name that matches nothing is an error that lists the names your organization has; one that matches several asks you to use the id instead. Anything that already looks like an id is sent as it is, without a lookup, so existing commands and scripts are unchanged.
+
+```bash
+sayr task create "Fix login" --category Bug
+sayr task label 123 --set "Backend,Needs review"
+sayr releases label v1-2-0 --add Backend --remove Frontend
+```
 
 ## Examples
 
@@ -98,6 +156,20 @@ Comment from a script, with machine-readable output:
 sayr comment create 123 "Deploy finished successfully." --json
 ```
 
+Ship a release — create it, move tasks in, check progress, then publish:
+
+```bash
+sayr releases create "v1.2.0" --target-date 2026-10-31 --status in-progress
+sayr task update 123 --release v1-2-0
+sayr task update 124 --release v1-2-0
+sayr releases view v1-2-0
+sayr releases publish v1-2-0 --yes
+```
+
+`publish` marks the release released and closes its remaining open tasks as done. Drop `--yes` at a terminal to be asked first.
+
 ## Permissions
 
-The CLI can only do what your personal access token's scopes — and your own role in the organization — allow. Reading tasks needs `tasks.read`, creating them needs `tasks.create`, commenting needs `tasks.comment`, and so on down to `content.manageLabels`, `tasks.assign`, `tasks.changeStatus`, `tasks.changePriority`, and `tasks.editAny`. A key is always a ceiling, never a grant — it can never do more than its owner can, and it can never touch member, team, or billing management no matter what scopes it's given.
+The CLI can only do what your personal access token's scopes — and your own role in the organization — allow. Reading tasks and releases needs `tasks.read`, creating tasks needs `tasks.create`, commenting (on tasks and on releases) needs `tasks.comment`, and so on down to `content.manageLabels`, `tasks.assign`, `tasks.changeStatus`, `tasks.changePriority`, and `tasks.editAny`. Anything that changes a release — creating, editing, publishing, and deleting it, and managing its labels, status updates, and linked pull requests — needs `content.manageReleases`, and you need the **Manage releases** permission in the organization too. Editing or deleting someone else's release comment needs `moderation.manageComments`. A key is always a ceiling, never a grant — it can never do more than its owner can, and it can never touch member, team, or billing management no matter what scopes it's given.
+
+`releases publish` and `releases delete` need `--yes` whenever they can't ask you (no terminal, or `--json`). Keys that already hold `content.manageReleases`, including full-access keys, can now change releases through the CLI and the API. Keys that hold `tasks.comment` (including the task-management preset) can now comment on releases too, and keys with `moderation.manageComments` can edit or delete other people's release comments — narrow or revoke them if that isn't what you want.

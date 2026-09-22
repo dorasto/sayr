@@ -1,0 +1,99 @@
+---
+title: Comments
+description: Read, post, edit, and delete comments on Sayr tasks from the command line
+---
+
+The `sayr comment` commands work on task comments. Comments on releases have their own commands under [`sayr releases comment`](/docs/cli/releases#release-comments).
+
+| Command                                     | What it does                                        | Content format |
+| ------------------------------------------- | --------------------------------------------------- | -------------- |
+| `sayr comment list <taskId>`                | List a task's top-level comments, paginated         | -              |
+| `sayr comment replies <commentId>`          | List the replies to a top-level comment, paginated  | -              |
+| `sayr comment create <taskId> <content>`    | Post a comment on a task                            | Markdown       |
+| `sayr comment update <commentId> <content>` | Edit a comment's content and/or visibility          | Plain text     |
+| `sayr comment delete <commentId>`           | Delete a comment                                    | -              |
+
+`<taskId>` is the task's number (the `123` in `SAY-123`) or its full id. `<commentId>` is a comment's own id. The [Tasks page](/docs/cli/tasks#referring-to-a-task) explains task references.
+
+## List comments
+
+```bash
+sayr comment list 123
+sayr comment list 123 --page 2 --limit 20
+```
+
+Prints each top-level comment with its author, timestamp, and text. Internal comments are marked `[internal]`, and a comment that has replies ends with a hint for reading them.
+
+| Option            | Description                                               |
+| ----------------- | --------------------------------------------------------- |
+| `--org <org>`     | Organization slug or id                                   |
+| `--page <page>`   | Page number, starting at 1                                |
+| `--limit <limit>` | Results per page. The default is 10 and the maximum is 30 |
+| `--json`          | Output `{ "comments": [...], "pagination": {...} }`       |
+
+The terminal output doesn't print comment ids (other than in the replies hint). To edit or delete a comment you need its id, so use `--json`:
+
+```bash
+sayr comment list 123 --json | jq -r '.comments[] | "\(.id)\t\(.createdBy.name)"'
+```
+
+`task view` also shows the first five comments. See [Tasks](/docs/cli/tasks#view-a-task).
+
+## Read replies
+
+```bash
+sayr comment replies <commentId>
+```
+
+Lists the replies to a top-level comment. It takes no `--org`, because a comment id already belongs to one organization. Use `--page` and `--limit` to page through (default 20, maximum 50), and `--json` for `{ "replies": [...], "pagination": {...} }`.
+
+## Post a comment
+
+```bash
+sayr comment create 123 "Deploy finished successfully."
+sayr comment create 123 "Needs a **second look** before we ship." --visibility internal
+
+# From a script, with machine-readable output
+sayr comment create 123 "Deploy finished successfully." --json
+```
+
+| Option                      | Description                                                                   |
+| --------------------------- | ----------------------------------------------------------------------------- |
+| `--org <org>`               | Organization slug or id                                                       |
+| `--visibility <visibility>` | `public` (the default) or `internal`, which only organization members can see |
+| `--json`                    | Print the result as JSON                                                      |
+
+The content is Markdown, converted on the server. It needs the `tasks.comment` scope.
+
+The CLI posts top-level task comments only. You can read a thread with `comment replies`, but there's no option to reply to a task comment. Release comments do support replies: see [`--reply-to`](/docs/cli/releases#release-comments).
+
+## Edit a comment
+
+```bash
+sayr comment update <commentId> "Corrected the version number."
+sayr comment update <commentId> "Same text" --visibility public
+```
+
+Changes a comment's content and/or its `--visibility` (`public` or `internal`). It needs `tasks.comment`, and any organization member can edit a task comment, not just its author. There's no `--org`: the comment id is enough.
+
+<Callout type="info" title="Plain text on comment updates">
+  `comment update` accepts plain text only, not Markdown. Posting a comment
+  accepts Markdown (converted server-side), but the update endpoint expects an
+  already-parsed document, which the CLI can't produce from Markdown yet.
+  Markdown syntax in an edit shows up as literal text. Release comments are the
+  exception: they take Markdown on update too.
+</Callout>
+
+## Delete a comment
+
+```bash
+sayr comment delete <commentId>
+```
+
+Deleting your own comment needs `tasks.comment`. Deleting someone else's needs the `moderation.manageComments` scope. There's no confirmation prompt, so the comment is deleted as soon as the command runs.
+
+## Related
+
+- [Tasks](/docs/cli/tasks)
+- [Releases](/docs/cli/releases#release-comments): comments on releases
+- [Authentication & API keys](/docs/cli/authentication#scopes): which scope each command needs

@@ -1,12 +1,13 @@
 import { formatTaskKey } from "@repo/util";
 import type { Command } from "commander";
 import pc from "picocolors";
-import { apiRequest, apiRequestPaginated } from "../../lib/client";
+import { apiRequestPaginated } from "../../lib/client";
 import { resolveOrgShortId } from "../../lib/orgs";
 import { printError, printJson, priorityBadge, statusBadge } from "../../lib/output";
 import { renderProsekitPlainText } from "../../lib/prosekit";
 import { resolveOrg } from "../../lib/require-org";
-import type { Comment, Task } from "../../types";
+import type { Comment } from "../../types";
+import { fetchTask } from "./shared";
 
 /** Preview count for `task view` — `comment list <taskId>` covers pagination beyond this. */
 const COMMENTS_PREVIEW_LIMIT = 5;
@@ -19,8 +20,8 @@ export function registerViewCommand(task: Command): void {
 		.option("--json", "Output raw JSON")
 		.action(async (taskId: string, opts: { org?: string; json?: boolean }) => {
 			try {
-				const orgId = await resolveOrg(opts.org);
-				const t = await apiRequest<Task>(`/tasks/${encodeURIComponent(taskId)}`, { query: { orgId } });
+				const orgId = await resolveOrg(opts.org, opts);
+				const t = await fetchTask(orgId, taskId);
 
 				// Best-effort: a comments-fetch failure shouldn't hide the task itself.
 				let comments: Comment[] = [];

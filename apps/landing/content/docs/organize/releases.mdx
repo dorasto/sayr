@@ -37,13 +37,13 @@ Each release tracks:
 
 ### From Settings
 
-Organization admins can also manage releases from **Settings → Releases**:
+Members with the **Manage releases** permission can also manage releases from **Settings → Releases**:
 - Create releases with an inline form
 - View all releases grouped by status
 - See task counts at a glance
 
 <Callout type="info" title="Permissions">
-Only **organization admins** can create, edit, or delete releases. All members can view releases and assign tasks to them.
+Creating, editing, publishing, and deleting releases needs the **Manage releases** [team permission](/docs/organizations/members-and-teams) — organization creators and members of an Administrator team always have it. All members can view releases and assign tasks to them.
 </Callout>
 ## Release Properties
 
@@ -174,7 +174,7 @@ When you delete a release:
 2. The release is permanently removed
 3. Task history remains (timeline shows the release was removed)
 
-Only organization admins can delete releases.
+Deleting a release needs the **Manage releases** permission.
 
 ## Release Analytics
 
@@ -241,11 +241,23 @@ Keep your active releases list clean:
 | Action | Who Can Do It |
 |--------|---------------|
 | View releases | All organization members |
-| Create releases | Organization admins only |
-| Edit releases | Organization admins only |
-| Delete releases | Organization admins only |
-| Mark as released | Organization admins only |
+| Create releases | Members with **Manage releases** |
+| Edit releases | Members with **Manage releases** |
+| Delete releases | Members with **Manage releases** |
+| Mark as released | Members with **Manage releases** |
 | Assign tasks to releases | All organization members |
+
+## Managing Releases from the CLI and API
+
+Everything above can also be done from your terminal or a script with the [Sayr CLI](/docs/cli/releases): create, edit, publish, and delete releases, manage their labels, post status updates and comments, and link GitHub pull requests. Personal access tokens reach the same actions through the `/v1/me/releases` routes of the [public API](/docs/api/overview).
+
+```bash
+sayr releases create "v1.2.0" --target-date 2026-10-31
+sayr task update 123 --release v1-2-0
+sayr releases publish v1-2-0 --yes
+```
+
+Changing a release with a personal access token needs the **Manage releases** scope (`content.manageReleases`) on the key, and the key's owner needs the **Manage releases** permission too — a key can never do more than its owner. Publishing closes the release's open tasks, just like marking it as released in the app, and neither publishing nor deleting can be undone, so the CLI asks for confirmation (or `--yes` when there's no terminal).
 
 ## Real-Time Collaboration
 

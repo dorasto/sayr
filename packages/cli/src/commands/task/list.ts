@@ -5,6 +5,7 @@ import { apiRequestPaginated } from "../../lib/client";
 import { resolveOrgShortId } from "../../lib/orgs";
 import { printError, printJson, priorityBadge, statusBadge } from "../../lib/output";
 import { resolveOrg } from "../../lib/require-org";
+import { resolveCategory } from "../../lib/resolve-names";
 import { assertOneOf } from "../../lib/validate";
 import type { Task } from "../../types";
 
@@ -14,6 +15,7 @@ interface ListOptions {
 	org?: string;
 	query?: string;
 	category?: string;
+	release?: string;
 	includeClosed?: boolean;
 	page?: string;
 	limit?: string;
@@ -27,7 +29,8 @@ export function registerListCommand(task: Command): void {
 		.description("List tasks in an organization (always includes private tasks you're a member of)")
 		.option("--org <org>", "Organization slug or id")
 		.option("-q, --query <text>", "Search query")
-		.option("--category <categoryId>", "Filter by category id")
+		.option("--category <category>", "Filter by category (name or id)")
+		.option("--release <release>", "Filter by release (slug or id)")
 		.option("--include-closed", "Include done/canceled tasks")
 		.option("--page <page>", "Page number")
 		.option("--limit <limit>", "Results per page (max 30)")
@@ -35,14 +38,18 @@ export function registerListCommand(task: Command): void {
 		.option("--json", "Output raw JSON")
 		.action(async (opts: ListOptions) => {
 			try {
-				const orgId = await resolveOrg(opts.org);
+				const orgId = await resolveOrg(opts.org, opts);
 				const sortBy = assertOneOf(opts.sort, SORTS, "--sort");
+				// `--category` takes a name or an id; the API only knows ids. (A UUID is sent untouched, with no lookup.)
+				const categoryId =
+					opts.category === undefined ? undefined : await resolveCategory(orgId, opts.category, "--category");
 
 				const { data: tasks, pagination } = await apiRequestPaginated<Task[]>("/tasks", {
 					query: {
 						orgId,
 						q: opts.query,
-						categoryId: opts.category,
+						categoryId,
+						releaseId: opts.release,
 						includeClosed: opts.includeClosed,
 						page: opts.page,
 						limit: opts.limit,

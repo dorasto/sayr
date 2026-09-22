@@ -1,0 +1,213 @@
+---
+title: Releases
+description: Create, update, publish, and delete Sayr releases from the command line, plus their labels, status updates, comments, and pull requests
+---
+
+The `sayr releases` commands run the whole release workflow from your terminal. For what releases are and how they behave in the app, see [Releases](/docs/organize/releases).
+
+| Command                                                             | What it does                                                                    |
+| ------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `sayr releases list`                                                | List an organization's releases, optionally by `--status`                       |
+| `sayr releases view <release>`                                      | Show a release: progress, labels, pull requests, tasks, latest status update    |
+| `sayr releases create [name]`                                       | Create a release                                                                |
+| `sayr releases update <release>`                                    | Update a release's name, slug, description, status, dates, color, icon, or lead |
+| `sayr releases publish <release>`                                   | Mark a release released and close its open tasks as done                        |
+| `sayr releases delete <release>`                                    | Delete a release. Its tasks are unlinked, not deleted                           |
+| `sayr releases label <release>`                                     | Add and/or remove labels on a release with `--add` / `--remove`                 |
+| `sayr releases status-update list <release>`                        | List a release's status updates                                                 |
+| `sayr releases status-update create <release> [content]`            | Post a status update with a `--health` and Markdown content                     |
+| `sayr releases status-update update <release> <updateId> [content]` | Edit a status update                                                            |
+| `sayr releases status-update delete <release> <updateId>`           | Delete a status update                                                          |
+| `sayr releases comment list <release>`                              | List a release's top-level comments, paginated                                  |
+| `sayr releases comment replies <commentId>`                         | List replies to a release comment                                               |
+| `sayr releases comment create <release> <content>`                  | Post a comment (or a reply) on a release                                        |
+| `sayr releases comment update <commentId> <content>`                | Edit a release comment                                                          |
+| `sayr releases comment delete <commentId>`                          | Delete a release comment                                                        |
+| `sayr releases pr list <release>`                                   | List the pull requests linked to a release                                      |
+| `sayr releases pr link <release> <prUrl>`                           | Link a GitHub pull request to a release                                         |
+| `sayr releases pr unlink <release> <prUrl>`                         | Unlink a pull request from a release                                            |
+
+## Referring to a release
+
+`<release>` is a release's slug or id, and `sayr releases list` shows both. The same value works for `--release` on `task create`, `task update`, and `task list`. See [Tasks](/docs/cli/tasks#putting-tasks-in-releases).
+
+Release descriptions, status updates, and release comments accept **Markdown** on both create and update. That's different from tasks and task comments, which take plain text on update.
+
+## List and view
+
+```bash
+sayr releases list
+sayr releases list --status in-progress
+sayr releases view v1-2-0
+```
+
+`--status` filters by `planned`, `in-progress`, `released`, or `archived`. Each line shows the name, status, slug, target date (when set), and id. With `--json`, `releases list` prints a bare array.
+
+`releases view` shows the release's status, dates, lead, labels, task progress (for example `3/8 done, 5 open`), linked pull requests, description, tasks, and its latest status update. With `--json` you get the release plus a `latestStatusUpdate` field (`null` if there isn't one).
+
+## Create a release
+
+```bash
+sayr releases create "v1.2.0" --target-date 2026-10-31 --status in-progress
+```
+
+| Option                     | Description                                                       |
+| -------------------------- | ----------------------------------------------------------------- |
+| `--org <org>`              | Organization slug or id                                           |
+| `--slug <slug>`            | URL slug (default: generated from the name)                       |
+| `--description <markdown>` | Release description. Markdown is supported                        |
+| `--status <status>`        | `planned` (the default), `in-progress`, `released`, or `archived` |
+| `--target-date <date>`     | Planned ship date, such as `2026-10-31` or `2026-10-31T09:00:00Z` |
+| `--color <color>`          | Badge color as `#RRGGBB` or `hsla(h, s%, l%, 1)`                  |
+| `--icon <icon>`            | A Tabler icon name, such as `IconRocket`                          |
+| `--json`                   | Print the created release as JSON                                 |
+
+`releases create` prints the release's name and slug. Use that slug for `--release` and for every other `<release>` argument. A date without a time is stored as midnight UTC.
+
+The name is required, except at a terminal: leave it out and [guided mode](/docs/cli/guided-mode#creating-a-release) asks for the name, status, and an optional target date, then offers a slug, description, and colour. `sayr releases create --help` shows `<name>` because scripts and agents have to pass one. `--icon` is flag-only.
+
+## Update a release
+
+Only the flags you pass are changed.
+
+```bash
+sayr releases update v1-2-0 --status in-progress --target-date 2026-11-15
+sayr releases update v1-2-0 --lead none
+```
+
+| Option                     | Description                                                  |
+| -------------------------- | ------------------------------------------------------------ |
+| `--name <name>`            | New name                                                     |
+| `--slug <slug>`            | New URL slug                                                 |
+| `--description <markdown>` | New description. Markdown is supported                       |
+| `--status <status>`        | `planned`, `in-progress`, `released`, or `archived`          |
+| `--target-date <date>`     | New planned ship date, or `none` to clear it                 |
+| `--released-at <date>`     | Actual release date, or `none` to clear it                   |
+| `--color <color>`          | New badge color as `#RRGGBB` or `hsla(h, s%, l%, 1)`         |
+| `--icon <icon>`            | New Tabler icon name                                         |
+| `--lead <userId>`          | New release lead (a member's user id), or `none` to clear it |
+
+If you pass no field flags at a terminal, [guided mode](/docs/cli/guided-mode#updating-a-release) shows the release and asks what to change: name, slug, description, status, target date, released date, or colour. It starts each prompt from the current value, and you type `none` to clear a date. `--lead` and `--icon` are flag-only, and passing either counts as a field flag. Anywhere it can't ask (a script, `--json`), the CLI prints "Nothing to update" and makes no request.
+
+`releases update --status released` only sets the status (and stamps the released date). It does **not** close the release's open tasks. `releases publish` is what does that.
+
+## Publish a release
+
+```bash
+sayr releases publish v1-2-0
+```
+
+`publish` (also available as `mark-released`) marks the release released and closes its remaining open tasks as done. A task counts as open unless it's already done or canceled. It can't be undone, so it asks first. See [Confirmation](#confirmation-for-publish-and-delete) below.
+
+Publishing a release that's already released closes any tasks still open, and does nothing if there are none. At a terminal, an already-released release with nothing left to close just says so and doesn't ask. With `--json` the request still goes through, so a script gets the server's own answer, including `alreadyReleased`.
+
+## Delete a release
+
+```bash
+sayr releases delete v1-2-0
+```
+
+Deleting a release can't be undone. Its tasks are unlinked, not deleted, and the confirmation says how many will be affected.
+
+## Confirmation for publish and delete
+
+Because `publish` and `delete` can't be undone, they read the release first and ask before changing anything.
+
+| Situation                                | What happens                                                                                              |
+| ---------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| At a terminal, no flags                  | Shows what will happen (for example "Publish v1.2.0? 3 tasks will be closed as done.") and asks. The default answer is no |
+| `--yes`                                  | Skips the prompt and goes ahead                                                                           |
+| `--json` without `--yes`                 | Refused with `CONFIRMATION_REQUIRED`, before any request is made. A prompt would corrupt the JSON output |
+| No terminal (a pipe, CI) without `--yes` | Refused with `CONFIRMATION_REQUIRED`, before any request is made                                          |
+| You answer no, or press Ctrl+C           | Prints "Cancelled.", changes nothing, and exits with code 1                                               |
+
+So in a script, always pass `--yes`:
+
+```bash
+sayr releases publish v1-2-0 --org platform --yes --json
+```
+
+## Release labels
+
+```bash
+sayr releases label v1-2-0 --add bug-bash --remove needs-triage
+```
+
+`--add` and `--remove` each take a comma-separated list of label names or ids. A UUID is sent as it is, and any other value is matched to a label by exact name, ignoring case. An unknown or ambiguous name is an error that lists your labels and makes no change, and a label whose name contains a comma has to be passed by id. See [Names instead of ids](/docs/cli/guided-mode#names-instead-of-ids). Labels are added first, then removed. Each label is its own request and re-applying one is harmless, so a run that failed part-way is safe to repeat. The command prints the release's labels as they stand afterwards, and with `--json` it prints them as an array. Pass neither flag and it does nothing. To see the available labels, run `sayr labels list`.
+
+## Status updates
+
+A status update is a dated note on a release's health, such as "code freeze is in".
+
+```bash
+sayr releases status-update create v1-2-0 "Code freeze is in. Only fixes from here." --health at_risk
+sayr releases status-update list v1-2-0
+```
+
+| Command                                               | Notes                                                                                                                 |
+| ----------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `status-update list <release>`                        | Lists updates, newest first. Each entry includes the update's id                                                      |
+| `status-update create <release> [content]`            | `--health`: `on_track` (the default), `at_risk`, or `off_track`. `--visibility`: `public` (the default) or `internal` |
+| `status-update update <release> <updateId> [content]` | The same `--health` and `--visibility`, plus new content. Only what you pass changes                                  |
+| `status-update delete <release> <updateId>`           | Deletes the update **and its comments**                                                                               |
+
+Content is Markdown. Updates and deletes need the update's id, which `status-update list` and `status-update create` print.
+
+## Release comments
+
+```bash
+sayr releases comment list v1-2-0
+sayr releases comment create v1-2-0 "Looks good to me."
+sayr releases comment create v1-2-0 "Agreed." --reply-to <commentId>
+```
+
+| Command                                     | Notes                                                                                                   |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `comment list <release>`                    | Top-level comments, oldest first. `--page`, and `--limit` (default 10, maximum 50). `--status-update <updateId>` limits it to one status update, and `--status-update null` to comments on the release itself |
+| `comment replies <commentId>`               | A thread's replies, oldest first, in one unpaginated list. No `--org`                                    |
+| `comment create <release> <content>`        | Markdown. `--reply-to <commentId>` replies to a top-level comment, `--status-update <updateId>` attaches it to a status update, `--visibility` is `public` (the default) or `internal` |
+| `comment update <commentId> <content>`      | Markdown, with optional `--visibility`. No `--org`                                                       |
+| `comment delete <commentId>`                | No `--org`, and no confirmation prompt                                                                   |
+
+Listing prints each comment's id after its timestamp. Posting needs `tasks.comment`. Editing or deleting your own comment needs `tasks.comment` too, but someone else's needs `moderation.manageComments`, which is stricter than task comments.
+
+## Pull requests
+
+```bash
+sayr releases pr link v1-2-0 https://github.com/your-org/your-repo/pull/482
+sayr releases pr list v1-2-0
+sayr releases pr unlink v1-2-0 https://github.com/your-org/your-repo/pull/482
+```
+
+`link` and `unlink` take a GitHub pull request URL such as `https://github.com/owner/repo/pull/123`. Anything else is rejected before a request is made. The repository has to be connected to your organization (see [GitHub](/docs/integrations/github)). `unlink` matches the URL regardless of trailing slashes, a `/files` suffix, or the casing of the owner and repository, and reports `NOT_FOUND` if nothing linked matches. `pr list` prints each pull request's number, state (`open`, `closed`, or `merged`), title, and URL.
+
+## Permissions
+
+Reading releases needs `tasks.read`. Anything that changes a release (creating, editing, publishing, and deleting it, and managing its labels, status updates, and linked pull requests) needs `content.manageReleases`, and you need the **Manage releases** permission in the organization too. Comments follow the rules above. See [Authentication & API keys](/docs/cli/authentication#scopes) for the full scope list, including a note for keys that already existed before release access was added.
+
+## Example: ship a release
+
+Create it, move tasks in, check progress, then publish:
+
+```bash
+sayr releases create "v1.2.0" --target-date 2026-10-31 --status in-progress
+sayr task update 123 --release v1-2-0
+sayr task update 124 --release v1-2-0
+sayr releases view v1-2-0
+sayr releases publish v1-2-0 --yes
+```
+
+`publish` marks the release released and closes its remaining open tasks as done. Drop `--yes` at a terminal to be asked first.
+
+Before publishing you can also post a status update and link the pull requests that shipped in it:
+
+```bash
+sayr releases status-update create v1-2-0 "All tasks are in. Shipping today." --health on_track
+sayr releases pr link v1-2-0 https://github.com/your-org/your-repo/pull/482
+```
+
+## Related
+
+- [Releases](/docs/organize/releases): the product feature
+- [Scripting & automation](/docs/cli/scripting): `--json`, `--yes`, and CI
+- [Guided mode](/docs/cli/guided-mode)

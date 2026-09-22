@@ -1,9 +1,29 @@
 {
-	"name": "@repo/paseo-plugin",
-	"private": true,
+	"name": "@sayrio/paseo-plugin",
 	"version": "0.1.0",
 	"type": "module",
 	"description": "A paseo plugin for viewing and managing your Sayr tasks",
+	"license": "MIT",
+	"keywords": [
+		"paseo",
+		"paseo-plugin",
+		"sayr"
+	],
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/dorasto/sayr.git",
+		"directory": "packages/paseo-plugin"
+	},
+	"files": [
+		"paseo-plugin.json",
+		"index.client.ts",
+		"index.client.tsx",
+		"index.server.ts",
+		"index.server.tsx",
+		"client/",
+		"server/",
+		"shared/"
+	],
 	"publishConfig": {
 		"access": "public"
 	},
@@ -18,12 +38,10 @@
 		"lint:fix": "biome check . --write",
 		"format": "biome format --write ."
 	},
-	"dependencies": {
-		"@getpaseo/plugin": "0.8.0"
-	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.1.1",
 		"@getpaseo/client": "0.8.0",
+		"@getpaseo/plugin": "0.8.0",
 		"@getpaseo/protocol": "0.8.0",
 		"@repo/typescript-config": "workspace:*",
 		"@tanstack/react-query": "^5.90.11",

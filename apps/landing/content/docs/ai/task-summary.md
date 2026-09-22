@@ -49,6 +49,6 @@ If you have a task open and new activity comes in via real-time updates, the sum
 | Community (self-hosted) | Yes, when `REQUESTY_API_KEY` is set |
 | Enterprise (self-hosted) | Yes, when `REQUESTY_API_KEY` is set |
 
-On Sayr Cloud, AI is managed and ready to use with no configuration. On self-hosted instances, set the `REQUESTY_API_KEY` environment variable to enable AI features. See the [self-hosting configuration guide](/docs/self-hosting) for details.
+On Sayr Cloud, AI is managed and ready to use with no configuration. On self-hosted instances, set the `REQUESTY_API_KEY` environment variable to enable AI features. See the [self-hosting configuration guide](/docs/self-hosting/get-started) for details.
 
 Once enabled, organization admins can control AI features per-organization from **Settings → AI**. Pro-plan organizations can also choose which AI model to use from the same page.
