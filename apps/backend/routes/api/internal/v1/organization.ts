@@ -1,6 +1,5 @@
 import { randomBytes, randomUUID } from "node:crypto";
 import { Octokit } from "@octokit/rest";
-import { polarClient } from "@repo/auth";
 import {
 	auth,
 	blockUser,
@@ -34,6 +33,13 @@ import { findClientBysseId, sseBroadcastByUserId, sseBroadcastPublic, sseBroadca
 import type { ServerEventBaseMessage } from "@/routes/events/types";
 import { enforceLimit, refreshGitHubTokenIfNeeded, traceOrgPermissionCheck, tracePublicOrgAccessCheck } from "@/util";
 import { apiRouteAdminProjectTask } from "./task";
+import { createPolar } from "@polar-sh/sdk/2026-10";
+
+const polarClient = getEditionCapabilities().polarBillingEnabled
+	? createPolar({
+		accessToken: process.env.POLAR_ACCESS_TOKEN!,
+	})
+	: null;
 export const apiRouteAdminOrganization = new Hono<AppEnv>();
 
 /** Narrow read of an HTTP status off a caught `unknown` error (e.g. Octokit errors). */
@@ -331,9 +337,9 @@ apiRouteAdminOrganization.post("/update", async (c) => {
 				// clobber each other.
 				const mergedSettings: OrganizationSettings | undefined = data.settings
 					? deepMergeSettings(
-							(currentOrg.settings as OrganizationSettings | null) ?? defaultOrganizationSettings,
-							data.settings as Partial<OrganizationSettings>
-						)
+						(currentOrg.settings as OrganizationSettings | null) ?? defaultOrganizationSettings,
+						data.settings as Partial<OrganizationSettings>
+					)
 					: undefined;
 
 				// 2️⃣ Slug uniqueness + banned check (only if changed)
@@ -2153,9 +2159,7 @@ apiRouteAdminOrganization.delete("/delete", async (c) => {
 				);
 			}
 			polarClient &&
-				(await polarClient.customers.deleteExternal({
-					externalId: org.id,
-				}));
+				(await polarClient.customers.deleteExternal(org.id));
 
 			await traceAsync(
 				"organization.delete.s3_files",
@@ -2331,8 +2335,8 @@ apiRouteAdminOrganization.post("/member", async (c) => {
 
 					const existingMember = user
 						? await db.query.member.findFirst({
-								where: and(eq(schema.member.organizationId, orgId), eq(schema.member.userId, user.id)),
-							})
+							where: and(eq(schema.member.organizationId, orgId), eq(schema.member.userId, user.id)),
+						})
 						: null;
 
 					if (existingMember) continue;
@@ -2469,9 +2473,9 @@ apiRouteAdminOrganization.patch("/member-seat-assign", async (c) => {
 			"member.seatAssign.assign",
 			async () => {
 				const seat = await polarClient?.customerSeats.assignSeat({
-					subscriptionId: org.polarSubscriptionId || "",
-					externalCustomerId: member.userId,
-					immediateClaim: true,
+					subscription_id: org.polarSubscriptionId || "",
+					external_customer_id: member.userId,
+					immediate_claim: true,
 					metadata: {
 						userId: member.userId,
 						organizationId: orgId,
@@ -2590,9 +2594,7 @@ apiRouteAdminOrganization.patch("/member-seat-unassign", async (c) => {
 		await traceAsync(
 			"member.seatUnassign.unassign",
 			async () => {
-				await polarClient?.customerSeats.revokeSeat({
-					seatId: member.seatAssignedId || "",
-				});
+				await polarClient?.customerSeats.revokeSeat(member?.seatAssignedId!);
 			},
 			{
 				description: "Unassigning seat from member via Polar",
@@ -2695,9 +2697,7 @@ apiRouteAdminOrganization.delete("/member", async (c) => {
 	}
 	const { polarBillingEnabled } = getEditionCapabilities();
 	if (member?.seatAssignedId && polarBillingEnabled) {
-		await polarClient?.customerSeats.revokeSeat({
-			seatId: member?.seatAssignedId,
-		});
+		await polarClient?.customerSeats.revokeSeat(member?.seatAssignedId!);
 	}
 
 	emitEvent({
@@ -3180,14 +3180,14 @@ apiRouteAdminOrganization.post("/team", async (c) => {
 
 	const teamPermissions: TeamPermissions = permissions
 		? {
-				admin: { ...defaultTeamPermissions.admin, ...permissions.admin },
-				content: { ...defaultTeamPermissions.content, ...permissions.content },
-				tasks: { ...defaultTeamPermissions.tasks, ...permissions.tasks },
-				moderation: {
-					...defaultTeamPermissions.moderation,
-					...permissions.moderation,
-				},
-			}
+			admin: { ...defaultTeamPermissions.admin, ...permissions.admin },
+			content: { ...defaultTeamPermissions.content, ...permissions.content },
+			tasks: { ...defaultTeamPermissions.tasks, ...permissions.tasks },
+			moderation: {
+				...defaultTeamPermissions.moderation,
+				...permissions.moderation,
+			},
+		}
 		: defaultTeamPermissions;
 
 	const team = await traceAsync(
@@ -3241,14 +3241,14 @@ apiRouteAdminOrganization.patch("/team", async (c) => {
 
 	const teamPermissions: TeamPermissions = permissions
 		? {
-				admin: { ...defaultTeamPermissions.admin, ...permissions.admin },
-				content: { ...defaultTeamPermissions.content, ...permissions.content },
-				tasks: { ...defaultTeamPermissions.tasks, ...permissions.tasks },
-				moderation: {
-					...defaultTeamPermissions.moderation,
-					...permissions.moderation,
-				},
-			}
+			admin: { ...defaultTeamPermissions.admin, ...permissions.admin },
+			content: { ...defaultTeamPermissions.content, ...permissions.content },
+			tasks: { ...defaultTeamPermissions.tasks, ...permissions.tasks },
+			moderation: {
+				...defaultTeamPermissions.moderation,
+				...permissions.moderation,
+			},
+		}
 		: defaultTeamPermissions;
 
 	const team = await traceAsync(
@@ -3532,7 +3532,7 @@ apiRouteAdminOrganization.post("/bootstrap-admin-team", async (c) => {
 	}
 
 	// ✅ Success “event” captured as a traced span
-	await traceAsync("team.bootstrap.success", async () => {}, {
+	await traceAsync("team.bootstrap.success", async () => { }, {
 		description: "Admin team bootstrapped successfully",
 		data: {
 			user: { id: session.userId },

@@ -1,7 +1,6 @@
 import { createHash } from "node:crypto";
 import { type RequestyMetadata, resolveModelId, streamText } from "@repo/ai";
 import { taskSummaryPrompt } from "@repo/ai-prompts";
-import { polarClient } from "@repo/auth";
 import {
 	getMergedTaskActivity,
 	getOrganization,
@@ -24,7 +23,10 @@ import { fetchUrlAsText } from "../../../../../lib/ai/fetch-url-text";
 import { buildTimelineLine } from "../../../../../lib/ai/format-timeline";
 import { sanitizeCustomPrompt } from "../../../../../lib/ai/model";
 import { errorResponse } from "../../../../../responses";
-
+import { createPolar } from "@polar-sh/sdk/2026-10";
+const polarClient = createPolar({
+	accessToken: process.env.POLAR_ACCESS_TOKEN!,
+});
 export const summarizeTaskRoute = new Hono<AppEnv>();
 
 const requestSchema = z.object({
@@ -292,14 +294,14 @@ summarizeTaskRoute.post("/", async (c) => {
 
 	const totalUrlsFound = useUrlFetch
 		? (() => {
-				const seen = new Set<string>();
-				for (const u of extractUrls(descriptionText)) seen.add(u);
-				for (const item of (activity ?? []).filter((i) => i.eventType === "comment" && i.content)) {
-					const text = item.content ? extractPlainText(item.content) : "";
-					for (const u of extractUrls(text)) seen.add(u);
-				}
-				return seen.size;
-			})()
+			const seen = new Set<string>();
+			for (const u of extractUrls(descriptionText)) seen.add(u);
+			for (const item of (activity ?? []).filter((i) => i.eventType === "comment" && i.content)) {
+				const text = item.content ? extractPlainText(item.content) : "";
+				for (const u of extractUrls(text)) seen.add(u);
+			}
+			return seen.size;
+		})()
 		: 0;
 
 	console.log(
@@ -531,15 +533,15 @@ summarizeTaskRoute.post("/", async (c) => {
 							events: [
 								{
 									name: "ai.task_summary",
-									externalCustomerId: polarCustomerId,
+									external_customer_id: polarCustomerId,
 									metadata: {
 										_cost: { amount: costCents, currency: "usd" },
 										_llm: {
 											vendor,
 											model: activeModel,
-											inputTokens: promptTokens,
-											outputTokens: completionTokens,
-											totalTokens: totalTokens,
+											input_tokens: promptTokens,
+											output_tokens: completionTokens,
+											total_tokens: totalTokens,
 										},
 										org_id: orgId,
 										task_id: taskId,

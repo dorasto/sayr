@@ -1,4 +1,4 @@
-import { auth, polarClient } from "@repo/auth";
+import { auth } from "@repo/auth";
 import { auth as authSchema, db, schema, getUsersByIds, type OrganizationSettings, type OrgAiSettings, defaultOrgAiSettings } from "@repo/database";
 import { and, count, eq, ilike, inArray, isNotNull, or, sql, desc, asc } from "drizzle-orm";
 import { ensureCdnUrl } from "@repo/util";
@@ -8,7 +8,10 @@ import type { AppEnv } from "@/index";
 import { createTraceAsync } from "@repo/opentelemetry/trace";
 import { paginatedSuccessResponse, errorResponse, successResponse } from "../../../../responses";
 import { queryAiUsageByOrg, queryAiUsageSummaryAllOrgs } from "@/clickhouse";
-
+import { createPolar } from "@polar-sh/sdk/2026-10";
+const polarClient = createPolar({
+	accessToken: process.env.POLAR_ACCESS_TOKEN!,
+});
 const userTable = authSchema.user;
 const sessionTable = authSchema.session;
 const accountTable = authSchema.account;
@@ -777,16 +780,17 @@ apiRouteConsole.get("/organizations/mrr-summary", async (c) => {
 			const chunk = orgsWithSub.slice(i, i + CHUNK_SIZE);
 			const chunkResults = await Promise.allSettled(
 				chunk.map(async (org) => {
-					const sub = await polarClient!.subscriptions.get({ id: org.polarSubscriptionId! });
-					const isYearly = sub.recurringInterval === "year";
+					const sub = await polarClient!.subscriptions.get(org.polarSubscriptionId!);
+					const isYearly = sub.recurring_interval === "year";
 					const mrrCents = Math.round(sub.amount / (isYearly ? 12 : 1));
+					const seats = (sub as unknown as { seats?: number | null }).seats ?? null;
 					return {
 						org_id: org.id,
 						mrr_cents: mrrCents,
 						currency: sub.currency ?? "usd",
 						status: sub.status,
-						seats: (sub as Record<string, unknown>).seats as number | null ?? null,
-						recurring_interval: sub.recurringInterval,
+						seats,
+						recurring_interval: sub.recurring_interval,
 					};
 				}),
 			);

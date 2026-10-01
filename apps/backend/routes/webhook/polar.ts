@@ -3,10 +3,10 @@ import { db } from "@repo/database";
 import * as schema from "@repo/database";
 import { type TeamPermissions } from "@repo/database";
 import { and, eq } from "drizzle-orm";
-import { createPolar, models, webhooks } from "@repo/auth";
 import { sseBroadcastByUserId } from "../events";
 import { createTraceAsync } from "@repo/opentelemetry/trace";
 import { AppEnv } from "@/index";
+import { createPolar, webhooks, models } from "@polar-sh/sdk/2026-10";
 
 const app = new Hono<AppEnv>();
 
