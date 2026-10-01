@@ -34,9 +34,12 @@ import type { ServerEventBaseMessage } from "@/routes/events/types";
 import { enforceLimit, refreshGitHubTokenIfNeeded, traceOrgPermissionCheck, tracePublicOrgAccessCheck } from "@/util";
 import { apiRouteAdminProjectTask } from "./task";
 import { createPolar } from "@polar-sh/sdk/2026-10";
-const polarClient = createPolar({
-	accessToken: process.env.POLAR_ACCESS_TOKEN!,
-});
+
+const polarClient = getEditionCapabilities().polarBillingEnabled
+	? createPolar({
+		accessToken: process.env.POLAR_ACCESS_TOKEN!,
+	})
+	: null;
 export const apiRouteAdminOrganization = new Hono<AppEnv>();
 
 /** Narrow read of an HTTP status off a caught `unknown` error (e.g. Octokit errors). */
