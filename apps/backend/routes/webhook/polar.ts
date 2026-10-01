@@ -3,14 +3,14 @@ import { db } from "@repo/database";
 import * as schema from "@repo/database";
 import { type TeamPermissions } from "@repo/database";
 import { and, eq } from "drizzle-orm";
-import { Polar, validateEvent, Subscription, CustomerSeat } from "@repo/auth";
+import { createPolar, models, webhooks } from "@repo/auth";
 import { sseBroadcastByUserId } from "../events";
 import { createTraceAsync } from "@repo/opentelemetry/trace";
 import { AppEnv } from "@/index";
 
 const app = new Hono<AppEnv>();
 
-const polarClient = new Polar({
+const polarClient = createPolar({
     accessToken: process.env.POLAR_ACCESS_TOKEN!,
 });
 function headersToRecord(headers: Headers): Record<string, string> {
@@ -37,7 +37,7 @@ app.post("/", async (c) => {
     }
     let event;
     try {
-        event = validateEvent(
+        event = await webhooks.validateEvent(
             rawBody,
             headers,
             process.env.POLAR_WEBHOOK_SECRET!
@@ -69,7 +69,7 @@ app.post("/", async (c) => {
                         polar_customer_id: event.data.customer.id,
                         polar_subscription_id: event.data.id,
                         sayr_id: event.data.customer.metadata?.firstUserId?.toString(),
-                        sayr_org_id: event.data.customer.externalId,
+                        sayr_org_id: event.data.customer.external_id,
                         webhook_id: headers["webhook-id"] || "unknown",
                     },
                 });
@@ -85,7 +85,7 @@ app.post("/", async (c) => {
                         polar_customer_id: event.data.customer.id,
                         polar_subscription_id: event.data.id,
                         sayr_id: event.data.customer.metadata?.firstUserId?.toString(),
-                        sayr_org_id: event.data.customer.externalId,
+                        sayr_org_id: event.data.customer.external_id,
                         webhook_id: headers["webhook-id"] || "unknown",
                     },
                 });
@@ -101,7 +101,7 @@ app.post("/", async (c) => {
                         polar_customer_id: event.data.customer.id,
                         polar_subscription_id: event.data.id,
                         sayr_id: event.data.customer.metadata?.firstUserId?.toString(),
-                        sayr_org_id: event.data.customer.externalId,
+                        sayr_org_id: event.data.customer.external_id,
                         webhook_id: headers["webhook-id"] || "unknown",
                     },
                 });
@@ -153,8 +153,8 @@ app.post("/", async (c) => {
 
 export const PolarWebhookHandler = app;
 
-async function handleSubscriptionCreated(data: Subscription) {
-    const orgId = data.customer?.externalId;
+async function handleSubscriptionCreated(data: models.Subscription) {
+    const orgId = data.customer?.external_id;
     if (!orgId) return;
 
     const isActive =
@@ -165,9 +165,9 @@ async function handleSubscriptionCreated(data: Subscription) {
         .set({
             plan: isActive ? "pro" : "free",
             seatCount: data.seats ?? 1,
-            polarCustomerId: data.customerId,
+            polarCustomerId: data.customer_id,
             polarSubscriptionId: data.id,
-            currentPeriodEnd: data.currentPeriodEnd,
+            currentPeriodEnd: data.current_period_end as any,
         })
         .where(eq(schema.schema.organization.id, orgId));
 
@@ -180,9 +180,9 @@ async function handleSubscriptionCreated(data: Subscription) {
     });
     orgMembers.forEach(async (member) => {
         const seatInfo = await polarClient.customerSeats.assignSeat({
-            subscriptionId: data.id,
-            externalCustomerId: member.userId,
-            immediateClaim: true,
+            subscription_id: data.id,
+            external_customer_id: member.userId,
+            immediate_claim: true,
             metadata: {
                 userId: member.userId,
                 organizationId: orgId,
@@ -204,8 +204,8 @@ async function handleSubscriptionCreated(data: Subscription) {
     console.log("✅ Subscription created:", orgId);
 }
 
-async function handleSubscriptionUpdated(data: Subscription) {
-    const orgId = data.customer?.externalId;
+async function handleSubscriptionUpdated(data: models.Subscription) {
+    const orgId = data.customer?.external_id;
     if (!orgId) return;
 
     const isActive =
@@ -216,15 +216,15 @@ async function handleSubscriptionUpdated(data: Subscription) {
         .set({
             plan: isActive ? "pro" : "free",
             seatCount: data.seats ?? 1,
-            currentPeriodEnd: data.currentPeriodEnd,
+            currentPeriodEnd: data.current_period_end as any,
         })
         .where(eq(schema.schema.organization.id, orgId));
 
     console.log("🔄 Subscription updated:", orgId);
 }
 
-async function handleSubscriptionCanceled(data: Subscription) {
-    const orgId = data.customer?.externalId;
+async function handleSubscriptionCanceled(data: models.Subscription) {
+    const orgId = data.customer?.external_id;
     if (data.status === "active") {
         return;
     }
@@ -321,9 +321,9 @@ async function handleSubscriptionCanceled(data: Subscription) {
     );
 }
 
-async function handleSeatRevoked(data: CustomerSeat) {
+async function handleSeatRevoked(data: models.CustomerSeat) {
     const org = await db.query.organization.findFirst({
-        where: (org) => eq(org.polarSubscriptionId, data.subscriptionId!),
+        where: (org) => eq(org.polarSubscriptionId, data.subscription_id!),
     });
 
     if (!org) {
@@ -332,22 +332,22 @@ async function handleSeatRevoked(data: CustomerSeat) {
         // the cancellation handler already managed seat assignments — skip.
         console.log(
             "🪑 Skipping seat revocation — no active subscription found (likely already cancelled):",
-            data.subscriptionId,
+            data.subscription_id,
         );
         return;
     }
 
     const user = await db.query.user.findFirst({
         where: (user) =>
-            data.seatMetadata?.userId ? eq(user.id, data.seatMetadata!.userId)
-                : eq(user.email, data.customerEmail!)
+            data.seat_metadata?.userId ? eq(user.id, data.seat_metadata!.userId as any)
+                : eq(user.email, data.customer_email!)
     });
 
     if (!user) {
         console.warn(
             "⚠️ User not found for revoked seat:",
-            data.customerEmail,
-            data.seatMetadata?.userId
+            data.customer_email,
+            data.seat_metadata?.userId
         );
         return;
     }
@@ -392,15 +392,15 @@ async function handleSeatRevoked(data: CustomerSeat) {
     });
 }
 
-async function handleSeatClaimed(data: CustomerSeat) {
+async function handleSeatClaimed(data: models.CustomerSeat) {
     const org = await db.query.organization.findFirst({
-        where: (org) => eq(org.polarSubscriptionId, data.subscriptionId!),
+        where: (org) => eq(org.polarSubscriptionId, data.subscription_id!),
     });
 
     if (!org) {
         console.warn(
             "⚠️ Organization not found for claimed seat:",
-            data.subscriptionId
+            data.subscription_id
         );
         return;
     }
@@ -408,21 +408,21 @@ async function handleSeatClaimed(data: CustomerSeat) {
     let user;
 
     // ✅ Always prefer metadata userId
-    if (data.seatMetadata?.userId) {
+    if (data.seat_metadata?.userId) {
         user = await db.query.user.findFirst({
-            where: (user) => eq(user.id, data.seatMetadata!.userId),
+            where: (user) => eq(user.id, data.seat_metadata!.userId as any),
         });
-    } else if (data.customerEmail) {
+    } else if (data.customer_email) {
         user = await db.query.user.findFirst({
-            where: (user) => eq(user.email, data.customerEmail!),
+            where: (user) => eq(user.email, data.customer_email!),
         });
     }
 
     if (!user) {
         console.warn(
             "⚠️ User not found for claimed seat:",
-            data.customerEmail,
-            data.seatMetadata?.userId
+            data.customer_email,
+            data.seat_metadata?.userId
         );
         return;
     }
