@@ -5,14 +5,13 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { admin, genericOAuth, lastLoginMethod, twoFactor } from "better-auth/plugins";
 import { passkey } from "@better-auth/passkey";
 import { polar, checkout } from "@polar-sh/better-auth";
-import { createPolar, webhooks, models } from "@polar-sh/sdk/2026-10";
+import { createPolar } from "@polar-sh/sdk/2026-10";
 import { getEditionCapabilities, isCloud, isSelfHosted } from "@repo/edition";
 import { eq, sql } from "drizzle-orm";
 import { sendEmail } from "@repo/util";
 import { addContactToContactBook, deleteContactByEmail } from "@repo/util/email";
 import { apiKey } from "@better-auth/api-key";
 import { getSessionCookie } from "better-auth/cookies";
-export { createPolar };
 export { getSessionCookie };
 
 const rootUrl = process.env.VITE_ROOT_DOMAIN;
@@ -29,9 +28,6 @@ const polarClient = polarBillingEnabled
 		accessToken: process.env.POLAR_ACCESS_TOKEN!,
 	})
 	: null;
-export { polarClient };
-export { webhooks };
-export type { models };
 const plugins = [
 	lastLoginMethod({
 		storeInDatabase: true,
@@ -90,37 +86,7 @@ const plugins = [
 		rpName: "sayr.io",
 	}),
 ];
-if (polarBillingEnabled) {
-	if (!process.env.POLAR_PRODUCT_ID) {
-		throw new Error("POLAR_PRODUCT_ID is required for cloud edition");
-	}
 
-	if (!polarClient) {
-		throw new Error("Polar client not initialized");
-	}
-	plugins.push(
-		//@ts-ignore
-		polar({
-			client: polarClient,
-			createCustomerOnSignUp: true,
-			use: [
-				checkout({
-					products: [
-						{
-							productId: process.env.POLAR_PRODUCT_ID || "",
-							slug: "sayr-pro", // Custom slug for easy reference in Checkout URL, e.g.
-						},
-					],
-					successUrl: isProd
-						? "https://admin.sayr.io/success?checkout_id={CHECKOUT_ID}"
-						: "http://admin.app.localhost:3000/success?checkout_id={CHECKOUT_ID}",
-					authenticatedUsersOnly: true,
-					returnUrl: isProd ? "https://admin.sayr.io/" : "http://admin.app.localhost:3000/",
-				}),
-			],
-		})
-	);
-}
 export const auth = betterAuth({
 	appName: "sayr.io",
 	baseURL: process.env.BETTER_AUTH_URL || (isProd ? `https://${rootUrl}` : undefined),

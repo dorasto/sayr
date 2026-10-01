@@ -15,10 +15,12 @@ import { apiRouteAdminNotification } from "./notification";
 import { apiRouteAdminIntegrations } from "./integrations";
 import { getEffectiveLimits } from "@repo/edition";
 import { createTraceAsync } from "@repo/opentelemetry/trace";
-import { polarClient } from "@repo/auth";
 import { getEditionCapabilities } from "@repo/edition";
 import { emitEvent, collectAndInsertSnapshots } from "@/clickhouse";
-
+import { createPolar } from "@polar-sh/sdk/2026-10";
+const polarClient = createPolar({
+  accessToken: process.env.POLAR_ACCESS_TOKEN!,
+});
 export const apiRouteAdmin = new Hono<AppEnv>();
 
 // Search tasks across all orgs the user belongs to
@@ -209,9 +211,9 @@ apiRouteAdmin.post("/invite", async (c) => {
     ) {
       try {
         await polarClient?.customerSeats.assignSeat({
-          subscriptionId: org.polarSubscriptionId,
-          externalCustomerId: session.userId,
-          immediateClaim: true,
+          subscription_id: org.polarSubscriptionId,
+          external_customer_id: session.userId,
+          immediate_claim: true,
           metadata: {
             userId: session.userId,
             organizationId: fetchedInvite.organizationId,

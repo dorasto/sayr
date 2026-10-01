@@ -27,6 +27,7 @@
 		"@repo/queue": "workspace:*",
 		"@repo/storage": "workspace:*",
 		"@repo/util": "workspace:*",
+		"@polar-sh/sdk": "^1.0.0",
 		"@scalar/hono-api-reference": "^0.9.25",
 		"drizzle-zod": "^0.8.3",
 		"hono": "^4.13.5",

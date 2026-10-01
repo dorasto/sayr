@@ -17,7 +17,7 @@
   "dependencies": {
     "@better-auth/api-key": "^1.7.1",
     "@better-auth/passkey": "^1.7.1",
-    "@polar-sh/better-auth": "^1.8.3",
+    "@polar-sh/better-auth": "^2.0.0",
     "@polar-sh/sdk": "^1.0.0",
     "@repo/database": "workspace:*",
     "@repo/edition": "workspace:*",
