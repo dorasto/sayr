@@ -5,19 +5,16 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { admin, genericOAuth, lastLoginMethod, twoFactor } from "better-auth/plugins";
 import { passkey } from "@better-auth/passkey";
 import { polar, checkout } from "@polar-sh/better-auth";
-import { Polar } from "@polar-sh/sdk";
-import { validateEvent } from "@polar-sh/sdk/webhooks";
-import { Subscription } from "@polar-sh/sdk/models/components/subscription.js";
-import { CustomerSeat } from "@polar-sh/sdk/models/components/customerseat.js";
+import { createPolar, webhooks, models } from "@polar-sh/sdk/2026-10";
 import { getEditionCapabilities, isCloud, isSelfHosted } from "@repo/edition";
 import { eq, sql } from "drizzle-orm";
 import { sendEmail } from "@repo/util";
 import { addContactToContactBook, deleteContactByEmail } from "@repo/util/email";
 import { apiKey } from "@better-auth/api-key";
 import { getSessionCookie } from "better-auth/cookies";
-export { Polar, validateEvent };
-export type { Subscription, CustomerSeat };
+export { createPolar };
 export { getSessionCookie };
+
 const rootUrl = process.env.VITE_ROOT_DOMAIN;
 const isProd = process.env.APP_ENV === "production";
 // Auth callback URL for OAuth providers (must be consistent subdomain)
@@ -27,11 +24,14 @@ const authCallbackUrl = process.env.VITE_AUTH_CALLBACK_URL || process.env.VITE_U
 const isBarelocalhost = rootUrl === "localhost";
 const { polarBillingEnabled } = getEditionCapabilities();
 
-export const polarClient = polarBillingEnabled
-	? new Polar({
-			accessToken: process.env.POLAR_ACCESS_TOKEN,
-		})
+const polarClient = polarBillingEnabled
+	? createPolar({
+		accessToken: process.env.POLAR_ACCESS_TOKEN!,
+	})
 	: null;
+export { polarClient };
+export { webhooks };
+export type { models };
 const plugins = [
 	lastLoginMethod({
 		storeInDatabase: true,
@@ -173,8 +173,8 @@ export const auth = betterAuth({
 					await deleteContactByEmail(user.email);
 				}
 				polarClient &&
-					(await polarClient.customers.deleteExternal({
-						externalId: user.id,
+					(await polarClient.customers.deleteExternal(user.id).catch((err) => {
+						console.error("[polar] Failed to delete external customer:", err);
 					}));
 			},
 		},

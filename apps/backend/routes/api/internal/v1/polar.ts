@@ -14,8 +14,8 @@ const isProd = process.env.APP_ENV === "production";
  */
 async function getCustomerSessionToken(polarCustomerId: string, orgId: string): Promise<string> {
 	const session = await polarClient?.customerSessions.create({
-		customerId: polarCustomerId,
-		returnUrl: isProd
+		customer_id: polarCustomerId,
+		return_url: isProd
 			? `https://admin.sayr.io/settings/org/${orgId}/billing`
 			: `http://admin.app.localhost:3000/settings/org/${orgId}/billing`,
 	});
@@ -58,7 +58,7 @@ app.get("/checkout", async (c) => {
 
 	if (!customerId) {
 		const customer = await polarClient?.customers.create({
-			externalId: org.id,
+			external_id: org.id,
 			email: orgEmail,
 			name: org.name,
 		});
@@ -74,12 +74,12 @@ app.get("/checkout", async (c) => {
 	// 3️⃣ Create checkout under ORG customer
 	const checkout = await polarClient?.checkouts.create({
 		products: [productId],
-		externalCustomerId: org.id,
-		customerEmail: orgEmail,
-		customerName: `${org.name} (${email})`,
+		external_customer_id: org.id,
+		customer_email: orgEmail,
+		customer_name: `${org.name} (${email})`,
 		seats: org.members.length || org.seatCount || 1,
-		successUrl: isProd ? `https://admin.sayr.io/settings/org/${org.id}/billing?checkout_id={CHECKOUT_ID}` : `http://admin.app.localhost:3000/settings/org/${org.id}/billing?checkout_id={CHECKOUT_ID}`,
-		returnUrl: isProd ? `https://admin.sayr.io/settings/org/${org.id}/billing` : `http://admin.app.localhost:3000/settings/org/${org.id}/billing`,
+		success_url: isProd ? `https://admin.sayr.io/settings/org/${org.id}/billing?checkout_id={CHECKOUT_ID}` : `http://admin.app.localhost:3000/settings/org/${org.id}/billing?checkout_id={CHECKOUT_ID}`,
+		return_url: isProd ? `https://admin.sayr.io/settings/org/${org.id}/billing` : `http://admin.app.localhost:3000/settings/org/${org.id}/billing`,
 		metadata: {
 			firstUserEmail: email || "",
 			firstUserId: userId || "",
@@ -120,11 +120,11 @@ app.get("/customer-portal", async (c) => {
 		throw new Error("Customer not found for org");
 	}
 	const portal = await polarClient?.customerSessions.create({
-		customerId: customerId,
-		returnUrl: isProd ? `https://admin.sayr.io/settings/org/${org.id}/billing` : `http://admin.app.localhost:3000/settings/org/${org.id}/billing`,
+		customer_id: customerId,
+		return_url: isProd ? `https://admin.sayr.io/settings/org/${org.id}/billing` : `http://admin.app.localhost:3000/settings/org/${org.id}/billing`,
 	});
 	// 4️⃣ Redirect user
-	return c.redirect(portal?.customerPortalUrl || "");
+	return c.redirect(portal?.customer_portal_url || "");
 });
 
 // ─── Custom Billing Portal (read-only) ──────────────────────────
@@ -166,8 +166,8 @@ app.get("/subscription", async (c) => {
 	try {
 		const token = await getCustomerSessionToken(org.polarCustomerId, org.id);
 		const subscription = await polarClient?.customerPortal.subscriptions.get(
-			{ customerSession: token },
-			{ id: org.polarSubscriptionId },
+			org.polarSubscriptionId,
+			{ accessToken: token },
 		);
 		if (!subscription) {
 			return c.json({ success: false, error: "No active subscription" }, 400);
@@ -180,12 +180,12 @@ app.get("/subscription", async (c) => {
 				status: subscription.status,
 				amount: subscription.amount,
 				currency: subscription.currency,
-				recurringInterval: subscription.recurringInterval,
-				currentPeriodStart: subscription.currentPeriodStart,
-				currentPeriodEnd: subscription.currentPeriodEnd,
-				cancelAtPeriodEnd: subscription.cancelAtPeriodEnd,
-				canceledAt: subscription.canceledAt,
-				startedAt: subscription.startedAt,
+				recurring_interval: subscription.recurring_interval,
+				current_period_start: subscription.current_period_start,
+				current_period_end: subscription.current_period_end,
+				cancel_at_period_end: subscription.cancel_at_period_end,
+				canceled_at: subscription.canceled_at,
+				started_at: subscription.started_at,
 				seats: subscription.seats ?? null,
 				product: {
 					id: subscription.product.id,
@@ -193,8 +193,8 @@ app.get("/subscription", async (c) => {
 					description: subscription.product.description,
 				},
 				prices: subscription.prices,
-				customerCancellationReason: subscription.customerCancellationReason,
-				customerCancellationComment: subscription.customerCancellationComment,
+				customer_cancellation_reason: subscription.customer_cancellation_reason,
+				customer_cancellation_comment: subscription.customer_cancellation_comment,
 			},
 		});
 	} catch (err) {
@@ -239,28 +239,27 @@ app.get("/orders", async (c) => {
 	try {
 		const token = await getCustomerSessionToken(org.polarCustomerId, org.id);
 		const ordersPage = await polarClient?.customerPortal.orders.list(
-			{ customerSession: token },
 			{
 				page,
 				limit: Math.min(limit, 100),
 				sorting: ["-created_at"],
 			},
+			{ accessToken: token },
 		);
-
-		const items = ordersPage?.result.items.map((order) => ({
+		const items = ordersPage?.items.map((order) => ({
 			id: order.id,
-			createdAt: order.createdAt,
+			createdAt: order.created_at,
 			status: order.status,
 			paid: order.paid,
-			subtotalAmount: order.subtotalAmount,
-			discountAmount: order.discountAmount,
-			netAmount: order.netAmount,
-			taxAmount: order.taxAmount,
-			totalAmount: order.totalAmount,
+			subtotalAmount: order.subtotal_amount,
+			discountAmount: order.discount_amount,
+			netAmount: order.net_amount,
+			taxAmount: order.tax_amount,
+			totalAmount: order.total_amount,
 			currency: order.currency,
-			billingReason: order.billingReason,
-			invoiceNumber: order.invoiceNumber,
-			isInvoiceGenerated: order.isInvoiceGenerated,
+			billingReason: order.billing_reason,
+			invoiceNumber: order.invoice_number,
+			isInvoiceGenerated: order.is_invoice_generated,
 			seats: order.seats ?? null,
 			product: order.product
 				? {
@@ -273,7 +272,7 @@ app.get("/orders", async (c) => {
 				id: item.id,
 				label: item.label,
 				amount: item.amount,
-				taxAmount: item.taxAmount,
+				taxAmount: item.tax_amount,
 				proration: item.proration,
 			})),
 		}));
@@ -282,7 +281,7 @@ app.get("/orders", async (c) => {
 			success: true,
 			data: {
 				items,
-				pagination: ordersPage?.result.pagination,
+				pagination: ordersPage?.pagination,
 			},
 		});
 	} catch (err) {
@@ -326,8 +325,8 @@ app.get("/orders/:orderId/invoice", async (c) => {
 	try {
 		const token = await getCustomerSessionToken(org.polarCustomerId, org.id);
 		const invoice = await polarClient?.customerPortal.orders.invoice(
-			{ customerSession: token },
-			{ id: orderId },
+			orderId,
+			{ accessToken: token }
 		);
 
 		return c.json({
@@ -385,12 +384,9 @@ app.patch("/subscription/seats", async (c) => {
 	}
 
 	try {
-		const updated = await polarClient?.subscriptions.update({
-			id: org.polarSubscriptionId,
-			subscriptionUpdate: {
-				seats,
-			}
-		})
+		const updated = await polarClient?.subscriptions.update(org.polarSubscriptionId, {
+			seats,
+		});
 
 		return c.json({
 			success: true,
