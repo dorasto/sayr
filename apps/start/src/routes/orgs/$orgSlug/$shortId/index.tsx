@@ -13,6 +13,7 @@ import { createServerFn } from "@tanstack/react-start";
 import type { NodeJSON } from "prosekit/core";
 import { type LLMOComment, LLMOContent } from "@/components/llmo/llmo-content";
 import { PublicTaskContent } from "@/components/public/public-task-content";
+import { PublicTaskProvider } from "@/contexts/ContextPublicOrgTask";
 import { prosekitHtmlFromJSON } from "@/lib/prosekit-ssr";
 import { extractTextContent } from "@/lib/util";
 import { getOgImageUrl, seo } from "@/seo";
@@ -290,7 +291,9 @@ function RouteComponent() {
 			/>
 
 			<div className="flex-1 min-h-0">
-				<PublicTaskContent task={task} release={release} />
+				<PublicTaskProvider task={task} release={release}>
+					<PublicTaskContent />
+				</PublicTaskProvider>
 			</div>
 		</div>
 	);

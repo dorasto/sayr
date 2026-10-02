@@ -1,12 +1,12 @@
 import { Button } from "@repo/ui/components/button";
 import { Tabs, TabsList, TabsTab } from "@repo/ui/components/cossui/tabs";
-import { Skeleton } from "@repo/ui/components/skeleton";
 import { IconRocket } from "@tabler/icons-react";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { ChangelogEntry } from "@/components/public/portal/releases/ChangelogEntry";
 import { fetchPublicReleases } from "@/components/public/portal/releases/types";
 import { CHANGELOG_TABS, type ChangelogTab, sortReleasedReleases, sortUpcomingReleases } from "@/lib/portal/changelog";
+import { ChangelogEntrySkeleton } from "./changelog-entry-skeleton";
 
 /** How many upcoming releases are loaded per status; far above what a roadmap realistically holds. */
 const UPCOMING_LIMIT = 50;
@@ -18,20 +18,6 @@ interface ReleasesChangelogProps {
 	orgSlug: string;
 	tab: ChangelogTab;
 	onTabChange: (tab: ChangelogTab) => void;
-}
-
-function EntrySkeleton() {
-	return (
-		<div aria-hidden className="mb-10 grid grid-cols-1 gap-3 md:grid-cols-[150px_40px_1fr] md:gap-0">
-			<div className="flex flex-col items-start gap-2 md:items-end">
-				<Skeleton className="h-7 w-16" />
-				<Skeleton className="h-4 w-24" />
-				<Skeleton className="h-6 w-20 rounded-full" />
-			</div>
-			<div className="hidden md:block" />
-			<Skeleton className="h-44 rounded-xl" />
-		</div>
-	);
 }
 
 /**
@@ -132,9 +118,9 @@ export function ReleasesChangelog({ orgSlug, tab, onTabChange }: ReleasesChangel
 
 				{isLoading ? (
 					<div aria-busy>
-						<EntrySkeleton />
-						<EntrySkeleton />
-						<EntrySkeleton />
+						<ChangelogEntrySkeleton />
+						<ChangelogEntrySkeleton />
+						<ChangelogEntrySkeleton />
 					</div>
 				) : isError ? (
 					<div className="mx-auto flex max-w-[340px] flex-col items-center py-16 text-center">

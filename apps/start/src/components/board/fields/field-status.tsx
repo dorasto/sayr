@@ -29,7 +29,10 @@ export function FieldStatus({ task, label }: FieldStatusProps) {
 		if (label) {
 			return (
 				<StaticField
-					className="inline-flex shrink-0 items-center gap-1.5 text-xs font-medium"
+					className={cn(
+						"inline-flex w-fit shrink-0 items-center gap-1.5 rounded-lg border px-1.5 py-0.5 text-xs font-medium",
+						current.className
+					)}
 					title={current.label}
 				>
 					{current.icon("size-3.5")}

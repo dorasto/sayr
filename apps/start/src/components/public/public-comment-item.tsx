@@ -1,4 +1,3 @@
-import type { schema } from "@repo/database";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -19,7 +18,6 @@ import {
 	DropdownMenuTrigger,
 } from "@repo/ui/components/dropdown-menu";
 import { Label } from "@repo/ui/components/label";
-import { Popover, PopoverContent, PopoverTrigger } from "@repo/ui/components/popover";
 import { Skeleton } from "@repo/ui/components/skeleton";
 import { cn } from "@repo/ui/lib/utils";
 import { ensureCdnUrl, formatDateTimeFromNow, getDisplayName, getInitials } from "@repo/util";
@@ -29,7 +27,6 @@ import {
 	IconCheck,
 	IconDots,
 	IconLoader2,
-	IconMoodPlus,
 	IconPencil,
 	IconTrash,
 	IconX,
@@ -38,111 +35,10 @@ import type { NodeJSON } from "prosekit/core";
 import { lazy, Suspense, useCallback, useState } from "react";
 import { COMMENT_PROSE } from "@/components/public/portal/post/prose";
 import { Pill } from "@/components/public/portal/ui/Pill";
-import { REACTION_OPTIONS, type ReactionEmoji } from "@/components/tasks/task/timeline/reactions";
+import { CommentReactions } from "./comment-reactions";
 import type { PublicCommentItemProps } from "./public-comments-types";
 
 const Editor = lazy(() => import("@/components/prosekit/editor"));
-
-type ReactionMap = Record<string, { count: number; users: string[] }>;
-
-const REACTION_CHIP =
-	"relative inline-flex h-7 items-center gap-1.5 rounded-full border px-2.5 font-medium text-[12.5px] outline-none after:absolute after:-inset-x-1 after:-inset-y-2 after:content-[''] md:after:hidden transition-colors";
-
-function reactorsTitle(info: { count: number; users: string[] }, users?: schema.userType[]): string {
-	const names = info.users
-		.map((id) => users?.find((user) => user.id === id))
-		.filter((user): user is schema.userType => !!user)
-		.map((user) => getDisplayName(user));
-	if (names.length === 0) return `${info.count} ${info.count === 1 ? "person" : "people"} reacted`;
-	const shown = names.slice(0, 5).join(", ");
-	return names.length > 5 ? `${shown} and ${names.length - 5} more` : shown;
-}
-
-/**
- * Reaction chips for a comment (28px pills, primary-tinted when the viewer reacted) plus an add-reaction picker using
- * the same emoji set as everywhere else (`REACTION_OPTIONS`). Omit `onToggle` when the viewer cannot react (logged
- * out, or public actions are off): chips render read-only.
- */
-function CommentReactions({
-	reactions,
-	onToggle,
-	users,
-	currentUserId,
-}: {
-	reactions?: ReactionMap;
-	onToggle?: (emoji: ReactionEmoji) => void;
-	users?: schema.userType[];
-	currentUserId?: string;
-}) {
-	const [pickerOpen, setPickerOpen] = useState(false);
-	const entries = Object.entries(reactions ?? {}).filter(([, info]) => info.count > 0);
-	const reacted = (info: { users: string[] }) => !!currentUserId && info.users.includes(currentUserId);
-
-	return (
-		<div className="flex flex-wrap items-center gap-1.5">
-			{entries.map(([emoji, info]) =>
-				onToggle ? (
-					<button
-						key={emoji}
-						type="button"
-						aria-pressed={reacted(info)}
-						title={reactorsTitle(info, users)}
-						onClick={() => onToggle(emoji as ReactionEmoji)}
-						className={cn(
-							REACTION_CHIP,
-							reacted(info)
-								? "border-primary/50 bg-primary/15 text-primary"
-								: "border-border bg-transparent text-muted-foreground hover:bg-accent hover:text-foreground"
-						)}
-					>
-						<span className="text-sm leading-none">{emoji}</span>
-						{info.count}
-					</button>
-				) : (
-					<span
-						key={emoji}
-						title={reactorsTitle(info, users)}
-						className={cn(REACTION_CHIP, "border-border text-muted-foreground")}
-					>
-						<span className="text-sm leading-none">{emoji}</span>
-						{info.count}
-					</span>
-				)
-			)}
-			{onToggle && (
-				<Popover open={pickerOpen} onOpenChange={setPickerOpen}>
-					<PopoverTrigger
-						aria-label="Add reaction"
-						className="relative inline-flex size-7 cursor-pointer items-center justify-center rounded-full border border-transparent after:absolute after:-inset-2 after:content-[''] md:after:hidden text-muted-foreground outline-none transition-colors hover:bg-accent hover:text-foreground"
-					>
-						<IconMoodPlus aria-hidden className="size-4" />
-					</PopoverTrigger>
-					<PopoverContent className="w-auto p-1" align="start" sideOffset={4}>
-						<div className="grid grid-cols-4 gap-1">
-							{REACTION_OPTIONS.map(({ emoji, label }) => (
-								<button
-									key={emoji}
-									type="button"
-									aria-label={label}
-									onClick={() => {
-										onToggle(emoji);
-										setPickerOpen(false);
-									}}
-									className={cn(
-										"flex size-9 cursor-pointer items-center justify-center rounded-md text-lg max-md:size-11 transition-colors hover:bg-accent focus-visible:bg-accent",
-										reacted(reactions?.[emoji] ?? { users: [] }) && "bg-accent"
-									)}
-								>
-									{emoji}
-								</button>
-							))}
-						</div>
-					</PopoverContent>
-				</Popover>
-			)}
-		</div>
-	);
-}
 
 /**
  * One comment or reply: 32px avatar, name, Author/Team pills, time, body,
@@ -166,6 +62,12 @@ export function PublicCommentItem({
 	blockedUserIds,
 	isOrgMember,
 }: PublicCommentItemProps) {
+	const [isEditing, setIsEditing] = useState(false);
+	const [editedContent, setEditedContent] = useState<NodeJSON | undefined>(comment.content);
+	const [isSaving, setIsSaving] = useState(false);
+	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+	const [isDeleting, setIsDeleting] = useState(false);
+
 	const isBlocked = !!comment.createdBy && !!blockedUserIds?.has(comment.createdBy.id);
 
 	const isGithub = comment.source === "github";
@@ -180,13 +82,6 @@ export function PublicCommentItem({
 	const reactions = comment.reactions?.reactions;
 
 	const isOwnComment = !!currentUserId && comment.createdBy?.id === currentUserId;
-
-	const [isEditing, setIsEditing] = useState(false);
-	const [editedContent, setEditedContent] = useState<NodeJSON | undefined>(comment.content);
-	const [isSaving, setIsSaving] = useState(false);
-	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-	const [isDeleting, setIsDeleting] = useState(false);
-
 	const canSave = !!editedContent && editedContent !== comment.content;
 
 	const handleSave = useCallback(async () => {
@@ -272,7 +167,7 @@ export function PublicCommentItem({
 								<DropdownMenu>
 									<DropdownMenuTrigger
 										aria-label="Comment actions"
-										className="relative inline-flex size-7 cursor-pointer items-center justify-center rounded-md text-muted-foreground outline-none after:absolute after:-inset-2 after:content-[''] md:after:hidden transition-colors hover:bg-accent hover:text-foreground data-popup-open:bg-accent"
+										className="relative inline-flex size-7 cursor-pointer items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-accent hover:text-foreground data-popup-open:bg-accent"
 									>
 										<IconDots aria-hidden className="size-4" />
 									</DropdownMenuTrigger>
@@ -346,7 +241,7 @@ export function PublicCommentItem({
 								<button
 									type="button"
 									onClick={onReply}
-									className="relative inline-flex h-7 cursor-pointer items-center gap-1.5 rounded-full px-2.5 font-medium text-[12.5px] text-muted-foreground outline-none after:absolute after:-inset-x-1 after:-inset-y-2 after:content-[''] md:after:hidden transition-colors hover:bg-accent hover:text-foreground"
+									className="relative inline-flex h-7 cursor-pointer items-center gap-1.5 rounded-full px-2.5 font-medium text-[12.5px] text-muted-foreground outline-none transition-colors hover:bg-accent hover:text-foreground"
 								>
 									<IconArrowBackUp aria-hidden className="size-3.5" />
 									Reply

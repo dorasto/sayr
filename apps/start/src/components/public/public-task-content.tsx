@@ -5,13 +5,7 @@ import { Skeleton } from "@repo/ui/components/skeleton";
 import { useStateManagementFetch } from "@repo/ui/hooks/useStateManagement.ts";
 import { cn } from "@repo/ui/lib/utils";
 import { ensureCdnUrl, formatDate, formatTaskKey, getDisplayName, getInitials } from "@repo/util";
-import {
-	IconArrowLeft,
-	IconArrowUpRight,
-	IconBrandGithub,
-	IconLayoutSidebarRight,
-	IconLayoutSidebarRightFilled,
-} from "@tabler/icons-react";
+import { IconArrowUpRight, IconBrandGithub } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
 import { lazy, Suspense, useEffect, useMemo } from "react";
 import LoginDialog from "@/components/auth/login";
@@ -28,24 +22,21 @@ import { Pill } from "@/components/public/portal/ui/Pill";
 import { Stepper } from "@/components/public/portal/ui/Stepper";
 import { StatusChip } from "@/components/public/portal/ui/StatusChip";
 import { VoteBox } from "@/components/public/portal/ui/VoteBox";
-import { PublicTaskPanelContent, PublicTaskPanelHeaderActions } from "@/components/public/panels/task";
-import { PublicTaskProvider, usePublicTask } from "@/contexts/ContextPublicOrgTask";
+import { PublicTaskPanelHeaderActions } from "@/components/public/panels/public-task-panel-header-actions";
+import { PublicTaskPanelContent } from "@/components/public/panels/task";
+import { usePublicTask } from "@/contexts/ContextPublicOrgTask";
 import { usePublicOrganizationLayout } from "@/contexts/publicContextOrg";
 import { usePanelViewportDefaults } from "@/hooks/portal/usePanelViewportDefaults";
 import { parseGithubIssueUrl } from "@/lib/portal/github-issue";
 import { getLatestUpdate } from "@/lib/portal/latest-update";
 import { isTeamMember } from "@/lib/portal/team";
 import { sidebarActions } from "@/lib/sidebar/sidebar-store";
+import { PostPageBar } from "./post-page-bar";
 import { PublicComments } from "./public-comments";
 
 const Editor = lazy(() => import("@/components/prosekit/editor"));
 
 export const PUBLIC_TASK_PANEL_ID = "public-task-panel";
-
-interface PublicTaskContentProps {
-	task: schema.TaskWithLabels;
-	release?: schema.releaseType | null;
-}
 
 const baseApiUrl = import.meta.env.VITE_APP_ENV === "development" ? "/backend-api/internal" : "/api/internal";
 
@@ -63,49 +54,12 @@ function focusComposer() {
 
 /**
  * Public (unauthenticated) post page: one centred 760px article column plus a "Details" drawer (`public-task-panel`:
- * Vote card, Details, Related posts). All live task/vote/membership state lives in `PublicTaskProvider`
- * (apps/start/src/contexts/ContextPublicOrgTask.tsx) so both this component and the panel
- * (apps/start/src/components/public/panels/task.tsx) read from context rather than one prop-drilling into the other.
+ * Vote card, Details, Related posts). Must render inside `PublicTaskProvider`
+ * (apps/start/src/contexts/ContextPublicOrgTask.tsx), which holds all live task/vote/membership state so both this
+ * component and the panel (apps/start/src/components/public/panels/task.tsx) read from context rather than one
+ * prop-drilling into the other.
  */
-export function PublicTaskContent({ task: initialTask, release }: PublicTaskContentProps) {
-	return (
-		<PublicTaskProvider task={initialTask} release={release}>
-			<PublicTaskContentInner />
-		</PublicTaskProvider>
-	);
-}
-
-function PostPageBar({ orgSlug }: { orgSlug: string }) {
-	const panel = usePanel(PUBLIC_TASK_PANEL_ID);
-	const { closePanel } = usePage();
-
-	return (
-		<div className="flex h-14 shrink-0 items-center justify-between border-b bg-sidebar px-2 md:h-11 md:px-3">
-			<Link
-				to="/orgs/$orgSlug"
-				params={{ orgSlug }}
-				className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "h-8 gap-2 px-2 text-[13.5px]")}
-			>
-				<IconArrowLeft aria-hidden className="size-4" />
-				Feedback
-			</Link>
-			<Button
-				variant="ghost"
-				size="icon"
-				aria-label={panel.isOpen ? "Hide details" : "Show details"}
-				aria-pressed={panel.isOpen}
-				className={cn("size-8", panel.isOpen && "bg-accent text-foreground")}
-				onClick={() =>
-					panel.isOpen ? closePanel(PUBLIC_TASK_PANEL_ID) : sidebarActions.setOpen(PUBLIC_TASK_PANEL_ID, true)
-				}
-			>
-				{panel.isOpen ? <IconLayoutSidebarRightFilled /> : <IconLayoutSidebarRight />}
-			</Button>
-		</div>
-	);
-}
-
-function PublicTaskContentInner() {
+export function PublicTaskContent() {
 	const { organization, tasks: contextTasks, categories } = usePublicOrganizationLayout();
 	const { task, release, orgSlug, isMember, isVoted, voteCount, voteDisabled, handleVote } = usePublicTask();
 	const { setPanelContent } = usePage();
@@ -133,26 +87,8 @@ function PublicTaskContentInner() {
 
 	const tasks = contextTasks.length > 0 ? contextTasks : (fetchedTasks ?? EMPTY_TASKS);
 
-	// The Details drawer pulls live state from usePublicTask()/usePublicOrganizationLayout() itself, so it only needs
-	// to be handed over once per `tasks` change. Memoised (not an inline literal) so the effect below does not loop.
-	// Gated on isRegistered, not just mount: Page defers registering the panel to its client-only pass, so a plain
-	// `[]`-effect here would race it and silently no-op.
-	const panelContent = useMemo(() => <PublicTaskPanelContent tasks={tasks} />, [tasks]);
-	useEffect(() => {
-		if (!panel.isRegistered) return;
-		setPanelContent(PUBLIC_TASK_PANEL_ID, panelContent);
-	}, [panel.isRegistered, setPanelContent, panelContent]);
-
-	// Native drawer header (title + close button); members also get "Open internally".
-	useEffect(() => {
-		if (!panel.isRegistered) return;
-		sidebarActions.setPanelHeader(PUBLIC_TASK_PANEL_ID, {
-			title: "Details",
-			actions: isMember ? <PublicTaskPanelHeaderActions /> : undefined,
-		});
-	}, [panel.isRegistered, isMember]);
-
 	const { allComments } = usePostComments({ taskId: task.id, organizationId: task.organizationId });
+	const { isLoggedIn, canAct } = useCanAct(task.status);
 	const latestUpdate = useMemo(() => getLatestUpdate(allComments, organization), [allComments, organization]);
 
 	const category = categories.find((c) => c.id === task.category) ?? null;
@@ -169,15 +105,34 @@ function PublicTaskContentInner() {
 	const creator = task.createdBy;
 	const creatorId = creator?.id ?? null;
 	const creatorName = creator ? getDisplayName(creator) : null;
-	const { isLoggedIn, canAct } = useCanAct(task.status);
 	const githubParsed = task.githubIssue ? parseGithubIssueUrl(task.githubIssue.issueUrl) : null;
 	const githubReference = githubParsed
 		? `${githubParsed.repo}#${githubParsed.number}`
 		: `#${task.githubIssue?.issueNumber}`;
 
+	// The Details drawer pulls live state from usePublicTask()/usePublicOrganizationLayout() itself, so it only needs
+	// to be handed over once per `tasks` change. Memoised (not an inline literal) so the effect below does not loop.
+	// Gated on isRegistered, not just mount: Page defers registering the panel to its client-only pass, so a plain
+	// `[]`-effect here would race it and silently no-op.
+	const panelContent = useMemo(() => <PublicTaskPanelContent tasks={tasks} />, [tasks]);
+
+	useEffect(() => {
+		if (!panel.isRegistered) return;
+		setPanelContent(PUBLIC_TASK_PANEL_ID, panelContent);
+	}, [panel.isRegistered, setPanelContent, panelContent]);
+
+	// Native drawer header (title + close button); members also get "Open internally".
+	useEffect(() => {
+		if (!panel.isRegistered) return;
+		sidebarActions.setPanelHeader(PUBLIC_TASK_PANEL_ID, {
+			title: "Details",
+			actions: isMember ? <PublicTaskPanelHeaderActions /> : undefined,
+		});
+	}, [panel.isRegistered, isMember]);
+
 	return (
 		<Page
-			header={<PostPageBar orgSlug={orgSlug} />}
+			header={<PostPageBar orgSlug={orgSlug} panelId={PUBLIC_TASK_PANEL_ID} />}
 			panels={{
 				right: {
 					id: PUBLIC_TASK_PANEL_ID,

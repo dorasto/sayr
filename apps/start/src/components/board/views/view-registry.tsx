@@ -14,8 +14,16 @@ function ListViewAdapter({ items }: { items: readonly TaskItem[] }) {
 	return <BoardListView tasks={items} />;
 }
 
+function FlatListViewAdapter({ items }: { items: readonly TaskItem[] }) {
+	return <BoardListView tasks={items} flatSubtasks />;
+}
+
 function KanbanViewAdapter({ items }: { items: readonly TaskItem[] }) {
 	return <BoardKanbanView tasks={items} />;
+}
+
+function PageScrollKanbanViewAdapter({ items }: { items: readonly TaskItem[] }) {
+	return <BoardKanbanView tasks={items} pageScroll />;
 }
 
 export const LIST_VIEW: BoardViewDefinition = {
@@ -24,6 +32,13 @@ export const LIST_VIEW: BoardViewDefinition = {
 	icon: <IconLayoutList className="h-4 w-4" />,
 	component: ListViewAdapter,
 	supports: { grouping: true, subGrouping: true, drag: true, sort: true, subtasks: "nested" },
+};
+
+/** The list with every task its own row in the given order (no subtask nesting): for server-ranked lists. */
+export const FLAT_LIST_VIEW: BoardViewDefinition = {
+	...LIST_VIEW,
+	component: FlatListViewAdapter,
+	supports: { ...LIST_VIEW.supports, subtasks: "flat" },
 };
 
 export const KANBAN_VIEW: BoardViewDefinition = {
@@ -35,6 +50,9 @@ export const KANBAN_VIEW: BoardViewDefinition = {
 	// Kanban columns bring their own edge-to-edge chrome; the host must not pad around it.
 	fullBleed: true,
 };
+
+/** The kanban for a host page that scrolls as a whole (no bounded height): columns at natural height. */
+export const PAGE_SCROLL_KANBAN_VIEW: BoardViewDefinition = { ...KANBAN_VIEW, component: PageScrollKanbanViewAdapter };
 
 export const CARD_VIEW: BoardViewDefinition = {
 	id: "card",

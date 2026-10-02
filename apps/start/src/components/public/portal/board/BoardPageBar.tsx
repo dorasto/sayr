@@ -24,7 +24,7 @@ import { usePage, usePanel } from "@/components/generic/use-page";
 import { type BoardSort, type BoardTab, getTabStatuses } from "@/lib/portal/board-filters";
 import { getPortalStatus } from "@/lib/portal/status";
 import { sidebarActions } from "@/lib/sidebar/sidebar-store";
-import { PUBLIC_BOARD_PANEL_ID } from "./BoardRailPanel";
+import { PUBLIC_BOARD_PANEL_ID } from "./BoardRailContent";
 
 const SORT_LABELS: Record<BoardSort, string> = {
 	mostPopular: "Most voted",
@@ -58,6 +58,10 @@ export interface BoardToolbarProps {
 	onClearFilters: () => void;
 }
 
+interface BoardPageBarProps {
+	toolbar: BoardToolbarProps;
+}
+
 /**
  * The board's top bar (the Page `header`, h-11 on desktop, h-14 on phones): the tabs on the left (Active / Done / All
  * with counts; the bar's own bottom border is their underline track), then the sort and filter menus (icon-only on
@@ -65,7 +69,7 @@ export interface BoardToolbarProps {
  * how the panel is opened below 1024px, where it never opens by itself. Everything is driven by `toolbar` (built fresh
  * by the page on every render, so tab, sort, filter and count changes always reach the bar).
  */
-export function BoardPageBar({ toolbar }: { toolbar: BoardToolbarProps }) {
+export function BoardPageBar({ toolbar }: BoardPageBarProps) {
 	const {
 		tab,
 		onTabChange,

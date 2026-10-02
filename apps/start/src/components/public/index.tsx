@@ -29,11 +29,8 @@ import {
   type BoardToolbarProps,
 } from "./portal/board/BoardPageBar";
 import { BoardPanelProvider } from "./portal/board/BoardPanelProvider";
-import {
-  BoardRailProvider,
-  PUBLIC_BOARD_PANEL_ID,
-  RAIL_HEADER,
-} from "./portal/board/BoardRailPanel";
+import { PUBLIC_BOARD_PANEL_ID, RAIL_HEADER } from "./portal/board/BoardRailContent";
+import { BoardRailProvider } from "./portal/board/BoardRailProvider";
 import {
   boardCountsKey,
   useBoardCounts,
@@ -130,7 +127,7 @@ export default function PublicOrgHomePage() {
   });
   const { refetch: refetchVotes } = usePublicVotes(orgId);
   const countsQuery = useBoardCounts(orgId);
-  const { releases, releasesById } = useBoardReleases(organization.slug);
+  const { releases } = useBoardReleases(organization.slug);
   // Modal and closed-on-load below 1024px (a sheet that never auto-opens); `undefined` (platform default) above.
   const { modal } = usePanelViewportDefaults(PUBLIC_BOARD_PANEL_ID);
   const panels = useMemo(() => ({ right: { ...BOARD_PANEL, modal } }), [modal]);
@@ -347,7 +344,6 @@ export default function PublicOrgHomePage() {
           <PublicTaskView
             tab={tab}
             tasks={visibleTasks}
-            releasesById={releasesById}
             isLoading={list.isLoading}
             isError={list.isError}
             isFetchingMore={

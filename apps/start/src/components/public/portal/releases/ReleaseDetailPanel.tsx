@@ -6,6 +6,8 @@ import { BarRow } from "@/components/public/portal/ui/BarRow";
 import { SegmentedProgress } from "@/components/public/portal/ui/SegmentedProgress";
 import { getReleaseDisplayDate } from "@/lib/portal/changelog";
 import type { ReleaseProgress } from "@/lib/portal/release-progress";
+import { DetailRow } from "@/components/public/panels/detail-row";
+import { LegendRow } from "./LegendRow";
 import { ReleaseStatusChip } from "./ReleaseStatusChip";
 
 interface Lead {
@@ -28,29 +30,6 @@ interface ReleaseDetailPanelContentProps {
 	userPostCount: number | null;
 	/** Linked GitHub pull request section, rendered last when present. */
 	pullRequests?: ReactNode;
-}
-
-function DetailRow({ label, children }: { label: string; children: ReactNode }) {
-	return (
-		<div className="flex min-h-10 items-center justify-between gap-3 border-t py-1 text-[13.5px] first:border-t-0">
-			<dt className="text-muted-foreground">{label}</dt>
-			<dd className="flex flex-wrap items-center justify-end gap-x-2 gap-y-1 text-right text-foreground">
-				{children}
-			</dd>
-		</div>
-	);
-}
-
-function LegendRow({ label, count, dotClass }: { label: string; count: number; dotClass: string }) {
-	return (
-		<span className="flex items-center justify-between">
-			<span className="inline-flex items-center gap-1.5 text-foreground">
-				<i aria-hidden className={`block size-2 shrink-0 rounded-[3px] ${dotClass}`} />
-				{label}
-			</span>
-			<span className="text-muted-foreground tabular-nums">{count}</span>
-		</span>
-	);
 }
 
 /**

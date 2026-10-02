@@ -11,7 +11,7 @@ import { PeekContext, type PeekContextValue } from "../peek/peek-context";
 import { PEEK_CONTENT, PEEK_HEADER } from "../peek/PeekPanel";
 import { usePeekEnabled } from "../peek/usePeekEnabled";
 import { usePeekPost } from "../peek/usePeekPost";
-import { PUBLIC_BOARD_PANEL_ID, RAIL_CONTENT, RAIL_HEADER } from "./BoardRailPanel";
+import { PUBLIC_BOARD_PANEL_ID, RAIL_CONTENT, RAIL_HEADER } from "./BoardRailContent";
 
 const POPUP_SELECTOR = '[data-slot="indent-drawer-popup"]';
 
@@ -51,8 +51,9 @@ interface BoardPanelProviderProps {
  *   selected row again returns to the overview);
  * - a deep link or history navigation that changes the param swaps the view (desktop only; below 1024px a `?task`
  *   deep link is redirected to the full post page and rows just navigate);
- * - the post header's X (`closePost`) and a click on the selected row close the whole panel, like any row-click detail
- *   panel (the next open starts on the overview);
+ * - the post header's X (`closePost`) and a click on the selected row go back to the overview when the panel was
+ *   already open on it before the post was opened, and otherwise close the whole panel (the next open starts on the
+ *   overview);
  * - any close of the whole panel (the overview header's X, Esc, drag-dismiss, the page toggle) is observed through
  *   `usePanel().isOpen` and clears the param too, so the URL never names a post the panel is not showing.
  */
@@ -70,6 +71,10 @@ export function BoardPanelProvider({ tasks, children }: BoardPanelProviderProps)
 	const applied = useRef<AppliedPanelView>(undefined);
 	/** The row link that opened the post, to return focus to when it is left. */
 	const triggerRef = useRef<HTMLElement | null>(null);
+	const panelOpenRef = useRef(panel.isOpen);
+	panelOpenRef.current = panel.isOpen;
+	/** The post was opened while the panel was already open on the overview: leaving it goes back there, not closed. */
+	const returnToRail = useRef(false);
 
 	// The post is only resolved while the panel is open on desktop and a post is selected.
 	const shortId = desktop && panel.isOpen ? urlShortId : null;
@@ -97,13 +102,19 @@ export function BoardPanelProvider({ tasks, children }: BoardPanelProviderProps)
 	}, [setTask, returnFocusToTrigger]);
 
 	/**
-	 * The user is done with the post: close the whole panel (the row-click detail pattern: the selected row's
-	 * highlight goes with it). The `isOpen` effect below clears `?task`, and the next open starts on the overview.
+	 * The user is done with the post. If the panel was already open on the overview when the post was opened, go back
+	 * to the overview with the panel left open; otherwise close the whole panel (the `isOpen` effect below clears
+	 * `?task`, and the next open starts on the overview).
 	 */
 	const closePost = useCallback(() => {
+		if (returnToRail.current) {
+			returnToRail.current = false;
+			showOverview();
+			return;
+		}
 		sidebarActions.close(PUBLIC_BOARD_PANEL_ID);
 		returnFocusToTrigger();
-	}, [returnFocusToTrigger]);
+	}, [showOverview, returnFocusToTrigger]);
 
 	const openPost = useCallback<PeekContextValue["openPost"]>(
 		(task, event: MouseEvent<HTMLAnchorElement>) => {
@@ -123,6 +134,8 @@ export function BoardPanelProvider({ tasks, children }: BoardPanelProviderProps)
 				return;
 			}
 
+			// Switching straight from one post to another keeps whatever the first open decided.
+			if (shortIdRef.current === null) returnToRail.current = panelOpenRef.current;
 			triggerRef.current = event.currentTarget;
 			applied.current = rowShortId;
 			setTask(rowShortId);
@@ -180,6 +193,7 @@ export function BoardPanelProvider({ tasks, children }: BoardPanelProviderProps)
 		wasOpen.current = panel.isOpen;
 		if (!closed) return;
 
+		returnToRail.current = false;
 		if (urlShortId !== null && desktopRef.current) setTask(null);
 		// Non-modal panel: hand focus back to the row (the browser may already have, or left it on the body).
 		returnFocusToTrigger();

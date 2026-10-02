@@ -16,7 +16,8 @@ import { usePublicOrganizationLayout } from "@/contexts/publicContextOrg";
 import { getBlockedUserIdsAction } from "@/lib/fetches/organization";
 import { CreateTaskReactionAction, DeleteTaskCommentAction, UpdateTaskCommentAction } from "@/lib/fetches/task";
 import { PublicCommentItem } from "./public-comment-item";
-import { PublicCommentThreadBody, PublicCommentThreadTrigger } from "./public-comment-thread";
+import { PublicCommentThreadBody } from "./public-comment-thread-body";
+import { PublicCommentThreadTrigger } from "./public-comment-thread-trigger";
 import type { CommentData, CommentsPage } from "./public-comments-types";
 
 /**
@@ -79,17 +80,13 @@ export function PublicComments({
 		organizationId,
 	});
 
-	const toggleThread = useCallback((commentId: string) => {
-		setExpandedThreads((prev) => {
-			const next = new Set(prev);
-			if (next.has(commentId)) {
-				next.delete(commentId);
-			} else {
-				next.add(commentId);
-			}
-			return next;
-		});
-	}, []);
+	// Fetch blocked user IDs (only for org members — endpoint returns 401 for non-members, action handles gracefully)
+	const { data: blockedUserIdsArray } = useQuery({
+		queryKey: ["blocked-user-ids", organizationId],
+		queryFn: () => getBlockedUserIdsAction(organizationId),
+		enabled: isOrgMember,
+		staleTime: 60_000,
+	});
 
 	// Build a map of userId -> highest team name (by permission weight)
 	const memberHighestTeam = useMemo(() => {
@@ -117,20 +114,24 @@ export function PublicComments({
 	// Map org members to a user array for mentions + reaction tooltips
 	const orgUsers = useMemo(() => organization.members.map((m) => m.user) as schema.userType[], [organization.members]);
 
-	// Fetch blocked user IDs (only for org members — endpoint returns 401 for non-members, action handles gracefully)
-	const { data: blockedUserIdsArray } = useQuery({
-		queryKey: ["blocked-user-ids", organizationId],
-		queryFn: () => getBlockedUserIdsAction(organizationId),
-		enabled: isOrgMember,
-		staleTime: 60_000,
-	});
-
 	const blockedUserIds = useMemo(() => new Set(blockedUserIdsArray ?? []), [blockedUserIdsArray]);
 
 	// Split at midpoint for outside-in rendering
 	const halfway = Math.floor(allComments.length / 2);
 	const topComments = allComments.slice(0, halfway);
 	const bottomComments = allComments.slice(halfway);
+
+	const toggleThread = useCallback((commentId: string) => {
+		setExpandedThreads((prev) => {
+			const next = new Set(prev);
+			if (next.has(commentId)) {
+				next.delete(commentId);
+			} else {
+				next.add(commentId);
+			}
+			return next;
+		});
+	}, []);
 
 	// Optimistic reaction toggle (mirrors admin timeline-comment.tsx pattern)
 	const handleToggleReaction = useCallback(

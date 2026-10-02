@@ -7,42 +7,20 @@ import { IconArrowRight, IconChevronUp, IconLoader2, IconPlus, IconRocket, IconS
 import { Link } from "@tanstack/react-router";
 import { type KeyboardEvent, type MouseEvent, useEffect, useId, useMemo, useRef, useState } from "react";
 import { usePortalSearch } from "@/hooks/portal/usePortalSearch";
-import { includesGroup, SEARCH_FILTERS, type SearchFilter, splitHighlight, wrapIndex } from "@/lib/portal/search";
+import { includesGroup, SEARCH_FILTERS, type SearchFilter, wrapIndex } from "@/lib/portal/search";
 import { newPostLink } from "../board/new-post-path";
 import { ReleaseStatusChip } from "../releases/ReleaseStatusChip";
 import { StatusChip } from "../ui/StatusChip";
+import { Highlight } from "./Highlight";
 
 const ROW_CLASS =
 	"mx-2 flex h-12 cursor-pointer items-center gap-3 rounded-lg px-4 text-foreground no-underline outline-none transition-colors aria-selected:bg-muted";
-const GROUP_HEADING_CLASS = "px-6 pt-3 pb-1.5 font-semibold text-muted-foreground text-xs uppercase tracking-[0.04em]";
 
 /** Rows are links (so they can open in a new tab) acting as listbox options; a native <option> can't be a link. */
 const OPTION_ATTRS = { role: "option", tabIndex: -1 } as const;
 
 /** Keep focus in the search input when a row is pressed, so the click lands without a focus jump. */
 const keepInputFocus = (event: MouseEvent) => event.preventDefault();
-
-/** `<mark>` around the part of `text` that matches the query. */
-function Highlight({ text, query }: { text: string; query: string }) {
-	return (
-		<>
-			{splitHighlight(text, query).map((segment, index) =>
-				segment.match ? (
-					<mark
-						// biome-ignore lint/suspicious/noArrayIndexKey: segments are positional and never reorder
-						key={index}
-						className="rounded-[3px] bg-primary/15 px-px text-primary"
-					>
-						{segment.text}
-					</mark>
-				) : (
-					// biome-ignore lint/suspicious/noArrayIndexKey: segments are positional and never reorder
-					<span key={index}>{segment.text}</span>
-				)
-			)}
-		</>
-	);
-}
 
 interface SearchPaletteProps {
 	orgSlug: string;
@@ -241,7 +219,10 @@ export function SearchPalette({ orgSlug, orgId, orgShortId, onClose }: SearchPal
 					{posts.length > 0 && (
 						// biome-ignore lint/a11y/useSemanticElements: a group inside a listbox, not a form <fieldset>
 						<div role="group" aria-labelledby={`${baseId}-posts-heading`}>
-							<div id={`${baseId}-posts-heading`} className={GROUP_HEADING_CLASS}>
+							<div
+								id={`${baseId}-posts-heading`}
+								className="px-6 pt-3 pb-1.5 font-semibold text-muted-foreground text-xs uppercase tracking-[0.04em]"
+							>
 								{isEmptyQuery ? "Popular posts" : "Posts"}
 							</div>
 							{posts.map((post, index) =>
@@ -277,7 +258,10 @@ export function SearchPalette({ orgSlug, orgId, orgShortId, onClose }: SearchPal
 					{releases.length > 0 && (
 						// biome-ignore lint/a11y/useSemanticElements: a group inside a listbox, not a form <fieldset>
 						<div role="group" aria-labelledby={`${baseId}-releases-heading`}>
-							<div id={`${baseId}-releases-heading`} className={GROUP_HEADING_CLASS}>
+							<div
+								id={`${baseId}-releases-heading`}
+								className="px-6 pt-3 pb-1.5 font-semibold text-muted-foreground text-xs uppercase tracking-[0.04em]"
+							>
 								{isEmptyQuery ? "Latest releases" : "Releases"}
 							</div>
 							{releases.map((release, index) => (

@@ -31,19 +31,16 @@ import {
 } from "@/lib/fetches/release";
 import type { ServerEventMessage } from "@/lib/serverEvents";
 import { PublicCommentItem } from "../public-comment-item";
-import { PublicCommentThreadBody, PublicCommentThreadTrigger } from "../public-comment-thread";
+import { PublicCommentThreadBody } from "../public-comment-thread-body";
+import { PublicCommentThreadTrigger } from "../public-comment-thread-trigger";
 import type { CommentData } from "../public-comments-types";
 
 const Editor = lazy(() => import("@/components/prosekit/editor"));
 
 const basePublicApiUrl = import.meta.env.VITE_APP_ENV === "development" ? "/backend-api/public/v1" : "/api/public/v1";
+const baseApiUrl = import.meta.env.VITE_APP_ENV === "development" ? "/backend-api/internal" : "/api/internal";
 
-interface PublicReleaseDiscussionProps {
-	releaseId: string;
-	releaseSlug: string;
-	organizationId: string;
-	orgSlug: string;
-}
+const COMMENT_LIMIT = 20;
 
 interface ReleaseCommentData {
 	id: string;
@@ -118,6 +115,14 @@ function scorePermissions(permissions: schema.TeamPermissions): number {
 	return score;
 }
 
+interface PublicReleaseDiscussionProps {
+	releaseId: string;
+	releaseSlug: string;
+	organizationId: string;
+	orgSlug: string;
+}
+
+/** Release discussion: top-level comments (paged from both ends), reply threads, reactions and the comment box. */
 export function PublicReleaseDiscussion({
 	releaseId,
 	releaseSlug,
@@ -135,7 +140,6 @@ export function PublicReleaseDiscussion({
 	const [expandedThreads, setExpandedThreads] = useState<Set<string>>(new Set());
 
 	// Fetch public tasks for this org if context tasks are empty
-	const baseApiUrl = import.meta.env.VITE_APP_ENV === "development" ? "/backend-api/internal" : "/api/internal";
 	const {
 		value: { data: fetchedTasks },
 	} = useStateManagementFetch<schema.TaskWithLabels[]>({
@@ -154,26 +158,6 @@ export function PublicReleaseDiscussion({
 	});
 
 	const tasks = contextTasks.length > 0 ? contextTasks : (fetchedTasks ?? []);
-
-	const toggleThread = useCallback((commentId: string) => {
-		setExpandedThreads((prev) => {
-			const next = new Set(prev);
-			if (next.has(commentId)) {
-				next.delete(commentId);
-			} else {
-				next.add(commentId);
-			}
-			return next;
-		});
-	}, []);
-
-	useEffect(() => {
-		if (organizationId) {
-			setMentionContext({ orgId: organizationId, orgShortId: organization.shortId, releaseId });
-		}
-	}, [organizationId, organization.shortId, releaseId, setMentionContext]);
-
-	const commentLimit = 20;
 
 	// Build a map of userId -> highest team name (by permission weight)
 	const memberHighestTeam = useMemo(() => {
@@ -228,7 +212,7 @@ export function PublicReleaseDiscussion({
 			custom: async (url, pageParam) => {
 				const { fromStart = 1, fromEnd } = pageParam ?? {};
 
-				const firstUrl = `${url}?page=${fromStart}&limit=${commentLimit / 2}&direction=asc`;
+				const firstUrl = `${url}?page=${fromStart}&limit=${COMMENT_LIMIT / 2}&direction=asc`;
 				const firstRes = await fetch(firstUrl);
 				if (!firstRes.ok) throw new Error(`Failed: ${firstRes.statusText}`);
 				const firstData = await firstRes.json();
@@ -238,7 +222,7 @@ export function PublicReleaseDiscussion({
 
 				let lastData = { data: { comments: [] } };
 				if (endPage !== fromStart) {
-					const lastUrl = `${url}?page=${endPage}&limit=${commentLimit / 2}&direction=asc`;
+					const lastUrl = `${url}?page=${endPage}&limit=${COMMENT_LIMIT / 2}&direction=asc`;
 					const lastRes = await fetch(lastUrl);
 					if (lastRes.ok) lastData = await lastRes.json();
 				}
@@ -290,6 +274,62 @@ export function PublicReleaseDiscussion({
 
 		return result.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 	}, [commentsData]);
+
+	// SSE handlers for real-time updates on this release
+	const handlers: WSMessageHandler<ServerEventMessage> = {
+		UPDATE_RELEASE_COMMENTS: (msg) => {
+			if (msg.scope === "PUBLIC" && msg.meta?.orgId === organization.id && msg.data.releaseId === releaseId) {
+				queryClient.invalidateQueries({
+					queryKey: ["public-release-comments", releaseId, organizationId],
+				});
+				queryClient.invalidateQueries({
+					queryKey: ["comment-replies"],
+				});
+			}
+		},
+	};
+	const handleMessage = useWSMessageHandler<ServerEventMessage>(handlers);
+
+	useEffect(() => {
+		if (organizationId) {
+			setMentionContext({ orgId: organizationId, orgShortId: organization.shortId, releaseId });
+		}
+	}, [organizationId, organization.shortId, releaseId, setMentionContext]);
+
+	useEffect(() => {
+		if (!serverEvents.event) return;
+		serverEvents.event.addEventListener("message", handleMessage);
+		return () => {
+			serverEvents.event?.removeEventListener("message", handleMessage);
+		};
+	}, [serverEvents.event, handleMessage]);
+
+	useEffect(() => {
+		const unsubscribe = onWindowMessage<{ type: string }>("*", (msg) => {
+			if (msg.type === "SSE_RECONNECTED") {
+				console.log("🟢 Global SSE reconnected — refreshing data");
+				queryClient.invalidateQueries({
+					queryKey: ["public-release-comments", releaseId, organizationId],
+				});
+				queryClient.invalidateQueries({
+					queryKey: ["comment-replies"],
+				});
+			}
+		});
+		return unsubscribe;
+	}, [releaseId, queryClient, organizationId]);
+
+	const toggleThread = useCallback((commentId: string) => {
+		setExpandedThreads((prev) => {
+			const next = new Set(prev);
+			if (next.has(commentId)) {
+				next.delete(commentId);
+			} else {
+				next.add(commentId);
+			}
+			return next;
+		});
+	}, []);
 
 	const halfway = Math.floor(allComments.length / 2);
 	const topComments = allComments.slice(0, halfway);
@@ -599,41 +639,7 @@ export function PublicReleaseDiscussion({
 			/>
 		);
 	};
-	// SSE handlers for real-time updates on this task
-	const handlers: WSMessageHandler<ServerEventMessage> = {
-		UPDATE_RELEASE_COMMENTS: (msg) => {
-			if (msg.scope === "PUBLIC" && msg.meta?.orgId === organization.id && msg.data.releaseId === releaseId) {
-				queryClient.invalidateQueries({
-					queryKey: ["public-release-comments", releaseId, organizationId],
-				});
-				queryClient.invalidateQueries({
-					queryKey: ["comment-replies"],
-				});
-			}
-		},
-	};
-	const handleMessage = useWSMessageHandler<ServerEventMessage>(handlers);
-	useEffect(() => {
-		if (!serverEvents.event) return;
-		serverEvents.event.addEventListener("message", handleMessage);
-		return () => {
-			serverEvents.event?.removeEventListener("message", handleMessage);
-		};
-	}, [serverEvents.event, handleMessage]);
-	useEffect(() => {
-		const unsubscribe = onWindowMessage<{ type: string }>("*", (msg) => {
-			if (msg.type === "SSE_RECONNECTED") {
-				console.log("🟢 Global SSE reconnected — refreshing data");
-				queryClient.invalidateQueries({
-					queryKey: ["public-release-comments", releaseId, organizationId],
-				});
-				queryClient.invalidateQueries({
-					queryKey: ["comment-replies"],
-				});
-			}
-		});
-		return unsubscribe;
-	}, [releaseId, queryClient, organizationId]);
+
 	return (
 		<div className="flex flex-col gap-6">
 			{isLoading ? (
