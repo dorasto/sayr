@@ -91,6 +91,8 @@ type GridBoardContextProps<
   activeItemId: string | null;
   renderDragOverlay?: (item: TItem) => ReactNode;
   mode: GridBoardMode;
+  /** Drag-and-drop is off (see GridBoardProviderProps.disabled). */
+  disabled: boolean;
 };
 
 const GridBoardContext = createContext<GridBoardContextProps | null>(null);
@@ -168,6 +170,13 @@ export type GridBoardProviderProps<
    * - "kanban": Traditional kanban with full-height columns, each column scrolls independently
    */
   mode?: GridBoardMode;
+  /**
+   * Turns drag-and-drop off entirely (read-only boards): no sensors, sortable/droppable
+   * registrations disabled, no drag overlay, no grab cursor, and items carry no drag
+   * attributes/listeners — so links and buttons inside cards keep working normally.
+   * Default false = unchanged behaviour.
+   */
+  disabled?: boolean;
   children: ReactNode;
   className?: string;
 };
@@ -185,6 +194,7 @@ export function GridBoardProvider<
   onDragStart,
   renderDragOverlay,
   mode = "grid",
+  disabled = false,
   children,
   className,
 }: GridBoardProviderProps<TItem, TColumn, TRow>) {
@@ -208,6 +218,8 @@ export function GridBoardProvider<
     }),
     useSensor(KeyboardSensor),
   );
+  // An empty sensor list means nothing can ever start a drag. Called unconditionally to keep hook order stable.
+  const noSensors = useSensors();
 
   // Default implementation for getting items in a cell
   const defaultGetItemsForCell = (
@@ -300,6 +312,7 @@ export function GridBoardProvider<
     activeItemId,
     renderDragOverlay,
     mode,
+    disabled,
   };
 
   const activeItem = activeItemId
@@ -311,7 +324,7 @@ export function GridBoardProvider<
       value={contextValue as unknown as GridBoardContextProps}
     >
       <DndContext
-        sensors={sensors}
+        sensors={disabled ? noSensors : sensors}
         collisionDetection={closestCenter}
         onDragStart={handleDragStart}
         onDragOver={handleDragOver}
@@ -344,8 +357,9 @@ export function GridBoardProvider<
           </div>
         </div>
 
-        {/* Drag overlay portal */}
-        {typeof window !== "undefined" &&
+        {/* Drag overlay portal (nothing can be dragged when disabled) */}
+        {!disabled &&
+          typeof window !== "undefined" &&
           createPortal(
             <DragOverlay dropAnimation={{ duration: 200, easing: "ease" }}>
               {activeItem && renderDragOverlay ? (
@@ -558,7 +572,7 @@ export function GridBoardCells<
   className,
   ...props
 }: GridBoardCellsProps<TItem, TColumn>) {
-  const { columns, getItemsForCell, mode, rows } = useGridBoardContext<
+  const { columns, getItemsForCell, mode, rows, disabled } = useGridBoardContext<
     TItem,
     TColumn
   >();
@@ -602,6 +616,7 @@ export function GridBoardCells<
             isEmpty={cellItems.length === 0}
             isKanbanMode={isKanbanMode}
             hasRows={hasRows}
+            disabled={disabled}
           >
             <SortableContext items={cellItems.map((item) => item.id)}>
               {cellItems.length > 0
@@ -624,6 +639,7 @@ type GridBoardDroppableCellProps = {
   isEmpty: boolean;
   isKanbanMode: boolean;
   hasRows: boolean;
+  disabled: boolean;
   children: ReactNode;
 };
 
@@ -632,10 +648,12 @@ function GridBoardDroppableCell({
   isEmpty,
   isKanbanMode,
   hasRows,
+  disabled,
   children,
 }: GridBoardDroppableCellProps) {
   const { isOver, setNodeRef } = useDroppable({
     id: cellId,
+    disabled,
   });
   const usesCustomScrollbar = isKanbanMode || hasRows;
   const cellClassName = cn(
@@ -698,7 +716,8 @@ export type GridBoardItemProps<
 export function GridBoardItem<
   TItem extends GridBoardItemBase = GridBoardItemBase,
 >({ item, children, className }: GridBoardItemProps<TItem>) {
-  const { activeItemId, renderDragOverlay } = useGridBoardContext<TItem>();
+  const { activeItemId, renderDragOverlay, disabled } =
+    useGridBoardContext<TItem>();
   const {
     attributes,
     listeners,
@@ -708,7 +727,18 @@ export function GridBoardItem<
     isDragging,
   } = useSortable({
     id: item.id,
+    disabled,
   });
+
+  // Disabled: a plain wrapper. No dnd-kit attributes (role="button", tabIndex, aria-*) or
+  // listeners, so inner links/buttons get pointer events and keyboard focus as normal.
+  if (disabled) {
+    return (
+      <div ref={setNodeRef} className={className}>
+        {children}
+      </div>
+    );
+  }
 
   const style = {
     transform: CSS.Transform.toString(transform),

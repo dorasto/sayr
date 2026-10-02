@@ -15,12 +15,13 @@ import { and, eq } from "drizzle-orm";
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { Page } from "@/components/generic/page";
 import { usePage, usePanel } from "@/components/generic/use-page";
+import { DESCRIPTION_PROSE } from "@/components/public/portal/post/prose";
 import { ReleaseDetailPanelContent } from "@/components/public/portal/releases/ReleaseDetailPanel";
 import { ReleaseHeader } from "@/components/public/portal/releases/ReleaseHeader";
 import { type ReleaseListTask, ReleaseTaskList } from "@/components/public/portal/releases/ReleaseTaskList";
-import { DESCRIPTION_PROSE } from "@/components/public/portal/post/prose";
 import { EmptyState } from "@/components/public/portal/ui/EmptyState";
-import { portalButtonVariants, PortalButton } from "@/components/public/portal/ui/PortalButton";
+import { PORTAL_BODY } from "@/components/public/portal/ui/column";
+import { PortalButton, portalButtonVariants } from "@/components/public/portal/ui/PortalButton";
 import { PublicReleaseDiscussion } from "@/components/public/releases/public-release-discussion";
 import { PublicReleaseStatusUpdates } from "@/components/public/releases/public-release-status-updates";
 import { getReleaseStatusConfig } from "@/components/releases/config";
@@ -201,7 +202,7 @@ function ReleaseDetailPage() {
 function ReleaseNotFound({ orgSlug }: { orgSlug: string }) {
 	return (
 		<div className="h-full overflow-y-auto">
-			<div className="mx-auto flex w-full max-w-[1120px] justify-center px-4 py-24">
+			<div className={cn(PORTAL_BODY, "flex justify-center py-24")}>
 				<EmptyState
 					icon={<IconRocket className="size-6" />}
 					title="Release not found"

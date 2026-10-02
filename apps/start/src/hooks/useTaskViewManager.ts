@@ -13,6 +13,7 @@ import {
 	type TaskGroupingId,
 	DEFAULT_TASK_VIEW_STATE,
 } from "@/components/tasks/filter/types";
+import { coerceToLegacyViewMode } from "@/components/board/core/view-config";
 import { serializeFilters, deserializeFilters } from "@/components/tasks/filter/serialization";
 import {
 	mergeOrAppendCondition,
@@ -98,7 +99,8 @@ function mapViewConfigToState(config: NonNullable<schema.savedViewType["viewConf
 		grouping: isOldGroupingId(config.groupBy) ? config.groupBy : DEFAULT_TASK_VIEW_STATE.grouping,
 		subGrouping: config.subGroupBy && isOldGroupingId(config.subGroupBy) ? config.subGroupBy : "none",
 		showCompletedTasks: config.showCompletedTasks,
-		viewMode: config.mode,
+		// Legacy pages only offer List/Kanban; a board-only "card" view (or anything unknown) shows as list.
+		viewMode: coerceToLegacyViewMode(config.mode),
 		sortBy: config.sortBy ?? "none",
 		sortDirection: config.sortDirection ?? "asc",
 	};

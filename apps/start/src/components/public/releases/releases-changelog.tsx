@@ -1,3 +1,4 @@
+import { cn } from "@repo/ui/lib/utils";
 import { Skeleton } from "@repo/ui/components/skeleton";
 import { IconRocket } from "@tabler/icons-react";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
@@ -5,6 +6,7 @@ import { useMemo } from "react";
 import { ChangelogEntry } from "@/components/public/portal/releases/ChangelogEntry";
 import { fetchPublicReleases } from "@/components/public/portal/releases/types";
 import { EmptyState } from "@/components/public/portal/ui/EmptyState";
+import { PORTAL_BODY } from "@/components/public/portal/ui/column";
 import { PortalButton } from "@/components/public/portal/ui/PortalButton";
 import { PortalTabs } from "@/components/public/portal/ui/PortalTabs";
 import { CHANGELOG_TABS, type ChangelogTab, sortReleasedReleases, sortUpcomingReleases } from "@/lib/portal/changelog";
@@ -94,7 +96,7 @@ export function ReleasesChangelog({ orgSlug, tab, onTabChange }: ReleasesChangel
 
 	return (
 		<div className="h-full overflow-y-auto">
-			<main className="mx-auto w-full max-w-[1120px] px-4 pt-8 pb-16 md:px-6 md:pt-12 xl:px-0">
+			<main className={cn(PORTAL_BODY, "pt-8 pb-16 md:pt-12")}>
 				<div className="mb-8 flex flex-col gap-4 md:mb-10 md:flex-row md:items-end md:justify-between">
 					<div>
 						<h1 className="font-bold text-[28px] text-portal-fg leading-[34px] tracking-[-0.028em] md:text-[32px] md:leading-[38px]">

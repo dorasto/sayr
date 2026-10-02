@@ -1,5 +1,5 @@
-import { useQueryClient } from "@tanstack/react-query";
 import { generateSlug } from "@repo/util";
+import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { Page, type PanelConfig } from "@/components/generic/page";
 import { usePublicOrganizationLayout } from "@/contexts/publicContextOrg";
@@ -21,6 +21,7 @@ import { BoardPageBar } from "./portal/board/BoardPageBar";
 import { BoardPanelProvider } from "./portal/board/BoardPanelProvider";
 import { RAIL_HEADER } from "./portal/board/BoardRailPanel";
 import { BoardRailProvider } from "./portal/board/BoardRailProvider";
+import type { BoardToolbarProps } from "./portal/board/BoardToolbar";
 import { PUBLIC_BOARD_PANEL_ID } from "./portal/board/constants";
 import { boardCountsKey, useBoardCounts, useBoardReleases } from "./portal/board/useBoardSideData";
 import { patchPeekPosts } from "./portal/peek/usePeekPost";
@@ -51,7 +52,6 @@ const BOARD_PANEL: PanelConfig = {
 	minWidth: 280,
 	maxWidth: 720,
 };
-const BOARD_PAGE_BAR = <BoardPageBar />;
 
 export default function PublicOrgHomePage() {
 	const queryClient = useQueryClient();
@@ -224,33 +224,36 @@ export default function PublicOrgHomePage() {
 	const setCategorySlug = useCallback((slug: string | null) => setBoardParams({ category: slug }), [setBoardParams]);
 	const categorySlug = category ? generateSlug(category.name) : null;
 
+	// The tabs, sort and filter menus live in the Page's top bar. Built on every render (no memo, no module constant)
+	// so a tab, sort, filter or count change always reaches the bar instead of a stale element.
+	const toolbar: BoardToolbarProps = {
+		tab,
+		onTabChange: (next) => setBoardParams({ tab: next === "active" ? null : next, status: null }),
+		counts: tabCounts,
+		sort,
+		onSortChange: (next) => setBoardParams({ sort: next === "mostPopular" ? null : next }),
+		categories,
+		categorySlug,
+		onCategoryChange: setCategorySlug,
+		labels,
+		labelIds,
+		onLabelToggle: (id) => setBoardParams({ labels: setCsv(labelIds, id) }),
+		statuses,
+		onStatusToggle: (status) => setBoardParams({ status: setCsv(statuses, status) }),
+		onClearFilters: clearFilters,
+	};
+
 	return (
 		<BoardRailProvider
-			loadedTasks={list.tasks}
 			releases={releases}
 			counts={countsQuery.data}
 			activeCategorySlug={categorySlug}
 			onCategoryChange={setCategorySlug}
 		>
 			<BoardPanelProvider tasks={list.tasks}>
-				<Page header={BOARD_PAGE_BAR} panels={panels}>
+				<Page header={<BoardPageBar toolbar={toolbar} />} panels={panels}>
 					<PublicTaskView
-						toolbar={{
-							tab,
-							onTabChange: (next) => setBoardParams({ tab: next === "active" ? null : next, status: null }),
-							counts: tabCounts,
-							sort,
-							onSortChange: (next) => setBoardParams({ sort: next === "mostPopular" ? null : next }),
-							categories,
-							categorySlug,
-							onCategoryChange: setCategorySlug,
-							labels,
-							labelIds,
-							onLabelToggle: (id) => setBoardParams({ labels: setCsv(labelIds, id) }),
-							statuses,
-							onStatusToggle: (status) => setBoardParams({ status: setCsv(statuses, status) }),
-							onClearFilters: clearFilters,
-						}}
+						tab={tab}
 						tasks={visibleTasks}
 						releasesById={releasesById}
 						isLoading={list.isLoading}
@@ -265,6 +268,7 @@ export default function PublicOrgHomePage() {
 						onShowMore={() => void list.fetchNextPage()}
 						onRetry={() => void list.refetch()}
 						onClearFilters={clearFilters}
+						onShowAll={() => setBoardParams({ tab: "all", status: null })}
 					/>
 				</Page>
 			</BoardPanelProvider>

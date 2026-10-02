@@ -38,7 +38,7 @@ export default function PublicNavigation() {
 	return (
 		<>
 			<header className="z-50 h-14 w-full md:h-16 shrink-0 border-portal-line border-b bg-portal-canvas">
-				<div className="mx-auto flex h-full w-full max-w-[1120px] items-center gap-1 px-4 md:gap-2 md:px-6 xl:px-0">
+				<div className="flex h-full items-center gap-1 px-3 md:gap-2">
 					{/* Org identity */}
 					<Link
 						to={feedbackPath}

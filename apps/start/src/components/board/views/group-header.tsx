@@ -65,6 +65,8 @@ export function GroupHeaderContent({
       {expanded !== undefined && (
         <button
           type="button"
+          aria-expanded={expanded}
+          aria-label={`${expanded ? "Collapse" : "Expand"} ${label}`}
           onClick={onToggleExpanded}
           className={cn(
             ROW_LEADING_GUTTER_CLASS,

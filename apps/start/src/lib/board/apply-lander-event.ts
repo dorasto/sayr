@@ -107,7 +107,15 @@ export function upsertTask(
  * anything, and it keeps the replaced task's `organization` because the update
  * endpoints return the raw record without the board's cross-org enrichment.
  */
-export function replaceTasks(tasks: LanderTask[], updatedById: ReadonlyMap<string, LanderTask>): LanderTask[] {
+export function replaceTasks(tasks: LanderTask[], updatedById: ReadonlyMap<string, LanderTask>): LanderTask[];
+export function replaceTasks(
+	tasks: readonly LanderTask[],
+	updatedById: ReadonlyMap<string, LanderTask>
+): readonly LanderTask[];
+export function replaceTasks(
+	tasks: readonly LanderTask[],
+	updatedById: ReadonlyMap<string, LanderTask>
+): readonly LanderTask[] {
 	let changed = false;
 	const next = tasks.map((task) => {
 		const updated = updatedById.get(task.id);

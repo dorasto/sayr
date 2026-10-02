@@ -1,5 +1,6 @@
 import type { schema } from "@repo/database";
 import type { ReactNode } from "react";
+import type { PersistedViewMode } from "../core/view-config";
 import type { TaskSortDirection, TaskSortField } from "./sort-config";
 
 // Board's own type system — self-contained, no imports from
@@ -41,10 +42,16 @@ export interface TaskViewState {
 	grouping: TaskGroupingId;
 	subGrouping?: TaskGroupingId | "none";
 	showCompletedTasks: boolean;
-	viewMode: "list" | "kanban";
+	viewMode: PersistedViewMode;
 	/** Undefined/"none" means no explicit sort — tasks stay in fetch order. */
 	sortBy?: TaskSortField | "none";
 	sortDirection?: TaskSortDirection;
+}
+
+/** The board's whole URL/persisted view state: what's filtered plus how it's displayed. */
+export interface TaskViewCombinedState {
+	filters: FilterState;
+	viewConfig: TaskViewState;
 }
 
 export const DEFAULT_TASK_VIEW_STATE: TaskViewState = {
@@ -135,12 +142,12 @@ export interface FilterFieldConfig {
 	// loads full user records (no email etc.), only whatever's embedded on
 	// already-loaded tasks (assignees/createdBy).
 	getOptions?: (
-		tasks: schema.TaskWithLabels[],
-		labels: schema.labelType[],
-		users: schema.UserSummary[],
+		tasks: readonly schema.TaskWithLabels[],
+		labels: readonly schema.labelType[],
+		users: readonly schema.UserSummary[],
 		subSearch: string,
-		categories: schema.categoryType[],
-		releases: schema.releaseType[]
+		categories: readonly schema.categoryType[],
+		releases: readonly schema.releaseType[]
 	) => FilterOption[];
 	renderValue?: (condition: FilterCondition) => ReactNode;
 }

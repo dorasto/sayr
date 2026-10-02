@@ -10,8 +10,8 @@ import {
 	ComboBoxSearch,
 	ComboBoxTrigger,
 } from "@repo/ui/components/tomui/combo-box-unified";
-import { useLanderData } from "@/contexts/ContextLander";
-import { useBoardTaskFieldAction } from "./use-board-task-field-action";
+import { useBoardCapabilities, useBoardData, useBoardItemActions } from "../core/board-data";
+import { StaticField } from "./static-field";
 
 interface FieldCategoryProps {
 	task: schema.TaskWithLabels;
@@ -26,12 +26,28 @@ interface FieldCategoryProps {
  * detail page, not from this compact row/card badge.
  */
 export function FieldCategory({ task }: FieldCategoryProps) {
-	const { categories } = useLanderData();
-	const { execute } = useBoardTaskFieldAction(task);
+	const { categories } = useBoardData();
+	const { canEditFields } = useBoardCapabilities();
+	const { execute } = useBoardItemActions(task);
 	const availableCategories = categories.filter((category) => category.organizationId === task.organizationId);
 	const current = availableCategories.find((category) => category.id === task.category);
 
 	if (!current) return null;
+
+	const pill = (
+		<Badge variant="secondary" className="flex h-5 max-w-24 items-center gap-1 px-1.5 text-[11px] font-medium">
+			<span className="size-1.5 rounded-full shrink-0" style={{ backgroundColor: current.color ?? "#9CA3AF" }} />
+			<span className="truncate">{current.name}</span>
+		</Badge>
+	);
+
+	if (!canEditFields) {
+		return (
+			<StaticField className="shrink-0" title={current.name}>
+				{pill}
+			</StaticField>
+		);
+	}
 
 	return (
 		<ComboBox
@@ -53,16 +69,7 @@ export function FieldCategory({ task }: FieldCategoryProps) {
 		>
 			<ComboBoxTrigger asChild>
 				<button type="button" data-no-propagate className="shrink-0 cursor-pointer" title={current.name}>
-					<Badge
-						variant="secondary"
-						className="flex h-5 max-w-24 items-center gap-1 px-1.5 text-[11px] font-medium"
-					>
-						<span
-							className="size-1.5 rounded-full shrink-0"
-							style={{ backgroundColor: current.color ?? "#9CA3AF" }}
-						/>
-						<span className="truncate">{current.name}</span>
-					</Badge>
+					{pill}
 				</button>
 			</ComboBoxTrigger>
 			<ComboBoxContent>

@@ -48,6 +48,7 @@ import {
 import { useRouter } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { ViewFilterEditor } from "./view-filter-editor";
+import { coerceToLegacyViewMode } from "@/components/board/core/view-config";
 import { TASK_GROUPING_OPTIONS, TASK_GROUPINGS } from "@/components/tasks";
 import type { TaskGroupingId } from "@/components/tasks";
 import { TASK_SORT_FIELDS } from "@/components/tasks/filter/sort-config";
@@ -65,6 +66,11 @@ const slugify = (text: string) => {
 		.replace(/[^\w-]+/g, "") // Remove all non-word chars
 		.replace(/--+/g, "-"); // Replace multiple - with single -
 };
+
+// This page only offers List/Kanban: a "card" mode (board-only) loads as "list".
+function toLegacyConfig(config: NonNullable<schema.savedViewType["viewConfig"]>) {
+	return { ...config, mode: coerceToLegacyViewMode(config.mode) };
+}
 
 export default function SettingsOrganizationViewDetailPage({
 	viewId,
@@ -123,7 +129,7 @@ export default function SettingsOrganizationViewDetailPage({
 	};
 
 	const [viewConfig, setViewConfig] = useState<NonNullable<schema.savedViewType["viewConfig"]>>(
-		view?.viewConfig || defaultConfig
+		toLegacyConfig(view?.viewConfig || defaultConfig)
 	);
 
 	useEffect(() => {
@@ -131,7 +137,7 @@ export default function SettingsOrganizationViewDetailPage({
 			setName(view.name);
 			setFilterParams(view.filterParams);
 			setSlug(view.slug || "");
-			setViewConfig(view.viewConfig || defaultConfig);
+			setViewConfig(toLegacyConfig(view.viewConfig || defaultConfig));
 		}
 	}, [view]);
 

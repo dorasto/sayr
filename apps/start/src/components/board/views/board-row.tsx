@@ -8,6 +8,7 @@ import { Link } from "@tanstack/react-router";
 import { OrgHoverCard } from "@/components/hover-cards";
 import { useTaskSelection } from "@/hooks/useTaskSelection";
 import { ORG_KEY_SLOT_CLASS, ROW_LEADING_GUTTER_CLASS } from "../config/field-config";
+import { useBoardCapabilities } from "../core/board-data";
 import { BoardTaskContextMenu } from "../fields/board-task-context-menu";
 import { FieldAssignee } from "../fields/field-assignee";
 import { FieldCategory } from "../fields/field-category";
@@ -58,6 +59,7 @@ interface BoardRowProps {
  * field-update actions the pickers below use, surfaced as a menu instead.
  */
 export function BoardRow({ task, nested = false }: BoardRowProps) {
+	const { canSelect } = useBoardCapabilities();
 	const { isSelected, toggleTask } = useTaskSelection(undefined, BOARD_TASK_SELECTION_KEY);
 	const selected = isSelected(task.id);
 
@@ -81,16 +83,21 @@ export function BoardRow({ task, nested = false }: BoardRowProps) {
 					selected && "bg-primary/10 hover:bg-primary/10"
 				)}
 			>
-				<Checkbox
-					data-no-propagate
-					checked={selected}
-					onCheckedChange={(checked) => toggleTask(task.id, checked === true)}
-					className={cn(
-						ROW_LEADING_GUTTER_CLASS,
-						"h-3.5 shrink-0 opacity-0 group-hover:opacity-100 data-checked:opacity-100 transition-all rounded-md"
-					)}
-					onClick={(e) => e.stopPropagation()}
-				/>
+				{canSelect ? (
+					<Checkbox
+						data-no-propagate
+						checked={selected}
+						onCheckedChange={(checked) => toggleTask(task.id, checked === true)}
+						className={cn(
+							ROW_LEADING_GUTTER_CLASS,
+							"h-3.5 shrink-0 opacity-0 group-hover:opacity-100 data-checked:opacity-100 transition-all rounded-md"
+						)}
+						onClick={(e) => e.stopPropagation()}
+					/>
+				) : (
+					// Keeps the leading column (and so the nested-row connector alignment) when selection is off.
+					<span aria-hidden="true" className={cn(ROW_LEADING_GUTTER_CLASS, "h-3.5 shrink-0")} />
+				)}
 				{nested && (
 					<span
 						aria-hidden="true"

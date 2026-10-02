@@ -5,6 +5,7 @@ import { cn } from "@repo/ui/lib/utils";
 import { formatTaskKey, getInitials } from "@repo/util";
 import { Link } from "@tanstack/react-router";
 import { useTaskSelection } from "@/hooks/useTaskSelection";
+import { useBoardCapabilities } from "../core/board-data";
 import { BoardTaskContextMenu } from "../fields/board-task-context-menu";
 import { FieldToolbar } from "../fields/field-toolbar";
 import { BOARD_TASK_SELECTION_KEY } from "../selection/board-selection-constants";
@@ -22,6 +23,7 @@ interface BoardCardProps {
  * lose a selection.
  */
 export function BoardCard({ task }: BoardCardProps) {
+	const { canSelect } = useBoardCapabilities();
 	const { isSelected, toggleTask } = useTaskSelection(undefined, BOARD_TASK_SELECTION_KEY);
 	const selected = isSelected(task.id);
 
@@ -33,13 +35,15 @@ export function BoardCard({ task }: BoardCardProps) {
 					selected && "bg-primary/10 hover:bg-primary/10"
 				)}
 			>
-				<Checkbox
-					checked={selected}
-					onCheckedChange={(checked) => toggleTask(task.id, checked === true)}
-					className={cn(
-						"absolute top-2 right-2 size-3.5 rounded-md opacity-0 group-hover:opacity-100 data-checked:opacity-100 transition-all"
-					)}
-				/>
+				{canSelect && (
+					<Checkbox
+						checked={selected}
+						onCheckedChange={(checked) => toggleTask(task.id, checked === true)}
+						className={cn(
+							"absolute top-2 right-2 size-3.5 rounded-md opacity-0 group-hover:opacity-100 data-checked:opacity-100 transition-all"
+						)}
+					/>
+				)}
 				<Link
 					to="/$orgId/tasks/$taskShortId"
 					params={{

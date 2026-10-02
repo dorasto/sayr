@@ -1,14 +1,16 @@
+import { cn } from "@repo/ui/lib/utils";
 import { authClient } from "@repo/auth/client";
 import { Skeleton } from "@repo/ui/components/skeleton";
 import { IconLoader2 } from "@tabler/icons-react";
 import { type ReactNode, useState } from "react";
+import { Page } from "@/components/generic/page";
 import { usePublicPostAbility } from "@/components/public/public-task-creator";
 import { PublicTaskItem } from "@/components/public/task-item";
-import { Page } from "@/components/generic/page";
 import { usePublicOrganizationLayout } from "@/contexts/publicContextOrg";
 import { type ActivityTab, useActivity } from "@/hooks/portal/useActivity";
 import { formatTabCount } from "@/lib/portal/activity";
 import { ListContainer } from "../ui/ListContainer";
+import { PORTAL_BODY } from "../ui/column";
 import { PortalAvatar } from "../ui/PortalAvatar";
 import { PortalButton } from "../ui/PortalButton";
 import { PortalTabs } from "../ui/PortalTabs";
@@ -161,7 +163,7 @@ export function ActivityPage() {
 
 	return (
 		<Page>
-			<div className="mx-auto w-full max-w-[1120px] px-4 pt-8 pb-16 md:px-6 md:pt-12 xl:px-0">
+			<div className={cn(PORTAL_BODY, "pt-8 pb-16 md:pt-12")}>
 				{!isPending && !user ? (
 					<ActivityLoggedOutState />
 				) : (

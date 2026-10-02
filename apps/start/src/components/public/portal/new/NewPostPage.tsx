@@ -18,10 +18,13 @@ import { useSimilarPosts } from "@/hooks/portal/useSimilarPosts";
 import type { MentionContext } from "@/hooks/useMentionUsers";
 import { createPublicTaskAction } from "@/lib/fetches/task";
 import {
+	DEFAULT_POST_PRIORITY,
 	docHasContent,
 	isDocJson,
+	isPostPriority,
 	type NewPostDraft,
 	newPostDraftKey,
+	type PostPriority,
 	parseDraft,
 	resolveInitialDraft,
 	serialiseDraft,
@@ -33,6 +36,7 @@ import { PortalCard } from "../ui/PortalCard";
 import { KindChips } from "./KindChips";
 import { PostEditorToolbar } from "./PostEditorToolbar";
 import { PostLiveCard } from "./PostLiveCard";
+import { LabelChips, PriorityPicker } from "./PostOptions";
 import { SimilarPosts } from "./SimilarPosts";
 
 const Editor = lazy(() => import("@/components/prosekit/editor"));
@@ -54,6 +58,11 @@ interface NewPostPageProps {
 	initialCategory?: string;
 }
 
+/** `value` without a leading `prefix` (a template's title prefix), if it has one. */
+function stripPrefix(value: string, prefix: string): string {
+	return value.startsWith(prefix) ? value.slice(prefix.length) : value;
+}
+
 function readStoredDraft(orgId: string): NewPostDraft | null {
 	try {
 		return parseDraft(window.sessionStorage.getItem(newPostDraftKey(orgId)));
@@ -73,24 +82,29 @@ function writeStoredDraft(orgId: string, draft: NewPostDraft) {
 }
 
 /**
- * The full "share an idea or report a bug" form (`/orgs/$orgSlug/new`): kind chips (the org's categories), a title with
- * live similar posts, rich-text details and a footer with the post button. Logged-out visitors can fill it in; Post opens
- * the login dialog and the draft is kept in `sessionStorage` (per org, cleared on success). On phones it becomes a
+ * The full "share an idea or report a bug" form (`/orgs/$orgSlug/new`): an optional (or, when the org disallows blank
+ * posts, required) template, kind chips (the org's categories), a title with live similar posts, rich-text details,
+ * priority and label pickers (each gated by the org's `publicTaskFields`) and a footer with the post button. A template
+ * prefills title prefix, details, kind, priority and labels, all still editable. Logged-out visitors can fill it in; Post
+ * opens the login dialog and the draft is kept in `sessionStorage` (per org, cleared on success). On phones it becomes a
  * full-screen sheet with a close button and a sticky post button.
  */
 export function NewPostPage({ initialTitle, initialCategory }: NewPostPageProps) {
 	const queryClient = useQueryClient();
-	const { organization, categories, issueTemplates } = usePublicOrganizationLayout();
+	const { organization, categories, labels, issueTemplates } = usePublicOrganizationLayout();
 	const { data: session } = authClient.useSession();
 	const { settings, loggedIn, canPost, needsFullForm: templateRequired } = usePublicPostAbility();
 	const { value: sseClientId } = useStateManagement<string>("sse-clientId", "");
 	const { setValue: setMentionContext } = useStateManagement<MentionContext | null>("mentionContext", null);
 	const titleId = useId();
 	const templateSelectId = useId();
+	const templateHintId = useId();
 	const titleRef = useRef<HTMLInputElement>(null);
 
 	const fields = settings.publicTaskFields;
 	const showKinds = fields.category && categories.length > 0;
+	const showPriority = fields.priority;
+	const showLabels = fields.labels && labels.length > 0;
 	const orgSlug = organization.slug;
 
 	// SSR renders the prefilled title; the stored draft is restored after mount (no `sessionStorage` on the server).
@@ -103,8 +117,8 @@ export function NewPostPage({ initialTitle, initialCategory }: NewPostPageProps)
 	const [restored, setRestored] = useState(false);
 
 	const [templateId, setTemplateId] = useState(NO_TEMPLATE);
-	const [templatePriority, setTemplatePriority] = useState<string | null>(null);
-	const [templateLabelIds, setTemplateLabelIds] = useState<string[]>([]);
+	const [priority, setPriority] = useState<PostPriority>(DEFAULT_POST_PRIORITY);
+	const [labelIds, setLabelIds] = useState<string[]>([]);
 
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [created, setCreated] = useState<schema.TaskWithLabels | null>(null);
@@ -133,6 +147,11 @@ export function NewPostPage({ initialTitle, initialCategory }: NewPostPageProps)
 			setTitle(draft.title);
 			setDescription(draft.description);
 			setInitialDoc(draft.description);
+			setPriority(draft.priority);
+			setLabelIds(draft.labelIds.filter((id) => labels.some((label) => label.id === id)));
+			if (draft.templateId && issueTemplates.some((template) => template.id === draft.templateId)) {
+				setTemplateId(draft.templateId);
+			}
 		}
 		if (nextCategory && categories.some((category) => category.id === nextCategory)) setCategoryId(nextCategory);
 		setRestored(true);
@@ -143,11 +162,19 @@ export function NewPostPage({ initialTitle, initialCategory }: NewPostPageProps)
 	useEffect(() => {
 		if (!restored || created) return;
 		const timer = window.setTimeout(
-			() => writeStoredDraft(organization.id, { title, description, categoryId }),
+			() =>
+				writeStoredDraft(organization.id, {
+					title,
+					description,
+					categoryId,
+					priority,
+					labelIds,
+					templateId: templateId === NO_TEMPLATE ? null : templateId,
+				}),
 			DRAFT_SAVE_DELAY_MS
 		);
 		return () => window.clearTimeout(timer);
-	}, [restored, created, organization.id, title, description, categoryId]);
+	}, [restored, created, organization.id, title, description, categoryId, priority, labelIds, templateId]);
 
 	const clearDraft = useCallback(() => {
 		try {
@@ -163,25 +190,34 @@ export function NewPostPage({ initialTitle, initialCategory }: NewPostPageProps)
 		setDescription(undefined);
 		setInitialDoc(undefined);
 		setTemplateId(NO_TEMPLATE);
-		setTemplatePriority(null);
-		setTemplateLabelIds([]);
+		setPriority(DEFAULT_POST_PRIORITY);
+		setLabelIds([]);
 		setEditorKey((key) => key + 1);
 	}, []);
 
+	// Choosing a template prefills the form; every field stays editable afterwards. A template only overrides the fields it
+	// sets, so a priority or labels the visitor already picked survive a template that has none. "Start from scratch"
+	// clears the form, like the old creator did.
 	const handleTemplateSelect = useCallback(
 		(nextId: string) => {
+			const previousPrefix = issueTemplates.find((entry) => entry.id === templateId)?.titlePrefix;
 			setTemplateId(nextId);
 			const template = issueTemplates.find((entry) => entry.id === nextId);
 			if (!template) {
-				setTemplatePriority(null);
-				setTemplateLabelIds([]);
+				if (previousPrefix) setTitle((current) => stripPrefix(current, previousPrefix));
+				setPriority(DEFAULT_POST_PRIORITY);
+				setLabelIds([]);
+				setCategoryId(null);
 				setInitialDoc(undefined);
 				setDescription(undefined);
 				setEditorKey((key) => key + 1);
 				return;
 			}
 			const prefix = template.titlePrefix;
-			if (prefix) setTitle((current) => (current.startsWith(prefix) ? current : `${prefix}${current}`));
+			setTitle((current) => {
+				const bare = previousPrefix ? stripPrefix(current, previousPrefix) : current;
+				return prefix && !bare.startsWith(prefix) ? `${prefix}${bare}` : bare;
+			});
 			setInitialDoc(template.description ?? undefined);
 			setDescription(template.description ?? undefined);
 			setEditorKey((key) => key + 1);
@@ -192,10 +228,14 @@ export function NewPostPage({ initialTitle, initialCategory }: NewPostPageProps)
 			) {
 				setCategoryId(template.categoryId);
 			}
-			setTemplatePriority(fields.priority ? template.priority : null);
-			setTemplateLabelIds(fields.labels ? template.labels.map((label) => label.id) : []);
+			if (fields.priority && isPostPriority(template.priority)) setPriority(template.priority);
+			if (fields.labels && template.labels.length > 0) {
+				setLabelIds(
+					template.labels.map((label) => label.id).filter((id) => labels.some((label) => label.id === id))
+				);
+			}
 		},
-		[issueTemplates, categories, fields.category, fields.priority, fields.labels]
+		[issueTemplates, templateId, categories, labels, fields.category, fields.priority, fields.labels]
 	);
 
 	const handleSubmit = useCallback(async () => {
@@ -230,8 +270,8 @@ export function NewPostPage({ initialTitle, initialCategory }: NewPostPageProps)
 				{
 					title: trimmedTitle,
 					description: finalDescription,
-					priority: fields.priority ? (templatePriority ?? "none") : undefined,
-					labels: fields.labels ? templateLabelIds : [],
+					priority: fields.priority ? priority : undefined,
+					labels: fields.labels ? labelIds : [],
 					category: fields.category ? categoryId : null,
 					templateId: templateId !== NO_TEMPLATE ? templateId : undefined,
 				},
@@ -273,8 +313,8 @@ export function NewPostPage({ initialTitle, initialCategory }: NewPostPageProps)
 		fields.priority,
 		fields.labels,
 		fields.category,
-		templatePriority,
-		templateLabelIds,
+		priority,
+		labelIds,
 		categoryId,
 		templateId,
 		sseClientId,
@@ -373,8 +413,14 @@ export function NewPostPage({ initialTitle, initialCategory }: NewPostPageProps)
 							<select
 								id={templateSelectId}
 								value={templateId}
+								required={templateRequired}
+								aria-describedby={templateHintId}
 								onChange={(event) => handleTemplateSelect(event.target.value)}
-								className={cn(INPUT_CLASS, "h-10 px-3 text-[14.5px] max-md:h-11 max-md:text-base")}
+								className={cn(
+									INPUT_CLASS,
+									"h-10 px-3 text-[14.5px] max-md:h-11 max-md:text-base",
+									templateMissing && "border-portal-accent-line"
+								)}
 							>
 								{!templateRequired && <option value={NO_TEMPLATE}>Start from scratch</option>}
 								{templateRequired && <option value={NO_TEMPLATE}>Choose a template</option>}
@@ -384,6 +430,11 @@ export function NewPostPage({ initialTitle, initialCategory }: NewPostPageProps)
 									</option>
 								))}
 							</select>
+							<p id={templateHintId} className="mt-2 text-[13px] text-portal-fg-3 leading-[19px]">
+								{templateMissing
+									? "This board asks you to start from a template. Pick one to continue."
+									: "A template fills in the title, details, kind, priority and labels. You can change any of them."}
+							</p>
 						</div>
 					)}
 
@@ -441,6 +492,15 @@ export function NewPostPage({ initialTitle, initialCategory }: NewPostPageProps)
 							)}
 						</div>
 					</div>
+
+					{(showPriority || showLabels) && (
+						<div className={cn(SECTION, "flex flex-col gap-6 pb-7 max-md:pb-6")}>
+							{showPriority && (
+								<PriorityPicker value={priority} onChange={setPriority} className="md:max-w-60" />
+							)}
+							{showLabels && <LabelChips labels={labels} value={labelIds} onChange={setLabelIds} />}
+						</div>
+					)}
 
 					<div className="flex items-center gap-3 rounded-b-portal-lg border-portal-line border-t bg-portal-canvas px-7 py-4 max-md:sticky max-md:bottom-0 max-md:z-10 max-md:-mx-4 max-md:flex-col max-md:items-stretch max-md:gap-2.5 max-md:rounded-none max-md:bg-portal-surface max-md:px-4 max-md:pt-3 max-md:pb-[max(0.75rem,env(safe-area-inset-bottom))]">
 						<div className="flex min-w-0 flex-1 items-center gap-3 text-[13.5px] text-portal-fg-2 max-md:flex-none max-md:text-xs">

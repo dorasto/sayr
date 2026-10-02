@@ -75,6 +75,32 @@
     --portal-pop: 0 12px 32px oklch(0 0 0 / 0.38), 0 2px 6px oklch(0 0 0 / 0.3);
 }
 
+/*
+ * Universal board in the portal (SAY-81). `<Board />` renders a `display: contents` wrapper carrying
+ * `data-board-theme`; with "portal" it re-points the shared admin tokens the board (and grid-board.tsx's
+ * hard-coded classes: bg-background, bg-card, bg-accent, border-border, text-muted-foreground, bg-secondary
+ * badges…) resolve through at the portal ones, so no board class needs to change. `@theme inline` makes those
+ * utilities read `var(--background)` etc. on the element itself, so this inherited override wins.
+ * Scoped to the attribute inside `.portal` ONLY, never `.portal` as a whole: the rest of the portal keeps using
+ * the `portal-*` utilities and the admin app is untouched. Dark mode needs nothing extra: the `.dark .portal`
+ * block above already shifts the `--portal-*` values these point at (they are resolved on `.portal` and inherited).
+ * Primary/destructive/success stay the shared ones (the portal accent IS `--primary`).
+ */
+.portal [data-board-theme="portal"] {
+    --background: var(--portal-surface);
+    --card: var(--portal-surface);
+    --card-foreground: var(--portal-fg);
+    --muted: var(--portal-raised);
+    --secondary: var(--portal-raised);
+    --secondary-foreground: var(--portal-fg-2);
+    --accent: var(--portal-hover);
+    --accent-foreground: var(--portal-fg);
+    --border: var(--portal-line);
+    --foreground: var(--portal-fg);
+    --muted-foreground: var(--portal-fg-3);
+    --ring: var(--portal-focus);
+}
+
 @theme inline {
     --color-portal-canvas: var(--portal-canvas);
     --color-portal-surface: var(--portal-surface);

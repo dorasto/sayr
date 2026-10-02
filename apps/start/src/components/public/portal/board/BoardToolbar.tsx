@@ -14,8 +14,8 @@ import { generateSlug } from "@repo/util";
 import { IconChevronDown, IconFilter, IconSortDescending } from "@tabler/icons-react";
 import { type BoardSort, type BoardTab, getTabStatuses } from "@/lib/portal/board-filters";
 import { getPortalStatus } from "@/lib/portal/status";
-import { PortalTabs } from "../ui/PortalTabs";
 import { portalButtonVariants } from "../ui/PortalButton";
+import { PortalTabs } from "../ui/PortalTabs";
 
 const SORT_LABELS: Record<BoardSort, string> = {
 	mostPopular: "Most voted",
@@ -51,11 +51,26 @@ export interface BoardToolbarProps {
 	onClearFilters: () => void;
 }
 
-/** Tabs (Active / Done / All) on the left, sort and filter menus on the right. */
-export function BoardToolbar({
+/** The tab strip (Active / Done / All with counts), sized to sit in the board's page bar (`BoardPageBar`). */
+export function BoardTabs({ tab, onTabChange, counts }: Pick<BoardToolbarProps, "tab" | "onTabChange" | "counts">) {
+	return (
+		<PortalTabs
+			fill
+			value={tab}
+			onValueChange={(value) => onTabChange(value as BoardTab)}
+			className="min-w-0 flex-1 self-stretch"
+			items={[
+				{ value: "active", label: "Active", count: counts.active },
+				{ value: "done", label: "Done", count: counts.done },
+				{ value: "all", label: "All", count: counts.all },
+			]}
+		/>
+	);
+}
+
+/** The sort and filter menus (icon-only on phones), for the right-hand side of the board's page bar. */
+export function BoardToolbarControls({
 	tab,
-	onTabChange,
-	counts,
 	sort,
 	onSortChange,
 	categories,
@@ -67,7 +82,7 @@ export function BoardToolbar({
 	statuses,
 	onStatusToggle,
 	onClearFilters,
-}: BoardToolbarProps) {
+}: Omit<BoardToolbarProps, "onTabChange" | "counts">) {
 	// Status filter only offers statuses that can appear under the current tab: Done has just one, and Won't do
 	// (canceled) is only reachable under All.
 	const tabStatuses = getTabStatuses(tab);
@@ -77,125 +92,111 @@ export function BoardToolbar({
 	const hasFilterMenu = statusOptions.length > 0 || categories.length > 0 || labels.length > 0;
 
 	return (
-		<div className="mb-4 flex items-center justify-between gap-3 border-portal-line border-b">
-			<PortalTabs
-				value={tab}
-				onValueChange={(value) => onTabChange(value as BoardTab)}
-				className="-mb-px min-w-0"
-				items={[
-					{ value: "active", label: "Active", count: counts.active },
-					{ value: "done", label: "Done", count: counts.done },
-					{ value: "all", label: "All", count: counts.all },
-				]}
-			/>
+		<>
+			<DropdownMenu>
+				<DropdownMenuTrigger className={cn(portalButtonVariants({ variant: "default", size: "sm" }), TOUCH)}>
+					<IconSortDescending aria-hidden className="size-3.5" />
+					<span className="max-md:sr-only">{SORT_LABELS[sort]}</span>
+					<IconChevronDown aria-hidden className="size-3.5 max-md:hidden" />
+				</DropdownMenuTrigger>
+				<DropdownMenuContent align="end" className={MENU_CONTENT}>
+					<DropdownMenuLabel className={MENU_LABEL}>Sort by</DropdownMenuLabel>
+					<DropdownMenuRadioGroup value={sort} onValueChange={(value) => onSortChange(value as BoardSort)}>
+						{(Object.keys(SORT_LABELS) as BoardSort[]).map((value) => (
+							<DropdownMenuRadioItem key={value} value={value} className={MENU_ITEM}>
+								{SORT_LABELS[value]}
+							</DropdownMenuRadioItem>
+						))}
+					</DropdownMenuRadioGroup>
+				</DropdownMenuContent>
+			</DropdownMenu>
 
-			<div className="flex shrink-0 gap-2">
+			{hasFilterMenu && (
 				<DropdownMenu>
-					<DropdownMenuTrigger className={cn(portalButtonVariants({ variant: "default", size: "sm" }), TOUCH)}>
-						<IconSortDescending aria-hidden className="size-3.5" />
-						<span className="max-md:sr-only">{SORT_LABELS[sort]}</span>
-						<IconChevronDown aria-hidden className="size-3.5 max-md:hidden" />
+					<DropdownMenuTrigger
+						className={cn(
+							portalButtonVariants({ variant: "default", size: "sm" }),
+							TOUCH,
+							activeFilterCount > 0 && "border-portal-accent-line bg-portal-accent-soft text-portal-accent-ink"
+						)}
+					>
+						<IconFilter aria-hidden className="size-3.5" />
+						<span className="max-md:sr-only">Filter</span>
+						{activeFilterCount > 0 && <span className="tabular-nums">{activeFilterCount}</span>}
 					</DropdownMenuTrigger>
-					<DropdownMenuContent align="end" className={MENU_CONTENT}>
-						<DropdownMenuLabel className={MENU_LABEL}>Sort by</DropdownMenuLabel>
-						<DropdownMenuRadioGroup value={sort} onValueChange={(value) => onSortChange(value as BoardSort)}>
-							{(Object.keys(SORT_LABELS) as BoardSort[]).map((value) => (
-								<DropdownMenuRadioItem key={value} value={value} className={MENU_ITEM}>
-									{SORT_LABELS[value]}
-								</DropdownMenuRadioItem>
-							))}
-						</DropdownMenuRadioGroup>
+					<DropdownMenuContent align="end" className={cn(MENU_CONTENT, "max-h-[min(70dvh,480px)]")}>
+						{statusOptions.length > 0 && (
+							<>
+								<DropdownMenuLabel className={MENU_LABEL}>Status</DropdownMenuLabel>
+								{statusOptions.map((status) => (
+									<DropdownMenuCheckboxItem
+										key={status}
+										checked={statuses.includes(status)}
+										onCheckedChange={() => onStatusToggle(status)}
+										className={MENU_ITEM}
+									>
+										{getPortalStatus(status).label}
+									</DropdownMenuCheckboxItem>
+								))}
+							</>
+						)}
+
+						{categories.length > 0 && (
+							<>
+								{statusOptions.length > 0 && <DropdownMenuSeparator className="bg-portal-line" />}
+								<DropdownMenuLabel className={MENU_LABEL}>Category</DropdownMenuLabel>
+								<DropdownMenuRadioGroup
+									value={categorySlug ?? ""}
+									onValueChange={(value) => onCategoryChange(value || null)}
+								>
+									<DropdownMenuRadioItem value="" className={MENU_ITEM}>
+										All categories
+									</DropdownMenuRadioItem>
+									{categories.map((category) => (
+										<DropdownMenuRadioItem
+											key={category.id}
+											value={generateSlug(category.name)}
+											className={MENU_ITEM}
+										>
+											{category.name}
+										</DropdownMenuRadioItem>
+									))}
+								</DropdownMenuRadioGroup>
+							</>
+						)}
+
+						{labels.length > 0 && (
+							<>
+								<DropdownMenuSeparator className="bg-portal-line" />
+								<DropdownMenuLabel className={MENU_LABEL}>Label</DropdownMenuLabel>
+								{labels.map((label) => (
+									<DropdownMenuCheckboxItem
+										key={label.id}
+										checked={labelIds.includes(label.id)}
+										onCheckedChange={() => onLabelToggle(label.id)}
+										className={MENU_ITEM}
+									>
+										{label.name}
+									</DropdownMenuCheckboxItem>
+								))}
+							</>
+						)}
+
+						{activeFilterCount > 0 && (
+							<>
+								<DropdownMenuSeparator className="bg-portal-line" />
+								<button
+									type="button"
+									onClick={onClearFilters}
+									className="w-full rounded-portal-sm! px-2 py-1.5 text-left text-[13.5px] text-portal-accent-ink hover:bg-portal-hover focus-visible:bg-portal-hover"
+								>
+									Clear filters
+								</button>
+							</>
+						)}
 					</DropdownMenuContent>
 				</DropdownMenu>
-
-				{hasFilterMenu && (
-					<DropdownMenu>
-						<DropdownMenuTrigger
-							className={cn(
-								portalButtonVariants({ variant: "default", size: "sm" }),
-								TOUCH,
-								activeFilterCount > 0 &&
-									"border-portal-accent-line bg-portal-accent-soft text-portal-accent-ink"
-							)}
-						>
-							<IconFilter aria-hidden className="size-3.5" />
-							<span className="max-md:sr-only">Filter</span>
-							{activeFilterCount > 0 && <span className="tabular-nums">{activeFilterCount}</span>}
-						</DropdownMenuTrigger>
-						<DropdownMenuContent align="end" className={cn(MENU_CONTENT, "max-h-[min(70dvh,480px)]")}>
-							{statusOptions.length > 0 && (
-								<>
-									<DropdownMenuLabel className={MENU_LABEL}>Status</DropdownMenuLabel>
-									{statusOptions.map((status) => (
-										<DropdownMenuCheckboxItem
-											key={status}
-											checked={statuses.includes(status)}
-											onCheckedChange={() => onStatusToggle(status)}
-											className={MENU_ITEM}
-										>
-											{getPortalStatus(status).label}
-										</DropdownMenuCheckboxItem>
-									))}
-								</>
-							)}
-
-							{categories.length > 0 && (
-								<>
-									{statusOptions.length > 0 && <DropdownMenuSeparator className="bg-portal-line" />}
-									<DropdownMenuLabel className={MENU_LABEL}>Category</DropdownMenuLabel>
-									<DropdownMenuRadioGroup
-										value={categorySlug ?? ""}
-										onValueChange={(value) => onCategoryChange(value || null)}
-									>
-										<DropdownMenuRadioItem value="" className={MENU_ITEM}>
-											All categories
-										</DropdownMenuRadioItem>
-										{categories.map((category) => (
-											<DropdownMenuRadioItem
-												key={category.id}
-												value={generateSlug(category.name)}
-												className={MENU_ITEM}
-											>
-												{category.name}
-											</DropdownMenuRadioItem>
-										))}
-									</DropdownMenuRadioGroup>
-								</>
-							)}
-
-							{labels.length > 0 && (
-								<>
-									<DropdownMenuSeparator className="bg-portal-line" />
-									<DropdownMenuLabel className={MENU_LABEL}>Label</DropdownMenuLabel>
-									{labels.map((label) => (
-										<DropdownMenuCheckboxItem
-											key={label.id}
-											checked={labelIds.includes(label.id)}
-											onCheckedChange={() => onLabelToggle(label.id)}
-											className={MENU_ITEM}
-										>
-											{label.name}
-										</DropdownMenuCheckboxItem>
-									))}
-								</>
-							)}
-
-							{activeFilterCount > 0 && (
-								<>
-									<DropdownMenuSeparator className="bg-portal-line" />
-									<button
-										type="button"
-										onClick={onClearFilters}
-										className="w-full rounded-portal-sm! px-2 py-1.5 text-left text-[13.5px] text-portal-accent-ink hover:bg-portal-hover focus-visible:bg-portal-hover"
-									>
-										Clear filters
-									</button>
-								</>
-							)}
-						</DropdownMenuContent>
-					</DropdownMenu>
-				)}
-			</div>
-		</div>
+			)}
+		</>
 	);
 }

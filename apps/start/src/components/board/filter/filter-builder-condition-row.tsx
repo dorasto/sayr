@@ -1,6 +1,5 @@
 "use client";
 
-import type { schema } from "@repo/database";
 import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
 import { Input } from "@repo/ui/components/input";
 import {
@@ -15,8 +14,8 @@ import {
 } from "@repo/ui/components/tomui/combo-box-unified";
 import { getInitials } from "@repo/util";
 import { IconX } from "@tabler/icons-react";
-import { useMemo, useState } from "react";
-import { useLanderData } from "@/contexts/ContextLander";
+import { useState } from "react";
+import { useBoardData, useBoardFilterUsers } from "../core/board-data";
 import { FIELD_CONFIGS } from "./filter-config";
 import { getOperatorLabel } from "./operators";
 import type { FilterCondition, FilterOperator } from "./types";
@@ -44,7 +43,7 @@ export function FilterBuilderConditionRow({
 	onTextChange,
 	onRemove,
 }: FilterBuilderConditionRowProps) {
-	const { tasks, labels, categories, releases } = useLanderData();
+	const { items: tasks, labels, categories, releases } = useBoardData();
 	const [search, setSearch] = useState("");
 
 	const config = FIELD_CONFIGS.find((c) => c.field === condition.field);
@@ -52,17 +51,8 @@ export function FilterBuilderConditionRow({
 
 	// Assignee/creator both resolve against "every user seen across the
 	// loaded tasks" — there's no separate org-membership list loaded on the
-	// lander, and this mirrors field-assignee.tsx's same derivation.
-	const users = useMemo(() => {
-		const map = new Map<string, schema.UserSummary>();
-		for (const task of tasks) {
-			for (const user of task.assignees) {
-				map.set(user.id, user);
-			}
-			if (task.createdBy) map.set(task.createdBy.id, task.createdBy);
-		}
-		return Array.from(map.values());
-	}, [tasks]);
+	// lander, so the data source derives it from its items (unless it supplies `users`).
+	const users = useBoardFilterUsers();
 
 	if (!config) return null;
 

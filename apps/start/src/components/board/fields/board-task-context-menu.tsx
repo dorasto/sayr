@@ -19,7 +19,6 @@ import { formatTaskKey } from "@repo/util";
 import { IconCategory, IconExternalLink, IconRocket, IconTag, IconUser } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
 import type { ReactElement } from "react";
-import { useLanderData } from "@/contexts/ContextLander";
 import { updateAssigneesToTaskAction, updateLabelToTaskAction } from "@/lib/fetches/task";
 import {
 	PRIORITY_CONFIG,
@@ -29,7 +28,7 @@ import {
 	VISIBILITY_CONFIG,
 	type VisibilityValue,
 } from "../config/field-config";
-import { useBoardTaskFieldAction } from "./use-board-task-field-action";
+import { useBoardAssignableUsers, useBoardCapabilities, useBoardData, useBoardItemActions } from "../core/board-data";
 
 interface BoardTaskContextMenuProps {
 	task: schema.TaskWithLabels;
@@ -43,23 +42,25 @@ interface BoardTaskContextMenuProps {
  * `children` (the row's own Link, or the card's outer div) directly as the
  * ContextMenuTrigger's render target rather than adding a second wrapping
  * interactive element.
+ *
+ * A pass-through (just `children`) when the board's `canContextMenu` capability is off,
+ * so a read-only board's rows/cards carry no menu and no per-row menu hooks.
  */
 export function BoardTaskContextMenu({ task, children }: BoardTaskContextMenuProps) {
-	const { categories, releases, labels, tasks } = useLanderData();
+	const { canContextMenu } = useBoardCapabilities();
+	if (!canContextMenu) return children;
+	return <ActiveBoardTaskContextMenu task={task}>{children}</ActiveBoardTaskContextMenu>;
+}
+
+function ActiveBoardTaskContextMenu({ task, children }: BoardTaskContextMenuProps) {
+	const { categories, releases, labels } = useBoardData();
 	const { value: sseClientId } = useStateManagement<string>("sse-clientId", "");
-	const { execute } = useBoardTaskFieldAction(task);
+	const { execute } = useBoardItemActions(task);
 
 	const availableCategories = categories.filter((category) => category.organizationId === task.organizationId);
 	const availableReleases = releases.filter((release) => release.organizationId === task.organizationId);
 	const availableLabels = labels.filter((label) => label.organizationId === task.organizationId);
-	const availableUsers = (() => {
-		const users = new Map<string, schema.UserSummary>();
-		for (const orgTask of tasks) {
-			if (orgTask.organizationId !== task.organizationId) continue;
-			for (const user of orgTask.assignees) users.set(user.id, user);
-		}
-		return Array.from(users.values());
-	})();
+	const availableUsers = useBoardAssignableUsers(task.organizationId);
 
 	const assigneeIds = task.assignees.map((assignee) => assignee.id);
 	const labelIds = task.labels.map((label) => label.id);

@@ -3,20 +3,20 @@ import { usePublicOrganizationLayout } from "@/contexts/publicContextOrg";
 import { pickLatestRelease } from "@/lib/portal/board-row";
 import type { PanelHeaderConfig } from "@/lib/sidebar/sidebar-store";
 import { sidebarActions } from "@/lib/sidebar/sidebar-store";
+import { usePublicPostAbility } from "../../public-task-creator";
 import { usePeekEnabled } from "../peek/usePeekEnabled";
-import { PublicTaskCreator, usePublicPostAbility } from "../../public-task-creator";
+import { CategoriesCard, LatestReleaseCard, ShareIdeaCard } from "./BoardRailCards";
 import { useBoardRail } from "./board-rail-context";
-import { CategoriesCard, LatestReleaseCard } from "./BoardRailCards";
 import { PUBLIC_BOARD_PANEL_ID } from "./constants";
 
 /**
- * Body of the board panel while no post is selected: the composer, "Browse by category" and "Latest release". Takes no
- * props (it reads the board's data from `useBoardRail()`, the composer's draft from the provider), so it is handed to
- * the panel store once as `RAIL_CONTENT` and stays live by itself.
+ * Body of the board panel while no post is selected: the "Share an idea" card (a link to the full new-post form, hidden
+ * when the viewer can not post), "Browse by category" and "Latest release". Takes no props (it reads the board's data
+ * from `useBoardRail()`), so it is handed to the panel store once as `RAIL_CONTENT` and stays live by itself.
  */
 export function BoardRailContent() {
 	const { organization, categories } = usePublicOrganizationLayout();
-	const { loadedTasks, counts, releases, activeCategorySlug, onCategoryChange } = useBoardRail();
+	const { counts, releases, activeCategorySlug, onCategoryChange } = useBoardRail();
 	const { canPost } = usePublicPostAbility();
 	const desktop = usePeekEnabled();
 	const hasLatestRelease = useMemo(() => pickLatestRelease(releases) !== null, [releases]);
@@ -35,7 +35,7 @@ export function BoardRailContent() {
 
 	return (
 		<div className="flex flex-col gap-4 p-1">
-			<PublicTaskCreator tasks={loadedTasks} />
+			{canPost && <ShareIdeaCard orgSlug={organization.slug} />}
 			<CategoriesCard
 				categories={categories}
 				counts={counts}

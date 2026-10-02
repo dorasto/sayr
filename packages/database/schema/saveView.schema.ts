@@ -6,7 +6,8 @@ import { user } from "./auth";
 import { organization } from "./organization.schema";
 
 type viewConfig = {
-	mode: "list" | "kanban";
+	// "card" is board-only (apps/start board); the legacy org pages coerce it to "list". Type-only: jsonb, no migration.
+	mode: "list" | "kanban" | "card";
 	groupBy: "status" | "priority" | "assignee" | "category" | "release" | "org";
 	subGroupBy?: "status" | "priority" | "assignee" | "category" | "release" | "org" | "none";
 	showCompletedTasks: boolean;

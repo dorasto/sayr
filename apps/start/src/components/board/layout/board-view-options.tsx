@@ -23,8 +23,6 @@ import {
   IconArrowsSort,
   IconCheck,
   IconEyeOff,
-  IconLayoutKanban,
-  IconLayoutList,
   IconLayoutRows,
   IconSortAscending,
   IconSortDescending,
@@ -37,17 +35,9 @@ import {
 import { TASK_SORT_FIELDS, type TaskSortField } from "../filter/sort-config";
 import { useBoardViewState } from "../filter/use-board-view-state";
 import type { TaskGroupingId } from "../filter/types";
-
-const VIEW_MODE_OPTIONS = [
-  { id: "list", label: "List", icon: <IconLayoutList className="h-4 w-4" /> },
-  {
-    id: "kanban",
-    label: "Kanban",
-    icon: <IconLayoutKanban className="h-4 w-4" />,
-  },
-] as const;
-
-type ViewMode = (typeof VIEW_MODE_OPTIONS)[number]["id"];
+import { isPersistedViewMode } from "../core/view-config";
+import { getViewOptionVisibility } from "../views/view-registry-model";
+import { useActiveBoardView, useBoardViews } from "../views/view-registry";
 
 /**
  * Board's own view-options popover — same structure/behavior as the existing
@@ -61,7 +51,6 @@ export function BoardViewOptions() {
     grouping,
     subGrouping,
     showCompletedTasks,
-    viewMode,
     sortBy,
     sortDirection,
     setGrouping,
@@ -78,7 +67,12 @@ export function BoardViewOptions() {
   const activeSortField =
     sortBy !== "none" ? TASK_SORT_FIELDS.find((f) => f.id === sortBy) : null;
 
-  const activeViewMode: ViewMode = viewMode;
+  // The views the page registered (icon + label come from the registry) and which of the controls
+  // below the active one supports.
+  const views = useBoardViews();
+  const activeView = useActiveBoardView();
+  const { showViewPicker, showGrouping, showSubGrouping, showSort } =
+    getViewOptionVisibility(views, activeView);
 
   const groupingOptions = useMemo(() => TASK_GROUPING_OPTIONS, []);
 
@@ -93,6 +87,11 @@ export function BoardViewOptions() {
     ],
     [grouping],
   );
+
+  // Only persistable view ids can be stored in the view state (a page-local view id never is).
+  const selectView = (id: string) => {
+    if (isPersistedViewMode(id)) setViewMode(id);
+  };
 
   const [isViewOptionsOpen, setIsViewOptionsOpen] = useState(false);
   const [isGroupingMenuOpen, setIsGroupingMenuOpen] = useState(false);
@@ -118,16 +117,19 @@ export function BoardViewOptions() {
         initialFocus={false}
         align="end"
       >
+        {showViewPicker && (
         <RadioGroup
-          value={activeViewMode}
+          value={activeView.id}
           className="flex items-center gap-2"
-          onValueChange={(v) => setViewMode(v as ViewMode)}
+          onValueChange={(value) => {
+            if (typeof value === "string") selectView(value);
+          }}
         >
-          {VIEW_MODE_OPTIONS.map((option) => (
+          {views.map((option) => (
             <Button
               key={option.id}
-              variant={activeViewMode === option.id ? "secondary" : "ghost"}
-              onClick={() => setViewMode(option.id)}
+              variant={activeView.id === option.id ? "secondary" : "ghost"}
+              onClick={() => selectView(option.id)}
               size={"sm"}
               className={"rounded-xl h-auto py-1 justify-start"}
             >
@@ -151,6 +153,8 @@ export function BoardViewOptions() {
             </Button>
           ))}
         </RadioGroup>
+        )}
+        {showGrouping && (
         <OptionField
           title="Group by"
           titleClassName="text-xs text-muted-foreground"
@@ -207,6 +211,8 @@ export function BoardViewOptions() {
             </DropdownMenu>
           }
         />
+        )}
+        {showSubGrouping && (
         <OptionField
           title="Sub-grouping"
           titleClassName="text-xs text-muted-foreground"
@@ -269,6 +275,8 @@ export function BoardViewOptions() {
             </DropdownMenu>
           }
         />
+        )}
+        {showSort && (
         <OptionField
           title="Sort by"
           titleClassName="text-xs text-muted-foreground"
@@ -356,6 +364,7 @@ export function BoardViewOptions() {
             </div>
           }
         />
+        )}
         <OptionField
           title="Show completed tasks"
           titleClassName="text-xs text-muted-foreground"

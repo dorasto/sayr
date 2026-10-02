@@ -8,8 +8,33 @@ import { formatShortDate, pickLatestRelease } from "@/lib/portal/board-row";
 import { getReleaseDate } from "@/lib/portal/status";
 import { CategoryTag } from "../ui/CategoryTag";
 import { Pill } from "../ui/Pill";
+import { portalButtonVariants } from "../ui/PortalButton";
 import { PortalCard, PortalCardTitle } from "../ui/PortalCard";
+import { newPostLink } from "./new-post-path";
 import { type BoardCounts, type PublicReleaseSummary, useReleaseTaskCount } from "./useBoardSideData";
+
+interface ShareIdeaCardProps {
+	orgSlug: string;
+	className?: string;
+}
+
+/** "Share an idea or report a bug": the one way into posting, a link to the full form (`/orgs/$orgSlug/new`). */
+export function ShareIdeaCard({ orgSlug, className }: ShareIdeaCardProps) {
+	return (
+		<PortalCard className={className}>
+			<h2 className="mb-1 font-semibold text-[15px] text-portal-fg">Share an idea or report a bug</h2>
+			<p className="mb-3.5 text-[13px] text-portal-fg-2 leading-[19px]">
+				Search first. If someone already posted it, give it your vote instead.
+			</p>
+			<Link
+				{...newPostLink(orgSlug)}
+				className={cn(portalButtonVariants({ variant: "primary", size: "md" }), "w-full")}
+			>
+				Write a post
+			</Link>
+		</PortalCard>
+	);
+}
 
 interface CategoriesCardProps {
 	categories: ReadonlyArray<schema.categoryType>;

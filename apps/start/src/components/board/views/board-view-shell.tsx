@@ -1,15 +1,23 @@
 import type { schema } from "@repo/database";
-import { useBoardViewState } from "../filter/use-board-view-state";
-import { BoardKanbanView } from "./board-kanban-view";
-import { BoardListView } from "./board-list-view";
+import { BoardViewCapabilityScope } from "../core/board-data";
+import { useActiveBoardView } from "./view-registry";
 
 interface BoardViewShellProps {
-	tasks: schema.TaskWithLabels[];
+	tasks: readonly schema.TaskWithLabels[];
 }
 
-/** Dispatches already filtered/sorted board tasks to the selected presentation. */
+/**
+ * Dispatches already filtered/sorted board tasks to the selected presentation: a lookup in the view
+ * registry (an id the page doesn't register falls back to "list"). The active view's own limits
+ * (e.g. a card grid can't drag) narrow the capabilities of everything rendered inside it.
+ */
 export function BoardViewShell({ tasks }: BoardViewShellProps) {
-	const { viewMode } = useBoardViewState();
+	const view = useActiveBoardView();
+	const ViewComponent = view.component;
 
-	return viewMode === "kanban" ? <BoardKanbanView tasks={tasks} /> : <BoardListView tasks={tasks} />;
+	return (
+		<BoardViewCapabilityScope view={view}>
+			<ViewComponent items={tasks} />
+		</BoardViewCapabilityScope>
+	);
 }

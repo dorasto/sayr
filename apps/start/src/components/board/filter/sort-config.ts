@@ -38,10 +38,10 @@ export const STATUS_ORDER: Record<string, number> = {
  * group and sub-group without touching any grouping function.
  */
 export function sortTasks(
-	tasks: schema.TaskWithLabels[],
+	tasks: readonly schema.TaskWithLabels[],
 	sortBy: TaskSortField | undefined,
 	sortDirection: TaskSortDirection = "asc"
-): schema.TaskWithLabels[] {
+): readonly schema.TaskWithLabels[] {
 	if (!sortBy) return tasks;
 	const dir = sortDirection === "desc" ? -1 : 1;
 

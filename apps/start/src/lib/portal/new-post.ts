@@ -43,12 +43,46 @@ export function splitCategoryChips<T extends { id: string; name: string }>(
 	return { chips: chips.slice(0, chipCount), more: categories.filter((category) => !chipIds.has(category.id)) };
 }
 
+/** Priorities a visitor can pick on the new post form, in display order (same values the API accepts). */
+export const POST_PRIORITIES = [
+	{ value: "none", label: "No priority" },
+	{ value: "low", label: "Low" },
+	{ value: "medium", label: "Medium" },
+	{ value: "high", label: "High" },
+	{ value: "urgent", label: "Urgent" },
+] as const;
+
+export type PostPriority = (typeof POST_PRIORITIES)[number]["value"];
+
+export const DEFAULT_POST_PRIORITY: PostPriority = "none";
+
+/** Narrows an unknown value (stored draft, template priority) to a priority the form offers. */
+export function isPostPriority(value: unknown): value is PostPriority {
+	return POST_PRIORITIES.some((priority) => priority.value === value);
+}
+
 /** What the new post form keeps while the visitor logs in or wanders off to read a similar post. */
 export interface NewPostDraft {
 	title: string;
 	/** ProseKit document JSON (blob image URLs are only valid in the tab that made them, so they are dropped on save). */
 	description: NodeJSON | undefined;
 	categoryId: string | null;
+	priority: PostPriority;
+	labelIds: string[];
+	/** The template the post started from. Kept so a template-required board does not ask again after a login round trip. */
+	templateId: string | null;
+}
+
+/** A draft holding only `title`, everything else at its default. */
+export function titleOnlyDraft(title: string): NewPostDraft {
+	return {
+		title,
+		description: undefined,
+		categoryId: null,
+		priority: DEFAULT_POST_PRIORITY,
+		labelIds: [],
+		templateId: null,
+	};
 }
 
 /** `sessionStorage` key for an org's draft. Per org, per tab; cleared on a successful post. */
@@ -81,7 +115,14 @@ function stripBlobMedia(node: NodeJSON): NodeJSON | null {
 
 /** True when there is nothing worth keeping. */
 export function isDraftEmpty(draft: NewPostDraft): boolean {
-	return !draft.title.trim() && !docHasContent(draft.description) && !draft.categoryId;
+	return (
+		!draft.title.trim() &&
+		!docHasContent(draft.description) &&
+		!draft.categoryId &&
+		draft.priority === DEFAULT_POST_PRIORITY &&
+		draft.labelIds.length === 0 &&
+		!draft.templateId
+	);
 }
 
 /** Draft as a JSON string for `sessionStorage`, or `null` when it is empty (the caller should remove the key). */
@@ -110,6 +151,11 @@ export function parseDraft(raw: string | null | undefined): NewPostDraft | null 
 		title: typeof record.title === "string" ? record.title : "",
 		description: isDocJson(record.description) ? record.description : undefined,
 		categoryId: typeof record.categoryId === "string" ? record.categoryId : null,
+		priority: isPostPriority(record.priority) ? record.priority : DEFAULT_POST_PRIORITY,
+		labelIds: Array.isArray(record.labelIds)
+			? record.labelIds.filter((id): id is string => typeof id === "string")
+			: [],
+		templateId: typeof record.templateId === "string" ? record.templateId : null,
 	};
 	return isDraftEmpty(draft) ? null : draft;
 }
@@ -125,7 +171,7 @@ export function resolveInitialDraft(
 	const prefill = prefillTitle?.trim();
 	if (!prefill) return stored;
 	if (stored && stored.title.trim() === prefill) return stored;
-	return { title: prefill, description: undefined, categoryId: null };
+	return titleOnlyDraft(prefill);
 }
 
 /**

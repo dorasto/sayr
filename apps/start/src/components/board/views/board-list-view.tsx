@@ -21,6 +21,7 @@ import { CSS } from "@dnd-kit/utilities";
 import type { schema } from "@repo/database";
 import { cn } from "@repo/ui/lib/utils";
 import {
+  Fragment,
   type PropsWithChildren,
   useCallback,
   useEffect,
@@ -29,24 +30,41 @@ import {
   useState,
 } from "react";
 import { createPortal } from "react-dom";
-import { useLanderData } from "@/contexts/ContextLander";
 import {
   applyNestedGrouping,
   type BoardTaskGroup,
   buildSubtaskMap,
   getTopLevelTasks,
 } from "../config/groupings";
+import {
+  NONE_GROUPING_ID,
+  resolveEffectiveSubGrouping,
+} from "../config/grouping-registry";
+import {
+  useBoardCapabilities,
+  useBoardData,
+  useBoardGroupings,
+  useBoardRenderers,
+} from "../core/board-data";
 import { useBoardViewState } from "../filter/use-board-view-state";
 import {
   type BoardDragMutation,
   BoardDragMutationExecutor,
 } from "./board-drag-actions";
+import { BoardFooter } from "./board-load-more";
 import { BoardRow } from "./board-row";
 import { GroupHeaderContent } from "./group-header";
 
 interface BoardListViewProps {
-  tasks: schema.TaskWithLabels[];
+  tasks: readonly schema.TaskWithLabels[];
+  /**
+   * Every task is its own top-level row, in the order given, even when its parent is in the list (no nesting under
+   * the parent). For a host whose list is already ranked server-side, e.g. the public Feedback board.
+   */
+  flatSubtasks?: boolean;
 }
+
+const NO_SUBTASKS: Map<string, schema.TaskWithLabels[]> = new Map();
 
 interface DropTarget {
   groupId: string;
@@ -145,6 +163,7 @@ function SortableBoardRow({ task }: { task: schema.TaskWithLabels }) {
     id: task.id,
     data: { taskId: task.id },
   });
+  const Row = useBoardRenderers().row ?? BoardRow;
 
   return (
     <div
@@ -162,9 +181,31 @@ function SortableBoardRow({ task }: { task: schema.TaskWithLabels }) {
         isDragging && "opacity-30",
       )}
     >
-      <BoardRow task={task} />
+      <Row task={task} />
     </div>
   );
+}
+
+/**
+ * Subtasks rendered right after their parent's row, as plain rows (`nested`) — never sortable, in
+ * drag and read-only mode alike. A custom `renderers.row` receives them with `nested` set (it may
+ * ignore it and render them like any other row).
+ */
+function SubtaskRows({ subtasks }: { subtasks: schema.TaskWithLabels[] }) {
+  const Row = useBoardRenderers().row ?? BoardRow;
+  return (
+    <>
+      {subtasks.map((subtask) => (
+        <Row key={subtask.id} task={subtask} nested />
+      ))}
+    </>
+  );
+}
+
+/** The rows of one list section, inside the page's `renderers.listContainer` when it has one (bare otherwise). */
+function SectionRows({ children }: PropsWithChildren) {
+  const Container = useBoardRenderers().listContainer;
+  return Container ? <Container>{children}</Container> : children;
 }
 
 /**
@@ -183,9 +224,7 @@ function TaskRowWithSubtasks({
   return (
     <>
       <SortableBoardRow task={task} />
-      {subtasks.map((subtask) => (
-        <BoardRow key={subtask.id} task={subtask} nested />
-      ))}
+      <SubtaskRows subtasks={subtasks} />
     </>
   );
 }
@@ -204,6 +243,45 @@ function getSubGroupCollapseKey(
   return `${group.id}::${subGroup.id}`;
 }
 
+interface GroupSectionHeaderProps {
+  group: BoardTaskGroup;
+  isDropTarget?: boolean;
+  isSubGroup?: boolean;
+  expanded: boolean;
+  onToggleExpanded: () => void;
+}
+
+/** The sticky two-layer group header — shared by the drag-enabled and the read-only list sections. */
+function GroupSectionHeader({
+  group,
+  isDropTarget = false,
+  isSubGroup = false,
+  expanded,
+  onToggleExpanded,
+}: GroupSectionHeaderProps) {
+  return (
+    <div
+      style={{ top: isSubGroup ? "28px" : 0 }}
+      className={cn(
+        "w-full overflow-hidden rounded-xl bg-background",
+        isSubGroup ? "z-9" : "z-10 sticky",
+      )}
+    >
+      <GroupHeaderContent
+        label={group.label}
+        icon={group.icon}
+        count={group.tasks.length}
+        toneClassName={group.toneClassName}
+        color={group.color}
+        isDropTarget={isDropTarget}
+        isSubGroup={isSubGroup}
+        expanded={expanded}
+        onToggleExpanded={onToggleExpanded}
+      />
+    </div>
+  );
+}
+
 interface GroupSectionProps {
   group: BoardTaskGroup;
   dropTargetId?: string;
@@ -212,6 +290,8 @@ interface GroupSectionProps {
   isDropTarget?: boolean;
   /** mt-3 on every section but the first, so stacked groups read as clearly separate — passed in rather than baked in here since "first" is a fact only the list knows. */
   className?: string;
+  /** The "none" grouping: just the rows, no section header (and so nothing to collapse). */
+  hideHeader?: boolean;
   expanded: boolean;
   onToggleExpanded: () => void;
 }
@@ -235,11 +315,11 @@ function GroupSection({
   isSubGroup = false,
   isDropTarget = false,
   className,
+  hideHeader = false,
   expanded,
   onToggleExpanded,
   children,
 }: PropsWithChildren<GroupSectionProps>) {
-  const count = group.tasks.length;
   // Still needed so @dnd-kit can resolve a drop onto truly empty space
   // within this group (no row under the pointer) — but isDropTarget (not
   // this hook's own isOver) drives the highlight.
@@ -261,31 +341,65 @@ function GroupSection({
         className,
       )}
     >
-      <div
-        style={{ top: isSubGroup ? "28px" : 0 }}
-        className={cn(
-          "w-full overflow-hidden rounded-xl bg-background",
-          isSubGroup ? "z-9" : "z-10 sticky",
-        )}
-      >
-        <GroupHeaderContent
-          label={group.label}
-          icon={group.icon}
-          count={count}
-          toneClassName={group.toneClassName}
-          color={group.color}
+      {!hideHeader && (
+        <GroupSectionHeader
+          group={group}
           isDropTarget={isDropTarget}
           isSubGroup={isSubGroup}
           expanded={expanded}
           onToggleExpanded={onToggleExpanded}
         />
-      </div>
+      )}
       {expanded &&
         (dropTargetId ? (
-          <SortableContext items={sortableIds}>{children}</SortableContext>
+          <SortableContext items={sortableIds}>
+            <SectionRows>{children}</SectionRows>
+          </SortableContext>
         ) : (
           children
         ))}
+    </section>
+  );
+}
+
+interface StaticGroupSectionProps {
+  group: BoardTaskGroup;
+  isSubGroup?: boolean;
+  className?: string;
+  /** The "none" grouping: just the rows, no section header (and so nothing to collapse). */
+  hideHeader?: boolean;
+  /** This section holds rows (a leaf), so they go inside `renderers.listContainer`; a parent of sub-groups doesn't. */
+  containRows?: boolean;
+  expanded: boolean;
+  onToggleExpanded: () => void;
+}
+
+/**
+ * The read-only counterpart of GroupSection: same sticky header and spacing, but no droppable and no
+ * SortableContext — nothing here knows about dnd-kit.
+ */
+function StaticGroupSection({
+  group,
+  isSubGroup = false,
+  className,
+  hideHeader = false,
+  containRows = false,
+  expanded,
+  onToggleExpanded,
+  children,
+}: PropsWithChildren<StaticGroupSectionProps>) {
+  return (
+    <section className={cn("rounded-xl transition-shadow", className)}>
+      {!hideHeader && (
+        <GroupSectionHeader
+          group={group}
+          isSubGroup={isSubGroup}
+          expanded={expanded}
+          onToggleExpanded={onToggleExpanded}
+        />
+      )}
+      {expanded &&
+        (containRows ? <SectionRows>{children}</SectionRows> : children)}
     </section>
   );
 }
@@ -304,30 +418,53 @@ function resolveDropTarget(
   return dropTargets.get(overId) ?? taskGroupTargets.get(overId);
 }
 
-export function BoardListView({ tasks }: BoardListViewProps) {
-  const { categories, releases } = useLanderData();
-  const { grouping, subGrouping, showCompletedTasks } = useBoardViewState();
-  const [mutation, setMutation] = useState<BoardDragMutation | null>(null);
-  const [dragOverride, setDragOverride] = useState<DragOverride | null>(null);
-  const [activeId, setActiveId] = useState<string | null>(null);
-  const activeTask = useMemo(
-    () => tasks.find((t) => t.id === activeId),
-    [tasks, activeId],
+/**
+ * Everything the list needs that has nothing to do with dragging: the grouping (+ effective
+ * sub-grouping), the grouped top-level tasks, the subtask map and the collapsed-section state. Shared
+ * by the drag-enabled and the read-only list so both group, nest and collapse identically.
+ */
+function useBoardListModel(
+  tasks: readonly schema.TaskWithLabels[],
+  flatSubtasks = false,
+) {
+  const data = useBoardData();
+  const groupings = useBoardGroupings();
+  const {
+    grouping,
+    subGrouping: requestedSubGrouping,
+    showCompletedTasks,
+  } = useBoardViewState();
+  // "none" when the primary grouping can't be sub-grouped.
+  const subGrouping = resolveEffectiveSubGrouping(
+    groupings,
+    grouping,
+    requestedSubGrouping,
   );
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
-  );
+  // The "none" grouping is one header-less section.
+  const ungrouped = grouping === NONE_GROUPING_ID;
   const options = useMemo(
-    () => ({ categories, releases, showCompletedTasks }),
-    [categories, releases, showCompletedTasks],
+    () => ({
+      categories: data.categories,
+      releases: data.releases,
+      showCompletedTasks,
+      groupings,
+      data,
+    }),
+    [data, groupings, showCompletedTasks],
   );
 
   // Subtasks (a task whose parent is also in this list) don't get their own
   // top-level group membership — they always render nested under their
   // parent's row instead, wherever the parent lands, regardless of the
   // subtask's own status/priority. See config/groupings.ts.
-  const topLevelTasks = useMemo(() => getTopLevelTasks(tasks), [tasks]);
-  const subtaskMap = useMemo(() => buildSubtaskMap(tasks), [tasks]);
+  const topLevelTasks = useMemo(
+    () => (flatSubtasks ? [...tasks] : getTopLevelTasks(tasks)),
+    [tasks, flatSubtasks],
+  );
+  const subtaskMap = useMemo(
+    () => (flatSubtasks ? NO_SUBTASKS : buildSubtaskMap(tasks)),
+    [tasks, flatSubtasks],
+  );
 
   const baseGroups = useMemo(
     () => applyNestedGrouping(topLevelTasks, grouping, subGrouping, options),
@@ -380,6 +517,123 @@ export function BoardListView({ tasks }: BoardListViewProps) {
       return next;
     });
   }, []);
+
+  return {
+    grouping,
+    subGrouping,
+    ungrouped,
+    baseGroups,
+    subtaskMap,
+    collapsedSections,
+    toggleSection,
+  };
+}
+
+/** The read-only list (`canDrag` off): the same grouped, nested, collapsible rows with no dnd-kit at all. */
+function StaticBoardList({ tasks, flatSubtasks }: BoardListViewProps) {
+  const {
+    subGrouping,
+    ungrouped,
+    baseGroups,
+    subtaskMap,
+    collapsedSections,
+    toggleSection,
+  } = useBoardListModel(tasks, flatSubtasks);
+  const Row = useBoardRenderers().row ?? BoardRow;
+
+  const renderRows = (list: schema.TaskWithLabels[]) =>
+    list.map((task) => (
+      <Fragment key={task.id}>
+        <Row task={task} />
+        <SubtaskRows subtasks={subtaskMap.get(task.id) ?? []} />
+      </Fragment>
+    ));
+
+  return (
+    <>
+      <div>
+        {baseGroups.map((group, index) => {
+          const spacing = index > 0 ? "mt-3" : "";
+          if (subGrouping === "none") {
+            return (
+              <StaticGroupSection
+                key={group.id}
+                group={group}
+                className={spacing}
+                hideHeader={ungrouped}
+                containRows
+                expanded={ungrouped || !collapsedSections.has(group.id)}
+                onToggleExpanded={() => toggleSection(group.id)}
+              >
+                {renderRows(group.tasks)}
+              </StaticGroupSection>
+            );
+          }
+
+          return (
+            <StaticGroupSection
+              key={group.id}
+              group={group}
+              className={spacing}
+              expanded={!collapsedSections.has(group.id)}
+              onToggleExpanded={() => toggleSection(group.id)}
+            >
+              {(group.subGroups ?? []).map((subGroup, subIndex) => {
+                const subGroupKey = getSubGroupCollapseKey(group, subGroup);
+                return (
+                  <StaticGroupSection
+                    key={subGroup.id}
+                    group={subGroup}
+                    isSubGroup
+                    className={subIndex > 0 ? "mt-3" : undefined}
+                    containRows
+                    expanded={!collapsedSections.has(subGroupKey)}
+                    onToggleExpanded={() => toggleSection(subGroupKey)}
+                  >
+                    {renderRows(subGroup.tasks)}
+                  </StaticGroupSection>
+                );
+              })}
+            </StaticGroupSection>
+          );
+        })}
+      </div>
+      <BoardFooter />
+    </>
+  );
+}
+
+export function BoardListView({ tasks, flatSubtasks }: BoardListViewProps) {
+  const { canDrag } = useBoardCapabilities();
+  return canDrag ? (
+    <DraggableBoardList tasks={tasks} flatSubtasks={flatSubtasks} />
+  ) : (
+    <StaticBoardList tasks={tasks} flatSubtasks={flatSubtasks} />
+  );
+}
+
+/** The drag-enabled list: multi-container dnd-kit sortable. Its dnd logic is deliberately untouched. */
+function DraggableBoardList({ tasks, flatSubtasks }: BoardListViewProps) {
+  const {
+    grouping,
+    subGrouping,
+    ungrouped,
+    baseGroups,
+    subtaskMap,
+    collapsedSections,
+    toggleSection,
+  } = useBoardListModel(tasks, flatSubtasks);
+  const [mutation, setMutation] = useState<BoardDragMutation | null>(null);
+  const [dragOverride, setDragOverride] = useState<DragOverride | null>(null);
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const activeTask = useMemo(
+    () => tasks.find((t) => t.id === activeId),
+    [tasks, activeId],
+  );
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+  );
+  const OverlayRow = useBoardRenderers().row ?? BoardRow;
 
   const groups = useMemo(() => {
     if (!dragOverride) return baseGroups;
@@ -531,7 +785,8 @@ export function BoardListView({ tasks }: BoardListViewProps) {
                     !dragOverride.subGroupId
                   }
                   className={spacing}
-                  expanded={!collapsedSections.has(group.id)}
+                  hideHeader={ungrouped}
+                  expanded={ungrouped || !collapsedSections.has(group.id)}
                   onToggleExpanded={() => toggleSection(group.id)}
                 >
                   {group.tasks.map((task) => (
@@ -587,11 +842,12 @@ export function BoardListView({ tasks }: BoardListViewProps) {
         {typeof window !== "undefined" &&
           createPortal(
             <DragOverlay dropAnimation={{ duration: 200, easing: "ease" }}>
-              {activeTask && <BoardRow task={activeTask} />}
+              {activeTask && <OverlayRow task={activeTask} />}
             </DragOverlay>,
             document.body,
           )}
       </DndContext>
+      <BoardFooter />
       {mutation && (
         <BoardDragMutationExecutor
           mutation={mutation}

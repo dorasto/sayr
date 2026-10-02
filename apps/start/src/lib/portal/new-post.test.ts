@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { DuplicateCandidate } from "./duplicates";
 import {
 	docHasContent,
+	isPostPriority,
 	mergeSimilarPosts,
 	type NewPostDraft,
 	newPostDraftKey,
@@ -10,6 +11,7 @@ import {
 	resolveInitialDraft,
 	serialiseDraft,
 	splitCategoryChips,
+	titleOnlyDraft,
 } from "./new-post";
 
 const category = (id: string, name: string) => ({ id, name });
@@ -65,7 +67,14 @@ describe("docHasContent", () => {
 });
 
 describe("draft serialise / parse", () => {
-	const draft: NewPostDraft = { title: "Slack alerts", description: doc(paragraph("Details")), categoryId: "c1" };
+	const draft: NewPostDraft = {
+		title: "Slack alerts",
+		description: doc(paragraph("Details")),
+		categoryId: "c1",
+		priority: "high",
+		labelIds: ["l1", "l2"],
+		templateId: "t1",
+	};
 
 	it("keys drafts per org", () => {
 		expect(newPostDraftKey("a")).not.toBe(newPostDraftKey("b"));
@@ -78,12 +87,19 @@ describe("draft serialise / parse", () => {
 	});
 
 	it("returns null for an empty draft so the key can be removed", () => {
-		expect(serialiseDraft({ title: "  ", description: doc(paragraph("")), categoryId: null })).toBeNull();
+		expect(serialiseDraft(titleOnlyDraft("  "))).toBeNull();
+		expect(serialiseDraft({ ...titleOnlyDraft(""), description: doc(paragraph("")) })).toBeNull();
+	});
+
+	it("keeps a draft that only has a priority, labels or a template", () => {
+		expect(serialiseDraft({ ...titleOnlyDraft(""), priority: "low" })).not.toBeNull();
+		expect(serialiseDraft({ ...titleOnlyDraft(""), labelIds: ["l1"] })).not.toBeNull();
+		expect(serialiseDraft({ ...titleOnlyDraft(""), templateId: "t1" })).not.toBeNull();
 	});
 
 	it("drops blob images, which do not survive a reload", () => {
 		const withBlob = doc(paragraph("See"), { type: "image", attrs: { src: "blob:http://x/1" } });
-		const parsed = parseDraft(serialiseDraft({ title: "t", description: withBlob, categoryId: null }));
+		const parsed = parseDraft(serialiseDraft({ ...titleOnlyDraft("t"), description: withBlob }));
 		expect(JSON.stringify(parsed?.description)).not.toContain("blob:");
 		expect(JSON.stringify(parsed?.description)).toContain("See");
 	});
@@ -98,12 +114,34 @@ describe("draft serialise / parse", () => {
 
 	it("ignores fields of the wrong type", () => {
 		const parsed = parseDraft(JSON.stringify({ title: "ok", description: "nope", categoryId: 4 }));
-		expect(parsed).toEqual({ title: "ok", description: undefined, categoryId: null });
+		expect(parsed).toEqual(titleOnlyDraft("ok"));
+	});
+
+	it("falls back to defaults for an unknown priority and drops non-string label ids", () => {
+		const parsed = parseDraft(
+			JSON.stringify({ title: "ok", priority: "critical", labelIds: ["l1", 2, null], templateId: 3 })
+		);
+		expect(parsed).toEqual({ ...titleOnlyDraft("ok"), labelIds: ["l1"] });
+		expect(parseDraft(JSON.stringify({ title: "ok", labelIds: "l1" }))?.labelIds).toEqual([]);
+	});
+});
+
+describe("isPostPriority", () => {
+	it("accepts the five priorities only", () => {
+		for (const value of ["none", "low", "medium", "high", "urgent"]) expect(isPostPriority(value)).toBe(true);
+		expect(isPostPriority("critical")).toBe(false);
+		expect(isPostPriority(undefined)).toBe(false);
+		expect(isPostPriority(1)).toBe(false);
 	});
 });
 
 describe("resolveInitialDraft", () => {
-	const stored: NewPostDraft = { title: "Slack alerts", description: doc(paragraph("More")), categoryId: "c1" };
+	const stored: NewPostDraft = {
+		...titleOnlyDraft("Slack alerts"),
+		description: doc(paragraph("More")),
+		categoryId: "c1",
+		priority: "medium",
+	};
 
 	it("restores the stored draft when there is no prefill", () => {
 		expect(resolveInitialDraft(undefined, stored)).toBe(stored);
@@ -116,11 +154,7 @@ describe("resolveInitialDraft", () => {
 	});
 
 	it("starts fresh from a different prefilled title", () => {
-		expect(resolveInitialDraft("Dark mode", stored)).toEqual({
-			title: "Dark mode",
-			description: undefined,
-			categoryId: null,
-		});
+		expect(resolveInitialDraft("Dark mode", stored)).toEqual(titleOnlyDraft("Dark mode"));
 		expect(resolveInitialDraft("Dark mode", null)?.title).toBe("Dark mode");
 	});
 });
