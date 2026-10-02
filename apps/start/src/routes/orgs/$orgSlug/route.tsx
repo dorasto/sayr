@@ -134,7 +134,7 @@ function PublicLayout() {
 			<div className="portal flex h-dvh flex-col overflow-hidden bg-portal-canvas text-portal-fg">
 				<PublicNavigation />
 				{isPortalPage ? (
-					<div className="min-h-0 w-full flex-1 overflow-hidden" id="public-scroll-container">
+					<div className="isolate min-h-0 w-full flex-1 overflow-hidden" id="public-scroll-container">
 						<Outlet />
 					</div>
 				) : (

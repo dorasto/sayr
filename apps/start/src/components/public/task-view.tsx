@@ -124,7 +124,7 @@ export function PublicTaskView({
     >
       <PublicPostsContext.Provider value={postsContext}>
         {/* The column reflows when the right panel pushes the page. */}
-        <div className={cn(PORTAL_BODY, "pt-5 pb-16 md:pt-6 mx-0")}>
+        <div className={cn(PORTAL_BODY, "pt-5 pb-16 md:pt-3 mx-0 max-w-full")}>
           <section className="min-w-0">
             {/* Below 1024px the panel is a sheet that never opens by itself: this goes straight to the form. */}
             {canPost && (
