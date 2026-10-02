@@ -56,7 +56,7 @@ export function IndentDrawerIndentBackground({
 // route content below it, so IndentDrawerContent portals this into the
 // same root container as the header (see its `backdropContainer` prop)
 // rather than the popup's own local region. IndentDrawerContent's
-// Viewport is bumped to z-[10010] to stay above this regardless.
+// portal node is bumped to z-[10010] to stay above this regardless.
 export function IndentDrawerBackdrop({
   className,
   ...props
@@ -363,7 +363,19 @@ export function IndentDrawerContent({
           <IndentDrawerBackdrop />
         </DrawerPrimitive.Portal>
       )}
-      <DrawerPrimitive.Portal container={container}>
+      {/* The drawer's stacking lives on the portal node, not the Viewport:
+          Base UI renders every popup opened from inside the drawer (tooltips,
+          popovers, menus, selects) as a nested portal INSIDE this node, next
+          to the Viewport. With the z-index here and none on the Viewport,
+          those popups (z-50) paint above the drawer instead of under it, with
+          no z-index at the call site. z-[10010]: above IndentDrawerBackdrop's
+          z-[10000], which sits above the app header's z-9999. The node covers
+          the container, so it is pointer-events-none (non-modal drawers let
+          clicks through); nested popup portals turn pointer events back on. */}
+      <DrawerPrimitive.Portal
+        container={container}
+        className="pointer-events-none absolute inset-0 z-[10010] [&>[data-base-ui-portal]]:pointer-events-auto"
+      >
         {/* pointer-events-none on the viewport + pointer-events-auto only on the
 				    popup below is what makes a non-modal drawer (the default) genuinely
 				    non-modal — clicks outside the popup's own box pass straight through to
@@ -375,12 +387,9 @@ export function IndentDrawerContent({
         <DrawerPrimitive.Viewport
           style={sizeVars}
           className={cn(
-            // z-[10010]: stays above IndentDrawerBackdrop's z-[10000] (which in
-            // turn sits above the app header's z-9999) regardless of whether
-            // this drawer is modal — harmless for non-modal drawers, which
-            // never visually reach the header anyway (clipped by Page's own
-            // overflow-hidden root before they'd get that far).
-            "pointer-events-none absolute inset-0 z-[10010] flex",
+            // No z-index here: the portal node above carries the drawer's
+            // z-[10010], so nested popups can stack over this Viewport.
+            "pointer-events-none absolute inset-0 flex",
             "max-md:items-end max-md:justify-center",
             // p-3 is what makes the desktop drawer "float" — Popup stretches
             // to fill this padded box instead of the full edge-to-edge
