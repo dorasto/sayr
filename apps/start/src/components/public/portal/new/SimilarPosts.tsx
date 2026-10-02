@@ -47,7 +47,7 @@ function SimilarPostRow({ task }: { task: schema.TaskWithLabels }) {
 					aria-pressed={vote.voted}
 					onClick={() => void vote.toggle()}
 					className={cn(
-						"inline-flex shrink-0 cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-portal-sm border font-medium text-[13px] outline-none transition-colors focus-visible:ring-2 focus-visible:ring-portal-focus",
+						"inline-flex shrink-0 cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-portal-sm border font-medium text-[13px] outline-none transition-colors",
 						"h-[30px] px-2.5 max-md:h-11 max-md:w-full max-md:rounded-portal-md max-md:text-sm",
 						vote.voted
 							? "border-portal-accent-line bg-portal-accent-soft text-portal-accent-ink"

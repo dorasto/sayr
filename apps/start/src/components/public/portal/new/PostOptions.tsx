@@ -28,7 +28,7 @@ export function PriorityPicker({ value, onChange, className }: PriorityPickerPro
 				id={id}
 				value={value}
 				onChange={handleChange}
-				className="h-10 w-full rounded-portal-md border border-portal-line-2 bg-portal-canvas px-3 text-[14.5px] text-portal-fg outline-none transition-[border-color,box-shadow] focus:border-portal-focus focus:ring-[3px] focus:ring-portal-accent-soft max-md:h-11 max-md:text-base"
+				className="h-10 w-full rounded-portal-md border border-portal-line-2 bg-portal-canvas px-3 text-[14.5px] text-portal-fg outline-none transition-[border-color,box-shadow] focus:border-portal-focus max-md:h-11 max-md:text-base"
 			>
 				{POST_PRIORITIES.map((priority) => (
 					<option key={priority.value} value={priority.value}>
@@ -65,7 +65,7 @@ export function LabelChips({ labels, value, onChange, className }: LabelChipsPro
 							aria-pressed={selected}
 							onClick={() => toggle(label.id)}
 							className={cn(
-								"inline-flex h-[34px] shrink-0 cursor-pointer items-center gap-2 rounded-full border px-3 font-medium text-[13.5px] outline-none transition-colors focus-visible:ring-2 focus-visible:ring-portal-focus max-md:h-11",
+								"inline-flex h-[34px] shrink-0 cursor-pointer items-center gap-2 rounded-full border px-3 font-medium text-[13.5px] outline-none transition-colors max-md:h-11",
 								selected
 									? "border-portal-accent-line bg-portal-accent-soft text-portal-accent-ink"
 									: "border-portal-line-2 text-portal-fg-2 hover:bg-portal-hover focus-visible:bg-portal-hover hover:text-portal-fg focus-visible:text-portal-fg"

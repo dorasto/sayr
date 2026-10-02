@@ -63,7 +63,7 @@ function PostPageBar({ orgSlug }: { orgSlug: string }) {
 			<Link
 				to="/orgs/$orgSlug"
 				params={{ orgSlug }}
-				className="inline-flex h-8 items-center gap-2 rounded-portal-sm px-2 font-medium text-[13.5px] text-portal-fg-2 outline-none transition-colors hover:bg-portal-hover hover:text-portal-fg focus-visible:bg-portal-hover focus-visible:text-portal-fg focus-visible:ring-2 focus-visible:ring-portal-focus max-md:h-11 max-md:text-base"
+				className="inline-flex h-8 items-center gap-2 rounded-portal-sm px-2 font-medium text-[13.5px] text-portal-fg-2 outline-none transition-colors hover:bg-portal-hover hover:text-portal-fg focus-visible:bg-portal-hover focus-visible:text-portal-fg max-md:h-11 max-md:text-base"
 			>
 				<IconArrowLeft aria-hidden className="size-4" />
 				Feedback

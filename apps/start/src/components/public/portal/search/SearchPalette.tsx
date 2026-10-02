@@ -133,7 +133,7 @@ export function SearchPalette({ orgSlug, orgId, orgShortId, onClose }: SearchPal
 					/>
 				)}
 				<kbd className={cn(KBD_CLASS, "hidden sm:inline-flex")}>esc</kbd>
-				<DialogClose className="shrink-0 cursor-pointer rounded-portal-sm px-2 py-3 font-medium text-portal-fg-2 text-sm outline-none hover:text-portal-fg focus-visible:ring-2 focus-visible:ring-portal-focus sm:hidden">
+				<DialogClose className="shrink-0 cursor-pointer rounded-portal-sm px-2 py-3 font-medium text-portal-fg-2 text-sm outline-none hover:text-portal-fg sm:hidden">
 					Cancel
 				</DialogClose>
 			</div>
@@ -154,7 +154,7 @@ export function SearchPalette({ orgSlug, orgId, orgShortId, onClose }: SearchPal
 								inputRef.current?.focus();
 							}}
 							className={cn(
-								"inline-flex h-[30px] cursor-pointer items-center gap-1.5 rounded-portal-sm px-2.5 max-md:h-11 max-md:px-3.5 font-medium text-[13px] outline-none transition-colors focus-visible:ring-2 focus-visible:ring-portal-focus",
+								"inline-flex h-[30px] cursor-pointer items-center gap-1.5 rounded-portal-sm px-2.5 max-md:h-11 max-md:px-3.5 font-medium text-[13px] outline-none transition-colors",
 								selected
 									? "bg-portal-raised text-portal-fg"
 									: "text-portal-fg-2 hover:bg-portal-hover focus-visible:bg-portal-hover hover:text-portal-fg focus-visible:text-portal-fg"

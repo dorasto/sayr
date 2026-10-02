@@ -36,7 +36,7 @@ function RoadmapCardBase({ task, releaseName }: RoadmapCardProps) {
 				<Link
 					to="/orgs/$orgSlug/$shortId"
 					params={linkParams}
-					className="relative z-10 rounded-sm font-semibold text-portal-fg-3 text-xs outline-none after:absolute after:-inset-x-2 after:-inset-y-3 after:content-[''] md:after:hidden hover:text-portal-fg-2 focus-visible:ring-2 focus-visible:ring-portal-focus"
+					className="relative z-10 rounded-sm font-semibold text-portal-fg-3 text-xs outline-none after:absolute after:-inset-x-2 after:-inset-y-3 after:content-[''] md:after:hidden hover:text-portal-fg-2"
 				>
 					{taskKey}
 				</Link>
@@ -47,7 +47,7 @@ function RoadmapCardBase({ task, releaseName }: RoadmapCardProps) {
 					disabled={vote.disabled}
 					onClick={handleVote}
 					className={cn(
-						"relative z-10 -my-1 -mr-1.5 inline-flex cursor-pointer after:absolute after:-inset-1.5 after:content-[''] md:after:hidden items-center gap-1 rounded-portal-sm px-1.5 py-1 font-semibold text-[13px] tabular-nums outline-none transition-colors focus-visible:ring-2 focus-visible:ring-portal-focus",
+						"relative z-10 -my-1 -mr-1.5 inline-flex cursor-pointer after:absolute after:-inset-1.5 after:content-[''] md:after:hidden items-center gap-1 rounded-portal-sm px-1.5 py-1 font-semibold text-[13px] tabular-nums outline-none transition-colors",
 						vote.voted
 							? "text-portal-accent-ink"
 							: "text-portal-fg-2 hover:text-portal-accent-ink focus-visible:text-portal-accent-ink",
@@ -62,7 +62,7 @@ function RoadmapCardBase({ task, releaseName }: RoadmapCardProps) {
 			<Link
 				to="/orgs/$orgSlug/$shortId"
 				params={linkParams}
-				className="block font-semibold text-[14.5px] leading-[21px] tracking-[-0.006em] outline-none after:absolute after:inset-0 after:rounded-portal-md after:content-[''] focus-visible:after:ring-2 focus-visible:after:ring-portal-focus"
+				className="block font-semibold text-[14.5px] leading-[21px] tracking-[-0.006em] outline-none after:absolute after:inset-0 after:rounded-portal-md after:content-['']"
 			>
 				{task.title}
 			</Link>

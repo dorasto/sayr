@@ -29,7 +29,7 @@ export function ShippedBecauseYouAskedCard({ orgSlug, items }: { orgSlug: string
 							<Link
 								to="/orgs/$orgSlug/$shortId"
 								params={{ orgSlug, shortId: String(task.shortId) }}
-								className="flex items-start gap-3 rounded-portal-md outline-none focus-visible:ring-2 focus-visible:ring-portal-focus"
+								className="flex items-start gap-3 rounded-portal-md outline-none"
 							>
 								<span
 									aria-hidden

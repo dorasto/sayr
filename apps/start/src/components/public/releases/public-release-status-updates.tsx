@@ -198,7 +198,7 @@ export function PublicReleaseStatusUpdates({
 			{hasMore && (
 				<button
 					type="button"
-					className="mt-2 inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-portal-sm px-2.5 font-medium text-[13px] text-portal-fg-2 outline-none transition-colors hover:bg-portal-hover hover:text-portal-fg focus-visible:ring-2 focus-visible:ring-portal-focus"
+					className="mt-2 inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-portal-sm px-2.5 font-medium text-[13px] text-portal-fg-2 outline-none transition-colors hover:bg-portal-hover hover:text-portal-fg"
 					onClick={() => setExpanded((v) => !v)}
 				>
 					{expanded ? (
@@ -274,7 +274,7 @@ function StatusUpdateItem({ update, isLast, onOpenComments }: StatusUpdateItemPr
 					<button
 						type="button"
 						onClick={onOpenComments}
-						className="mt-2 inline-flex h-7 cursor-pointer items-center gap-1.5 rounded-full px-2.5 font-medium text-[12.5px] text-portal-fg-3 outline-none transition-colors hover:bg-portal-hover hover:text-portal-fg focus-visible:ring-2 focus-visible:ring-portal-focus"
+						className="mt-2 inline-flex h-7 cursor-pointer items-center gap-1.5 rounded-full px-2.5 font-medium text-[12.5px] text-portal-fg-3 outline-none transition-colors hover:bg-portal-hover hover:text-portal-fg"
 					>
 						<IconMessageCircle aria-hidden className="size-3.5" />
 						{update.commentCount > 0

@@ -64,7 +64,7 @@ export function CategoriesCard({ categories, counts, activeSlug, onSelect, class
 								aria-pressed={active}
 								onClick={() => onSelect(active ? null : slug)}
 								className={cn(
-									"-mx-2.5 flex h-11 w-[calc(100%+1.25rem)] cursor-pointer items-center justify-between rounded-[8px] px-2.5 text-left outline-none transition-colors hover:bg-portal-hover focus-visible:ring-2 focus-visible:ring-portal-focus md:h-9",
+									"-mx-2.5 flex h-11 w-[calc(100%+1.25rem)] cursor-pointer items-center justify-between rounded-[8px] px-2.5 text-left outline-none transition-colors hover:bg-portal-hover md:h-9",
 									active && "bg-portal-raised"
 								)}
 							>
@@ -106,7 +106,7 @@ export function LatestReleaseCard({ orgSlug, releases, className }: LatestReleas
 			<Link
 				to="/orgs/$orgSlug/releases/$releaseSlug"
 				params={{ orgSlug, releaseSlug: latest.slug }}
-				className="block outline-none focus-visible:ring-2 focus-visible:ring-portal-focus"
+				className="block outline-none"
 			>
 				<p className="font-semibold text-sm leading-[21px] tracking-[-0.006em]">{latest.name}</p>
 				<p className="mt-1.5 text-[13px] text-portal-fg-3">{[date, shipped].filter(Boolean).join(" · ")}</p>

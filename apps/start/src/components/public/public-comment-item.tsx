@@ -169,7 +169,7 @@ export function PublicCommentItem({
 								<DropdownMenu>
 									<DropdownMenuTrigger
 										aria-label="Comment actions"
-										className="relative inline-flex size-7 cursor-pointer items-center justify-center rounded-md text-portal-fg-3 outline-none after:absolute after:-inset-2 after:content-[''] md:after:hidden transition-colors hover:bg-portal-hover hover:text-portal-fg focus-visible:ring-2 focus-visible:ring-portal-focus data-popup-open:bg-portal-hover"
+										className="relative inline-flex size-7 cursor-pointer items-center justify-center rounded-md text-portal-fg-3 outline-none after:absolute after:-inset-2 after:content-[''] md:after:hidden transition-colors hover:bg-portal-hover hover:text-portal-fg data-popup-open:bg-portal-hover"
 									>
 										<IconDots aria-hidden className="size-4" />
 									</DropdownMenuTrigger>
@@ -243,7 +243,7 @@ export function PublicCommentItem({
 								<button
 									type="button"
 									onClick={onReply}
-									className="relative inline-flex h-7 cursor-pointer items-center gap-1.5 rounded-full px-2.5 font-medium text-[12.5px] text-portal-fg-3 outline-none after:absolute after:-inset-x-1 after:-inset-y-2 after:content-[''] md:after:hidden transition-colors hover:bg-portal-hover hover:text-portal-fg focus-visible:ring-2 focus-visible:ring-portal-focus"
+									className="relative inline-flex h-7 cursor-pointer items-center gap-1.5 rounded-full px-2.5 font-medium text-[12.5px] text-portal-fg-3 outline-none after:absolute after:-inset-x-1 after:-inset-y-2 after:content-[''] md:after:hidden transition-colors hover:bg-portal-hover hover:text-portal-fg"
 								>
 									<IconArrowBackUp aria-hidden className="size-3.5" />
 									Reply

@@ -44,7 +44,7 @@ function getItems(editor: Editor<BasicExtension>) {
 }
 
 const BUTTON_CLASS =
-	"inline-flex size-8 cursor-pointer items-center justify-center rounded-portal-sm max-md:size-11 text-portal-fg-2 outline-none transition-colors hover:bg-portal-hover hover:text-portal-fg focus-visible:ring-2 focus-visible:ring-portal-focus disabled:cursor-not-allowed disabled:opacity-40 aria-pressed:bg-portal-accent-soft aria-pressed:text-portal-accent-ink";
+	"inline-flex size-8 cursor-pointer items-center justify-center rounded-portal-sm max-md:size-11 text-portal-fg-2 outline-none transition-colors hover:bg-portal-hover hover:text-portal-fg disabled:cursor-not-allowed disabled:opacity-40 aria-pressed:bg-portal-accent-soft aria-pressed:text-portal-accent-ink";
 
 interface ToolbarButtonProps {
 	label: string;

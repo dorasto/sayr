@@ -231,7 +231,7 @@ function ReleasePageBar({ orgSlug }: { orgSlug: string }) {
 			<Link
 				to="/orgs/$orgSlug/releases"
 				params={{ orgSlug }}
-				className="inline-flex h-8 items-center gap-2 rounded-portal-sm px-2 font-medium text-[13.5px] text-portal-fg-2 outline-none transition-colors hover:bg-portal-hover hover:text-portal-fg focus-visible:bg-portal-hover focus-visible:text-portal-fg focus-visible:ring-2 focus-visible:ring-portal-focus max-md:h-11 max-md:text-base"
+				className="inline-flex h-8 items-center gap-2 rounded-portal-sm px-2 font-medium text-[13.5px] text-portal-fg-2 outline-none transition-colors hover:bg-portal-hover hover:text-portal-fg focus-visible:bg-portal-hover focus-visible:text-portal-fg max-md:h-11 max-md:text-base"
 			>
 				<IconArrowLeft aria-hidden className="size-4" />
 				Changelog
@@ -334,7 +334,7 @@ function ReleaseDetailView({ release, tasks, orgId, orgSlug, statusUpdatesRefres
 						href={`${import.meta.env.VITE_URL_ROOT}/${orgId}/releases/${release.slug}`}
 						target="_blank"
 						rel="noopener noreferrer"
-						className="inline-flex h-7 items-center gap-1 rounded-md px-2 text-muted-foreground text-xs outline-none transition-colors hover:bg-accent hover:text-foreground focus-visible:bg-accent focus-visible:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+						className="inline-flex h-7 items-center gap-1 rounded-md px-2 text-muted-foreground text-xs outline-none transition-colors hover:bg-accent hover:text-foreground focus-visible:bg-accent focus-visible:text-foreground"
 					>
 						<IconArrowUpRight aria-hidden className="size-3.5" />
 						Open internally

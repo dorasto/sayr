@@ -13,7 +13,7 @@ import { PortalAvatar } from "./portal/ui/PortalAvatar";
 import { PortalButton } from "./portal/ui/PortalButton";
 
 const NAV_LINK =
-	"flex h-[34px] items-center gap-2 rounded-portal-md px-2.5 font-medium text-sm text-portal-fg-2 outline-none transition-colors hover:bg-portal-hover hover:text-portal-fg focus-visible:bg-portal-hover focus-visible:text-portal-fg focus-visible:ring-2 focus-visible:ring-portal-focus md:px-3.5";
+	"flex h-[34px] items-center gap-2 rounded-portal-md px-2.5 font-medium text-sm text-portal-fg-2 outline-none transition-colors hover:bg-portal-hover hover:text-portal-fg focus-visible:bg-portal-hover focus-visible:text-portal-fg md:px-3.5";
 const NAV_LINK_ACTIVE = "bg-portal-raised text-portal-fg";
 
 /** 64px public top bar: org mark + name, Feedback / Roadmap / Changelog (+ Activity when logged in), search palette trigger, Log in or user avatar. */
@@ -42,7 +42,7 @@ export default function PublicNavigation() {
 					{/* Org identity */}
 					<Link
 						to={feedbackPath}
-						className="mr-2 flex min-w-0 items-center gap-2.5 rounded-portal-sm outline-none focus-visible:ring-2 focus-visible:ring-portal-focus max-md:min-h-11 max-md:flex-1 md:mr-5 md:max-w-[220px] md:shrink-0"
+						className="mr-2 flex min-w-0 items-center gap-2.5 rounded-portal-sm outline-none max-md:min-h-11 max-md:flex-1 md:mr-5 md:max-w-[220px] md:shrink-0"
 					>
 						<Avatar className="size-[30px] shrink-0 rounded-[9px]">
 							{organization.logo ? (
@@ -101,7 +101,7 @@ export default function PublicNavigation() {
 								type="button"
 								aria-label="Account settings"
 								onClick={() => setSettingsOpen(true)}
-								className="flex cursor-pointer items-center justify-center rounded-full outline-none focus-visible:ring-2 focus-visible:ring-portal-focus max-md:size-11"
+								className="flex cursor-pointer items-center justify-center rounded-full outline-none max-md:size-11"
 							>
 								<PortalAvatar name={session.user.name} image={session.user.image} size={32} />
 							</button>

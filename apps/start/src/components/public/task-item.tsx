@@ -72,7 +72,7 @@ function PublicTaskItemBase({
 					to="/orgs/$orgSlug/$shortId"
 					params={{ orgSlug: organization.slug, shortId: String(task.shortId) }}
 					onClick={(event) => onOpen?.(task, event)}
-					className="block min-w-0 flex-1 outline-none after:absolute after:inset-0 after:content-[''] focus-visible:after:ring-2 focus-visible:after:ring-portal-focus focus-visible:after:ring-inset"
+					className="block min-w-0 flex-1 outline-none after:absolute after:inset-0 after:content-['']"
 				>
 					<h3
 						className={cn(

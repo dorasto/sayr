@@ -29,7 +29,7 @@ function ReleaseColumnTitle({ release }: { release: PublicReleaseSummary | null 
 		<Link
 			to="/orgs/$orgSlug/releases/$releaseSlug"
 			params={{ orgSlug: organization.slug, releaseSlug: release.slug }}
-			className={`${RELEASE_CHIP} outline-none after:absolute after:-inset-x-1 after:-inset-y-2.5 after:content-[''] md:after:hidden hover:bg-portal-raised focus-visible:ring-2 focus-visible:ring-portal-focus`}
+			className={`${RELEASE_CHIP} outline-none after:absolute after:-inset-x-1 after:-inset-y-2.5 after:content-[''] md:after:hidden hover:bg-portal-raised`}
 		>
 			<IconRocket aria-hidden className="size-3.5" />
 			{release.name}

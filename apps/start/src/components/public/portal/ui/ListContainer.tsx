@@ -15,7 +15,7 @@ export function ListContainer({ className, ...props }: HTMLAttributes<HTMLDivEle
 }
 
 interface ListRowProps extends HTMLAttributes<HTMLDivElement> {
-	/** Selected row: raised background and a 3px accent bar on the left edge (e.g. the row open in Peek). */
+	/** Selected row: raised background (e.g. the row open in Peek). */
 	selected?: boolean;
 }
 
@@ -25,9 +25,8 @@ export function ListRow({ selected = false, className, ...props }: ListRowProps)
 		<div
 			data-selected={selected}
 			className={cn(
-				"relative border-portal-line border-t transition-colors first:border-t-0 focus-within:bg-portal-hover hover:bg-portal-hover",
+				"relative border-portal-line border-t transition-colors first:border-t-0 has-[:focus-visible]:bg-portal-hover hover:bg-portal-hover",
 				"data-[selected=true]:bg-portal-raised",
-				"data-[selected=true]:before:absolute data-[selected=true]:before:top-3.5 data-[selected=true]:before:bottom-3.5 data-[selected=true]:before:left-0 data-[selected=true]:before:w-[3px] data-[selected=true]:before:rounded-r-[3px] data-[selected=true]:before:bg-portal-accent data-[selected=true]:before:content-['']",
 				className
 			)}
 			{...props}

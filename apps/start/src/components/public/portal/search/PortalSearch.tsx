@@ -46,7 +46,7 @@ export function PortalSearch({ orgSlug, orgId, orgShortId }: PortalSearchProps) 
 			<DialogTrigger
 				aria-label="Search"
 				aria-keyshortcuts="Control+K Meta+K /"
-				className="flex h-9 shrink-0 cursor-text items-center gap-2 rounded-portal-md border border-portal-line-2 bg-portal-surface px-2.5 text-portal-fg-3 outline-none transition-colors hover:border-portal-fg-3 focus-visible:border-portal-fg-3 focus-visible:ring-2 focus-visible:ring-portal-focus max-md:size-11 max-md:cursor-pointer max-md:justify-center max-md:border-transparent max-md:bg-transparent max-md:px-0 max-md:text-portal-fg-2 md:w-[236px] md:pr-2.5 md:pl-3"
+				className="flex h-9 shrink-0 cursor-text items-center gap-2 rounded-portal-md border border-portal-line-2 bg-portal-surface px-2.5 text-portal-fg-3 outline-none transition-colors hover:border-portal-fg-3 focus-visible:border-portal-fg-3 max-md:size-11 max-md:cursor-pointer max-md:justify-center max-md:border-transparent max-md:bg-transparent max-md:px-0 max-md:text-portal-fg-2 md:w-[236px] md:pr-2.5 md:pl-3"
 			>
 				<IconSearch aria-hidden className="size-4 shrink-0 max-md:size-[22px]" />
 				<span className="hidden text-sm md:block">Search</span>

@@ -676,7 +676,7 @@ export function PublicReleaseDiscussion({
 				<div
 					className={cn(
 						"overflow-hidden rounded-portal-lg border border-portal-line-2 bg-portal-surface",
-						"focus-within:border-portal-focus focus-within:ring-[3px] focus-within:ring-portal-accent-soft"
+						"focus-within:border-portal-focus"
 					)}
 				>
 					<Suspense fallback={<div className="h-20 animate-pulse bg-portal-raised" />}>

@@ -4,7 +4,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { getOrgSlugFromPath, getPortalSection, hidesMobileTabBar, type PortalSection } from "@/lib/portal/nav";
 
 const TAB =
-	"flex min-h-12 flex-1 flex-col items-center justify-center gap-1 rounded-portal-md font-medium text-portal-fg-3 text-xs outline-none transition-colors hover:text-portal-fg focus-visible:text-portal-fg focus-visible:ring-2 focus-visible:ring-portal-focus";
+	"flex min-h-12 flex-1 flex-col items-center justify-center gap-1 rounded-portal-md font-medium text-portal-fg-3 text-xs outline-none transition-colors hover:text-portal-fg focus-visible:text-portal-fg";
 const TAB_ACTIVE = "text-portal-fg [&>svg]:text-portal-accent-ink";
 const ICON = "size-[22px]";
 

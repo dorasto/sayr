@@ -13,7 +13,7 @@ import RenderIcon from "@/components/generic/RenderIcon";
 import { splitCategoryChips } from "@/lib/portal/new-post";
 
 const CHIP_CLASS =
-	"inline-flex h-[38px] shrink-0 cursor-pointer items-center gap-2 rounded-full border pr-3.5 pl-3 font-medium text-sm outline-none transition-colors focus-visible:ring-2 focus-visible:ring-portal-focus max-md:h-11";
+	"inline-flex h-[38px] shrink-0 cursor-pointer items-center gap-2 rounded-full border pr-3.5 pl-3 font-medium text-sm outline-none transition-colors max-md:h-11";
 const MENU_CONTENT =
 	"portal w-56 rounded-portal-lg! border-portal-line-2 bg-portal-surface p-1.5 text-portal-fg shadow-portal-pop!";
 const MENU_ITEM =

@@ -44,7 +44,7 @@ export function PublicCommentThreadTrigger({
 			type="button"
 			onClick={onToggle}
 			aria-expanded={expanded}
-			className="mt-2 flex min-h-8 w-fit max-md:min-h-11 cursor-pointer items-center gap-2 rounded-full pr-2 text-[13px] font-medium text-portal-fg-2 outline-none transition-colors hover:text-portal-fg focus-visible:ring-2 focus-visible:ring-portal-focus"
+			className="mt-2 flex min-h-8 w-fit max-md:min-h-11 cursor-pointer items-center gap-2 rounded-full pr-2 text-[13px] font-medium text-portal-fg-2 outline-none transition-colors hover:text-portal-fg"
 		>
 			{expanded ? (
 				<IconChevronUp aria-hidden className="size-3.5" />
@@ -382,7 +382,7 @@ function PublicReplyInput({
 	return (
 		<div className="mt-4 flex items-start gap-3 text-portal-fg">
 			<PortalAvatar name={displayName} image={session?.user?.image} size={28} className="mt-1" />
-			<div className="min-w-0 flex-1 rounded-portal-md border border-portal-line-2 bg-portal-surface px-3 py-2 focus-within:border-portal-focus focus-within:ring-[3px] focus-within:ring-portal-accent-soft">
+			<div className="min-w-0 flex-1 rounded-portal-md border border-portal-line-2 bg-portal-surface px-3 py-2 focus-within:border-portal-focus">
 				<Suspense fallback={<div className="h-8 animate-pulse rounded bg-portal-raised" />}>
 					<Editor
 						key={editorKey}

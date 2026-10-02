@@ -117,7 +117,7 @@ export function PostCommentComposer({
 			<div
 				id={POST_COMMENT_COMPOSER_ID}
 				className={cn(
-					"scroll-mt-20 overflow-hidden rounded-portal-lg border border-portal-line-2 bg-portal-surface focus-within:border-portal-focus focus-within:ring-[3px] focus-within:ring-portal-accent-soft",
+					"scroll-mt-20 overflow-hidden rounded-portal-lg border border-portal-line-2 bg-portal-surface focus-within:border-portal-focus",
 					className
 				)}
 			>

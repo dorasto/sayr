@@ -18,7 +18,7 @@ interface PostReactionsProps {
 }
 
 const CHIP =
-	"relative inline-flex h-7 items-center gap-1.5 rounded-full border px-2.5 font-medium text-[12.5px] outline-none after:absolute after:-inset-x-1 after:-inset-y-2 after:content-[''] md:after:hidden transition-colors focus-visible:ring-2 focus-visible:ring-portal-focus";
+	"relative inline-flex h-7 items-center gap-1.5 rounded-full border px-2.5 font-medium text-[12.5px] outline-none after:absolute after:-inset-x-1 after:-inset-y-2 after:content-[''] md:after:hidden transition-colors";
 
 function reactorsTitle(info: { count: number; users: string[] }, users?: schema.userType[]): string {
 	const names = info.users
@@ -74,7 +74,7 @@ export function PostReactions({ reactions, onToggle, users, currentUserId, class
 				<Popover open={pickerOpen} onOpenChange={setPickerOpen}>
 					<PopoverTrigger
 						aria-label="Add reaction"
-						className="relative inline-flex size-7 cursor-pointer items-center justify-center rounded-full border border-transparent after:absolute after:-inset-2 after:content-[''] md:after:hidden text-portal-fg-3 outline-none transition-colors hover:bg-portal-hover hover:text-portal-fg focus-visible:ring-2 focus-visible:ring-portal-focus"
+						className="relative inline-flex size-7 cursor-pointer items-center justify-center rounded-full border border-transparent after:absolute after:-inset-2 after:content-[''] md:after:hidden text-portal-fg-3 outline-none transition-colors hover:bg-portal-hover hover:text-portal-fg"
 					>
 						<IconMoodPlus aria-hidden className="size-4" />
 					</PopoverTrigger>
@@ -91,7 +91,7 @@ export function PostReactions({ reactions, onToggle, users, currentUserId, class
 									}}
 									className={cn(
 										"flex size-9 cursor-pointer items-center justify-center rounded-md text-lg max-md:size-11 transition-colors hover:bg-accent focus-visible:bg-accent",
-										reacted(reactions?.[emoji] ?? { users: [] }) && "bg-accent ring-1 ring-primary/20"
+										reacted(reactions?.[emoji] ?? { users: [] }) && "bg-accent"
 									)}
 								>
 									{emoji}

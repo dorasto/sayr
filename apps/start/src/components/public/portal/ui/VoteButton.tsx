@@ -22,7 +22,7 @@ export function VoteButton({ count, voted, onToggle, disabled, showCount = false
 			disabled={disabled}
 			onClick={() => onToggle?.()}
 			className={cn(
-				"inline-flex h-11 w-full cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-portal-md border text-[15px] outline-none transition-colors focus-visible:ring-2 focus-visible:ring-portal-focus",
+				"inline-flex h-11 w-full cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-portal-md border text-[15px] outline-none transition-colors",
 				voted
 					? "border-portal-accent-line bg-portal-accent-soft font-medium text-portal-accent-ink"
 					: "border-transparent bg-portal-accent font-semibold text-portal-on-accent hover:bg-[oklch(0.82_0.165_76)] focus-visible:bg-[oklch(0.82_0.165_76)]",

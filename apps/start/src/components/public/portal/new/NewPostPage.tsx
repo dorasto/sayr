@@ -49,7 +49,7 @@ const FIELD_LABEL = "mb-2 flex items-center gap-2 font-semibold text-sm text-por
 const FIELD_HINT = "font-normal text-portal-fg-3";
 const SECTION = "px-7 max-md:px-0";
 const INPUT_CLASS =
-	"w-full rounded-portal-md border border-portal-line-2 bg-portal-canvas text-portal-fg outline-none transition-[border-color,box-shadow] placeholder:text-portal-fg-3 focus:border-portal-focus focus:ring-[3px] focus:ring-portal-accent-soft";
+	"w-full rounded-portal-md border border-portal-line-2 bg-portal-canvas text-portal-fg outline-none transition-[border-color,box-shadow] placeholder:text-portal-fg-3 focus:border-portal-focus";
 
 interface NewPostPageProps {
 	/** `?title=` from the search box or the board composer. */
@@ -471,7 +471,7 @@ export function NewPostPage({ initialTitle, initialCategory }: NewPostPageProps)
 						<div className={FIELD_LABEL}>
 							Details <span className={FIELD_HINT}>Optional, but it helps</span>
 						</div>
-						<div className="overflow-hidden rounded-portal-md border border-portal-line-2 bg-portal-canvas focus-within:border-portal-focus focus-within:ring-[3px] focus-within:ring-portal-accent-soft">
+						<div className="overflow-hidden rounded-portal-md border border-portal-line-2 bg-portal-canvas focus-within:border-portal-focus">
 							{restored ? (
 								<Suspense fallback={<div className="h-48 animate-pulse bg-portal-raised" />}>
 									<Editor
@@ -542,7 +542,7 @@ export function NewPostPage({ initialTitle, initialCategory }: NewPostPageProps)
 					params={{ orgSlug }}
 					onClick={clearDraft}
 					aria-label="Close"
-					className="flex size-11 items-center justify-center rounded-portal-md text-portal-fg-2 outline-none hover:bg-portal-hover focus-visible:ring-2 focus-visible:ring-portal-focus"
+					className="flex size-11 items-center justify-center rounded-portal-md text-portal-fg-2 outline-none hover:bg-portal-hover"
 				>
 					<IconX aria-hidden className="size-5" />
 				</Link>

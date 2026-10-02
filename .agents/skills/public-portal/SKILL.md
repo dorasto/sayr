@@ -170,7 +170,7 @@ The board has no static right column any more: the "Share an idea or report a bu
 - **No org accent colour** and no org website/GitHub link buttons in the page head (no such org fields; adding them was out of scope).
 - **No schema changes** and no new endpoints for the portal.
 - Rows use Peek by default on desktop; modified clicks (cmd/ctrl/shift/alt/middle) fall through to the link.
-- Closing behaviour of the board panel: the post header's X returns to the overview (panel stays open, `?task` cleared); the overview header's X, Esc, drag-dismiss and the top-bar toggle close the whole panel (and clear `?task` if a post was showing). Esc closes the panel from anywhere on the page, in either view — that is Base UI's non-modal Drawer behaviour, shared with the post page's Details drawer.
+- Closing behaviour of the board panel: the post header's X and a click on the already-selected row close the whole panel (the selected row's highlight goes with it, `?task` cleared; the next open starts on the overview), as do the overview header's X, Esc, drag-dismiss and the top-bar toggle close the whole panel (and clear `?task` if a post was showing). Esc closes the panel from anywhere on the page, in either view — that is Base UI's non-modal Drawer behaviour, shared with the post page's Details drawer.
 
 ## Data constraints the design works around
 

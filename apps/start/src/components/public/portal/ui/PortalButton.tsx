@@ -7,7 +7,7 @@ import { type ButtonHTMLAttributes, forwardRef } from "react";
  * On phones (< 768px) every size is at least 44px tall, the minimum touch target.
  */
 export const portalButtonVariants = cva(
-	"inline-flex cursor-pointer items-center justify-center gap-2 whitespace-nowrap font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-portal-focus disabled:cursor-not-allowed disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+	"inline-flex cursor-pointer items-center justify-center gap-2 whitespace-nowrap font-medium outline-none transition-colors disabled:cursor-not-allowed disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
 	{
 		variants: {
 			variant: {

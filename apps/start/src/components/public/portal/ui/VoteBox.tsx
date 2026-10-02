@@ -30,7 +30,7 @@ export function VoteBox({ count, voted, onToggle, disabled, size = "md", classNa
 			disabled={disabled}
 			onClick={handleClick}
 			className={cn(
-				"flex shrink-0 cursor-pointer flex-col items-center justify-center gap-px border text-portal-fg-2 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-portal-focus",
+				"flex shrink-0 cursor-pointer flex-col items-center justify-center gap-px border text-portal-fg-2 outline-none transition-colors",
 				size === "sm" ? "h-12 w-10 rounded-[9px]" : "h-14 w-12 rounded-portal-md",
 				voted
 					? "border-portal-accent-line bg-portal-accent-soft text-portal-accent-ink"

@@ -52,7 +52,8 @@ interface BoardPanelProviderProps {
  *   selected row again returns to the overview);
  * - a deep link or history navigation that changes the param swaps the view (desktop only; below 1024px a `?task`
  *   deep link is redirected to the full post page and rows just navigate);
- * - the post header's X (`closePost`) clears the param and returns to the overview with the panel left open;
+ * - the post header's X (`closePost`) and a click on the selected row close the whole panel, like any row-click detail
+ *   panel (the next open starts on the overview);
  * - any close of the whole panel (the overview header's X, Esc, drag-dismiss, the page toggle) is observed through
  *   `usePanel().isOpen` and clears the param too, so the URL never names a post the panel is not showing.
  */
@@ -88,12 +89,22 @@ export function BoardPanelProvider({ tasks, children }: BoardPanelProviderProps)
 		}
 	}, []);
 
-	const closePost = useCallback(() => {
+	/** Back to the overview with the panel left open: for a deep link to a post that is not there. */
+	const showOverview = useCallback(() => {
 		applied.current = null;
 		setTask(null);
 		showRail();
 		returnFocusToTrigger();
 	}, [setTask, returnFocusToTrigger]);
+
+	/**
+	 * The user is done with the post: close the whole panel (the row-click detail pattern: the selected row's
+	 * highlight goes with it). The `isOpen` effect below clears `?task`, and the next open starts on the overview.
+	 */
+	const closePost = useCallback(() => {
+		sidebarActions.close(PUBLIC_BOARD_PANEL_ID);
+		returnFocusToTrigger();
+	}, [returnFocusToTrigger]);
 
 	const openPost = useCallback<PeekContextValue["openPost"]>(
 		(task, event: MouseEvent<HTMLAnchorElement>) => {
@@ -177,8 +188,8 @@ export function BoardPanelProvider({ tasks, children }: BoardPanelProviderProps)
 
 	// A deep link to a post that does not exist (or is not public) falls back to the overview instead of staying empty.
 	useEffect(() => {
-		if (status === "missing") closePost();
-	}, [status, closePost]);
+		if (status === "missing") showOverview();
+	}, [status, showOverview]);
 
 	const value = useMemo<PeekContextValue>(
 		() => ({ openPost, closePost, shortId, post, status, tasks }),
