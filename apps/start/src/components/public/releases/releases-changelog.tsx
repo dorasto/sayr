@@ -1,14 +1,11 @@
-import { cn } from "@repo/ui/lib/utils";
+import { Button } from "@repo/ui/components/button";
+import { Tabs, TabsList, TabsTab } from "@repo/ui/components/cossui/tabs";
 import { Skeleton } from "@repo/ui/components/skeleton";
 import { IconRocket } from "@tabler/icons-react";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { ChangelogEntry } from "@/components/public/portal/releases/ChangelogEntry";
 import { fetchPublicReleases } from "@/components/public/portal/releases/types";
-import { EmptyState } from "@/components/public/portal/ui/EmptyState";
-import { PORTAL_BODY } from "@/components/public/portal/ui/column";
-import { PortalButton } from "@/components/public/portal/ui/PortalButton";
-import { PortalTabs } from "@/components/public/portal/ui/PortalTabs";
 import { CHANGELOG_TABS, type ChangelogTab, sortReleasedReleases, sortUpcomingReleases } from "@/lib/portal/changelog";
 
 /** How many upcoming releases are loaded per status; far above what a roadmap realistically holds. */
@@ -27,12 +24,12 @@ function EntrySkeleton() {
 	return (
 		<div aria-hidden className="mb-10 grid grid-cols-1 gap-3 md:grid-cols-[150px_40px_1fr] md:gap-0">
 			<div className="flex flex-col items-start gap-2 md:items-end">
-				<Skeleton className="h-7 w-16 rounded-portal-tag bg-portal-raised" />
-				<Skeleton className="h-4 w-24 rounded-portal-tag bg-portal-raised" />
-				<Skeleton className="h-6 w-20 rounded-full bg-portal-raised" />
+				<Skeleton className="h-7 w-16" />
+				<Skeleton className="h-4 w-24" />
+				<Skeleton className="h-6 w-20 rounded-full" />
 			</div>
 			<div className="hidden md:block" />
-			<Skeleton className="h-44 rounded-portal-lg bg-portal-raised" />
+			<Skeleton className="h-44 rounded-xl" />
 		</div>
 	);
 }
@@ -96,26 +93,41 @@ export function ReleasesChangelog({ orgSlug, tab, onTabChange }: ReleasesChangel
 
 	return (
 		<div className="h-full overflow-y-auto">
-			<main className={cn(PORTAL_BODY, "pt-8 pb-16 md:pt-12")}>
+			<main className="mx-auto w-full max-w-[1120px] px-4 pt-8 pb-16 md:px-6 md:pt-12">
 				<div className="mb-8 flex flex-col gap-4 md:mb-10 md:flex-row md:items-end md:justify-between">
 					<div>
-						<h1 className="font-bold text-[28px] text-portal-fg leading-[34px] tracking-[-0.028em] md:text-[32px] md:leading-[38px]">
+						<h1 className="font-bold text-[28px] text-foreground leading-[34px] tracking-[-0.028em] md:text-[32px] md:leading-[38px]">
 							Changelog
 						</h1>
-						<p className="mt-1 max-w-[560px] text-[15px] text-portal-fg-2 leading-6">
+						<p className="mt-1 max-w-[560px] text-[15px] text-muted-foreground leading-6">
 							Everything that has shipped, and what is coming next. Each release links to the posts it came from.
 						</p>
 					</div>
-					<PortalTabs
+					<Tabs
 						value={tab}
-						onValueChange={(next) => onTabChange(next as ChangelogTab)}
-						items={CHANGELOG_TABS.map((item) => ({
-							value: item.value,
-							label: item.label,
-							count: countsReady ? counts[item.value] : undefined,
-						}))}
+						onValueChange={(next) => onTabChange(String(next) as ChangelogTab)}
 						className="md:w-auto"
-					/>
+					>
+						<TabsList
+							variant="underline"
+							className="w-full justify-start gap-1 border-b data-[orientation=horizontal]:py-0 *:data-[slot=tabs-trigger]:hover:bg-transparent"
+						>
+							{CHANGELOG_TABS.map((item) => (
+								<TabsTab
+									key={item.value}
+									value={item.value}
+									className="h-10 grow-0 gap-2 rounded-none px-3 text-muted-foreground text-sm hover:text-foreground focus-visible:ring-0 data-active:text-foreground max-md:h-11 sm:h-10"
+								>
+									{item.label}
+									{countsReady && (
+										<span className="font-medium text-muted-foreground text-xs tabular-nums">
+											{counts[item.value]}
+										</span>
+									)}
+								</TabsTab>
+							))}
+						</TabsList>
+					</Tabs>
 				</div>
 
 				{isLoading ? (
@@ -125,29 +137,40 @@ export function ReleasesChangelog({ orgSlug, tab, onTabChange }: ReleasesChangel
 						<EntrySkeleton />
 					</div>
 				) : isError ? (
-					<EmptyState
-						icon={<IconRocket className="size-6" />}
-						title="Could not load the changelog"
-						description="Check your connection and try again."
-						actions={
-							<PortalButton variant="default" onClick={refetchAll}>
+					<div className="mx-auto flex max-w-[340px] flex-col items-center py-16 text-center">
+						<span
+							aria-hidden
+							className="mb-3.5 inline-flex size-12 items-center justify-center rounded-xl bg-muted text-muted-foreground"
+						>
+							<IconRocket className="size-6" />
+						</span>
+						<div className="font-semibold text-base text-foreground">Could not load the changelog</div>
+						<p className="mt-1.5 text-muted-foreground text-sm leading-[21px]">
+							Check your connection and try again.
+						</p>
+						<div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+							<Button variant="outline" size="sm" onClick={refetchAll}>
 								Try again
-							</PortalButton>
-						}
-						className="py-16"
-					/>
+							</Button>
+						</div>
+					</div>
 				) : entries.length === 0 ? (
-					<EmptyState
-						icon={<IconRocket className="size-6" />}
-						tone="accent"
-						title={tab === "upcoming" ? "Nothing is planned right now" : "No releases yet"}
-						description={
-							tab === "upcoming"
+					<div className="mx-auto flex max-w-[340px] flex-col items-center py-16 text-center">
+						<span
+							aria-hidden
+							className="mb-3.5 inline-flex size-12 items-center justify-center rounded-xl bg-primary/15 text-primary"
+						>
+							<IconRocket className="size-6" />
+						</span>
+						<div className="font-semibold text-base text-foreground">
+							{tab === "upcoming" ? "Nothing is planned right now" : "No releases yet"}
+						</div>
+						<p className="mt-1.5 text-muted-foreground text-sm leading-[21px]">
+							{tab === "upcoming"
 								? "Upcoming releases will show up here once the team schedules them."
-								: "Releases will show up here once the team publishes them."
-						}
-						className="py-16"
-					/>
+								: "Releases will show up here once the team publishes them."}
+						</p>
+					</div>
 				) : (
 					<>
 						<div>
@@ -162,13 +185,14 @@ export function ReleasesChangelog({ orgSlug, tab, onTabChange }: ReleasesChangel
 						</div>
 						{hasOlder && (
 							<div className="flex justify-center">
-								<PortalButton
-									variant="default"
+								<Button
+									variant="outline"
+									size="sm"
 									disabled={released.isFetchingNextPage}
 									onClick={() => void released.fetchNextPage()}
 								>
 									{released.isFetchingNextPage ? "Loading..." : "Show older releases"}
-								</PortalButton>
+								</Button>
 							</div>
 						)}
 					</>

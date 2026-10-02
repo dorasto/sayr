@@ -6,9 +6,9 @@ export interface ProgressSegment {
 }
 
 const TONES: Record<ProgressSegment["tone"], string> = {
-	ok: "bg-portal-ok",
-	accent: "bg-portal-accent",
-	muted: "bg-portal-line-2",
+	ok: "bg-success",
+	accent: "bg-primary",
+	muted: "bg-border",
 };
 
 interface SegmentedProgressProps {

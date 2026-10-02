@@ -1,17 +1,17 @@
 import type { schema } from "@repo/database";
+import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
 import { Badge } from "@repo/ui/components/badge";
 import { Button } from "@repo/ui/components/button";
 import { Label } from "@repo/ui/components/label";
 import { cn } from "@repo/ui/lib/utils";
-import { formatDate, formatDateTimeFromNow, getDisplayName } from "@repo/util";
+import { ensureCdnUrl, formatDate, formatDateTimeFromNow, getDisplayName, getInitials } from "@repo/util";
 import { IconChevronDown, IconChevronUp, IconLoader2, IconMessageCircle, IconX } from "@tabler/icons-react";
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { authClient } from "@repo/auth/client";
 import { usePublicOrganizationLayout } from "@/contexts/publicContextOrg";
 import { healthConfig, type Health } from "@/components/releases/status-updates/types";
-import { HealthPill } from "@/components/public/portal/releases/HealthPill";
-import { PortalAvatar } from "@/components/public/portal/ui/PortalAvatar";
 import { COMMENT_PROSE } from "@/components/public/portal/post/prose";
+import { getHealthPill } from "@/lib/portal/release-page";
 import {
 	AdaptiveDialog,
 	AdaptiveDialogContent,
@@ -179,9 +179,9 @@ export function PublicReleaseStatusUpdates({
 
 	return (
 		<section>
-			<h2 className="mb-6 font-semibold text-xl text-portal-fg leading-7 tracking-[-0.018em]">
+			<h2 className="mb-6 font-semibold text-xl text-foreground leading-7 tracking-[-0.018em]">
 				Updates from the team
-				<span className="ml-2 font-medium text-portal-fg-3 text-sm tracking-normal">{updates.length}</span>
+				<span className="ml-2 font-medium text-muted-foreground text-sm tracking-normal">{updates.length}</span>
 			</h2>
 
 			<div>
@@ -198,7 +198,7 @@ export function PublicReleaseStatusUpdates({
 			{hasMore && (
 				<button
 					type="button"
-					className="mt-2 inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-portal-sm px-2.5 font-medium text-[13px] text-portal-fg-2 outline-none transition-colors hover:bg-portal-hover hover:text-portal-fg"
+					className="mt-2 inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-md px-2.5 font-medium text-[13px] text-muted-foreground outline-none transition-colors hover:bg-accent hover:text-foreground"
 					onClick={() => setExpanded((v) => !v)}
 				>
 					{expanded ? (
@@ -241,26 +241,44 @@ function StatusUpdateItem({ update, isLast, onOpenComments }: StatusUpdateItemPr
 	const { tasks } = usePublicOrganizationLayout();
 	const authorName = update.author ? getDisplayName(update.author) : "Team";
 	const canOpenComments = update.commentCount > 0 || !!session?.user;
+	const healthPill = getHealthPill(update.health);
 
 	return (
 		<div className="flex gap-4">
 			<div className="flex flex-col items-center">
-				<PortalAvatar name={authorName} image={update.author?.image} size={32} ring />
-				{!isLast && <span className="mt-2 w-px flex-1 bg-portal-line-2" />}
+				<Avatar className="size-8 shadow-[0_0_0_2px_var(--background),0_0_0_3.5px_var(--primary)]">
+					<AvatarImage
+						src={update.author?.image ? ensureCdnUrl(update.author.image) : undefined}
+						alt={authorName}
+					/>
+					<AvatarFallback className="text-xs">{getInitials(authorName)}</AvatarFallback>
+				</Avatar>
+				{!isLast && <span className="mt-2 w-px flex-1 bg-border" />}
 			</div>
 			<div className={cn("min-w-0 flex-1", !isLast && "pb-7")}>
 				<div className="flex min-h-6 flex-wrap items-center gap-2">
-					<b className="font-semibold text-portal-fg">{authorName}</b>
-					<HealthPill health={update.health} />
+					<b className="font-semibold text-foreground">{authorName}</b>
+					{healthPill && (
+						<span
+							className={cn(
+								"inline-flex h-[22px] items-center whitespace-nowrap rounded-md px-2 font-semibold text-xs",
+								healthPill.tone === "ok" && "bg-success/15 text-success",
+								healthPill.tone === "accent" && "bg-primary/15 text-primary",
+								healthPill.tone === "bad" && "bg-destructive/15 text-destructive"
+							)}
+						>
+							{healthPill.label}
+						</span>
+					)}
 					{update.createdAt && (
-						<time dateTime={update.createdAt} className="text-[13px] text-portal-fg-3">
+						<time dateTime={update.createdAt} className="text-[13px] text-muted-foreground">
 							{formatDate(update.createdAt, "en-GB")}
 						</time>
 					)}
 				</div>
 				{update.content && (
 					<div className={cn("mt-1.5", COMMENT_PROSE)}>
-						<Suspense fallback={<div className="h-4 w-3/4 animate-pulse rounded bg-portal-raised" />}>
+						<Suspense fallback={<div className="h-4 w-3/4 animate-pulse rounded bg-muted" />}>
 							<Editor
 								readonly
 								defaultContent={update.content as schema.NodeJSON}
@@ -274,7 +292,7 @@ function StatusUpdateItem({ update, isLast, onOpenComments }: StatusUpdateItemPr
 					<button
 						type="button"
 						onClick={onOpenComments}
-						className="mt-2 inline-flex h-7 cursor-pointer items-center gap-1.5 rounded-full px-2.5 font-medium text-[12.5px] text-portal-fg-3 outline-none transition-colors hover:bg-portal-hover hover:text-portal-fg"
+						className="mt-2 inline-flex h-7 cursor-pointer items-center gap-1.5 rounded-full px-2.5 font-medium text-[12.5px] text-muted-foreground outline-none transition-colors hover:bg-accent hover:text-foreground"
 					>
 						<IconMessageCircle aria-hidden className="size-3.5" />
 						{update.commentCount > 0

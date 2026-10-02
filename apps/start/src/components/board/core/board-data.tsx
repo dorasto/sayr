@@ -64,16 +64,9 @@ export interface BoardDataSource<T extends BoardItem = TaskItem> {
 	useItemActions?: (item: T) => BoardItemActions;
 }
 
-/**
- * Which token set the board renders with. "portal" opts into the public portal's palette
- * (a scoped remap in styles.css keyed on `data-board-theme="portal"`, only effective inside `.portal`).
- */
-export type BoardTheme = "admin" | "portal";
-
 interface BoardContextValue {
 	data: BoardDataSource;
 	capabilities: BoardCapabilities;
-	theme: BoardTheme;
 	groupings: GroupingRegistry;
 	/** The page's registered views; absent = the default set (read via `useBoardViews()`). */
 	views?: readonly BoardViewDefinition[];
@@ -88,8 +81,6 @@ interface BoardProviderProps {
 	capabilities: BoardCapabilities;
 	/** View-state scope (persistence, URL sync, saved views). Absent = the legacy admin scope. Keep it stable. */
 	scope?: BoardScope;
-	/** Token set. Defaults to "admin". */
-	theme?: BoardTheme;
 	/**
 	 * Extra grouping definitions (a page's own columns), merged OVER the built-ins by id. Keep the array stable
 	 * (module-level or memoised) — a new array each render rebuilds the registry.
@@ -118,7 +109,6 @@ export function BoardProvider({
 	data,
 	capabilities,
 	scope = LEGACY_BOARD_SCOPE,
-	theme = "admin",
 	groupings: extraGroupings,
 	views,
 	renderers,
@@ -132,8 +122,8 @@ export function BoardProvider({
 		[extraGroupings]
 	);
 	const value = useMemo<BoardContextValue>(
-		() => ({ data, capabilities, theme, groupings, views, renderers }),
-		[data, capabilities, theme, groupings, views, renderers]
+		() => ({ data, capabilities, groupings, views, renderers }),
+		[data, capabilities, groupings, views, renderers]
 	);
 	return (
 		<BoardContext.Provider value={value}>
@@ -156,10 +146,6 @@ export function useBoardData(): BoardDataSource {
 
 export function useBoardCapabilities(): BoardCapabilities {
 	return useBoardContext().capabilities;
-}
-
-export function useBoardTheme(): BoardTheme {
-	return useBoardContext().theme;
 }
 
 /** The grouping registry in force: the built-ins plus whatever the provider was given. */

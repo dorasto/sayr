@@ -1,5 +1,6 @@
 import { authClient } from "@repo/auth/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
+import { Button } from "@repo/ui/components/button";
 import { cn } from "@repo/ui/lib/utils";
 import { ensureCdnUrl, getInitials } from "@repo/util";
 import { Link, useRouterState } from "@tanstack/react-router";
@@ -9,12 +10,6 @@ import { usePublicOrganizationLayout } from "@/contexts/publicContextOrg";
 import { getOrgSlugFromPath, getPortalSection } from "@/lib/portal/nav";
 import LoginDialog from "../auth/login";
 import { PortalSearch } from "./portal/search/PortalSearch";
-import { PortalAvatar } from "./portal/ui/PortalAvatar";
-import { PortalButton } from "./portal/ui/PortalButton";
-
-const NAV_LINK =
-	"flex h-[34px] items-center gap-2 rounded-portal-md px-2.5 font-medium text-sm text-portal-fg-2 outline-none transition-colors hover:bg-portal-hover hover:text-portal-fg focus-visible:bg-portal-hover focus-visible:text-portal-fg md:px-3.5";
-const NAV_LINK_ACTIVE = "bg-portal-raised text-portal-fg";
 
 /** 64px public top bar: org mark + name, Feedback / Roadmap / Changelog (+ Activity when logged in), search palette trigger, Log in or user avatar. */
 export default function PublicNavigation() {
@@ -24,70 +19,52 @@ export default function PublicNavigation() {
 
 	const rawPathname = useRouterState({ select: (s) => s.location.pathname });
 	const orgSlug = getOrgSlugFromPath(rawPathname);
-	const feedbackPath = `/orgs/${orgSlug}`;
-	const roadmapPath = `/orgs/${orgSlug}/roadmap`;
-	const changelogPath = `/orgs/${orgSlug}/releases`;
-	const activityPath = `/orgs/${orgSlug}/activity`;
-
 	const section = getPortalSection(rawPathname, orgSlug);
-	const isOnRoadmap = section === "roadmap";
-	const isOnChangelog = section === "changelog";
-	const isOnActivity = section === "activity";
-	const isOnFeedback = section === "feedback";
+
+	const feedbackPath: string = `/orgs/${orgSlug}`;
+	const navLinks: { to: string; label: string; active: boolean }[] = [
+		{ to: feedbackPath, label: "Feedback", active: section === "feedback" },
+		{ to: `/orgs/${orgSlug}/roadmap`, label: "Roadmap", active: section === "roadmap" },
+		{ to: `/orgs/${orgSlug}/releases`, label: "Changelog", active: section === "changelog" },
+		...(session ? [{ to: `/orgs/${orgSlug}/activity`, label: "Activity", active: section === "activity" }] : []),
+	];
 
 	return (
 		<>
-			<header className="z-50 h-14 w-full md:h-16 shrink-0 border-portal-line border-b bg-portal-canvas">
+			<header className="z-50 h-14 w-full md:h-16 shrink-0 border-b bg-sidebar">
 				<div className="flex h-full items-center gap-1 px-3 md:gap-2">
 					{/* Org identity */}
 					<Link
 						to={feedbackPath}
-						className="mr-2 flex min-w-0 items-center gap-2.5 rounded-portal-sm outline-none max-md:min-h-11 max-md:flex-1 md:mr-5 md:max-w-[220px] md:shrink-0"
+						className="mr-2 flex min-w-0 items-center gap-2.5 rounded-md outline-none max-md:min-h-11 max-md:flex-1 md:mr-5 md:max-w-[220px] md:shrink-0"
 					>
-						<Avatar className="size-[30px] shrink-0 rounded-[9px]">
+						<Avatar className="size-[30px] shrink-0 rounded-lg">
 							{organization.logo ? (
 								<AvatarImage src={ensureCdnUrl(organization.logo)} alt={organization.name} />
 							) : null}
-							<AvatarFallback className="rounded-[9px] bg-portal-accent font-semibold text-portal-on-accent text-xs">
+							<AvatarFallback className="rounded-lg bg-primary font-semibold text-primary-foreground text-xs">
 								{getInitials(organization.name)}
 							</AvatarFallback>
 						</Avatar>
-						<span className="min-w-0 truncate font-semibold text-[15px] text-portal-fg tracking-[-0.01em]">
+						<span className="min-w-0 truncate font-semibold text-[15px] text-foreground tracking-[-0.01em]">
 							{organization.name}
 						</span>
 					</Link>
 
 					<nav aria-label="Primary" className="hidden gap-0.5 md:flex">
-						<Link
-							to={feedbackPath}
-							aria-current={isOnFeedback ? "page" : undefined}
-							className={cn(NAV_LINK, isOnFeedback && NAV_LINK_ACTIVE)}
-						>
-							Feedback
-						</Link>
-						<Link
-							to={roadmapPath}
-							aria-current={isOnRoadmap ? "page" : undefined}
-							className={cn(NAV_LINK, isOnRoadmap && NAV_LINK_ACTIVE)}
-						>
-							Roadmap
-						</Link>
-						<Link
-							to={changelogPath}
-							aria-current={isOnChangelog ? "page" : undefined}
-							className={cn(NAV_LINK, isOnChangelog && NAV_LINK_ACTIVE)}
-						>
-							Changelog
-						</Link>
-						{session && (
+						{navLinks.map((link) => (
 							<Link
-								to={activityPath}
-								aria-current={isOnActivity ? "page" : undefined}
-								className={cn(NAV_LINK, isOnActivity && NAV_LINK_ACTIVE)}
+								key={link.label}
+								to={link.to}
+								aria-current={link.active ? "page" : undefined}
+								className={cn(
+									"flex h-9 items-center gap-2 rounded-lg px-3 font-medium text-muted-foreground text-sm outline-none transition-colors hover:bg-accent hover:text-foreground focus-visible:bg-accent focus-visible:text-foreground",
+									link.active && "bg-muted text-foreground"
+								)}
 							>
-								Activity
+								{link.label}
 							</Link>
-						)}
+						))}
 					</nav>
 
 					<span className="hidden grow md:block" />
@@ -103,10 +80,23 @@ export default function PublicNavigation() {
 								onClick={() => setSettingsOpen(true)}
 								className="flex cursor-pointer items-center justify-center rounded-full outline-none max-md:size-11"
 							>
-								<PortalAvatar name={session.user.name} image={session.user.image} size={32} />
+								<Avatar className="size-8">
+									{session.user.image ? (
+										<AvatarImage src={ensureCdnUrl(session.user.image)} alt={session.user.name ?? ""} />
+									) : null}
+									<AvatarFallback className="font-semibold text-xs">
+										{getInitials(session.user.name)}
+									</AvatarFallback>
+								</Avatar>
 							</button>
 						) : (
-							<LoginDialog trigger={<PortalButton>Log in</PortalButton>} />
+							<LoginDialog
+								trigger={
+									<Button variant="outline" size="sm">
+										Log in
+									</Button>
+								}
+							/>
 						)}
 					</div>
 				</div>

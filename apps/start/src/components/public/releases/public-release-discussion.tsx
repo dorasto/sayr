@@ -1,5 +1,7 @@
 import { authClient } from "@repo/auth/client";
 import type { schema } from "@repo/database";
+import { Button } from "@repo/ui/components/button";
+import { Card } from "@repo/ui/components/card";
 import { headlessToast } from "@repo/ui/components/headless-toast";
 import {
 	useStateManagement,
@@ -14,8 +16,6 @@ import type { NodeJSON } from "prosekit/core";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import LoginDialog from "@/components/auth/login";
 import processUploads from "@/components/prosekit/upload";
-import { PortalButton } from "@/components/public/portal/ui/PortalButton";
-import { PortalCard } from "@/components/public/portal/ui/PortalCard";
 import type { ReactionEmoji } from "@/components/tasks/task/timeline/reactions";
 import { usePublicOrganizationLayout } from "@/contexts/publicContextOrg";
 import { useIsOrgMember } from "@/hooks/useIsOrgMember";
@@ -638,10 +638,10 @@ export function PublicReleaseDiscussion({
 		<div className="flex flex-col gap-6">
 			{isLoading ? (
 				<div className="flex items-center justify-center py-8">
-					<IconLoader2 aria-hidden className="animate-spin text-portal-fg-3" />
+					<IconLoader2 aria-hidden className="animate-spin text-muted-foreground" />
 				</div>
 			) : allComments.length === 0 ? (
-				<div className="rounded-portal-lg border border-portal-line-2 border-dashed px-5 py-6 text-center text-[13.5px] text-portal-fg-2">
+				<div className="rounded-xl border border-dashed px-5 py-6 text-center text-[13.5px] text-muted-foreground">
 					No comments yet. Start the conversation.
 				</div>
 			) : (
@@ -649,9 +649,10 @@ export function PublicReleaseDiscussion({
 					{topComments.map(renderComment)}
 
 					{hasNextPage && (
-						<div className="flex justify-center border-portal-line border-y border-dashed py-3">
-							<PortalButton
+						<div className="flex justify-center border-y border-dashed py-3">
+							<Button
 								variant="ghost"
+								size="sm"
 								className="w-full"
 								onClick={() => fetchNextPage()}
 								disabled={isFetchingNextPage}
@@ -664,7 +665,7 @@ export function PublicReleaseDiscussion({
 								) : (
 									"Load more comments"
 								)}
-							</PortalButton>
+							</Button>
 						</div>
 					)}
 
@@ -673,13 +674,8 @@ export function PublicReleaseDiscussion({
 			)}
 
 			{canAct ? (
-				<div
-					className={cn(
-						"overflow-hidden rounded-portal-lg border border-portal-line-2 bg-portal-surface",
-						"focus-within:border-portal-focus"
-					)}
-				>
-					<Suspense fallback={<div className="h-20 animate-pulse bg-portal-raised" />}>
+				<div className={cn("overflow-hidden rounded-xl border bg-background", "focus-within:border-primary")}>
+					<Suspense fallback={<div className="h-20 animate-pulse bg-muted" />}>
 						<Editor
 							key={editorKey}
 							firstLinePlaceholder="Write a comment..."
@@ -692,45 +688,40 @@ export function PublicReleaseDiscussion({
 						/>
 					</Suspense>
 					<div className="flex items-center justify-end px-3 pb-3">
-						<PortalButton
-							variant="primary"
-							size="sm"
-							onClick={handleSubmitComment}
-							disabled={isSubmitting || !commentContent}
-						>
+						<Button size="sm" onClick={handleSubmitComment} disabled={isSubmitting || !commentContent}>
 							{isSubmitting ? (
 								<IconLoader2 aria-hidden className="animate-spin" />
 							) : (
 								<IconArrowBack aria-hidden />
 							)}
 							Comment
-						</PortalButton>
+						</Button>
 					</div>
 				</div>
 			) : !session?.user ? (
-				<PortalCard>
+				<Card className="rounded-xl p-5">
 					<div className="flex items-center gap-4">
 						<span
 							aria-hidden
-							className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-portal-raised text-portal-fg-2"
+							className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground"
 						>
 							<IconMessageCircle className="size-5" />
 						</span>
 						<div className="min-w-0 flex-1">
-							<div className="font-semibold text-[15px] text-portal-fg">Log in to join the discussion</div>
-							<div className="mt-0.5 text-[13.5px] text-portal-fg-2">
+							<div className="font-semibold text-[15px] text-foreground">Log in to join the discussion</div>
+							<div className="mt-0.5 text-[13.5px] text-muted-foreground">
 								Use your Sayr account. It takes a few seconds.
 							</div>
 						</div>
-						<LoginDialog trigger={<PortalButton variant="primary">Log in</PortalButton>} />
+						<LoginDialog trigger={<Button size="sm">Log in</Button>} />
 					</div>
-				</PortalCard>
+				</Card>
 			) : (
-				<PortalCard>
-					<p className="text-center text-[13.5px] text-portal-fg-2">
+				<Card className="rounded-xl p-5">
+					<p className="text-center text-[13.5px] text-muted-foreground">
 						This organization has turned off public actions, so comments are read only.
 					</p>
-				</PortalCard>
+				</Card>
 			)}
 		</div>
 	);

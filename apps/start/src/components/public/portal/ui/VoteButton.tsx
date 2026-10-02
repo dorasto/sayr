@@ -1,3 +1,4 @@
+import { Button } from "@repo/ui/components/button";
 import { cn } from "@repo/ui/lib/utils";
 import { IconCheck, IconChevronUp } from "@tabler/icons-react";
 
@@ -12,26 +13,26 @@ interface VoteButtonProps {
 	className?: string;
 }
 
-/** 44px full-width primary "Upvote" (dark on-accent text); voted becomes a tinted "You upvoted". Never login-gated. */
+/** Full-width primary "Upvote"; voted becomes a tinted "You upvoted". Never login-gated. */
 export function VoteButton({ count, voted, onToggle, disabled, showCount = false, className }: VoteButtonProps) {
 	return (
-		<button
+		<Button
 			type="button"
+			size="lg"
 			aria-pressed={voted}
 			aria-label={`${voted ? "You upvoted" : "Upvote"}, ${count} ${count === 1 ? "vote" : "votes"}`}
 			disabled={disabled}
 			onClick={() => onToggle?.()}
 			className={cn(
-				"inline-flex h-11 w-full cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-portal-md border text-[15px] outline-none transition-colors",
+				"w-full border text-[15px]",
 				voted
-					? "border-portal-accent-line bg-portal-accent-soft font-medium text-portal-accent-ink"
-					: "border-transparent bg-portal-accent font-semibold text-portal-on-accent hover:bg-[oklch(0.82_0.165_76)] focus-visible:bg-[oklch(0.82_0.165_76)]",
-				disabled && "cursor-not-allowed opacity-50",
+					? "border-primary/50 bg-primary/15 font-medium text-primary hover:bg-primary/15"
+					: "border-transparent",
 				className
 			)}
 		>
-			{voted ? <IconCheck aria-hidden className="size-4" /> : <IconChevronUp aria-hidden className="size-4" />}
+			{voted ? <IconCheck aria-hidden /> : <IconChevronUp aria-hidden />}
 			{`${voted ? "You upvoted" : "Upvote"}${showCount ? ` · ${count}` : ""}`}
-		</button>
+		</Button>
 	);
 }

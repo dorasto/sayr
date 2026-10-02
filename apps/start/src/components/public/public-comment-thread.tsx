@@ -1,14 +1,15 @@
 import { authClient } from "@repo/auth/client";
 import type { schema } from "@repo/database";
+import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
+import { Button } from "@repo/ui/components/button";
 import { headlessToast } from "@repo/ui/components/headless-toast";
+import { Skeleton } from "@repo/ui/components/skeleton";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
-import { getDisplayName } from "@repo/util";
+import { ensureCdnUrl, getDisplayName, getInitials } from "@repo/util";
 import { IconArrowBack, IconChevronDown, IconChevronUp, IconLoader2 } from "@tabler/icons-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { NodeJSON } from "prosekit/core";
 import { lazy, Suspense, useCallback, useMemo, useState } from "react";
-import { PortalAvatar } from "@/components/public/portal/ui/PortalAvatar";
-import { PortalButton } from "@/components/public/portal/ui/PortalButton";
 import type { ReactionEmoji } from "@/components/tasks/task/timeline/reactions";
 import { CreateTaskCommentAction, CreateTaskReactionAction, FetchCommentRepliesAction } from "@/lib/fetches/task";
 import { extractTextContent } from "@/lib/util";
@@ -44,7 +45,7 @@ export function PublicCommentThreadTrigger({
 			type="button"
 			onClick={onToggle}
 			aria-expanded={expanded}
-			className="mt-2 flex min-h-8 w-fit max-md:min-h-11 cursor-pointer items-center gap-2 rounded-full pr-2 text-[13px] font-medium text-portal-fg-2 outline-none transition-colors hover:text-portal-fg"
+			className="mt-2 flex min-h-8 w-fit max-md:min-h-11 cursor-pointer items-center gap-2 rounded-full pr-2 text-[13px] font-medium text-muted-foreground outline-none transition-colors hover:text-foreground"
 		>
 			{expanded ? (
 				<IconChevronUp aria-hidden className="size-3.5" />
@@ -54,16 +55,17 @@ export function PublicCommentThreadTrigger({
 			{!expanded && visibleAuthors.length > 0 && (
 				<span className="flex items-center -space-x-1.5">
 					{visibleAuthors.map((author) => (
-						<PortalAvatar
-							key={author.id}
-							name={getDisplayName(author)}
-							image={author.image}
-							size={20}
-							className="border-2 border-portal-canvas"
-						/>
+						<Avatar key={author.id} className="size-5 border-2 border-sidebar">
+							{author.image ? (
+								<AvatarImage src={ensureCdnUrl(author.image)} alt={getDisplayName(author)} />
+							) : null}
+							<AvatarFallback className="text-xs font-semibold">
+								{getInitials(getDisplayName(author))}
+							</AvatarFallback>
+						</Avatar>
 					))}
 					{overflowCount > 0 && (
-						<span className="flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-portal-canvas bg-portal-raised px-1 font-medium text-portal-fg-2 text-xs">
+						<span className="flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-sidebar bg-muted px-1 font-medium text-muted-foreground text-xs">
 							+{overflowCount}
 						</span>
 					)}
@@ -248,9 +250,9 @@ export function PublicCommentThreadBody({
 	);
 
 	return (
-		<div className="mt-3 border-l-2 border-portal-line pl-5">
+		<div className="mt-3 border-l-2 border-border pl-5">
 			{isLoading ? (
-				<div className="flex items-center gap-2 py-2 text-[13px] text-portal-fg-3">
+				<div className="flex items-center gap-2 py-2 text-[13px] text-muted-foreground">
 					<IconLoader2 aria-hidden className="size-4 animate-spin" />
 					Loading replies...
 				</div>
@@ -380,10 +382,13 @@ function PublicReplyInput({
 	const displayName = session?.user?.name ?? "User";
 
 	return (
-		<div className="mt-4 flex items-start gap-3 text-portal-fg">
-			<PortalAvatar name={displayName} image={session?.user?.image} size={28} className="mt-1" />
-			<div className="min-w-0 flex-1 rounded-portal-md border border-portal-line-2 bg-portal-surface px-3 py-2 focus-within:border-portal-focus">
-				<Suspense fallback={<div className="h-8 animate-pulse rounded bg-portal-raised" />}>
+		<div className="mt-4 flex items-start gap-3 text-foreground">
+			<Avatar className="mt-1 size-7">
+				{session?.user?.image ? <AvatarImage src={ensureCdnUrl(session.user.image)} alt={displayName} /> : null}
+				<AvatarFallback className="text-xs font-semibold">{getInitials(displayName)}</AvatarFallback>
+			</Avatar>
+			<div className="min-w-0 flex-1 rounded-lg border bg-background px-3 py-2 focus-within:border-ring">
+				<Suspense fallback={<Skeleton className="h-8" />}>
 					<Editor
 						key={editorKey}
 						onChange={setContent}
@@ -395,10 +400,10 @@ function PublicReplyInput({
 					/>
 				</Suspense>
 				<div className="mt-1 flex items-center justify-end">
-					<PortalButton variant="primary" size="sm" disabled={disabled} onClick={handleSubmit}>
+					<Button size="sm" disabled={disabled} onClick={handleSubmit}>
 						{isSubmitting ? <IconLoader2 aria-hidden className="animate-spin" /> : <IconArrowBack aria-hidden />}
 						Reply
-					</PortalButton>
+					</Button>
 				</div>
 			</div>
 		</div>

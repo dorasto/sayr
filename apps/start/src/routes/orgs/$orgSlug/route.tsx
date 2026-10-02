@@ -131,7 +131,7 @@ function PublicLayout() {
 			categories={categories}
 			issueTemplates={issueTemplates}
 		>
-			<div className="portal flex h-dvh flex-col overflow-hidden bg-portal-canvas text-portal-fg">
+			<div className="portal flex h-dvh flex-col overflow-hidden bg-sidebar text-foreground">
 				<PublicNavigation />
 				{isPortalPage ? (
 					<div className="isolate min-h-0 w-full flex-1 overflow-hidden" id="public-scroll-container">
@@ -186,8 +186,8 @@ function OrganizationUnavailable() {
 
 function PublicLayoutPending() {
 	return (
-		<div className="portal flex h-dvh flex-col overflow-hidden bg-portal-canvas">
-			<div className="h-14 w-full shrink-0 border-b border-portal-line bg-portal-canvas md:h-16" />
+		<div className="portal flex h-dvh flex-col overflow-hidden bg-sidebar">
+			<div className="h-14 w-full shrink-0 border-b border-border bg-sidebar md:h-16" />
 			<div className="flex min-h-0 flex-1 overflow-hidden">
 				<div className="flex-1 min-h-0 w-full">
 					<div className="flex flex-1 h-full w-full pb-2 pt-2 pr-2 pl-2">

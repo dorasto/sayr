@@ -5,9 +5,9 @@ import type { ReactNode } from "react";
 type PillVariant = "author" | "team" | "gh";
 
 const PILL_STYLES: Record<PillVariant, string> = {
-	author: "bg-portal-accent-soft text-portal-accent-ink font-semibold",
-	team: "bg-portal-neutral-soft text-portal-fg font-semibold",
-	gh: "bg-portal-neutral-soft text-portal-fg-2 font-medium",
+	author: "bg-primary/15 text-primary font-semibold",
+	team: "bg-muted text-foreground font-semibold",
+	gh: "bg-muted text-muted-foreground font-medium",
 };
 
 const DEFAULT_LABELS: Record<PillVariant, ReactNode> = {
@@ -33,7 +33,7 @@ export function Pill({ variant, children, className }: PillProps) {
 	return (
 		<span
 			className={cn(
-				"inline-flex h-[22px] items-center gap-1.5 whitespace-nowrap rounded-portal-tag px-2 text-xs",
+				"inline-flex h-[22px] items-center gap-1.5 whitespace-nowrap rounded-md px-2 text-xs",
 				PILL_STYLES[variant],
 				className
 			)}

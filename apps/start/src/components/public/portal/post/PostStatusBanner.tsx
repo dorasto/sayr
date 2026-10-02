@@ -1,9 +1,9 @@
+import { buttonVariants } from "@repo/ui/components/button";
 import { cn } from "@repo/ui/lib/utils";
 import { formatDate } from "@repo/util";
 import { IconArrowRight, IconBan, IconCheck, IconRocket } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
 import { StatusChip } from "@/components/public/portal/ui/StatusChip";
-import { portalButtonVariants } from "@/components/public/portal/ui/PortalButton";
 import { getReleaseDate, isShipped } from "@/lib/portal/status";
 
 interface BannerRelease {
@@ -42,27 +42,29 @@ function BannerShell({
 	return (
 		<div
 			className={cn(
-				"flex items-center gap-3.5 rounded-portal-lg border px-[18px] py-4 max-md:flex-wrap",
-				tone === "ok" && "border-portal-ok/40 bg-portal-ok-soft",
-				tone === "bad" && "border-portal-bad/35 bg-portal-surface",
-				tone === "neutral" && "border-portal-line bg-portal-surface",
+				"flex items-center gap-3.5 rounded-xl border px-[18px] py-4 max-md:flex-wrap",
+				tone === "ok" && "border-success/40 bg-success/15",
+				tone === "bad" && "border-destructive/35 bg-background",
+				tone === "neutral" && "border-border bg-background",
 				className
 			)}
 		>
 			<span
 				aria-hidden
 				className={cn(
-					"flex size-8 shrink-0 items-center justify-center rounded-[9px]",
-					tone === "ok" && "bg-portal-ok text-portal-surface",
-					tone === "bad" && "bg-portal-bad-soft text-portal-bad",
-					tone === "neutral" && "bg-portal-raised text-portal-fg-2"
+					"flex size-8 shrink-0 items-center justify-center rounded-lg",
+					tone === "ok" && "bg-success text-background",
+					tone === "bad" && "bg-destructive/15 text-destructive",
+					tone === "neutral" && "bg-muted text-muted-foreground"
 				)}
 			>
 				{icon}
 			</span>
 			<div className="min-w-0 flex-1">
-				<div className="font-semibold text-[15px] text-portal-fg">{title}</div>
-				{description && <div className="mt-0.5 text-[13.5px] text-portal-fg-2 leading-[21px]">{description}</div>}
+				<div className="font-semibold text-[15px] text-foreground">{title}</div>
+				{description && (
+					<div className="mt-0.5 text-[13.5px] text-muted-foreground leading-[21px]">{description}</div>
+				)}
 			</div>
 			{action && <div className="max-md:basis-full max-md:[&>*]:w-full">{action}</div>}
 		</div>
@@ -88,7 +90,7 @@ export function PostStatusBanner({ task, release, orgSlug, lastUpdateBy, classNa
 						</>
 					}
 				/>
-				<div className="flex items-center gap-2.5 px-1 text-[13px] text-portal-fg-3">
+				<div className="flex items-center gap-2.5 px-1 text-[13px] text-muted-foreground">
 					<StatusChip status="canceled" />
 					Voting is closed on this post.
 				</div>
@@ -109,7 +111,7 @@ export function PostStatusBanner({ task, release, orgSlug, lastUpdateBy, classNa
 					<Link
 						to="/orgs/$orgSlug/releases/$releaseSlug"
 						params={{ orgSlug, releaseSlug: release.slug }}
-						className={portalButtonVariants({ size: "sm" })}
+						className={buttonVariants({ variant: "outline", size: "sm" })}
 					>
 						Read the notes
 						<IconArrowRight aria-hidden />
@@ -132,7 +134,7 @@ export function PostStatusBanner({ task, release, orgSlug, lastUpdateBy, classNa
 					<Link
 						to="/orgs/$orgSlug/releases/$releaseSlug"
 						params={{ orgSlug, releaseSlug: release.slug }}
-						className={portalButtonVariants({ size: "sm" })}
+						className={buttonVariants({ variant: "outline", size: "sm" })}
 					>
 						View release
 						<IconArrowRight aria-hidden />

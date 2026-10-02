@@ -1,3 +1,5 @@
+import { Button } from "@repo/ui/components/button";
+import { Input } from "@repo/ui/components/input";
 import { cn } from "@repo/ui/lib/utils";
 import { IconBold, IconCheck, IconCode, IconLink, IconList, IconPhoto, IconTrash } from "@tabler/icons-react";
 import type { BasicExtension } from "prosekit/basic";
@@ -43,32 +45,43 @@ function getItems(editor: Editor<BasicExtension>) {
 	};
 }
 
-const BUTTON_CLASS =
-	"inline-flex size-8 cursor-pointer items-center justify-center rounded-portal-sm max-md:size-11 text-portal-fg-2 outline-none transition-colors hover:bg-portal-hover hover:text-portal-fg disabled:cursor-not-allowed disabled:opacity-40 aria-pressed:bg-portal-accent-soft aria-pressed:text-portal-accent-ink";
-
 interface ToolbarButtonProps {
 	label: string;
+	title?: string;
 	pressed?: boolean;
 	disabled?: boolean;
+	type?: "button" | "submit";
+	/** Keep the text selection (and focus) in the editor while the button is used. */
+	holdFocus?: boolean;
 	onClick?: () => void;
 	children: ReactNode;
 }
 
-function ToolbarButton({ label, pressed, disabled, onClick, children }: ToolbarButtonProps) {
+function ToolbarButton({
+	label,
+	title = label,
+	pressed,
+	disabled,
+	type = "button",
+	holdFocus,
+	onClick,
+	children,
+}: ToolbarButtonProps) {
 	return (
-		<button
-			type="button"
-			title={label}
+		<Button
+			type={type}
+			variant="ghost"
+			size="icon"
+			title={title}
 			aria-label={label}
 			aria-pressed={pressed}
 			disabled={disabled}
-			// Keep the text selection (and focus) in the editor while the button is used.
-			onMouseDown={(event) => event.preventDefault()}
+			onMouseDown={holdFocus ? (event) => event.preventDefault() : undefined}
 			onClick={onClick}
-			className={BUTTON_CLASS}
+			className="size-8 max-md:size-11 aria-pressed:bg-primary/15 aria-pressed:text-primary"
 		>
 			{children}
-		</button>
+		</Button>
 	);
 }
 
@@ -99,20 +112,18 @@ function LinkButton({ active, enabled, href }: { active: boolean; enabled: boole
 	return (
 		<PopoverRoot open={open} onOpenChange={handleOpenChange}>
 			<PopoverTrigger>
-				<button
-					type="button"
+				<ToolbarButton
+					label="Link"
 					title={enabled ? "Link" : "Select text to add a link"}
-					aria-label="Link"
-					aria-pressed={active}
+					pressed={active}
 					disabled={!enabled}
-					className={BUTTON_CLASS}
 				>
 					<IconLink aria-hidden className="size-4" />
-				</button>
+				</ToolbarButton>
 			</PopoverTrigger>
-			<PopoverContent className="portal z-10 box-border w-72 rounded-portal-md border border-portal-line-2 bg-portal-surface p-2 text-portal-fg shadow-portal-pop [&:not([data-state])]:hidden">
+			<PopoverContent className="z-10 box-border w-72 rounded-md border bg-popover p-2 text-popover-foreground shadow-md [&:not([data-state])]:hidden">
 				<form onSubmit={handleSubmit} className="flex flex-wrap items-center gap-1.5">
-					<input
+					<Input
 						// Remount per open so the field starts from the current link.
 						key={String(open)}
 						name="href"
@@ -123,17 +134,14 @@ function LinkButton({ active, enabled, href }: { active: boolean; enabled: boole
 						aria-invalid={error !== null}
 						aria-describedby={error ? "post-link-error" : undefined}
 						onChange={() => setError(null)}
-						className="h-8 min-w-0 flex-1 rounded-portal-sm border border-portal-line-2 bg-portal-canvas px-2.5 text-[13.5px] outline-none max-md:h-11 max-md:text-base placeholder:text-portal-fg-3 focus:border-portal-focus"
+						className="h-8 min-w-0 flex-1 px-2.5 max-md:h-11"
 					/>
-					<button type="submit" aria-label="Apply link" title="Apply link" className={BUTTON_CLASS}>
+					<ToolbarButton type="submit" label="Apply link">
 						<IconCheck aria-hidden className="size-4" />
-					</button>
+					</ToolbarButton>
 					{active && (
-						<button
-							type="button"
-							aria-label="Remove link"
-							title="Remove link"
-							className={BUTTON_CLASS}
+						<ToolbarButton
+							label="Remove link"
 							onClick={() => {
 								editor.commands.removeLink();
 								handleOpenChange(false);
@@ -141,10 +149,10 @@ function LinkButton({ active, enabled, href }: { active: boolean; enabled: boole
 							}}
 						>
 							<IconTrash aria-hidden className="size-4" />
-						</button>
+						</ToolbarButton>
 					)}
 					{error && (
-						<p id="post-link-error" role="alert" className="basis-full text-[12.5px] text-portal-bad">
+						<p id="post-link-error" role="alert" className="basis-full text-[12.5px] text-destructive">
 							{error}
 						</p>
 					)}
@@ -164,9 +172,10 @@ export function PostEditorToolbar({ className }: { className?: string }) {
 	const imageEditor = useEditor<ImageExtension>();
 
 	return (
-		<div className={cn("flex flex-wrap items-center gap-0.5 border-portal-line border-b px-2 py-1.5", className)}>
+		<div className={cn("flex flex-wrap items-center gap-0.5 border-b px-2 py-1.5", className)}>
 			<ToolbarButton
 				label="Bold"
+				holdFocus
 				pressed={items.bold.active}
 				disabled={!items.bold.enabled}
 				onClick={items.bold.run}
@@ -175,6 +184,7 @@ export function PostEditorToolbar({ className }: { className?: string }) {
 			</ToolbarButton>
 			<ToolbarButton
 				label="Bulleted list"
+				holdFocus
 				pressed={items.list.active}
 				disabled={!items.list.enabled}
 				onClick={items.list.run}
@@ -183,6 +193,7 @@ export function PostEditorToolbar({ className }: { className?: string }) {
 			</ToolbarButton>
 			<ToolbarButton
 				label="Code"
+				holdFocus
 				pressed={items.code.active}
 				disabled={!items.code.enabled}
 				onClick={items.code.run}
@@ -190,7 +201,7 @@ export function PostEditorToolbar({ className }: { className?: string }) {
 				<IconCode aria-hidden className="size-4" />
 			</ToolbarButton>
 			<LinkButton active={items.link.active} enabled={items.link.enabled} href={items.link.href} />
-			<ToolbarButton label="Add an image" onClick={() => void handleMediaUpload(imageEditor, "image")}>
+			<ToolbarButton label="Add an image" holdFocus onClick={() => void handleMediaUpload(imageEditor, "image")}>
 				<IconPhoto aria-hidden className="size-4" />
 			</ToolbarButton>
 		</div>

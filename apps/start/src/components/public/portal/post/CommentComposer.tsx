@@ -1,5 +1,8 @@
 import type { schema } from "@repo/database";
+import { Button } from "@repo/ui/components/button";
+import { Card } from "@repo/ui/components/card";
 import { headlessToast } from "@repo/ui/components/headless-toast";
+import { Skeleton } from "@repo/ui/components/skeleton";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { cn } from "@repo/ui/lib/utils";
 import { IconArrowBack, IconLoader2, IconMessageCircle } from "@tabler/icons-react";
@@ -8,8 +11,6 @@ import type { NodeJSON } from "prosekit/core";
 import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import LoginDialog from "@/components/auth/login";
 import processUploads from "@/components/prosekit/upload";
-import { PortalButton } from "@/components/public/portal/ui/PortalButton";
-import { PortalCard } from "@/components/public/portal/ui/PortalCard";
 import { usePublicOrganizationLayout } from "@/contexts/publicContextOrg";
 import type { MentionContext } from "@/hooks/useMentionUsers";
 import { CreateTaskCommentAction } from "@/lib/fetches/task";
@@ -20,29 +21,6 @@ const Editor = lazy(() => import("@/components/prosekit/editor"));
 
 /** DOM id of the composer, so a sticky bar can scroll to it. */
 export const POST_COMMENT_COMPOSER_ID = "post-comment-composer";
-
-/** Logged-out prompt: comments and reactions need a Sayr account (voting does not). */
-export function PostLoginPrompt({ className }: { className?: string }) {
-	return (
-		<PortalCard className={className}>
-			<div className="flex items-center gap-4">
-				<span
-					aria-hidden
-					className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-portal-raised text-portal-fg-2"
-				>
-					<IconMessageCircle className="size-5" />
-				</span>
-				<div className="min-w-0 flex-1">
-					<div className="font-semibold text-[15px] text-portal-fg">Log in to comment</div>
-					<div className="mt-0.5 text-[13.5px] text-portal-fg-2">
-						Use your Sayr account. It takes a few seconds.
-					</div>
-				</div>
-				<LoginDialog trigger={<PortalButton variant="primary">Log in</PortalButton>} />
-			</div>
-		</PortalCard>
-	);
-}
 
 interface PostCommentComposerProps {
 	taskId: string;
@@ -117,11 +95,11 @@ export function PostCommentComposer({
 			<div
 				id={POST_COMMENT_COMPOSER_ID}
 				className={cn(
-					"scroll-mt-20 overflow-hidden rounded-portal-lg border border-portal-line-2 bg-portal-surface focus-within:border-portal-focus",
+					"scroll-mt-20 overflow-hidden rounded-xl border bg-background focus-within:border-ring",
 					className
 				)}
 			>
-				<Suspense fallback={<div className="h-20 animate-pulse bg-portal-raised" />}>
+				<Suspense fallback={<Skeleton className="h-20 rounded-none" />}>
 					<Editor
 						key={editorKey}
 						firstLinePlaceholder="Write a comment..."
@@ -134,29 +112,45 @@ export function PostCommentComposer({
 					/>
 				</Suspense>
 				<div className="flex items-center justify-end px-3 pb-3">
-					<PortalButton
-						variant="primary"
-						size="sm"
-						onClick={handleSubmitComment}
-						disabled={isSubmitting || !commentContent}
-					>
+					<Button size="sm" onClick={handleSubmitComment} disabled={isSubmitting || !commentContent}>
 						{isSubmitting ? <IconLoader2 aria-hidden className="animate-spin" /> : <IconArrowBack aria-hidden />}
 						Comment
-					</PortalButton>
+					</Button>
 				</div>
 			</div>
 		);
 	}
 
-	if (!isLoggedIn) return <PostLoginPrompt className={className} />;
+	if (!isLoggedIn) {
+		// Comments and reactions need a Sayr account (voting does not).
+		return (
+			<Card className={cn("rounded-xl p-5", className)}>
+				<div className="flex items-center gap-4">
+					<span
+						aria-hidden
+						className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground"
+					>
+						<IconMessageCircle className="size-5" />
+					</span>
+					<div className="min-w-0 flex-1">
+						<div className="font-semibold text-[15px] text-foreground">Log in to comment</div>
+						<div className="mt-0.5 text-[13.5px] text-muted-foreground">
+							Use your Sayr account. It takes a few seconds.
+						</div>
+					</div>
+					<LoginDialog trigger={<Button>Log in</Button>} />
+				</div>
+			</Card>
+		);
+	}
 
 	return (
-		<PortalCard className={className}>
-			<p className="text-center text-[13.5px] text-portal-fg-2">
+		<Card className={cn("rounded-xl p-5", className)}>
+			<p className="text-center text-[13.5px] text-muted-foreground">
 				{taskStatus === "done" || taskStatus === "canceled"
 					? "This post is closed. Comments are turned off."
 					: "This organization has turned off public actions."}
 			</p>
-		</PortalCard>
+		</Card>
 	);
 }

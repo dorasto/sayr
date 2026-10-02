@@ -1,26 +1,38 @@
 import type { schema } from "@repo/database";
+import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
+import { Button, buttonVariants } from "@repo/ui/components/button";
+import { Skeleton } from "@repo/ui/components/skeleton";
 import { useStateManagementFetch } from "@repo/ui/hooks/useStateManagement.ts";
 import { cn } from "@repo/ui/lib/utils";
-import { IconArrowLeft, IconLayoutSidebarRight, IconLayoutSidebarRightFilled } from "@tabler/icons-react";
+import { ensureCdnUrl, formatDate, formatTaskKey, getDisplayName, getInitials } from "@repo/util";
+import {
+	IconArrowLeft,
+	IconArrowUpRight,
+	IconBrandGithub,
+	IconLayoutSidebarRight,
+	IconLayoutSidebarRightFilled,
+} from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
 import { lazy, Suspense, useEffect, useMemo } from "react";
+import LoginDialog from "@/components/auth/login";
 import { Page } from "@/components/generic/page";
 import { usePage, usePanel } from "@/components/generic/use-page";
+import { POST_COMMENT_COMPOSER_ID } from "@/components/public/portal/post/CommentComposer";
 import { LatestUpdateCard } from "@/components/public/portal/post/LatestUpdateCard";
-import { PostBottomBar } from "@/components/public/portal/post/PostBottomBar";
-import { PostGithubCard } from "@/components/public/portal/post/PostGithubCard";
-import { DESCRIPTION_PROSE } from "@/components/public/portal/post/prose";
-import { PostHeader } from "@/components/public/portal/post/PostHeader";
 import { PostStatusBanner } from "@/components/public/portal/post/PostStatusBanner";
-import { PostStepperCard } from "@/components/public/portal/post/PostStepperCard";
-import { PostSubtasks } from "@/components/public/portal/post/PostSubtasks";
+import { DESCRIPTION_PROSE } from "@/components/public/portal/post/prose";
+import { useCanAct } from "@/components/public/portal/post/useCanAct";
 import { usePostComments } from "@/components/public/portal/post/usePostComments";
-import { PortalButton } from "@/components/public/portal/ui/PortalButton";
+import { CategoryTag } from "@/components/public/portal/ui/CategoryTag";
+import { Pill } from "@/components/public/portal/ui/Pill";
+import { Stepper } from "@/components/public/portal/ui/Stepper";
+import { StatusChip } from "@/components/public/portal/ui/StatusChip";
+import { VoteBox } from "@/components/public/portal/ui/VoteBox";
 import { PublicTaskPanelContent, PublicTaskPanelHeaderActions } from "@/components/public/panels/task";
 import { PublicTaskProvider, usePublicTask } from "@/contexts/ContextPublicOrgTask";
 import { usePublicOrganizationLayout } from "@/contexts/publicContextOrg";
-import { getDisplayName } from "@repo/util";
 import { usePanelViewportDefaults } from "@/hooks/portal/usePanelViewportDefaults";
+import { parseGithubIssueUrl } from "@/lib/portal/github-issue";
 import { getLatestUpdate } from "@/lib/portal/latest-update";
 import { isTeamMember } from "@/lib/portal/team";
 import { sidebarActions } from "@/lib/sidebar/sidebar-store";
@@ -39,6 +51,15 @@ const baseApiUrl = import.meta.env.VITE_APP_ENV === "development" ? "/backend-ap
 
 // Shared empty array (a fresh `?? []` each render would loop the panel-content effect — see the page-component skill).
 const EMPTY_TASKS: schema.TaskWithLabels[] = [];
+
+/** Scrolls the comment box into view and focuses its editor (the phone action bar's "Add a comment"). */
+function focusComposer() {
+	const composer = document.getElementById(POST_COMMENT_COMPOSER_ID);
+	if (!composer) return;
+	const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+	composer.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "center" });
+	composer.querySelector<HTMLElement>("[contenteditable='true']")?.focus({ preventScroll: true });
+}
 
 /**
  * Public (unauthenticated) post page: one centred 760px article column plus a "Details" drawer (`public-task-panel`:
@@ -59,27 +80,27 @@ function PostPageBar({ orgSlug }: { orgSlug: string }) {
 	const { closePanel } = usePage();
 
 	return (
-		<div className="flex h-14 shrink-0 items-center justify-between border-portal-line border-b bg-portal-canvas px-2 md:h-11 md:px-3">
+		<div className="flex h-14 shrink-0 items-center justify-between border-b bg-sidebar px-2 md:h-11 md:px-3">
 			<Link
 				to="/orgs/$orgSlug"
 				params={{ orgSlug }}
-				className="inline-flex h-8 items-center gap-2 rounded-portal-sm px-2 font-medium text-[13.5px] text-portal-fg-2 outline-none transition-colors hover:bg-portal-hover hover:text-portal-fg focus-visible:bg-portal-hover focus-visible:text-portal-fg max-md:h-11 max-md:text-base"
+				className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "h-8 gap-2 px-2 text-[13.5px]")}
 			>
 				<IconArrowLeft aria-hidden className="size-4" />
 				Feedback
 			</Link>
-			<PortalButton
+			<Button
 				variant="ghost"
-				size="sm"
+				size="icon"
 				aria-label={panel.isOpen ? "Hide details" : "Show details"}
 				aria-pressed={panel.isOpen}
-				className={cn("w-[30px] px-0 max-md:w-11", panel.isOpen && "bg-portal-raised text-portal-fg")}
+				className={cn("size-8", panel.isOpen && "bg-accent text-foreground")}
 				onClick={() =>
 					panel.isOpen ? closePanel(PUBLIC_TASK_PANEL_ID) : sidebarActions.setOpen(PUBLIC_TASK_PANEL_ID, true)
 				}
 			>
 				{panel.isOpen ? <IconLayoutSidebarRightFilled /> : <IconLayoutSidebarRight />}
-			</PortalButton>
+			</Button>
 		</div>
 	);
 }
@@ -145,7 +166,14 @@ function PublicTaskContentInner() {
 				.map((t) => ({ id: t.id, shortId: t.shortId, title: t.title, status: t.status })),
 		[tasks, task.id]
 	);
-	const creatorId = task.createdBy?.id ?? null;
+	const creator = task.createdBy;
+	const creatorId = creator?.id ?? null;
+	const creatorName = creator ? getDisplayName(creator) : null;
+	const { isLoggedIn, canAct } = useCanAct(task.status);
+	const githubParsed = task.githubIssue ? parseGithubIssueUrl(task.githubIssue.issueUrl) : null;
+	const githubReference = githubParsed
+		? `${githubParsed.repo}#${githubParsed.number}`
+		: `#${task.githubIssue?.issueNumber}`;
 
 	return (
 		<Page
@@ -164,17 +192,66 @@ function PublicTaskContentInner() {
 			<div className="flex min-h-full flex-col">
 				<div className="mx-auto w-full max-w-[760px] flex-1 px-4 pt-6 pb-12 md:px-6 md:pt-10 md:pb-20">
 					<article>
-						<PostHeader
-							task={task}
-							orgShortId={organization.shortId}
-							orgSlug={orgSlug}
-							category={category}
-							creatorIsTeam={isTeamMember(creatorId, organization)}
-							parent={parent}
-						/>
+						<header>
+							<div className="mb-3.5 flex flex-wrap items-center gap-x-2.5 gap-y-2">
+								<StatusChip status={task.status} />
+								{category && <CategoryTag category={category} />}
+								<span className="text-[13px] text-muted-foreground">
+									{formatTaskKey(organization.shortId, task.shortId)}
+								</span>
+							</div>
+
+							{parent?.shortId != null && (
+								<p className="mb-2 text-[13.5px] text-muted-foreground">
+									Part of{" "}
+									<Link
+										to="/orgs/$orgSlug/$shortId"
+										params={{ orgSlug, shortId: String(parent.shortId) }}
+										className="font-medium text-primary hover:underline"
+									>
+										{formatTaskKey(organization.shortId, parent.shortId)}
+										{parent.title ? ` ${parent.title}` : ""}
+									</Link>
+								</p>
+							)}
+
+							<h1 className="font-bold text-[28px] text-foreground leading-[34px] tracking-[-0.03em] md:text-4xl md:leading-[42px] md:tracking-[-0.032em]">
+								{task.title}
+							</h1>
+
+							<div className="mt-4 mb-6 flex flex-wrap items-center gap-x-2.5 gap-y-2 text-[13.5px] text-muted-foreground md:mt-[18px] md:mb-7 md:text-sm">
+								{creator && creatorName && (
+									<>
+										<Avatar className="size-7">
+											{creator.image ? (
+												<AvatarImage src={ensureCdnUrl(creator.image)} alt={creatorName} />
+											) : null}
+											<AvatarFallback className="text-xs font-semibold">
+												{getInitials(creatorName)}
+											</AvatarFallback>
+										</Avatar>
+										<b className="font-semibold text-foreground">{creatorName}</b>
+										<Pill variant="author" />
+										{isTeamMember(creatorId, organization) && <Pill variant="team" />}
+									</>
+								)}
+								{task.createdAt && (
+									<span>
+										posted{" "}
+										<time dateTime={new Date(task.createdAt).toISOString()}>
+											{formatDate(task.createdAt, "en-GB")}
+										</time>
+									</span>
+								)}
+							</div>
+						</header>
 
 						<div className="flex flex-col gap-5">
-							<PostStepperCard status={task.status} />
+							{task.status !== "canceled" && (
+								<div className="rounded-xl border bg-card px-4 pt-[18px] pb-3 md:px-7 md:pt-[22px] md:pb-[18px]">
+									<Stepper status={task.status} />
+								</div>
+							)}
 							<PostStatusBanner
 								task={task}
 								release={release}
@@ -192,22 +269,66 @@ function PublicTaskContentInner() {
 
 						{task.description && (
 							<div className={cn("mt-9", DESCRIPTION_PROSE)}>
-								<Suspense fallback={<div className="h-20 animate-pulse rounded bg-portal-raised" />}>
+								<Suspense fallback={<Skeleton className="h-20" />}>
 									<Editor readonly={true} defaultContent={task.description} tasks={tasks} hideBlockHandle />
 								</Suspense>
 							</div>
 						)}
 
-						{task.githubIssue && <PostGithubCard githubIssue={task.githubIssue} className="mt-8" />}
+						{task.githubIssue && (
+							<div className="mt-8 flex items-center gap-3.5 rounded-xl border bg-card px-[18px] py-3.5">
+								<span
+									aria-hidden
+									className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-foreground"
+								>
+									<IconBrandGithub className="size-5" />
+								</span>
+								<div className="min-w-0 flex-1">
+									<div className="font-semibold text-foreground text-sm">Tracked on GitHub</div>
+									<div className="truncate text-[13px] text-muted-foreground">{githubReference}</div>
+								</div>
+								<a
+									href={task.githubIssue.issueUrl}
+									target="_blank"
+									rel="noopener noreferrer"
+									className={buttonVariants({ variant: "outline", size: "sm" })}
+								>
+									View issue
+									<IconArrowUpRight aria-hidden />
+								</a>
+							</div>
+						)}
 
-						<PostSubtasks
-							subtasks={subtasks}
-							orgShortId={organization.shortId}
-							orgSlug={orgSlug}
-							className="mt-8"
-						/>
+						{subtasks.length > 0 && (
+							<section aria-labelledby="post-subtasks-heading" className="mt-8">
+								<h2 id="post-subtasks-heading" className="mb-2 font-semibold text-[15px] text-foreground">
+									Sub-tasks
+								</h2>
+								<ul className="overflow-hidden rounded-xl border bg-card">
+									{subtasks.map((subtask) => (
+										<li key={subtask.id} className="border-t first:border-t-0">
+											{subtask.shortId != null ? (
+												<Link
+													to="/orgs/$orgSlug/$shortId"
+													params={{ orgSlug, shortId: String(subtask.shortId) }}
+													className="flex min-h-11 items-center gap-3 px-4 py-2 transition-colors hover:bg-accent"
+												>
+													<span className="shrink-0 text-[13px] text-muted-foreground">
+														{formatTaskKey(organization.shortId, subtask.shortId)}
+													</span>
+													<span className="min-w-0 flex-1 truncate font-medium text-sm text-foreground">
+														{subtask.title ?? "Untitled"}
+													</span>
+													<StatusChip status={subtask.status} />
+												</Link>
+											) : null}
+										</li>
+									))}
+								</ul>
+							</section>
+						)}
 
-						<hr className="mt-11 mb-7 border-portal-line" />
+						<hr className="mt-11 mb-7 border-border" />
 
 						<PublicComments
 							taskId={task.id}
@@ -219,13 +340,29 @@ function PublicTaskContentInner() {
 					</article>
 				</div>
 
-				<PostBottomBar
-					count={voteCount}
-					voted={isVoted}
-					disabled={voteDisabled}
-					onToggleVote={handleVote}
-					taskStatus={task.status}
-				/>
+				{/* Phone action bar: the vote toggle (never login-gated) beside Log in / Add a comment. */}
+				<div className="sticky bottom-0 z-10 flex items-center gap-2.5 border-t bg-sidebar px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:hidden">
+					<VoteBox
+						count={voteCount}
+						voted={isVoted}
+						disabled={voteDisabled}
+						onToggle={handleVote}
+						className="h-12 w-auto min-w-[76px] flex-row gap-1.5 rounded-lg px-4"
+					/>
+					{!isLoggedIn ? (
+						<LoginDialog
+							trigger={
+								<Button size="lg" className="h-12 flex-1">
+									Log in to comment
+								</Button>
+							}
+						/>
+					) : canAct ? (
+						<Button size="lg" className="h-12 flex-1" onClick={focusComposer}>
+							Add a comment
+						</Button>
+					) : null}
+				</div>
 			</div>
 		</Page>
 	);

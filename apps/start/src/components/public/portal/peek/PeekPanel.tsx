@@ -1,8 +1,10 @@
 import type { schema } from "@repo/database";
-import { Button } from "@repo/ui/components/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
+import { Button, buttonVariants } from "@repo/ui/components/button";
 import { headlessToast } from "@repo/ui/components/headless-toast";
+import { Skeleton } from "@repo/ui/components/skeleton";
 import { cn } from "@repo/ui/lib/utils";
-import { formatTaskKey, getDisplayName } from "@repo/util";
+import { ensureCdnUrl, formatTaskKey, getDisplayName, getInitials } from "@repo/util";
 import { IconArrowRight, IconArrowUpRight, IconBrandGithub, IconLink, IconX } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
@@ -11,7 +13,6 @@ import { usePostPublicUrl } from "@/hooks/portal/usePostPublicUrl";
 import { formatShortDate } from "@/lib/portal/board-row";
 import { getLatestUpdate } from "@/lib/portal/latest-update";
 import { fullPostLinkLabel, type PeekPost } from "@/lib/portal/peek";
-import { isTeamMember } from "@/lib/portal/team";
 import { toDate } from "@/lib/portal/time";
 import type { PanelHeaderConfig } from "@/lib/sidebar/sidebar-store";
 import { useBoardVote } from "../board/useBoardVote";
@@ -19,15 +20,13 @@ import { useBoardReleases } from "../board/useBoardSideData";
 import { LatestUpdateCard } from "../post/LatestUpdateCard";
 import { PostCommentComposer } from "../post/CommentComposer";
 import { PostStatusBanner } from "../post/PostStatusBanner";
-import { PostStepperCard } from "../post/PostStepperCard";
 import { DESCRIPTION_PROSE } from "../post/prose";
 import { usePostComments } from "../post/usePostComments";
 import { CategoryTag } from "../ui/CategoryTag";
 import { Pill } from "../ui/Pill";
-import { PortalAvatar } from "../ui/PortalAvatar";
-import { PortalButton, portalButtonVariants } from "../ui/PortalButton";
 import { ReleaseTag } from "../ui/ReleaseTag";
 import { StatusChip } from "../ui/StatusChip";
+import { Stepper } from "../ui/Stepper";
 import { VoteButton } from "../ui/VoteButton";
 import { usePeek } from "./peek-context";
 
@@ -75,20 +74,20 @@ function PeekHeaderActions() {
 		<>
 			{shortId !== null && (
 				<>
-					<PortalButton
+					<Button
 						variant="ghost"
-						size="sm"
+						size="icon"
 						onClick={copyLink}
 						aria-label="Copy link"
 						title="Copy link"
-						className="px-2"
+						className="size-8"
 					>
 						<IconLink aria-hidden />
-					</PortalButton>
+					</Button>
 					<Link
 						to="/orgs/$orgSlug/$shortId"
 						params={{ orgSlug: organization.slug, shortId: String(shortId) }}
-						className={portalButtonVariants({ size: "sm" })}
+						className={cn(buttonVariants({ variant: "outline", size: "sm" }), "h-8")}
 					>
 						Open full page
 						<IconArrowUpRight aria-hidden />
@@ -136,7 +135,7 @@ function PeekDescription({ post, tasks }: { post: PeekPost; tasks: schema.TaskWi
 			style={{ maxHeight: DESCRIPTION_CLAMP_PX }}
 		>
 			<div ref={innerRef} className={PEEK_DESCRIPTION_PROSE}>
-				<Suspense fallback={<div className="h-20 animate-pulse rounded bg-portal-raised" />}>
+				<Suspense fallback={<Skeleton className="h-20" />}>
 					<Editor readonly defaultContent={post.description} tasks={tasks} hideBlockHandle />
 				</Suspense>
 			</div>
@@ -187,18 +186,16 @@ function PeekPostView({ post }: { post: PeekPost }) {
 				{releaseTag && <ReleaseTag name={releaseTag.name} />}
 			</div>
 
-			<h2 className="font-bold text-[26px] text-portal-fg leading-8 tracking-[-0.026em]">{post.title}</h2>
+			<h2 className="font-bold text-[26px] text-foreground leading-8 tracking-[-0.026em]">{post.title}</h2>
 
-			<div className="mt-3.5 mb-5 flex flex-wrap items-center gap-x-2.5 gap-y-2 text-[13.5px] text-portal-fg-2">
+			<div className="mt-3.5 mb-5 flex flex-wrap items-center gap-x-2.5 gap-y-2 text-[13.5px] text-muted-foreground">
 				{creator && creatorName && (
 					<>
-						<PortalAvatar
-							name={creatorName}
-							image={creator.image}
-							size={24}
-							ring={isTeamMember(creator.id, organization)}
-						/>
-						<b className="font-semibold text-portal-fg">{creatorName}</b>
+						<Avatar className="size-6">
+							{creator.image ? <AvatarImage src={ensureCdnUrl(creator.image)} alt={creatorName} /> : null}
+							<AvatarFallback className="text-xs font-semibold">{getInitials(creatorName)}</AvatarFallback>
+						</Avatar>
+						<b className="font-semibold text-foreground">{creatorName}</b>
 						<Pill variant="author" />
 					</>
 				)}
@@ -220,7 +217,7 @@ function PeekPostView({ post }: { post: PeekPost }) {
 						target="_blank"
 						rel="noopener noreferrer"
 						aria-label={`Linked GitHub issue #${post.githubIssue.issueNumber}`}
-						className={cn(portalButtonVariants({ size: "lg" }), "shrink-0")}
+						className={cn(buttonVariants({ variant: "outline", size: "lg" }), "shrink-0")}
 					>
 						<IconBrandGithub aria-hidden className="size-[18px]!" />#{post.githubIssue.issueNumber}
 					</a>
@@ -228,7 +225,11 @@ function PeekPostView({ post }: { post: PeekPost }) {
 			</div>
 
 			<div className="flex flex-col gap-4">
-				<PostStepperCard status={post.status} compact />
+				{post.status !== "canceled" && (
+					<div className="rounded-xl border bg-card px-2 pt-4 pb-3">
+						<Stepper status={post.status} />
+					</div>
+				)}
 				<PostStatusBanner
 					task={post}
 					release={bannerRelease}
@@ -244,7 +245,7 @@ function PeekPostView({ post }: { post: PeekPost }) {
 				)}
 			</div>
 
-			<hr className="mt-6 mb-5 border-portal-line" />
+			<hr className="mt-6 mb-5 border-border" />
 
 			{post.description && <PeekDescription post={post} tasks={tasks} />}
 
@@ -252,14 +253,14 @@ function PeekPostView({ post }: { post: PeekPost }) {
 				<Link
 					to="/orgs/$orgSlug/$shortId"
 					params={{ orgSlug: organization.slug, shortId: String(post.shortId) }}
-					className="mt-3 inline-flex items-center gap-1.5 font-medium text-portal-accent-ink text-sm hover:underline focus-visible:underline"
+					className="mt-3 inline-flex items-center gap-1.5 font-medium text-primary text-sm hover:underline"
 				>
 					{fullPostLinkLabel(commentCount)}
 					<IconArrowRight aria-hidden className="size-3.5" />
 				</Link>
 			)}
 
-			<div className="mt-7 border-portal-line border-t pt-5">
+			<div className="mt-7 border-t pt-5">
 				<PostCommentComposer
 					taskId={post.id}
 					organizationId={organization.id}
@@ -273,16 +274,16 @@ function PeekPostView({ post }: { post: PeekPost }) {
 
 function PeekSkeleton() {
 	return (
-		<div aria-busy="true" className="animate-pulse px-5 pt-4 pb-8">
+		<div aria-busy="true" className="px-5 pt-4 pb-8">
 			<div className="mb-4 flex gap-3">
-				<div className="h-6 w-20 rounded-full bg-portal-raised" />
-				<div className="h-6 w-28 rounded-full bg-portal-raised" />
+				<Skeleton className="h-6 w-20 rounded-full" />
+				<Skeleton className="h-6 w-28 rounded-full" />
 			</div>
-			<div className="mb-3 h-8 w-4/5 rounded bg-portal-raised" />
-			<div className="mb-6 h-5 w-1/3 rounded bg-portal-raised" />
-			<div className="mb-6 h-11 w-full rounded-portal-md bg-portal-raised" />
-			<div className="mb-4 h-24 w-full rounded-portal-lg bg-portal-raised" />
-			<div className="h-32 w-full rounded bg-portal-raised" />
+			<Skeleton className="mb-3 h-8 w-4/5" />
+			<Skeleton className="mb-6 h-5 w-1/3" />
+			<Skeleton className="mb-6 h-11 w-full rounded-lg" />
+			<Skeleton className="mb-4 h-24 w-full rounded-xl" />
+			<Skeleton className="h-32 w-full" />
 		</div>
 	);
 }
@@ -301,12 +302,12 @@ export function PeekPanelContent() {
 
 	if (status === "error" && shortId !== null) {
 		return (
-			<div className="px-5 pt-6 pb-8 text-[13.5px] text-portal-fg-2">
-				<p className="mb-3 font-semibold text-[15px] text-portal-fg">This post could not be loaded</p>
+			<div className="px-5 pt-6 pb-8 text-[13.5px] text-muted-foreground">
+				<p className="mb-3 font-semibold text-[15px] text-foreground">This post could not be loaded</p>
 				<Link
 					to="/orgs/$orgSlug/$shortId"
 					params={{ orgSlug: organization.slug, shortId: String(shortId) }}
-					className="font-medium text-portal-accent-ink hover:underline focus-visible:underline"
+					className="font-medium text-primary hover:underline"
 				>
 					Open the full page
 				</Link>

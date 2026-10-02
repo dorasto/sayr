@@ -7,17 +7,17 @@ type ChipStatus = "planned" | "in-progress" | "released";
 const RELEASE_CHIP: Record<ChipStatus, { label: string; chip: string; dot: string }> = {
 	planned: {
 		label: "Planned",
-		chip: "bg-portal-neutral-soft text-portal-fg",
+		chip: "bg-muted text-foreground",
 		dot: "border-[1.5px] border-current bg-[conic-gradient(currentColor_0_50%,transparent_0)]",
 	},
 	"in-progress": {
 		label: "In progress",
-		chip: "bg-portal-accent-soft text-portal-accent-ink",
+		chip: "bg-primary/15 text-primary",
 		dot: "bg-current",
 	},
 	released: {
 		label: "Released",
-		chip: "bg-portal-ok-soft text-portal-ok",
+		chip: "bg-success/15 text-success",
 		dot: "bg-current",
 	},
 };

@@ -16,14 +16,27 @@ import { StaticField } from "./static-field";
 
 interface FieldStatusProps {
 	task: schema.TaskWithLabels;
+	/** Read-only boards only: show this text next to the icon (the public portal's wording) instead of the icon alone. */
+	label?: string;
 }
 
-export function FieldStatus({ task }: FieldStatusProps) {
+export function FieldStatus({ task, label }: FieldStatusProps) {
 	const { canEditFields } = useBoardCapabilities();
 	const { execute } = useBoardItemActions(task);
 	const current = STATUS_CONFIG[task.status as StatusValue];
 
 	if (!canEditFields) {
+		if (label) {
+			return (
+				<StaticField
+					className="inline-flex shrink-0 items-center gap-1.5 text-xs font-medium"
+					title={current.label}
+				>
+					{current.icon("size-3.5")}
+					{label}
+				</StaticField>
+			);
+		}
 		return (
 			<StaticField
 				className={cn(ROW_LEADING_GUTTER_CLASS, "h-3.5 grid place-items-center shrink-0")}

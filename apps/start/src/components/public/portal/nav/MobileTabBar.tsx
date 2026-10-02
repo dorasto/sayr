@@ -3,11 +3,6 @@ import { IconLayoutKanban, IconMessage, IconRocket, IconUser } from "@tabler/ico
 import { Link, useRouterState } from "@tanstack/react-router";
 import { getOrgSlugFromPath, getPortalSection, hidesMobileTabBar, type PortalSection } from "@/lib/portal/nav";
 
-const TAB =
-	"flex min-h-12 flex-1 flex-col items-center justify-center gap-1 rounded-portal-md font-medium text-portal-fg-3 text-xs outline-none transition-colors hover:text-portal-fg focus-visible:text-portal-fg";
-const TAB_ACTIVE = "text-portal-fg [&>svg]:text-portal-accent-ink";
-const ICON = "size-[22px]";
-
 /**
  * Phone-only (< 768px) bottom tab bar: Feedback, Roadmap, Changelog and You (the viewer's activity). It is a flex
  * sibling below the scrolling page, so nothing hides behind it, and it pads for the home-indicator safe area. It steps
@@ -20,47 +15,47 @@ export function MobileTabBar() {
 
 	const section: PortalSection = getPortalSection(pathname, orgSlug);
 	const params = { orgSlug };
+	const tabClass = (target: PortalSection) =>
+		cn(
+			"flex min-h-12 flex-1 flex-col items-center justify-center gap-1 rounded-lg font-medium text-muted-foreground text-xs outline-none transition-colors hover:text-foreground focus-visible:text-foreground",
+			section === target && "text-foreground [&>svg]:text-primary"
+		);
 	const current = (target: PortalSection) => (section === target ? ("page" as const) : undefined);
 
 	return (
 		<nav
 			aria-label="Primary"
-			className="flex shrink-0 gap-1 border-portal-line border-t bg-portal-canvas px-2 pt-1.5 pb-[max(0.5rem,env(safe-area-inset-bottom))] md:hidden"
+			className="flex shrink-0 gap-1 border-t bg-sidebar px-2 pt-1.5 pb-[max(0.5rem,env(safe-area-inset-bottom))] md:hidden"
 		>
-			<Link
-				to="/orgs/$orgSlug"
-				params={params}
-				aria-current={current("feedback")}
-				className={cn(TAB, section === "feedback" && TAB_ACTIVE)}
-			>
-				<IconMessage aria-hidden className={ICON} stroke={1.9} />
+			<Link to="/orgs/$orgSlug" params={params} aria-current={current("feedback")} className={tabClass("feedback")}>
+				<IconMessage aria-hidden className="size-[22px]" stroke={1.9} />
 				Feedback
 			</Link>
 			<Link
 				to="/orgs/$orgSlug/roadmap"
 				params={params}
 				aria-current={current("roadmap")}
-				className={cn(TAB, section === "roadmap" && TAB_ACTIVE)}
+				className={tabClass("roadmap")}
 			>
-				<IconLayoutKanban aria-hidden className={ICON} stroke={1.9} />
+				<IconLayoutKanban aria-hidden className="size-[22px]" stroke={1.9} />
 				Roadmap
 			</Link>
 			<Link
 				to="/orgs/$orgSlug/releases"
 				params={params}
 				aria-current={current("changelog")}
-				className={cn(TAB, section === "changelog" && TAB_ACTIVE)}
+				className={tabClass("changelog")}
 			>
-				<IconRocket aria-hidden className={ICON} stroke={1.9} />
+				<IconRocket aria-hidden className="size-[22px]" stroke={1.9} />
 				Changelog
 			</Link>
 			<Link
 				to="/orgs/$orgSlug/activity"
 				params={params}
 				aria-current={current("activity")}
-				className={cn(TAB, section === "activity" && TAB_ACTIVE)}
+				className={tabClass("activity")}
 			>
-				<IconUser aria-hidden className={ICON} stroke={1.9} />
+				<IconUser aria-hidden className="size-[22px]" stroke={1.9} />
 				You
 			</Link>
 		</nav>

@@ -5,12 +5,13 @@ import {
 	getTaskByShortId,
 	getTaskComments,
 } from "@repo/database";
+import { buttonVariants } from "@repo/ui/components/button";
 import { formatTaskKey } from "@repo/util";
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { IconArrowLeft, IconLock } from "@tabler/icons-react";
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import type { NodeJSON } from "prosekit/core";
 import { type LLMOComment, LLMOContent } from "@/components/llmo/llmo-content";
-import { PostNotAvailable } from "@/components/public/portal/post/PostNotAvailable";
 import { PublicTaskContent } from "@/components/public/public-task-content";
 import { prosekitHtmlFromJSON } from "@/lib/prosekit-ssr";
 import { extractTextContent } from "@/lib/util";
@@ -242,7 +243,30 @@ function RouteComponent() {
 	const { orgSlug } = Route.useParams();
 
 	if (!task) {
-		return <PostNotAvailable orgSlug={orgSlug} />;
+		// The loader does not tell "does not exist" and "not public" apart.
+		return (
+			<div className="flex h-full min-h-[60vh] items-center justify-center overflow-y-auto p-6">
+				<h1 className="sr-only">Post not available</h1>
+				<div className="mx-auto flex max-w-[340px] flex-col items-center text-center">
+					<span
+						aria-hidden
+						className="mb-3.5 inline-flex size-12 items-center justify-center rounded-xl bg-muted text-muted-foreground"
+					>
+						<IconLock className="size-6" />
+					</span>
+					<div className="font-semibold text-base text-foreground">This post is not public</div>
+					<p className="mt-1.5 text-muted-foreground text-sm leading-[21px]">
+						It may have been removed, or it is only visible to the team.
+					</p>
+					<div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+						<Link to="/orgs/$orgSlug" params={{ orgSlug }} className={buttonVariants({ variant: "outline" })}>
+							<IconArrowLeft aria-hidden />
+							Back to feedback
+						</Link>
+					</div>
+				</div>
+			</div>
+		);
 	}
 
 	return (

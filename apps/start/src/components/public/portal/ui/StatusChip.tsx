@@ -1,54 +1,30 @@
+import StatusIcon from "@repo/ui/components/icons/status";
 import { cn } from "@repo/ui/lib/utils";
-import { getPortalStatus, type PortalStatusVariant } from "@/lib/portal/status";
-
-const CHIP_STYLES: Record<PortalStatusVariant, { chip: string; dot: string }> = {
-	// Hollow dot
-	open: {
-		chip: "bg-portal-neutral-soft text-portal-fg-2",
-		dot: "border-[1.5px] border-current",
-	},
-	// Half-filled dot
-	planned: {
-		chip: "bg-portal-neutral-soft text-portal-fg",
-		dot: "border-[1.5px] border-current bg-[conic-gradient(currentColor_0_50%,transparent_0)]",
-	},
-	// Solid dot
-	progress: {
-		chip: "bg-portal-accent-soft text-portal-accent-ink",
-		dot: "bg-current",
-	},
-	done: {
-		chip: "bg-portal-ok-soft text-portal-ok",
-		dot: "bg-current",
-	},
-	// Won't do: hollow dot
-	closed: {
-		chip: "bg-portal-bad-soft text-portal-bad",
-		dot: "border-[1.5px] border-current",
-	},
-};
+import { statusConfig } from "@/components/tasks/shared/config";
+import { getPortalStatus } from "@/lib/portal/status";
 
 interface StatusChipProps {
-	/** Internal task status (`backlog | todo | in-progress | done | canceled`); relabelled for end users. */
-	status: string;
-	className?: string;
+  /** Internal task status (`backlog | todo | in-progress | done | canceled`); the label is the public wording. */
+  status: string;
+  className?: string;
 }
 
-/** 24px status pill: Open / Planned / In progress / Done / Won't do, with a hollow/half/solid dot. */
+/** The admin status icon and colour (`statusConfig`) with the public label (Open / Planned / In progress / Done / Won't do). */
 export function StatusChip({ status, className }: StatusChipProps) {
-	const { label, variant } = getPortalStatus(status);
-	const styles = CHIP_STYLES[variant];
-
-	return (
-		<span
-			className={cn(
-				"inline-flex h-6 items-center gap-[7px] whitespace-nowrap rounded-full pr-2.5 pl-[9px] font-semibold text-[12.5px] tracking-[-0.003em]",
-				styles.chip,
-				className
-			)}
-		>
-			<i aria-hidden className={cn("block size-2 shrink-0 rounded-full", styles.dot)} />
-			{label}
-		</span>
-	);
+  const key = status as keyof typeof statusConfig;
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1.5 whitespace-nowrap font-medium text-xs border py-0.5 px-1 rounded-lg",
+        statusConfig[key]?.className,
+        className,
+      )}
+    >
+      <StatusIcon
+        status={key in statusConfig ? key : "backlog"}
+        className="shrink-0"
+      />
+      {getPortalStatus(status).label}
+    </span>
+  );
 }

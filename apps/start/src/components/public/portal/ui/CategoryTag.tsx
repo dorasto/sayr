@@ -12,7 +12,10 @@ export function CategoryTag({ category, className }: CategoryTagProps) {
 
 	return (
 		<span
-			className={cn("inline-flex items-center gap-[7px] whitespace-nowrap text-[13px] text-portal-fg-2", className)}
+			className={cn(
+				"inline-flex items-center gap-[7px] whitespace-nowrap text-[13px] text-muted-foreground",
+				className
+			)}
 		>
 			<span
 				aria-hidden

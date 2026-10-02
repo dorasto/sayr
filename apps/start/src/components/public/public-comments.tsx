@@ -1,4 +1,5 @@
 import type { schema, TeamPermissions } from "@repo/database";
+import { Button } from "@repo/ui/components/button";
 import { headlessToast } from "@repo/ui/components/headless-toast";
 import { Skeleton } from "@repo/ui/components/skeleton";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
@@ -10,7 +11,6 @@ import processUploads from "@/components/prosekit/upload";
 import { PostCommentComposer } from "@/components/public/portal/post/CommentComposer";
 import { useCanAct } from "@/components/public/portal/post/useCanAct";
 import { publicCommentsKey, usePostComments } from "@/components/public/portal/post/usePostComments";
-import { PortalButton } from "@/components/public/portal/ui/PortalButton";
 import type { ReactionEmoji } from "@/components/tasks/task/timeline/reactions";
 import { usePublicOrganizationLayout } from "@/contexts/publicContextOrg";
 import { getBlockedUserIdsAction } from "@/lib/fetches/organization";
@@ -345,11 +345,11 @@ export function PublicComments({
 		<section aria-labelledby="post-conversation-heading">
 			<h2
 				id="post-conversation-heading"
-				className="mb-6 font-semibold text-portal-fg text-xl leading-7 tracking-[-0.018em]"
+				className="mb-6 font-semibold text-foreground text-xl leading-7 tracking-[-0.018em]"
 			>
 				Conversation
 				{totalCount > 0 && (
-					<span className="ml-2 font-medium text-portal-fg-3 text-sm tracking-normal">{totalCount}</span>
+					<span className="ml-2 font-medium text-muted-foreground text-sm tracking-normal">{totalCount}</span>
 				)}
 			</h2>
 
@@ -357,16 +357,16 @@ export function PublicComments({
 				<div aria-busy className="flex flex-col gap-7">
 					{[0, 1].map((key) => (
 						<div key={key} className="flex gap-3">
-							<Skeleton className="size-8 shrink-0 rounded-full bg-portal-raised" />
+							<Skeleton className="size-8 shrink-0 rounded-full" />
 							<div className="flex-1 space-y-2 pt-1">
-								<Skeleton className="h-3.5 w-32 bg-portal-raised" />
-								<Skeleton className="h-3.5 w-4/5 bg-portal-raised" />
+								<Skeleton className="h-3.5 w-32" />
+								<Skeleton className="h-3.5 w-4/5" />
 							</div>
 						</div>
 					))}
 				</div>
 			) : allComments.length === 0 ? (
-				<p className="rounded-portal-lg border border-portal-line-2 border-dashed px-4 py-6 text-center text-[13.5px] text-portal-fg-2">
+				<p className="rounded-xl border border-dashed px-4 py-6 text-center text-[13.5px] text-muted-foreground">
 					No comments yet. Start the conversation.
 				</p>
 			) : (
@@ -376,8 +376,8 @@ export function PublicComments({
 
 					{/* Load more in the middle */}
 					{hasNextPage && (
-						<li className="flex justify-center border-portal-line border-y border-dashed py-3">
-							<PortalButton
+						<li className="flex justify-center border-border border-y border-dashed py-3">
+							<Button
 								variant="ghost"
 								className="w-full"
 								onClick={() => fetchNextPage()}
@@ -391,7 +391,7 @@ export function PublicComments({
 								) : (
 									"Load more comments"
 								)}
-							</PortalButton>
+							</Button>
 						</li>
 					)}
 

@@ -1,3 +1,4 @@
+import type { schema } from "@repo/database";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -8,6 +9,8 @@ import {
 	AlertDialogHeader,
 	AlertDialogTitle,
 } from "@repo/ui/components/alert-dialog";
+import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
+import { Button } from "@repo/ui/components/button";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -16,31 +19,133 @@ import {
 	DropdownMenuTrigger,
 } from "@repo/ui/components/dropdown-menu";
 import { Label } from "@repo/ui/components/label";
+import { Popover, PopoverContent, PopoverTrigger } from "@repo/ui/components/popover";
+import { Skeleton } from "@repo/ui/components/skeleton";
 import { cn } from "@repo/ui/lib/utils";
-import { formatDateTimeFromNow, getDisplayName } from "@repo/util";
+import { ensureCdnUrl, formatDateTimeFromNow, getDisplayName, getInitials } from "@repo/util";
 import {
 	IconArrowBackUp,
 	IconBan,
 	IconCheck,
 	IconDots,
 	IconLoader2,
+	IconMoodPlus,
 	IconPencil,
 	IconTrash,
 	IconX,
 } from "@tabler/icons-react";
 import type { NodeJSON } from "prosekit/core";
 import { lazy, Suspense, useCallback, useState } from "react";
-import { Pill } from "@/components/public/portal/ui/Pill";
-import { PortalAvatar } from "@/components/public/portal/ui/PortalAvatar";
-import { PortalButton } from "@/components/public/portal/ui/PortalButton";
-import { PostReactions } from "@/components/public/portal/post/PostReactions";
 import { COMMENT_PROSE } from "@/components/public/portal/post/prose";
+import { Pill } from "@/components/public/portal/ui/Pill";
+import { REACTION_OPTIONS, type ReactionEmoji } from "@/components/tasks/task/timeline/reactions";
 import type { PublicCommentItemProps } from "./public-comments-types";
 
 const Editor = lazy(() => import("@/components/prosekit/editor"));
 
+type ReactionMap = Record<string, { count: number; users: string[] }>;
+
+const REACTION_CHIP =
+	"relative inline-flex h-7 items-center gap-1.5 rounded-full border px-2.5 font-medium text-[12.5px] outline-none after:absolute after:-inset-x-1 after:-inset-y-2 after:content-[''] md:after:hidden transition-colors";
+
+function reactorsTitle(info: { count: number; users: string[] }, users?: schema.userType[]): string {
+	const names = info.users
+		.map((id) => users?.find((user) => user.id === id))
+		.filter((user): user is schema.userType => !!user)
+		.map((user) => getDisplayName(user));
+	if (names.length === 0) return `${info.count} ${info.count === 1 ? "person" : "people"} reacted`;
+	const shown = names.slice(0, 5).join(", ");
+	return names.length > 5 ? `${shown} and ${names.length - 5} more` : shown;
+}
+
 /**
- * One comment or reply: 32px avatar (ring for the post author and team members), name, Author/Team pills, time, body,
+ * Reaction chips for a comment (28px pills, primary-tinted when the viewer reacted) plus an add-reaction picker using
+ * the same emoji set as everywhere else (`REACTION_OPTIONS`). Omit `onToggle` when the viewer cannot react (logged
+ * out, or public actions are off): chips render read-only.
+ */
+function CommentReactions({
+	reactions,
+	onToggle,
+	users,
+	currentUserId,
+}: {
+	reactions?: ReactionMap;
+	onToggle?: (emoji: ReactionEmoji) => void;
+	users?: schema.userType[];
+	currentUserId?: string;
+}) {
+	const [pickerOpen, setPickerOpen] = useState(false);
+	const entries = Object.entries(reactions ?? {}).filter(([, info]) => info.count > 0);
+	const reacted = (info: { users: string[] }) => !!currentUserId && info.users.includes(currentUserId);
+
+	return (
+		<div className="flex flex-wrap items-center gap-1.5">
+			{entries.map(([emoji, info]) =>
+				onToggle ? (
+					<button
+						key={emoji}
+						type="button"
+						aria-pressed={reacted(info)}
+						title={reactorsTitle(info, users)}
+						onClick={() => onToggle(emoji as ReactionEmoji)}
+						className={cn(
+							REACTION_CHIP,
+							reacted(info)
+								? "border-primary/50 bg-primary/15 text-primary"
+								: "border-border bg-transparent text-muted-foreground hover:bg-accent hover:text-foreground"
+						)}
+					>
+						<span className="text-sm leading-none">{emoji}</span>
+						{info.count}
+					</button>
+				) : (
+					<span
+						key={emoji}
+						title={reactorsTitle(info, users)}
+						className={cn(REACTION_CHIP, "border-border text-muted-foreground")}
+					>
+						<span className="text-sm leading-none">{emoji}</span>
+						{info.count}
+					</span>
+				)
+			)}
+			{onToggle && (
+				<Popover open={pickerOpen} onOpenChange={setPickerOpen}>
+					<PopoverTrigger
+						aria-label="Add reaction"
+						className="relative inline-flex size-7 cursor-pointer items-center justify-center rounded-full border border-transparent after:absolute after:-inset-2 after:content-[''] md:after:hidden text-muted-foreground outline-none transition-colors hover:bg-accent hover:text-foreground"
+					>
+						<IconMoodPlus aria-hidden className="size-4" />
+					</PopoverTrigger>
+					<PopoverContent className="w-auto p-1" align="start" sideOffset={4}>
+						<div className="grid grid-cols-4 gap-1">
+							{REACTION_OPTIONS.map(({ emoji, label }) => (
+								<button
+									key={emoji}
+									type="button"
+									aria-label={label}
+									onClick={() => {
+										onToggle(emoji);
+										setPickerOpen(false);
+									}}
+									className={cn(
+										"flex size-9 cursor-pointer items-center justify-center rounded-md text-lg max-md:size-11 transition-colors hover:bg-accent focus-visible:bg-accent",
+										reacted(reactions?.[emoji] ?? { users: [] }) && "bg-accent"
+									)}
+								>
+									{emoji}
+								</button>
+							))}
+						</div>
+					</PopoverContent>
+				</Popover>
+			)}
+		</div>
+	);
+}
+
+/**
+ * One comment or reply: 32px avatar, name, Author/Team pills, time, body,
  * reactions + Reply. GitHub-origin comments show an initials avatar, the GitHub login (linked to the profile) and a
  * "via GitHub" pill, and never an Author/Team badge. Renders a plain `div`; wrap it in an `li` when it is part of a list.
  */
@@ -123,17 +228,15 @@ export function PublicCommentItem({
 			<div
 				className={cn(
 					"group/comment flex gap-3",
-					comment.visibility === "internal" &&
-						"rounded-portal-md border border-portal-accent-line bg-portal-accent-soft p-3"
+					comment.visibility === "internal" && "rounded-lg border border-primary/50 bg-primary/15 p-3"
 				)}
 			>
-				<PortalAvatar
-					name={authorName}
-					image={isGithub ? null : comment.createdBy?.image}
-					size={isReply ? 28 : 32}
-					ring={isTeam || showAuthorPill}
-					className="mt-0.5"
-				/>
+				<Avatar className={cn("mt-0.5", isReply ? "size-7" : "size-8")}>
+					{!isGithub && comment.createdBy?.image ? (
+						<AvatarImage src={ensureCdnUrl(comment.createdBy.image)} alt={authorName} />
+					) : null}
+					<AvatarFallback className="text-xs font-semibold">{getInitials(authorName)}</AvatarFallback>
+				</Avatar>
 				<div className="min-w-0 flex-1">
 					<div className="mb-1 flex min-h-[22px] flex-wrap items-center gap-x-2 gap-y-1">
 						{isGithub && comment.externalAuthorUrl ? (
@@ -141,27 +244,27 @@ export function PublicCommentItem({
 								href={comment.externalAuthorUrl}
 								target="_blank"
 								rel="noopener noreferrer"
-								className="font-semibold text-sm text-portal-fg hover:underline"
+								className="font-semibold text-sm text-foreground hover:underline"
 							>
 								{authorName}
 							</a>
 						) : (
-							<b className="font-semibold text-sm text-portal-fg">{authorName}</b>
+							<b className="font-semibold text-sm text-foreground">{authorName}</b>
 						)}
 						{showAuthorPill && <Pill variant="author" />}
 						{isTeam && <Pill variant="team" />}
 						{isGithub && <Pill variant="gh" />}
 						{isBlocked && isOrgMember && (
-							<span className="inline-flex h-[22px] items-center gap-1 rounded-portal-tag bg-portal-bad-soft px-2 font-semibold text-portal-bad text-xs">
+							<span className="inline-flex h-[22px] items-center gap-1 rounded-md bg-destructive/15 px-2 font-semibold text-destructive text-xs">
 								<IconBan aria-hidden className="size-3" />
 								Blocked user
 							</span>
 						)}
-						<time dateTime={comment.createdAt} className="text-[13px] text-portal-fg-3">
+						<time dateTime={comment.createdAt} className="text-[13px] text-muted-foreground">
 							{formatDateTimeFromNow(comment.createdAt)}
 						</time>
 						{comment.updatedAt && comment.updatedAt !== comment.createdAt && (
-							<span className="text-[13px] text-portal-fg-3 italic">(edited)</span>
+							<span className="text-[13px] text-muted-foreground italic">(edited)</span>
 						)}
 
 						{showMenu && (
@@ -169,7 +272,7 @@ export function PublicCommentItem({
 								<DropdownMenu>
 									<DropdownMenuTrigger
 										aria-label="Comment actions"
-										className="relative inline-flex size-7 cursor-pointer items-center justify-center rounded-md text-portal-fg-3 outline-none after:absolute after:-inset-2 after:content-[''] md:after:hidden transition-colors hover:bg-portal-hover hover:text-portal-fg data-popup-open:bg-portal-hover"
+										className="relative inline-flex size-7 cursor-pointer items-center justify-center rounded-md text-muted-foreground outline-none after:absolute after:-inset-2 after:content-[''] md:after:hidden transition-colors hover:bg-accent hover:text-foreground data-popup-open:bg-accent"
 									>
 										<IconDots aria-hidden className="size-4" />
 									</DropdownMenuTrigger>
@@ -198,8 +301,8 @@ export function PublicCommentItem({
 
 					{isEditing ? (
 						<>
-							<div className="overflow-hidden rounded-portal-md border border-portal-line-2 bg-portal-surface p-3 focus-within:border-portal-focus">
-								<Suspense fallback={<div className="h-16 animate-pulse rounded bg-portal-raised" />}>
+							<div className="overflow-hidden rounded-lg border bg-background p-3 focus-within:border-ring">
+								<Suspense fallback={<Skeleton className="h-16" />}>
 									<Editor
 										defaultContent={comment.content}
 										categories={categories}
@@ -211,20 +314,20 @@ export function PublicCommentItem({
 								</Suspense>
 							</div>
 							<div className="mt-2 flex items-center justify-end gap-2">
-								<PortalButton variant="ghost" size="sm" onClick={handleCancel} disabled={isSaving}>
+								<Button variant="ghost" size="sm" onClick={handleCancel} disabled={isSaving}>
 									<IconX aria-hidden />
 									Cancel
-								</PortalButton>
-								<PortalButton variant="primary" size="sm" onClick={handleSave} disabled={isSaving || !canSave}>
+								</Button>
+								<Button size="sm" onClick={handleSave} disabled={isSaving || !canSave}>
 									<IconCheck aria-hidden />
 									{isSaving ? "Saving..." : "Update comment"}
-								</PortalButton>
+								</Button>
 							</div>
 						</>
 					) : (
 						comment.content && (
 							<div className={COMMENT_PROSE}>
-								<Suspense fallback={<div className="h-4 w-3/4 animate-pulse rounded bg-portal-raised" />}>
+								<Suspense fallback={<Skeleton className="h-4 w-3/4" />}>
 									<Editor readonly={true} defaultContent={comment.content} tasks={tasks} hideBlockHandle />
 								</Suspense>
 							</div>
@@ -233,7 +336,7 @@ export function PublicCommentItem({
 
 					{showActionsRow && (
 						<div className="mt-2.5 flex flex-wrap items-center gap-1.5">
-							<PostReactions
+							<CommentReactions
 								reactions={reactions}
 								onToggle={onToggleReaction ? (emoji) => onToggleReaction(comment.id, emoji) : undefined}
 								users={users}
@@ -243,7 +346,7 @@ export function PublicCommentItem({
 								<button
 									type="button"
 									onClick={onReply}
-									className="relative inline-flex h-7 cursor-pointer items-center gap-1.5 rounded-full px-2.5 font-medium text-[12.5px] text-portal-fg-3 outline-none after:absolute after:-inset-x-1 after:-inset-y-2 after:content-[''] md:after:hidden transition-colors hover:bg-portal-hover hover:text-portal-fg"
+									className="relative inline-flex h-7 cursor-pointer items-center gap-1.5 rounded-full px-2.5 font-medium text-[12.5px] text-muted-foreground outline-none after:absolute after:-inset-x-1 after:-inset-y-2 after:content-[''] md:after:hidden transition-colors hover:bg-accent hover:text-foreground"
 								>
 									<IconArrowBackUp aria-hidden className="size-3.5" />
 									Reply

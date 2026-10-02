@@ -11,8 +11,7 @@ import { PeekContext, type PeekContextValue } from "../peek/peek-context";
 import { PEEK_CONTENT, PEEK_HEADER } from "../peek/PeekPanel";
 import { usePeekEnabled } from "../peek/usePeekEnabled";
 import { usePeekPost } from "../peek/usePeekPost";
-import { RAIL_CONTENT, RAIL_HEADER } from "./BoardRailPanel";
-import { PUBLIC_BOARD_PANEL_ID } from "./constants";
+import { PUBLIC_BOARD_PANEL_ID, RAIL_CONTENT, RAIL_HEADER } from "./BoardRailPanel";
 
 const POPUP_SELECTOR = '[data-slot="indent-drawer-popup"]';
 

@@ -24,12 +24,16 @@ import {
 } from "@/lib/portal/board-filters";
 import { parseCsvParam } from "@/lib/portal/board-row";
 import type { ServerEventMessage } from "@/lib/serverEvents";
-import { BoardPageBar } from "./portal/board/BoardPageBar";
+import {
+  BoardPageBar,
+  type BoardToolbarProps,
+} from "./portal/board/BoardPageBar";
 import { BoardPanelProvider } from "./portal/board/BoardPanelProvider";
-import { RAIL_HEADER } from "./portal/board/BoardRailPanel";
-import { BoardRailProvider } from "./portal/board/BoardRailProvider";
-import type { BoardToolbarProps } from "./portal/board/BoardToolbar";
-import { PUBLIC_BOARD_PANEL_ID } from "./portal/board/constants";
+import {
+  BoardRailProvider,
+  PUBLIC_BOARD_PANEL_ID,
+  RAIL_HEADER,
+} from "./portal/board/BoardRailPanel";
 import {
   boardCountsKey,
   useBoardCounts,

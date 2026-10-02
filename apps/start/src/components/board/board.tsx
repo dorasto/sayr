@@ -5,7 +5,6 @@ import {
 	useBoardData,
 	useBoardGroupings,
 	useBoardRenderers,
-	useBoardTheme,
 } from "./core/board-data";
 import { resolveBoardState } from "./core/renderers";
 import { applyFilters } from "./filter/filter-config";
@@ -36,7 +35,6 @@ export function Board() {
 	const { items: tasks, status, passthrough = false } = useBoardData();
 	const { states } = useBoardRenderers();
 	const { canBulk } = useBoardCapabilities();
-	const theme = useBoardTheme();
 	const { personalViews } = usePersonalViews();
 	const { filters, grouping, showCompletedTasks, sortBy, sortDirection } = useBoardViewState(personalViews);
 	const groupings = useBoardGroupings();
@@ -59,13 +57,10 @@ export function Board() {
 	// (undefined = render the views as usual; the admin source has no status, so it always does).
 	const stateContent = resolveBoardState(status, visibleTasks.length, states);
 
-	// `contents` = no box of its own, so layout (the host's flex/height sizing, grid-board's
-	// `h-full`) is exactly as if this wrapper weren't here; it exists only to carry the theme
-	// attribute, which custom properties inherit through regardless of display.
 	return (
-		<div data-board-theme={theme} className="contents">
+		<>
 			{stateContent !== undefined ? stateContent : <BoardViewShell tasks={visibleTasks} />}
 			{canBulk && <BoardBulkActionBar tasks={visibleTasks} />}
-		</div>
+		</>
 	);
 }
