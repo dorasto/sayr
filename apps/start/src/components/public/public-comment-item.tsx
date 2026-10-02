@@ -47,9 +47,9 @@ import type { PublicCommentItemProps } from "./public-comments-types";
 const Editor = lazy(() => import("@/components/prosekit/editor"));
 
 /**
- * One comment or reply: avatar, name, Author/Team pills, time, body and reaction chips. Reply, add-reaction and the
- * actions menu (Copy link, Edit, Delete) sit at the right of the header and only show on hover, like the admin
- * timeline. GitHub-origin comments show an initials avatar, the GitHub login (linked to the profile) and a "via GitHub"
+ * One comment or reply: avatar, name, Author/Team pills, time, body and reaction chips. Reply and the actions menu
+ * (Copy link, Edit, Delete) sit at the right of the header and the add-reaction picker sits after the chips; all three
+ * only show on hover, like the admin timeline. GitHub-origin comments show an initials avatar, the GitHub login (linked to the profile) and a "via GitHub"
  * pill, and never an Author/Team badge. `footer` (the reply thread) renders under the comment, outside its hover area,
  * so hovering a reply never reveals the parent's actions. Wrap it in an `li` when it is part of a list.
  */
@@ -142,7 +142,7 @@ export function PublicCommentItem({
 	const hasReactions = !!reactions && Object.values(reactions).some((info) => info.count > 0);
 	// A comment that already shows "N replies" needs no separate Reply action.
 	const showReply = !!onReply && !isReply && (comment.replyCount ?? 0) === 0;
-	const showActions = !isEditing && (showReply || !!onToggleReaction || !!commentLink || canManage);
+	const showActions = !isEditing && (showReply || !!commentLink || canManage);
 	const myReactions = Object.entries(reactions ?? {})
 		.filter(([, info]) => !!currentUserId && info.users.includes(currentUserId))
 		.map(([emoji]) => emoji as ReactionEmoji);
@@ -229,12 +229,6 @@ export function PublicCommentItem({
 										<TooltipContent>Reply</TooltipContent>
 									</Tooltip>
 								)}
-								{onToggleReaction && (
-									<ReactionPicker
-										onSelect={(emoji) => onToggleReaction(comment.id, emoji)}
-										existingReactions={myReactions}
-									/>
-								)}
 								{(commentLink || canManage) && (
 									<DropdownMenu>
 										<DropdownMenuTrigger
@@ -314,14 +308,24 @@ export function PublicCommentItem({
 						)
 					)}
 
-					{!isEditing && hasReactions && (
-						<CommentReactions
-							className="mt-1.5"
-							reactions={reactions}
-							onToggle={onToggleReaction ? (emoji) => onToggleReaction(comment.id, emoji) : undefined}
-							users={users}
-							currentUserId={currentUserId}
-						/>
+					{!isEditing && (hasReactions || onToggleReaction) && (
+						<div className="mt-1 flex flex-wrap items-center gap-1">
+							<CommentReactions
+								className="contents"
+								reactions={reactions}
+								onToggle={onToggleReaction ? (emoji) => onToggleReaction(comment.id, emoji) : undefined}
+								users={users}
+								currentUserId={currentUserId}
+							/>
+							{onToggleReaction && (
+								<div className="flex transition-opacity md:opacity-0 md:focus-within:opacity-100 md:group-hover/comment:opacity-100 md:has-data-popup-open:opacity-100">
+									<ReactionPicker
+										onSelect={(emoji) => onToggleReaction(comment.id, emoji)}
+										existingReactions={myReactions}
+									/>
+								</div>
+							)}
+						</div>
 					)}
 				</div>
 			</div>

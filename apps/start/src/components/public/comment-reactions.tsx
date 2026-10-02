@@ -25,7 +25,7 @@ interface CommentReactionsProps {
 
 /**
  * A comment's reaction chips (the admin `ReactionDisplay` look, primary-tinted when the viewer reacted). Adding a new
- * reaction is the hover-only `ReactionPicker` in the comment header. Omit `onToggle` when the viewer cannot react
+ * reaction is the hover-only `ReactionPicker` the comment renders after these chips. Omit `onToggle` when the viewer cannot react
  * (logged out, or public actions are off): chips render read-only.
  */
 export function CommentReactions({ reactions, onToggle, users, currentUserId, className }: CommentReactionsProps) {
