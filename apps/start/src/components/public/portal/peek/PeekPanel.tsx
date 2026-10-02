@@ -32,8 +32,8 @@ export function PeekPanelContent() {
 
 	if (status === "error" && shortId !== null) {
 		return (
-			<div className="px-5 pt-6 pb-8 text-[13.5px] text-muted-foreground">
-				<p className="mb-3 font-semibold text-[15px] text-foreground">This post could not be loaded</p>
+			<div className="flex flex-col gap-2 text-[13.5px] text-muted-foreground">
+				<p className="font-semibold text-[15px] text-foreground">This post could not be loaded</p>
 				<Link
 					to="/orgs/$orgSlug/$shortId"
 					params={{ orgSlug: organization.slug, shortId: String(shortId) }}

@@ -137,7 +137,8 @@ export function PublicReleaseDiscussion({
 	const [commentContent, setCommentContent] = useState<NodeJSON | undefined>(undefined);
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [editorKey, setEditorKey] = useState(0);
-	const [expandedThreads, setExpandedThreads] = useState<Set<string>>(new Set());
+	// Threads the user opened or hid by hand; any other thread is open when it has replies.
+	const [threadOverrides, setThreadOverrides] = useState<Map<string, boolean>>(new Map());
 
 	// Fetch public tasks for this org if context tasks are empty
 	const {
@@ -319,16 +320,8 @@ export function PublicReleaseDiscussion({
 		return unsubscribe;
 	}, [releaseId, queryClient, organizationId]);
 
-	const toggleThread = useCallback((commentId: string) => {
-		setExpandedThreads((prev) => {
-			const next = new Set(prev);
-			if (next.has(commentId)) {
-				next.delete(commentId);
-			} else {
-				next.add(commentId);
-			}
-			return next;
-		});
+	const setThreadExpanded = useCallback((commentId: string, expanded: boolean) => {
+		setThreadOverrides((prev) => new Map(prev).set(commentId, expanded));
 	}, []);
 
 	const halfway = Math.floor(allComments.length / 2);
@@ -581,7 +574,7 @@ export function PublicReleaseDiscussion({
 
 	const renderComment = (comment: ReleaseCommentData) => {
 		const replyCount = comment.replyCount ?? 0;
-		const isExpanded = expandedThreads.has(comment.id);
+		const isExpanded = threadOverrides.get(comment.id) ?? replyCount > 0;
 
 		const threadFooter =
 			replyCount > 0 || isExpanded ? (
@@ -590,7 +583,7 @@ export function PublicReleaseDiscussion({
 						replyCount={replyCount}
 						replyAuthors={comment.replyAuthors}
 						expanded={isExpanded}
-						onToggle={() => toggleThread(comment.id)}
+						onToggle={() => setThreadExpanded(comment.id, !isExpanded)}
 					/>
 					{isExpanded && (
 						<PublicCommentThreadBody
@@ -625,15 +618,7 @@ export function PublicReleaseDiscussion({
 				categories={categories}
 				tasks={tasks}
 				footer={threadFooter}
-				onReply={
-					canAct
-						? () => {
-								if (!expandedThreads.has(comment.id)) {
-									toggleThread(comment.id);
-								}
-							}
-						: undefined
-				}
+				onReply={canAct && !isExpanded ? () => setThreadExpanded(comment.id, true) : undefined}
 				blockedUserIds={blockedUserIds}
 				isOrgMember={isOrgMember}
 			/>

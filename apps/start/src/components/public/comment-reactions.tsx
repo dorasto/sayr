@@ -1,10 +1,7 @@
 import type { schema } from "@repo/database";
-import { Popover, PopoverContent, PopoverTrigger } from "@repo/ui/components/popover";
 import { cn } from "@repo/ui/lib/utils";
 import { getDisplayName } from "@repo/util";
-import { IconMoodPlus } from "@tabler/icons-react";
-import { useState } from "react";
-import { REACTION_OPTIONS, type ReactionEmoji } from "@/components/tasks/task/timeline/reactions";
+import type { ReactionEmoji } from "@/components/tasks/task/timeline/reactions";
 
 type ReactionMap = Record<string, { count: number; users: string[] }>;
 
@@ -23,21 +20,20 @@ interface CommentReactionsProps {
 	onToggle?: (emoji: ReactionEmoji) => void;
 	users?: schema.userType[];
 	currentUserId?: string;
+	className?: string;
 }
 
 /**
- * Reaction chips for a comment (28px pills, primary-tinted when the viewer reacted) plus an add-reaction picker using
- * the same emoji set as everywhere else (`REACTION_OPTIONS`). Omit `onToggle` when the viewer cannot react (logged
- * out, or public actions are off): chips render read-only.
+ * A comment's reaction chips (the admin `ReactionDisplay` look, primary-tinted when the viewer reacted). Adding a new
+ * reaction is the hover-only `ReactionPicker` in the comment header. Omit `onToggle` when the viewer cannot react
+ * (logged out, or public actions are off): chips render read-only.
  */
-export function CommentReactions({ reactions, onToggle, users, currentUserId }: CommentReactionsProps) {
-	const [pickerOpen, setPickerOpen] = useState(false);
-
+export function CommentReactions({ reactions, onToggle, users, currentUserId, className }: CommentReactionsProps) {
 	const entries = Object.entries(reactions ?? {}).filter(([, info]) => info.count > 0);
 	const reacted = (info: { users: string[] }) => !!currentUserId && info.users.includes(currentUserId);
 
 	return (
-		<div className="flex flex-wrap items-center gap-1.5">
+		<div className={cn("flex flex-wrap items-center gap-1", className)}>
 			{entries.map(([emoji, info]) =>
 				onToggle ? (
 					<button
@@ -47,10 +43,10 @@ export function CommentReactions({ reactions, onToggle, users, currentUserId }: 
 						title={reactorsTitle(info, users)}
 						onClick={() => onToggle(emoji as ReactionEmoji)}
 						className={cn(
-							"relative inline-flex h-7 items-center gap-1.5 rounded-full border px-2.5 font-medium text-[12.5px] outline-none transition-colors",
+							"inline-flex h-6 cursor-pointer items-center gap-1 rounded-full border px-2 font-medium text-xs transition-colors hover:bg-accent",
 							reacted(info)
-								? "border-primary/50 bg-primary/15 text-primary"
-								: "border-border bg-transparent text-muted-foreground hover:bg-accent hover:text-foreground"
+								? "border-primary/20 bg-primary/10 text-primary"
+								: "border-border bg-accent/50 text-muted-foreground"
 						)}
 					>
 						<span className="text-sm leading-none">{emoji}</span>
@@ -60,43 +56,12 @@ export function CommentReactions({ reactions, onToggle, users, currentUserId }: 
 					<span
 						key={emoji}
 						title={reactorsTitle(info, users)}
-						className="relative inline-flex h-7 items-center gap-1.5 rounded-full border px-2.5 font-medium text-[12.5px] outline-none transition-colors border-border text-muted-foreground"
+						className="inline-flex h-6 items-center gap-1 rounded-full border border-border bg-accent/50 px-2 font-medium text-muted-foreground text-xs"
 					>
 						<span className="text-sm leading-none">{emoji}</span>
 						{info.count}
 					</span>
 				)
-			)}
-			{onToggle && (
-				<Popover open={pickerOpen} onOpenChange={setPickerOpen}>
-					<PopoverTrigger
-						aria-label="Add reaction"
-						className="relative inline-flex size-7 cursor-pointer items-center justify-center rounded-full border border-transparent text-muted-foreground outline-none transition-colors hover:bg-accent hover:text-foreground"
-					>
-						<IconMoodPlus aria-hidden className="size-4" />
-					</PopoverTrigger>
-					<PopoverContent className="w-auto p-1" align="start" sideOffset={4}>
-						<div className="grid grid-cols-4 gap-1">
-							{REACTION_OPTIONS.map(({ emoji, label }) => (
-								<button
-									key={emoji}
-									type="button"
-									aria-label={label}
-									onClick={() => {
-										onToggle(emoji);
-										setPickerOpen(false);
-									}}
-									className={cn(
-										"flex size-9 cursor-pointer items-center justify-center rounded-md text-lg max-md:size-11 transition-colors hover:bg-accent focus-visible:bg-accent",
-										reacted(reactions?.[emoji] ?? { users: [] }) && "bg-accent"
-									)}
-								>
-									{emoji}
-								</button>
-							))}
-						</div>
-					</PopoverContent>
-				</Popover>
 			)}
 		</div>
 	);

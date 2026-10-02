@@ -21,8 +21,14 @@ const PROSE_VARS = [
 	"[--tw-prose-td-borders:var(--border)]",
 ].join(" ");
 
+/**
+ * The editor's own (unlayered) `.ProseMirror p` rule pads every block by 0.5rem, which would sit above the first line
+ * and below the last; `!` is needed to beat an unlayered rule.
+ */
+const TRIM_EDGE_BLOCKS = "[&_.ProseMirror>:first-child]:pt-0! [&_.ProseMirror>:last-child]:pb-0!";
+
 /** Body typography for a rendered comment (15/24), shared by comments, replies and the Latest update card. */
-export const COMMENT_PROSE = `prose max-w-none text-[15px] leading-6 text-foreground prose-p:my-0 prose-p:leading-6 [&_.template-placeholder]:hidden ${PROSE_VARS}`;
+export const COMMENT_PROSE = `prose max-w-none text-[15px] leading-6 text-foreground prose-p:my-0 prose-p:leading-6 [&_.template-placeholder]:hidden ${TRIM_EDGE_BLOCKS} ${PROSE_VARS}`;
 
 /** Post description typography (16/28). Template placeholder text is hidden. */
-export const DESCRIPTION_PROSE = `prose max-w-none text-base leading-7 text-foreground prose-headings:tracking-[-0.014em] prose-li:leading-7 prose-p:leading-7 [&_.template-placeholder]:hidden ${PROSE_VARS}`;
+export const DESCRIPTION_PROSE = `prose max-w-none text-base leading-7 text-foreground prose-headings:tracking-[-0.014em] prose-li:leading-7 prose-p:leading-7 [&_.template-placeholder]:hidden ${TRIM_EDGE_BLOCKS} ${PROSE_VARS}`;

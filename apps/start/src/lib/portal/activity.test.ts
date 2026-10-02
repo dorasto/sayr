@@ -118,7 +118,7 @@ describe("buildVoteStatusRows", () => {
 		]);
 		expect(rows.map((r) => [r.label, r.count])).toEqual([
 			["Done", 1],
-			["In progress", 1],
+			["In Progress", 1],
 			["Planned", 0],
 			["Open", 2],
 			["Won't do", 1],

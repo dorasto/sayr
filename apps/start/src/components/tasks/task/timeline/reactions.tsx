@@ -55,6 +55,7 @@ export function ReactionPicker({ onSelect, existingReactions = [] }: ReactionPic
 					<Button
 						variant="ghost"
 						size="icon"
+						aria-label="Add reaction"
 						className="p-1 h-auto w-auto aspect-square data-[state=open]:bg-accent"
 					>
 						<IconMoodPlus size={16} />

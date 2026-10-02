@@ -77,6 +77,8 @@ export function useTasksSearchParams() {
 	const sort = useMemo(() => searchParams.get("sort") ?? null, [searchParams]);
 	const status = useMemo(() => searchParams.get("status") ?? null, [searchParams]);
 	const labels = useMemo(() => searchParams.get("labels") ?? null, [searchParams]);
+	// Public post comment permalink (`?comment=<id>`): the comment to highlight and scroll to.
+	const comment = useMemo(() => searchParams.get("comment") ?? null, [searchParams]);
 
 	// Helper to update URL without triggering navigation
 	const updateUrl = useCallback((updates: Record<string, string | null>) => {
@@ -123,7 +125,8 @@ export function useTasksSearchParams() {
 
 	const setTask = useCallback(
 		(value: number | null) => {
-			updateUrl({ task: value ? String(value) : null });
+			// A comment permalink belongs to the task it was opened with.
+			updateUrl({ task: value ? String(value) : null, comment: null });
 		},
 		[updateUrl]
 	);
@@ -186,6 +189,7 @@ export function useTasksSearchParams() {
 		sort,
 		status,
 		labels,
+		comment,
 
 		// Individual setters
 		setFilters,

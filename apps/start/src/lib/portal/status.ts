@@ -28,7 +28,7 @@ export interface PortalStatus {
 export const STEPPER_STEPS = [
   "Open",
   "Planned",
-  "In progress",
+  "In Progress",
   "Done",
 ] as const;
 

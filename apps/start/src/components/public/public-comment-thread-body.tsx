@@ -31,6 +31,10 @@ interface PublicCommentThreadBodyProps {
 	fetchReplies?: () => Promise<CommentData[]>;
 	/** Optional custom post reply function (e.g., for release comments). */
 	onPostReply?: (content: NodeJSON) => Promise<boolean>;
+	/** Builds a reply's shareable URL; omit to leave "Copy link" out of the replies' menus. */
+	getCommentLink?: (commentId: string) => string | undefined;
+	/** Comment id from the page's `?comment=` permalink; the matching reply is highlighted. */
+	linkedCommentId?: string | null;
 }
 
 /**
@@ -51,6 +55,8 @@ export function PublicCommentThreadBody({
 	authorId,
 	fetchReplies,
 	onPostReply,
+	getCommentLink,
+	linkedCommentId,
 }: PublicCommentThreadBodyProps) {
 	const { data: session } = authClient.useSession();
 	const queryClient = useQueryClient();
@@ -186,7 +192,7 @@ export function PublicCommentThreadBody({
 	);
 
 	return (
-		<div className="mt-3 border-l-2 border-border pl-5">
+		<div className="mt-1 border-l-2 border-border pl-4">
 			{isLoading ? (
 				<div className="flex items-center gap-2 py-2 text-[13px] text-muted-foreground">
 					<IconLoader2 aria-hidden className="size-4 animate-spin" />
@@ -194,7 +200,7 @@ export function PublicCommentThreadBody({
 				</div>
 			) : (
 				replies.length > 0 && (
-					<ul className="flex flex-col gap-[18px]">
+					<ul className="flex flex-col gap-1">
 						{replies.map((reply) => (
 							<li key={reply.id}>
 								<PublicCommentItem
@@ -211,6 +217,8 @@ export function PublicCommentThreadBody({
 									isReply
 									blockedUserIds={blockedUserIds}
 									isOrgMember={isOrgMember}
+									commentLink={getCommentLink?.(reply.id)}
+									highlighted={!!linkedCommentId && linkedCommentId === reply.id}
 								/>
 							</li>
 						))}

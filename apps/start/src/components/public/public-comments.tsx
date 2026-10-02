@@ -1,6 +1,7 @@
 import type { schema, TeamPermissions } from "@repo/database";
 import { Button } from "@repo/ui/components/button";
 import { headlessToast } from "@repo/ui/components/headless-toast";
+import { Label } from "@repo/ui/components/label";
 import { Skeleton } from "@repo/ui/components/skeleton";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { IconLoader2 } from "@tabler/icons-react";
@@ -13,6 +14,8 @@ import { useCanAct } from "@/components/public/portal/post/useCanAct";
 import { publicCommentsKey, usePostComments } from "@/components/public/portal/post/usePostComments";
 import type { ReactionEmoji } from "@/components/tasks/task/timeline/reactions";
 import { usePublicOrganizationLayout } from "@/contexts/publicContextOrg";
+import { usePostPublicUrl } from "@/hooks/portal/usePostPublicUrl";
+import { useTasksSearchParams } from "@/hooks/useTasksSearchParams";
 import { getBlockedUserIdsAction } from "@/lib/fetches/organization";
 import { CreateTaskReactionAction, DeleteTaskCommentAction, UpdateTaskCommentAction } from "@/lib/fetches/task";
 import { PublicCommentItem } from "./public-comment-item";
@@ -50,6 +53,8 @@ function scorePermissions(permissions: TeamPermissions): number {
 
 interface PublicCommentsProps {
 	taskId: string;
+	/** The post's short id, for each comment's `/{shortId}?comment=<id>` link. */
+	taskShortId: number | null;
 	organizationId: string;
 	taskStatus: string;
 	tasks?: schema.TaskWithLabels[];
@@ -58,12 +63,14 @@ interface PublicCommentsProps {
 }
 
 /**
- * The Conversation section of a post: threaded comments (top-level, 10 at a time, replies nested one level), the
- * Conversation count, and the comment box / log in prompt. Realtime refreshes come from `PublicTaskProvider`
- * invalidating `publicCommentsKey`.
+ * The Conversation section of a post: threaded comments (top-level, 10 at a time, replies nested one level and shown
+ * expanded until the user hides them), the Conversation count, and the comment box / log in prompt. A `?comment=<id>`
+ * permalink highlights and scrolls to that comment once it is loaded. Realtime refreshes come from
+ * `PublicTaskProvider` invalidating `publicCommentsKey`.
  */
 export function PublicComments({
 	taskId,
+	taskShortId,
 	organizationId,
 	taskStatus,
 	tasks: tasksProp,
@@ -73,8 +80,11 @@ export function PublicComments({
 	const { organization, categories, tasks: tasksContext } = usePublicOrganizationLayout();
 	const tasks = tasksProp ?? tasksContext;
 	const { value: sseClientId } = useStateManagement<string>("sse-clientId", "");
-	const [expandedThreads, setExpandedThreads] = useState<Set<string>>(new Set());
+	// Threads the user opened or hid by hand; any other thread is open when it has replies.
+	const [threadOverrides, setThreadOverrides] = useState<Map<string, boolean>>(new Map());
 	const { session, isOrgMember, canAct } = useCanAct(taskStatus);
+	const { comment: linkedCommentId } = useTasksSearchParams();
+	const postPublicUrl = usePostPublicUrl();
 	const { allComments, totalCount, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = usePostComments({
 		taskId,
 		organizationId,
@@ -121,17 +131,19 @@ export function PublicComments({
 	const topComments = allComments.slice(0, halfway);
 	const bottomComments = allComments.slice(halfway);
 
-	const toggleThread = useCallback((commentId: string) => {
-		setExpandedThreads((prev) => {
-			const next = new Set(prev);
-			if (next.has(commentId)) {
-				next.delete(commentId);
-			} else {
-				next.add(commentId);
-			}
-			return next;
-		});
+	const setThreadExpanded = useCallback((commentId: string, expanded: boolean) => {
+		setThreadOverrides((prev) => new Map(prev).set(commentId, expanded));
 	}, []);
+
+	const getCommentLink = useCallback(
+		(commentId: string) => {
+			if (taskShortId === null) return undefined;
+			const url = new URL(postPublicUrl(organization.slug, taskShortId));
+			url.searchParams.set("comment", commentId);
+			return url.toString();
+		},
+		[postPublicUrl, organization.slug, taskShortId]
+	);
 
 	// Optimistic reaction toggle (mirrors admin timeline-comment.tsx pattern)
 	const handleToggleReaction = useCallback(
@@ -253,10 +265,10 @@ export function PublicComments({
 					queryClient.removeQueries({
 						queryKey: ["comment-replies", commentId, organizationId],
 					});
-					// Collapse the thread if it was expanded
-					setExpandedThreads((prev) => {
+					// Forget any open/hidden choice for the deleted thread
+					setThreadOverrides((prev) => {
 						if (!prev.has(commentId)) return prev;
-						const next = new Set(prev);
+						const next = new Map(prev);
 						next.delete(commentId);
 						return next;
 					});
@@ -282,7 +294,7 @@ export function PublicComments({
 
 	const renderComment = (comment: CommentData) => {
 		const replyCount = comment.replyCount ?? 0;
-		const isExpanded = expandedThreads.has(comment.id);
+		const isExpanded = threadOverrides.get(comment.id) ?? replyCount > 0;
 
 		const threadFooter =
 			replyCount > 0 || isExpanded ? (
@@ -291,7 +303,7 @@ export function PublicComments({
 						replyCount={replyCount}
 						replyAuthors={comment.replyAuthors}
 						expanded={isExpanded}
-						onToggle={() => toggleThread(comment.id)}
+						onToggle={() => setThreadExpanded(comment.id, !isExpanded)}
 					/>
 					{isExpanded && (
 						<PublicCommentThreadBody
@@ -307,6 +319,8 @@ export function PublicComments({
 							isOrgMember={isOrgMember}
 							canAct={canAct}
 							authorId={authorId}
+							getCommentLink={getCommentLink}
+							linkedCommentId={linkedCommentId}
 						/>
 					)}
 				</>
@@ -326,17 +340,11 @@ export function PublicComments({
 					categories={categories}
 					tasks={tasks}
 					footer={threadFooter}
-					onReply={
-						canAct
-							? () => {
-									if (!expandedThreads.has(comment.id)) {
-										toggleThread(comment.id);
-									}
-								}
-							: undefined
-					}
+					onReply={canAct && !isExpanded ? () => setThreadExpanded(comment.id, true) : undefined}
 					blockedUserIds={blockedUserIds}
 					isOrgMember={isOrgMember}
+					commentLink={getCommentLink(comment.id)}
+					highlighted={linkedCommentId === comment.id}
 				/>
 			</li>
 		);
@@ -344,15 +352,10 @@ export function PublicComments({
 
 	return (
 		<section aria-labelledby="post-conversation-heading">
-			<h2
-				id="post-conversation-heading"
-				className="mb-6 font-semibold text-foreground text-xl leading-7 tracking-[-0.018em]"
-			>
+			<Label id="post-conversation-heading" variant="heading" className="mb-5 flex items-center gap-2">
 				Conversation
-				{totalCount > 0 && (
-					<span className="ml-2 font-medium text-muted-foreground text-sm tracking-normal">{totalCount}</span>
-				)}
-			</h2>
+				{totalCount > 0 && <span className="font-medium text-muted-foreground text-sm">{totalCount}</span>}
+			</Label>
 
 			{isLoading ? (
 				<div aria-busy className="flex flex-col gap-7">
@@ -371,7 +374,7 @@ export function PublicComments({
 					No comments yet. Start the conversation.
 				</p>
 			) : (
-				<ul className="flex flex-col gap-7">
+				<ul className="flex flex-col gap-3">
 					{/* Top (oldest) comments */}
 					{topComments.map(renderComment)}
 
@@ -402,7 +405,7 @@ export function PublicComments({
 			)}
 
 			<PostCommentComposer
-				className="mt-8"
+				className="mt-6"
 				taskId={taskId}
 				organizationId={organizationId}
 				taskStatus={taskStatus}

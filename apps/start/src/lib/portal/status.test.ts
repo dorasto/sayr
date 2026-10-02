@@ -5,7 +5,7 @@ describe("getPortalStatus", () => {
 	it("relabels each internal status for end users", () => {
 		expect(getPortalStatus("backlog")).toEqual({ label: "Open", variant: "open", stepIndex: 0 });
 		expect(getPortalStatus("todo")).toEqual({ label: "Planned", variant: "planned", stepIndex: 1 });
-		expect(getPortalStatus("in-progress")).toEqual({ label: "In progress", variant: "progress", stepIndex: 2 });
+		expect(getPortalStatus("in-progress")).toEqual({ label: "In Progress", variant: "progress", stepIndex: 2 });
 		expect(getPortalStatus("done")).toEqual({ label: "Done", variant: "done", stepIndex: 3 });
 		expect(getPortalStatus("canceled")).toEqual({ label: "Won't do", variant: "closed", stepIndex: null });
 	});
@@ -16,7 +16,7 @@ describe("getPortalStatus", () => {
 
 	it("keeps stepper steps aligned with step indexes", () => {
 		expect(STEPPER_STEPS).toHaveLength(4);
-		expect(STEPPER_STEPS[getStepperIndex("in-progress") ?? -1]).toBe("In progress");
+		expect(STEPPER_STEPS[getStepperIndex("in-progress") ?? -1]).toBe("In Progress");
 		expect(getStepperIndex("canceled")).toBeNull();
 	});
 });

@@ -62,4 +62,8 @@ export interface PublicCommentItemProps {
 	blockedUserIds?: Set<string>;
 	/** Whether the current viewer is an org member */
 	isOrgMember?: boolean;
+	/** Shareable URL of this comment (`?comment=<id>`); adds "Copy link" to the actions menu. */
+	commentLink?: string;
+	/** The page was opened from this comment's link: highlight it and scroll it into view. */
+	highlighted?: boolean;
 }

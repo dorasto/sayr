@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import {
-	fullPostLinkLabel,
 	mapPublicTask,
 	normalizeShortId,
 	type PublicTaskResponse,
@@ -40,18 +39,6 @@ describe("shouldInterceptRowClick", () => {
 		expect(shouldInterceptRowClick({ ...plain, altKey: true })).toBe(false);
 		expect(shouldInterceptRowClick({ ...plain, button: 1 })).toBe(false);
 		expect(shouldInterceptRowClick({ ...plain, button: 2 })).toBe(false);
-	});
-});
-
-describe("fullPostLinkLabel", () => {
-	it("pluralises the comment count", () => {
-		expect(fullPostLinkLabel(0)).toBe("Read the full post");
-		expect(fullPostLinkLabel(1)).toBe("Read the full post and 1 comment");
-		expect(fullPostLinkLabel(4)).toBe("Read the full post and 4 comments");
-	});
-
-	it("never shows a negative count", () => {
-		expect(fullPostLinkLabel(-2)).toBe("Read the full post");
 	});
 });
 

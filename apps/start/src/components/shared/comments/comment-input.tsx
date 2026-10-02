@@ -12,7 +12,8 @@ import { useLayoutData } from "@/components/admin/shell/context";
 
 const Editor = lazy(() => import("@/components/prosekit/editor"));
 
-function isMultiline(doc: NodeJSON | undefined): boolean {
+/** Whether a comment draft has more than one line (several blocks, or a hard break), so its actions drop below it. */
+export function isMultiline(doc: NodeJSON | undefined): boolean {
 	if (!doc?.content) return false;
 	if (doc.content.length > 1) return true;
 	const first = doc.content[0];

@@ -287,6 +287,7 @@ export function PublicTaskContent() {
 
 						<PublicComments
 							taskId={task.id}
+							taskShortId={task.shortId}
 							organizationId={task.organizationId}
 							taskStatus={task.status}
 							tasks={tasks}

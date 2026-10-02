@@ -1,16 +1,16 @@
 import type { schema } from "@repo/database";
 import { Button } from "@repo/ui/components/button";
-import { Card } from "@repo/ui/components/card";
 import { headlessToast } from "@repo/ui/components/headless-toast";
 import { Skeleton } from "@repo/ui/components/skeleton";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { cn } from "@repo/ui/lib/utils";
-import { IconArrowBack, IconLoader2, IconMessageCircle } from "@tabler/icons-react";
+import { IconArrowBack, IconLoader2 } from "@tabler/icons-react";
 import { useQueryClient } from "@tanstack/react-query";
 import type { NodeJSON } from "prosekit/core";
-import { lazy, Suspense, useCallback, useEffect, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import LoginDialog from "@/components/auth/login";
 import processUploads from "@/components/prosekit/upload";
+import { isMultiline } from "@/components/shared/comments/comment-input";
 import { usePublicOrganizationLayout } from "@/contexts/publicContextOrg";
 import type { MentionContext } from "@/hooks/useMentionUsers";
 import { CreateTaskCommentAction } from "@/lib/fetches/task";
@@ -49,6 +49,7 @@ export function PostCommentComposer({
 	const [commentContent, setCommentContent] = useState<NodeJSON | undefined>(undefined);
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [editorKey, setEditorKey] = useState(0);
+	const multiline = useMemo(() => isMultiline(commentContent), [commentContent]);
 
 	// The Editor's mention hook reads this to fetch org members and task participants.
 	useEffect(() => {
@@ -91,32 +92,38 @@ export function PostCommentComposer({
 	}, [commentContent, isSubmitting, organizationId, taskId, sseClientId, queryClient]);
 
 	if (canAct) {
+		const submitButton = (
+			<Button size="sm" onClick={handleSubmitComment} disabled={isSubmitting || !commentContent} className="h-7">
+				{isSubmitting ? <IconLoader2 aria-hidden className="animate-spin" /> : "Post"}
+				{!isSubmitting && <IconArrowBack aria-hidden />}
+			</Button>
+		);
+
+		// Same shape as the admin comment box: one line with the button beside it, the button drops below once the
+		// draft runs over one line.
 		return (
 			<div
 				id={POST_COMMENT_COMPOSER_ID}
 				className={cn(
-					"scroll-mt-20 overflow-hidden rounded-xl border bg-background focus-within:border-ring",
+					"scroll-mt-20 rounded-lg border bg-accent/50 px-3 py-2 text-foreground transition-all",
+					!multiline && "flex items-center gap-2",
 					className
 				)}
 			>
-				<Suspense fallback={<Skeleton className="h-20 rounded-none" />}>
-					<Editor
-						key={editorKey}
-						firstLinePlaceholder="Write a comment..."
-						className="bg-transparent p-3 pb-0"
-						onChange={setCommentContent}
-						submit={handleSubmitComment}
-						categories={categories}
-						tasks={tasks}
-						hideBlockHandle
-					/>
-				</Suspense>
-				<div className="flex items-center justify-end px-3 pb-3">
-					<Button size="sm" onClick={handleSubmitComment} disabled={isSubmitting || !commentContent}>
-						{isSubmitting ? <IconLoader2 aria-hidden className="animate-spin" /> : <IconArrowBack aria-hidden />}
-						Comment
-					</Button>
+				<div className={cn(!multiline && "min-w-0 flex-1")}>
+					<Suspense fallback={<Skeleton className="h-6" />}>
+						<Editor
+							key={editorKey}
+							firstLinePlaceholder="Write a comment..."
+							onChange={setCommentContent}
+							submit={handleSubmitComment}
+							categories={categories}
+							tasks={tasks}
+							hideBlockHandle
+						/>
+					</Suspense>
 				</div>
+				{multiline ? <div className="flex items-center justify-end">{submitButton}</div> : submitButton}
 			</div>
 		);
 	}
@@ -124,33 +131,29 @@ export function PostCommentComposer({
 	if (!isLoggedIn) {
 		// Comments and reactions need a Sayr account (voting does not).
 		return (
-			<Card className={cn("rounded-xl p-5", className)}>
-				<div className="flex items-center gap-4">
-					<span
-						aria-hidden
-						className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground"
-					>
-						<IconMessageCircle className="size-5" />
-					</span>
-					<div className="min-w-0 flex-1">
-						<div className="font-semibold text-[15px] text-foreground">Log in to comment</div>
-						<div className="mt-0.5 text-[13.5px] text-muted-foreground">
-							Use your Sayr account. It takes a few seconds.
-						</div>
-					</div>
-					<LoginDialog trigger={<Button>Log in</Button>} />
-				</div>
-			</Card>
+			<div
+				className={cn(
+					"flex items-center gap-2 rounded-lg border bg-accent/50 px-3 py-2 text-muted-foreground text-sm",
+					className
+				)}
+			>
+				<span className="min-w-0 flex-1">Log in to comment and react</span>
+				<LoginDialog
+					trigger={
+						<Button size="sm" className="h-7">
+							Log in
+						</Button>
+					}
+				/>
+			</div>
 		);
 	}
 
 	return (
-		<Card className={cn("rounded-xl p-5", className)}>
-			<p className="text-center text-[13.5px] text-muted-foreground">
-				{taskStatus === "done" || taskStatus === "canceled"
-					? "This post is closed. Comments are turned off."
-					: "This organization has turned off public actions."}
-			</p>
-		</Card>
+		<p className={cn("text-muted-foreground text-sm", className)}>
+			{taskStatus === "done" || taskStatus === "canceled"
+				? "This post is closed. Comments are turned off."
+				: "This organization has turned off public actions."}
+		</p>
 	);
 }

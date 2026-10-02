@@ -53,12 +53,6 @@ export function shouldInterceptRowClick(event: RowClickLike): boolean {
 	return event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey;
 }
 
-/** "Read the full post and 4 comments" / "Read the full post and 1 comment" / "Read the full post". */
-export function fullPostLinkLabel(commentCount: number): string {
-	if (commentCount <= 0) return "Read the full post";
-	return `Read the full post and ${commentCount} ${commentCount === 1 ? "comment" : "comments"}`;
-}
-
 /** A post as `GET /api/public/v1/organization/{slug}/tasks/{shortId}` serialises it (dates are ISO strings). */
 export interface PublicTaskResponse {
 	id: string;

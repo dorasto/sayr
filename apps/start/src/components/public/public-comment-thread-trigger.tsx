@@ -40,9 +40,9 @@ export function PublicCommentThreadTrigger({
 				<IconChevronDown aria-hidden className="size-3.5" />
 			)}
 			{!expanded && visibleAuthors.length > 0 && (
-				<span className="flex items-center -space-x-1.5">
+				<span className="flex items-center -space-x-1">
 					{visibleAuthors.map((author) => (
-						<Avatar key={author.id} className="size-5 border-2 border-sidebar">
+						<Avatar key={author.id} className="size-5">
 							{author.image ? (
 								<AvatarImage src={ensureCdnUrl(author.image)} alt={getDisplayName(author)} />
 							) : null}
@@ -52,7 +52,7 @@ export function PublicCommentThreadTrigger({
 						</Avatar>
 					))}
 					{overflowCount > 0 && (
-						<span className="flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-sidebar bg-muted px-1 font-medium text-muted-foreground text-xs">
+						<span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-muted px-1 font-medium text-muted-foreground text-xs">
 							+{overflowCount}
 						</span>
 					)}
