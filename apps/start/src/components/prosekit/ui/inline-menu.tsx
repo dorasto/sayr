@@ -26,6 +26,8 @@ import { useState } from "react";
 import { useEditorMode } from "../editor-mode-context";
 import { Button } from "./button";
 import { Separator } from "@repo/ui/components/separator";
+import { normalizeUrl } from "@repo/ui/lib/utils";
+import { isSafeLinkHref } from "@/lib/portal/link-safety";
 
 function getInlineMenuItems(editor: Editor<BasicExtension>) {
   // Cast to access custom marks/commands not in BasicExtension typing
@@ -117,6 +119,8 @@ export default function InlineMenu() {
     hasTemplate && items.templatePlaceholder?.isActive;
 
   const handleLinkUpdate = (href?: string) => {
+    // Keep the menu open and ignore the value: only http(s) and mailto links are accepted (scheme-less ones get https).
+    if (href && !isSafeLinkHref(normalizeUrl(href))) return;
     if (href) {
       editor.commands.addLink({ href });
     } else {

@@ -1,6 +1,5 @@
 import { authClient } from "@repo/auth/client";
 import type { schema } from "@repo/database";
-import { Button } from "@repo/ui/components/button";
 import { headlessToast } from "@repo/ui/components/headless-toast";
 import {
 	useStateManagement,
@@ -8,11 +7,15 @@ import {
 	useStateManagementInfiniteFetch,
 } from "@repo/ui/hooks/useStateManagement.ts";
 import { onWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
-import { IconArrowBack, IconLoader2 } from "@tabler/icons-react";
+import { cn } from "@repo/ui/lib/utils";
+import { IconArrowBack, IconLoader2, IconMessageCircle } from "@tabler/icons-react";
 import { type InfiniteData, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { NodeJSON } from "prosekit/core";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import LoginDialog from "@/components/auth/login";
 import processUploads from "@/components/prosekit/upload";
+import { PortalButton } from "@/components/public/portal/ui/PortalButton";
+import { PortalCard } from "@/components/public/portal/ui/PortalCard";
 import type { ReactionEmoji } from "@/components/tasks/task/timeline/reactions";
 import { usePublicOrganizationLayout } from "@/contexts/publicContextOrg";
 import { useIsOrgMember } from "@/hooks/useIsOrgMember";
@@ -29,6 +32,7 @@ import {
 import type { ServerEventMessage } from "@/lib/serverEvents";
 import { PublicCommentItem } from "../public-comment-item";
 import { PublicCommentThreadBody, PublicCommentThreadTrigger } from "../public-comment-thread";
+import type { CommentData } from "../public-comments-types";
 
 const Editor = lazy(() => import("@/components/prosekit/editor"));
 
@@ -67,6 +71,27 @@ interface ReleaseCommentsPage {
 		pageFromEnd: number;
 		totalPages: number;
 		hasMore: boolean;
+	};
+}
+
+/**
+ * Release comments reuse the post comment components, which are typed around `CommentData`. The release id stands in
+ * for `taskId` (these components only read it to scope reactions on replies).
+ */
+function toCommentData(comment: ReleaseCommentData): CommentData {
+	return {
+		id: comment.id,
+		taskId: comment.releaseId,
+		organizationId: comment.organizationId,
+		content: comment.content as NodeJSON,
+		visibility: comment.visibility,
+		createdAt: comment.createdAt,
+		updatedAt: comment.updatedAt,
+		createdBy: comment.createdBy,
+		reactions: comment.reactions,
+		parentId: comment.parentId,
+		replyCount: comment.replyCount,
+		replyAuthors: comment.replyAuthors,
 	};
 }
 
@@ -529,7 +554,7 @@ export function PublicReleaseDiscussion({
 					/>
 					{isExpanded && (
 						<PublicCommentThreadBody
-							parentComment={comment as any}
+							parentComment={toCommentData(comment)}
 							memberHighestTeam={memberHighestTeam}
 							users={orgUsers}
 							currentUserId={session?.user?.id}
@@ -550,7 +575,7 @@ export function PublicReleaseDiscussion({
 		return (
 			<PublicCommentItem
 				key={comment.id}
-				comment={comment as any}
+				comment={toCommentData(comment)}
 				memberTeamName={comment.createdBy ? (memberHighestTeam.get(comment.createdBy.id) ?? null) : null}
 				onToggleReaction={canAct ? handleToggleReaction : undefined}
 				users={orgUsers}
@@ -610,22 +635,22 @@ export function PublicReleaseDiscussion({
 		return unsubscribe;
 	}, [releaseId, queryClient, organizationId]);
 	return (
-		<div className="flex flex-col gap-4">
+		<div className="flex flex-col gap-6">
 			{isLoading ? (
 				<div className="flex items-center justify-center py-8">
-					<IconLoader2 className="animate-spin text-muted-foreground" />
+					<IconLoader2 aria-hidden className="animate-spin text-portal-fg-3" />
 				</div>
 			) : allComments.length === 0 ? (
-				<div className="text-muted-foreground text-sm py-4 text-center border rounded-lg bg-card/50 border-dashed">
-					No comments yet. Be the first to comment!
+				<div className="rounded-portal-lg border border-portal-line-2 border-dashed px-5 py-6 text-center text-[13.5px] text-portal-fg-2">
+					No comments yet. Start the conversation.
 				</div>
 			) : (
-				<div className="flex flex-col gap-3">
+				<div className="flex flex-col gap-[26px]">
 					{topComments.map(renderComment)}
 
 					{hasNextPage && (
-						<div className="flex justify-center py-4 my-2 border-t border-b border-dashed">
-							<Button
+						<div className="flex justify-center border-portal-line border-y border-dashed py-3">
+							<PortalButton
 								variant="ghost"
 								className="w-full"
 								onClick={() => fetchNextPage()}
@@ -633,13 +658,13 @@ export function PublicReleaseDiscussion({
 							>
 								{isFetchingNextPage ? (
 									<>
-										<IconLoader2 className="animate-spin size-4 mr-2" />
+										<IconLoader2 aria-hidden className="animate-spin" />
 										Loading...
 									</>
 								) : (
 									"Load more comments"
 								)}
-							</Button>
+							</PortalButton>
 						</div>
 					)}
 
@@ -648,12 +673,17 @@ export function PublicReleaseDiscussion({
 			)}
 
 			{canAct ? (
-				<div className="border rounded-lg bg-card overflow-hidden">
-					<Suspense fallback={<div className="h-20 animate-pulse bg-muted rounded" />}>
+				<div
+					className={cn(
+						"overflow-hidden rounded-portal-lg border border-portal-line-2 bg-portal-surface",
+						"focus-within:border-portal-focus focus-within:ring-[3px] focus-within:ring-portal-accent-soft"
+					)}
+				>
+					<Suspense fallback={<div className="h-20 animate-pulse bg-portal-raised" />}>
 						<Editor
 							key={editorKey}
 							firstLinePlaceholder="Write a comment..."
-							className="p-3 pb-0 bg-transparent"
+							className="bg-transparent p-3 pb-0"
 							onChange={setCommentContent}
 							submit={handleSubmitComment}
 							categories={categories}
@@ -662,26 +692,45 @@ export function PublicReleaseDiscussion({
 						/>
 					</Suspense>
 					<div className="flex items-center justify-end px-3 pb-3">
-						<Button
+						<PortalButton
 							variant="primary"
 							size="sm"
 							onClick={handleSubmitComment}
 							disabled={isSubmitting || !commentContent}
 						>
 							{isSubmitting ? (
-								<IconLoader2 className="animate-spin size-4" />
+								<IconLoader2 aria-hidden className="animate-spin" />
 							) : (
-								<IconArrowBack className="size-4" />
+								<IconArrowBack aria-hidden />
 							)}
-						</Button>
+							Comment
+						</PortalButton>
 					</div>
 				</div>
+			) : !session?.user ? (
+				<PortalCard>
+					<div className="flex items-center gap-4">
+						<span
+							aria-hidden
+							className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-portal-raised text-portal-fg-2"
+						>
+							<IconMessageCircle className="size-5" />
+						</span>
+						<div className="min-w-0 flex-1">
+							<div className="font-semibold text-[15px] text-portal-fg">Log in to join the discussion</div>
+							<div className="mt-0.5 text-[13.5px] text-portal-fg-2">
+								Use your Sayr account. It takes a few seconds.
+							</div>
+						</div>
+						<LoginDialog trigger={<PortalButton variant="primary">Log in</PortalButton>} />
+					</div>
+				</PortalCard>
 			) : (
-				<div className="border rounded-lg p-6 bg-card/50 border-dashed text-center">
-					<p className="text-muted-foreground text-sm">
-						{!session?.user ? "Sign in to leave a comment." : "This organization has disabled public actions."}
+				<PortalCard>
+					<p className="text-center text-[13.5px] text-portal-fg-2">
+						This organization has turned off public actions, so comments are read only.
 					</p>
-				</div>
+				</PortalCard>
 			)}
 		</div>
 	);

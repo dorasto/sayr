@@ -1,19 +1,17 @@
 "use client";
 
 import type { schema } from "@repo/database";
-import { headlessToast } from "@repo/ui/components/headless-toast";
-import { useStateManagement, useStateManagementFetch } from "@repo/ui/hooks/useStateManagement.ts";
 import { onWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouterState } from "@tanstack/react-router";
 import { createContext, type ReactNode, useContext, useEffect, useState } from "react";
+import { publicCommentsKey } from "@/components/public/portal/post/usePostComments";
 import { usePublicOrganizationLayout } from "@/contexts/publicContextOrg";
+import { publicVotesKey } from "@/hooks/portal/usePublicVotes";
+import { useVote } from "@/hooks/portal/useVote";
 import { useIsOrgMember } from "@/hooks/useIsOrgMember";
 import { useWSMessageHandler, type WSMessageHandler } from "@/hooks/useWSMessageHandler";
-import { CreateTaskVoteAction } from "@/lib/fetches/task";
 import type { ServerEventMessage } from "@/lib/serverEvents";
-
-const baseApiUrl = import.meta.env.VITE_APP_ENV === "development" ? "/backend-api/internal" : "/api/internal";
 
 interface ContextType {
 	task: schema.TaskWithLabels;
@@ -24,6 +22,8 @@ interface ContextType {
 	isMember: boolean;
 	isVoted: boolean;
 	voteCount: number;
+	/** Voting is closed (canceled posts). Never because of login: anonymous voting stays on. */
+	voteDisabled: boolean;
 	handleVote: () => void;
 }
 
@@ -47,7 +47,6 @@ export function PublicTaskProvider({
 }) {
 	const { organization, serverEvents } = usePublicOrganizationLayout();
 	const queryClient = useQueryClient();
-	const { value: sseClientId } = useStateManagement<string>("sse-clientId", "");
 	const isMember = useIsOrgMember(organization);
 
 	const rawPathname = useRouterState({ select: (s) => s.location.pathname });
@@ -60,98 +59,37 @@ export function PublicTaskProvider({
 	// Sync if the server prop changes (e.g. navigation to a different task).
 	useEffect(() => {
 		setTask(initialTask);
-		setLocalVoteCount(initialTask.voteCount);
 	}, [initialTask]);
 
-	// Fetch votes for this org (ensures vote state is available even on direct navigation).
+	// The shared optimistic vote toggle (also used by the board). Voting is never login-gated.
 	const {
-		value: { data: votesData, refetch: refetchVotes },
-	} = useStateManagementFetch<
-		{
-			taskId: string;
-			voteCount: number;
-			count: number;
-		}[],
-		Partial<
-			{
-				taskId: string;
-				voteCount: number;
-				count: number;
-			}[]
-		>
-	>({
-		key: ["votes", organization.id],
-		fetch: {
-			url: `${baseApiUrl}/v1/admin/organization/task/voted?orgId=${organization.id}`,
-			custom: async (url) => {
-				const res = await fetch(url, { credentials: "include" });
-				if (!res.ok) throw new Error(`Failed: ${res.statusText}`);
-				const data = await res.json();
-				return data.data.tasks;
-			},
-		},
-		staleTime: 1000,
-		gcTime: 2000 * 60,
-		refetchOnWindowFocus: false,
+		voted: isVoted,
+		voteCount,
+		disabled: voteDisabled,
+		toggle,
+	} = useVote({
+		organizationId: organization.id,
+		task: { id: task.id, voteCount: task.voteCount, status: task.status },
 	});
-
-	const votes = votesData ?? [];
-	const isVoted = !!votes.find((v) => v.taskId === task.id);
-
-	// Track vote count locally for optimistic updates.
-	const [localVoteCount, setLocalVoteCount] = useState(task.voteCount);
-
-	const handleVote = async () => {
-		const votesKey = ["votes", organization.id];
-		const previousVotes =
-			queryClient.getQueryData<
-				{
-					taskId: string;
-					voteCount: number;
-					count: number;
-				}[]
-			>(votesKey);
-		const previousCount = localVoteCount;
-
-		// Optimistic: toggle vote state and count.
-		queryClient.setQueryData(votesKey, (old: { taskId: string; voteCount: number; count: number }[] | undefined) => {
-			if (!old) return old;
-			return isVoted
-				? old.filter((v) => v.taskId !== task.id)
-				: [...old, { taskId: task.id, voteCount: 0, count: 1 }];
-		});
-		setLocalVoteCount(isVoted ? localVoteCount - 1 : localVoteCount + 1);
-
-		try {
-			await CreateTaskVoteAction(organization.id, task.id, sseClientId);
-		} catch (error) {
-			console.error(error);
-			headlessToast.error({
-				title: "Failed to vote",
-				description: "Could not update vote.",
-			});
-			queryClient.setQueryData(votesKey, previousVotes);
-			setLocalVoteCount(previousCount);
-		}
-	};
 
 	// SSE handlers for real-time updates on this task.
 	const handlers: WSMessageHandler<ServerEventMessage> = {
 		UPDATE_TASK: (msg) => {
 			if (msg.scope === "PUBLIC" && msg.meta?.orgId === organization.id && msg.data.id === task.id) {
-				setTask(msg.data);
+				// Merge so fields the event payload omits (parent, GitHub issue, creator) are not lost.
+				setTask((previous) => ({ ...previous, ...msg.data }));
 			}
 		},
 		UPDATE_TASK_VOTE: (msg) => {
 			if (msg.scope === "PUBLIC" && msg.meta?.orgId === organization.id && msg.data.id === task.id) {
-				setLocalVoteCount(msg.data.voteCount);
-				refetchVotes();
+				setTask((previous) => ({ ...previous, voteCount: msg.data.voteCount }));
+				void queryClient.invalidateQueries({ queryKey: publicVotesKey(organization.id) });
 			}
 		},
 		UPDATE_TASK_COMMENTS: (msg) => {
 			if (msg.scope === "PUBLIC" && msg.meta?.orgId === organization.id && msg.data.id === task.id) {
 				queryClient.invalidateQueries({
-					queryKey: ["public-comments", task.id, task.organizationId],
+					queryKey: publicCommentsKey(task.id, task.organizationId),
 				});
 			}
 		},
@@ -169,7 +107,7 @@ export function PublicTaskProvider({
 		const unsubscribe = onWindowMessage<{ type: string }>("*", (msg) => {
 			if (msg.type === "SSE_RECONNECTED") {
 				queryClient.invalidateQueries({
-					queryKey: ["public-comments", task.id, task.organizationId],
+					queryKey: publicCommentsKey(task.id, task.organizationId),
 				});
 			}
 		});
@@ -185,8 +123,11 @@ export function PublicTaskProvider({
 				orgSlug,
 				isMember,
 				isVoted,
-				voteCount: localVoteCount,
-				handleVote,
+				voteCount,
+				voteDisabled,
+				handleVote: () => {
+					void toggle();
+				},
 			}}
 		>
 			{children}

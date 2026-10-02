@@ -6,7 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { createEditor, type NodeJSON } from "prosekit/core";
 import type { Uploader } from "prosekit/extensions/file";
 import { ProseKit, useDocChange } from "prosekit/react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import { useMentionTasks } from "@/hooks/useMentionTasks";
 import { useMentionUsers } from "@/hooks/useMentionUsers";
 import { resolveUsersByIds } from "@/lib/fetches/mention";
@@ -64,6 +64,8 @@ export interface EditorProps {
   onMenuOpenChange?: (open: boolean) => void;
   /** Fires when the editor's content DOM loses focus. */
   onBlur?: () => void;
+  /** Rendered above the content, inside the ProseKit context (so it can use `useEditor`). */
+  toolbar?: ReactNode;
 }
 
 export default function Editor({
@@ -81,6 +83,7 @@ export default function Editor({
   isTemplateEditor = false,
   onMenuOpenChange,
   onBlur,
+  toolbar,
 }: EditorProps) {
   // Use the mention hook — it reads mentionContext from the global store,
   // fetches users from the backend, and supports async search.
@@ -258,6 +261,7 @@ export default function Editor({
     <EditorModeContext.Provider value={editorMode}>
       <ProseKit editor={editor}>
         <div className={className}>
+          {toolbar}
           <div
             ref={editor.mount}
             className={cn(

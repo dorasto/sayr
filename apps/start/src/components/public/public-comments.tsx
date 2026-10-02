@@ -1,31 +1,23 @@
-import { authClient } from "@repo/auth/client";
-import type { OrganizationSettings, schema, TeamPermissions } from "@repo/database";
-import { Button } from "@repo/ui/components/button";
+import type { schema, TeamPermissions } from "@repo/database";
 import { headlessToast } from "@repo/ui/components/headless-toast";
-import { useStateManagement, useStateManagementInfiniteFetch } from "@repo/ui/hooks/useStateManagement.ts";
-import { IconArrowBack, IconLoader2 } from "@tabler/icons-react";
+import { Skeleton } from "@repo/ui/components/skeleton";
+import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
+import { IconLoader2 } from "@tabler/icons-react";
 import { type InfiniteData, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { NodeJSON } from "prosekit/core";
-import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import processUploads from "@/components/prosekit/upload";
+import { PostCommentComposer } from "@/components/public/portal/post/CommentComposer";
+import { useCanAct } from "@/components/public/portal/post/useCanAct";
+import { publicCommentsKey, usePostComments } from "@/components/public/portal/post/usePostComments";
+import { PortalButton } from "@/components/public/portal/ui/PortalButton";
 import type { ReactionEmoji } from "@/components/tasks/task/timeline/reactions";
 import { usePublicOrganizationLayout } from "@/contexts/publicContextOrg";
-import { useIsOrgMember } from "@/hooks/useIsOrgMember";
-import type { MentionContext } from "@/hooks/useMentionUsers";
 import { getBlockedUserIdsAction } from "@/lib/fetches/organization";
-import {
-	CreateTaskCommentAction,
-	CreateTaskReactionAction,
-	DeleteTaskCommentAction,
-	UpdateTaskCommentAction,
-} from "@/lib/fetches/task";
+import { CreateTaskReactionAction, DeleteTaskCommentAction, UpdateTaskCommentAction } from "@/lib/fetches/task";
 import { PublicCommentItem } from "./public-comment-item";
 import { PublicCommentThreadBody, PublicCommentThreadTrigger } from "./public-comment-thread";
 import type { CommentData, CommentsPage } from "./public-comments-types";
-
-const Editor = lazy(() => import("@/components/prosekit/editor"));
-
-const baseApiUrl = import.meta.env.VITE_APP_ENV === "development" ? "/backend-api/internal" : "/api/internal";
 
 /**
  * Score a team's permissions to determine hierarchy weight.
@@ -60,19 +52,32 @@ interface PublicCommentsProps {
 	organizationId: string;
 	taskStatus: string;
 	tasks?: schema.TaskWithLabels[];
+	/** User id of the post's author — their comments get the Author pill. */
+	authorId?: string | null;
 }
 
-export function PublicComments({ taskId, organizationId, taskStatus, tasks: tasksProp }: PublicCommentsProps) {
+/**
+ * The Conversation section of a post: threaded comments (top-level, 10 at a time, replies nested one level), the
+ * Conversation count, and the comment box / log in prompt. Realtime refreshes come from `PublicTaskProvider`
+ * invalidating `publicCommentsKey`.
+ */
+export function PublicComments({
+	taskId,
+	organizationId,
+	taskStatus,
+	tasks: tasksProp,
+	authorId,
+}: PublicCommentsProps) {
 	const queryClient = useQueryClient();
-	const { data: session } = authClient.useSession();
 	const { organization, categories, tasks: tasksContext } = usePublicOrganizationLayout();
 	const tasks = tasksProp ?? tasksContext;
 	const { value: sseClientId } = useStateManagement<string>("sse-clientId", "");
-	const { setValue: setMentionContext } = useStateManagement<MentionContext | null>("mentionContext", null);
-	const [commentContent, setCommentContent] = useState<NodeJSON | undefined>(undefined);
-	const [isSubmitting, setIsSubmitting] = useState(false);
-	const [editorKey, setEditorKey] = useState(0);
 	const [expandedThreads, setExpandedThreads] = useState<Set<string>>(new Set());
+	const { session, isOrgMember, canAct } = useCanAct(taskStatus);
+	const { allComments, totalCount, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = usePostComments({
+		taskId,
+		organizationId,
+	});
 
 	const toggleThread = useCallback((commentId: string) => {
 		setExpandedThreads((prev) => {
@@ -85,15 +90,6 @@ export function PublicComments({ taskId, organizationId, taskStatus, tasks: task
 			return next;
 		});
 	}, []);
-
-	// Set mentionContext so the Editor's useMentionUsers hook can fetch org members and task participants
-	useEffect(() => {
-		if (organizationId) {
-			setMentionContext({ orgId: organizationId, orgShortId: organization.shortId, taskId });
-		}
-	}, [organizationId, organization.shortId, taskId, setMentionContext]);
-
-	const commentLimit = 20;
 
 	// Build a map of userId -> highest team name (by permission weight)
 	const memberHighestTeam = useMemo(() => {
@@ -121,24 +117,6 @@ export function PublicComments({ taskId, organizationId, taskStatus, tasks: task
 	// Map org members to a user array for mentions + reaction tooltips
 	const orgUsers = useMemo(() => organization.members.map((m) => m.user) as schema.userType[], [organization.members]);
 
-	// Check if the current viewer is an org member
-	const isOrgMember = useIsOrgMember(organization);
-
-	/**
-	 * Whether the current user can perform write actions (comment, react, reply, edit, delete).
-	 * Org members always can. External users can only when publicActions is enabled
-	 * and the task is not closed (unless allowActionsOnClosedTasks is enabled).
-	 */
-	const canAct = useMemo(() => {
-		if (!session?.user) return false;
-		if (isOrgMember) return true;
-		const settings = organization.settings as OrganizationSettings | null;
-		if (settings?.publicActions === false) return false;
-		const isClosed = taskStatus === "done" || taskStatus === "canceled";
-		if (isClosed && settings?.allowActionsOnClosedTasks === false) return false;
-		return true;
-	}, [session?.user, isOrgMember, organization.settings, taskStatus]);
-
 	// Fetch blocked user IDs (only for org members — endpoint returns 401 for non-members, action handles gracefully)
 	const { data: blockedUserIdsArray } = useQuery({
 		queryKey: ["blocked-user-ids", organizationId],
@@ -148,82 +126,6 @@ export function PublicComments({ taskId, organizationId, taskStatus, tasks: task
 	});
 
 	const blockedUserIds = useMemo(() => new Set(blockedUserIdsArray ?? []), [blockedUserIdsArray]);
-
-	const {
-		value: { data: commentsData, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage },
-	} = useStateManagementInfiniteFetch<CommentsPage>({
-		key: ["public-comments", taskId, organizationId],
-		fetch: {
-			url: `${baseApiUrl}/v1/admin/organization/task/timeline/comments?org_id=${organizationId}&task_id=${taskId}&limit=${commentLimit / 2}`,
-			custom: async (url, pageParam) => {
-				const { fromStart = 1, fromEnd } = pageParam ?? {};
-
-				// Fetch the "start" page first to discover totalPages
-				const firstUrl = `${url}&page=${fromStart}`;
-				const firstRes = await fetch(firstUrl, { credentials: "include" });
-				if (!firstRes.ok) throw new Error(`Failed: ${firstRes.statusText}`);
-				const firstData = await firstRes.json();
-
-				const totalPages = Number(firstData.pagination?.totalPages ?? 1);
-				const endPage = fromEnd ?? totalPages;
-
-				// If start and end are the same page, skip second fetch
-				let lastData = { data: [] };
-				if (endPage !== fromStart) {
-					const lastUrl = `${url}&page=${endPage}`;
-					const lastRes = await fetch(lastUrl, { credentials: "include" });
-					if (lastRes.ok) lastData = await lastRes.json();
-				}
-
-				// Merge, deduplicate by id, sort chronologically
-				const merged = [...(firstData.data || []), ...(lastData.data || [])];
-				const unique = Array.from(new Map(merged.map((i: CommentData) => [i.id, i])).values()).sort(
-					(a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-				);
-
-				const nextStart = fromStart + 1;
-				const nextEnd = endPage - 1;
-				const hasMore = nextStart <= nextEnd;
-
-				return {
-					data: unique,
-					pagination: {
-						pageFromStart: fromStart,
-						pageFromEnd: endPage,
-						totalPages,
-						hasMore,
-					},
-				};
-			},
-			getNextPageParam: (lastPage) => {
-				const p = lastPage.pagination;
-				if (!p || !p.hasMore) return undefined;
-				return {
-					fromStart: p.pageFromStart + 1,
-					fromEnd: p.pageFromEnd - 1,
-				};
-			},
-		},
-		staleTime: 1000 * 30,
-	});
-
-	// Flatten all pages with deduplication (prefer newer pages)
-	const allComments = useMemo(() => {
-		if (!commentsData) return [];
-		const seen = new Set<string>();
-		const result: CommentData[] = [];
-
-		for (let i = commentsData.length - 1; i >= 0; i--) {
-			const page = commentsData[i];
-			for (const item of page?.data ?? []) {
-				if (!item?.id || seen.has(item.id)) continue;
-				seen.add(item.id);
-				result.push(item);
-			}
-		}
-
-		return result.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-	}, [commentsData]);
 
 	// Split at midpoint for outside-in rendering
 	const halfway = Math.floor(allComments.length / 2);
@@ -235,7 +137,7 @@ export function PublicComments({ taskId, organizationId, taskStatus, tasks: task
 		async (commentId: string, emoji: ReactionEmoji) => {
 			if (!session?.user?.id) return;
 
-			const queryKey = ["public-comments", taskId, organizationId];
+			const queryKey = [...publicCommentsKey(taskId, organizationId)];
 			const userId = session.user.id;
 
 			const previousData = queryClient.getQueryData<InfiniteData<CommentsPage>>(queryKey);
@@ -316,7 +218,7 @@ export function PublicComments({ taskId, organizationId, taskStatus, tasks: task
 				);
 				if (result.success) {
 					queryClient.invalidateQueries({
-						queryKey: ["public-comments", taskId, organizationId],
+						queryKey: publicCommentsKey(taskId, organizationId),
 					});
 					return true;
 				}
@@ -344,7 +246,7 @@ export function PublicComments({ taskId, organizationId, taskStatus, tasks: task
 				const result = await DeleteTaskCommentAction(organizationId, taskId, commentId, sseClientId);
 				if (result.success) {
 					queryClient.invalidateQueries({
-						queryKey: ["public-comments", taskId, organizationId],
+						queryKey: publicCommentsKey(taskId, organizationId),
 					});
 					// Also remove cached replies for this comment (cascade delete)
 					queryClient.removeQueries({
@@ -377,120 +279,105 @@ export function PublicComments({ taskId, organizationId, taskStatus, tasks: task
 		[organizationId, taskId, sseClientId, queryClient]
 	);
 
-	const handleSubmitComment = useCallback(async () => {
-		if (!commentContent || isSubmitting) return;
+	const renderComment = (comment: CommentData) => {
+		const replyCount = comment.replyCount ?? 0;
+		const isExpanded = expandedThreads.has(comment.id);
 
-		setIsSubmitting(true);
-		try {
-			const processedContent = await processUploads(
-				commentContent,
-				"public",
-				organizationId,
-				"public-comment-upload"
-			);
-			const result = await CreateTaskCommentAction(organizationId, taskId, processedContent, "public", sseClientId);
-			if (result.success) {
-				setCommentContent(undefined);
-				setEditorKey((k) => k + 1);
-				queryClient.invalidateQueries({
-					queryKey: ["public-comments", taskId, organizationId],
-				});
-			} else {
-				headlessToast.error({
-					title: "Failed to post comment",
-					description: result.error || "Something went wrong.",
-				});
-			}
-		} catch (error) {
-			console.error(error);
-			headlessToast.error({
-				title: "Failed to post comment",
-				description: "Could not post your comment. Please try again.",
-			});
-		} finally {
-			setIsSubmitting(false);
-		}
-	}, [commentContent, isSubmitting, organizationId, taskId, sseClientId, queryClient]);
+		const threadFooter =
+			replyCount > 0 || isExpanded ? (
+				<>
+					<PublicCommentThreadTrigger
+						replyCount={replyCount}
+						replyAuthors={comment.replyAuthors}
+						expanded={isExpanded}
+						onToggle={() => toggleThread(comment.id)}
+					/>
+					{isExpanded && (
+						<PublicCommentThreadBody
+							parentComment={comment}
+							memberHighestTeam={memberHighestTeam}
+							users={orgUsers}
+							currentUserId={session?.user?.id}
+							onEdit={canAct ? handleEditComment : undefined}
+							onDelete={session?.user ? handleDeleteComment : undefined}
+							categories={categories}
+							tasks={tasks}
+							blockedUserIds={blockedUserIds}
+							isOrgMember={isOrgMember}
+							canAct={canAct}
+							authorId={authorId}
+						/>
+					)}
+				</>
+			) : undefined;
+
+		return (
+			<li key={comment.id}>
+				<PublicCommentItem
+					comment={comment}
+					memberTeamName={comment.createdBy ? (memberHighestTeam.get(comment.createdBy.id) ?? null) : null}
+					isAuthor={!!authorId && comment.createdBy?.id === authorId}
+					onToggleReaction={canAct ? handleToggleReaction : undefined}
+					users={orgUsers}
+					currentUserId={session?.user?.id}
+					onEdit={canAct ? handleEditComment : undefined}
+					onDelete={session?.user ? handleDeleteComment : undefined}
+					categories={categories}
+					tasks={tasks}
+					footer={threadFooter}
+					onReply={
+						canAct
+							? () => {
+									if (!expandedThreads.has(comment.id)) {
+										toggleThread(comment.id);
+									}
+								}
+							: undefined
+					}
+					blockedUserIds={blockedUserIds}
+					isOrgMember={isOrgMember}
+				/>
+			</li>
+		);
+	};
 
 	return (
-		<div className="flex flex-col gap-4">
-			{/* Comment list */}
+		<section aria-labelledby="post-conversation-heading">
+			<h2
+				id="post-conversation-heading"
+				className="mb-6 font-semibold text-portal-fg text-xl leading-7 tracking-[-0.018em]"
+			>
+				Conversation
+				{totalCount > 0 && (
+					<span className="ml-2 font-medium text-portal-fg-3 text-sm tracking-normal">{totalCount}</span>
+				)}
+			</h2>
+
 			{isLoading ? (
-				<div className="flex items-center justify-center py-8">
-					<IconLoader2 className="animate-spin text-muted-foreground" />
+				<div aria-busy className="flex flex-col gap-7">
+					{[0, 1].map((key) => (
+						<div key={key} className="flex gap-3">
+							<Skeleton className="size-8 shrink-0 rounded-full bg-portal-raised" />
+							<div className="flex-1 space-y-2 pt-1">
+								<Skeleton className="h-3.5 w-32 bg-portal-raised" />
+								<Skeleton className="h-3.5 w-4/5 bg-portal-raised" />
+							</div>
+						</div>
+					))}
 				</div>
 			) : allComments.length === 0 ? (
-				<div className="text-muted-foreground text-sm py-4 text-center border rounded-xl bg-card/50 border-dashed">
-					No comments yet. Be the first to comment!
-				</div>
+				<p className="rounded-portal-lg border border-portal-line-2 border-dashed px-4 py-6 text-center text-[13.5px] text-portal-fg-2">
+					No comments yet. Start the conversation.
+				</p>
 			) : (
-				<div className="flex flex-col gap-3">
+				<ul className="flex flex-col gap-7">
 					{/* Top (oldest) comments */}
-					{topComments.map((comment) => {
-						const replyCount = comment.replyCount ?? 0;
-						const isExpanded = expandedThreads.has(comment.id);
-
-						const threadFooter =
-							replyCount > 0 || isExpanded ? (
-								<>
-									<PublicCommentThreadTrigger
-										replyCount={replyCount}
-										replyAuthors={comment.replyAuthors}
-										expanded={isExpanded}
-										onToggle={() => toggleThread(comment.id)}
-									/>
-									{isExpanded && (
-										<PublicCommentThreadBody
-											parentComment={comment}
-											memberHighestTeam={memberHighestTeam}
-											users={orgUsers}
-											currentUserId={session?.user?.id}
-											onEdit={canAct ? handleEditComment : undefined}
-											onDelete={session?.user ? handleDeleteComment : undefined}
-											categories={categories}
-											tasks={tasks}
-											blockedUserIds={blockedUserIds}
-											isOrgMember={isOrgMember}
-											canAct={canAct}
-										/>
-									)}
-								</>
-							) : undefined;
-
-						return (
-							<PublicCommentItem
-								key={comment.id}
-								comment={comment}
-								memberTeamName={
-									comment.createdBy ? (memberHighestTeam.get(comment.createdBy.id) ?? null) : null
-								}
-								onToggleReaction={canAct ? handleToggleReaction : undefined}
-								users={orgUsers}
-								currentUserId={session?.user?.id}
-								onEdit={canAct ? handleEditComment : undefined}
-								onDelete={session?.user ? handleDeleteComment : undefined}
-								categories={categories}
-								tasks={tasks}
-								footer={threadFooter}
-								onReply={
-									canAct
-										? () => {
-												if (!expandedThreads.has(comment.id)) {
-													toggleThread(comment.id);
-												}
-											}
-										: undefined
-								}
-								blockedUserIds={blockedUserIds}
-								isOrgMember={isOrgMember}
-							/>
-						);
-					})}
+					{topComments.map(renderComment)}
 
 					{/* Load more in the middle */}
 					{hasNextPage && (
-						<div className="flex justify-center py-4 my-2 border-t border-b border-dashed">
-							<Button
+						<li className="flex justify-center border-portal-line border-y border-dashed py-3">
+							<PortalButton
 								variant="ghost"
 								className="w-full"
 								onClick={() => fetchNextPage()}
@@ -498,121 +385,28 @@ export function PublicComments({ taskId, organizationId, taskStatus, tasks: task
 							>
 								{isFetchingNextPage ? (
 									<>
-										<IconLoader2 className="animate-spin size-4 mr-2" />
+										<IconLoader2 aria-hidden className="animate-spin" />
 										Loading...
 									</>
 								) : (
 									"Load more comments"
 								)}
-							</Button>
-						</div>
+							</PortalButton>
+						</li>
 					)}
 
 					{/* Bottom (newest) comments */}
-					{bottomComments.map((comment) => {
-						const replyCount = comment.replyCount ?? 0;
-						const isExpanded = expandedThreads.has(comment.id);
-
-						const threadFooter =
-							replyCount > 0 || isExpanded ? (
-								<>
-									<PublicCommentThreadTrigger
-										replyCount={replyCount}
-										replyAuthors={comment.replyAuthors}
-										expanded={isExpanded}
-										onToggle={() => toggleThread(comment.id)}
-									/>
-									{isExpanded && (
-										<PublicCommentThreadBody
-											parentComment={comment}
-											memberHighestTeam={memberHighestTeam}
-											users={orgUsers}
-											currentUserId={session?.user?.id}
-											onEdit={canAct ? handleEditComment : undefined}
-											onDelete={session?.user ? handleDeleteComment : undefined}
-											categories={categories}
-											tasks={tasks}
-											blockedUserIds={blockedUserIds}
-											isOrgMember={isOrgMember}
-											canAct={canAct}
-										/>
-									)}
-								</>
-							) : undefined;
-
-						return (
-							<PublicCommentItem
-								key={comment.id}
-								comment={comment}
-								memberTeamName={
-									comment.createdBy ? (memberHighestTeam.get(comment.createdBy.id) ?? null) : null
-								}
-								onToggleReaction={canAct ? handleToggleReaction : undefined}
-								users={orgUsers}
-								currentUserId={session?.user?.id}
-								onEdit={canAct ? handleEditComment : undefined}
-								onDelete={session?.user ? handleDeleteComment : undefined}
-								categories={categories}
-								tasks={tasks}
-								footer={threadFooter}
-								onReply={
-									canAct
-										? () => {
-												if (!expandedThreads.has(comment.id)) {
-													toggleThread(comment.id);
-												}
-											}
-										: undefined
-								}
-								blockedUserIds={blockedUserIds}
-								isOrgMember={isOrgMember}
-							/>
-						);
-					})}
-				</div>
+					{bottomComments.map(renderComment)}
+				</ul>
 			)}
 
-			{/* Comment input */}
-			{canAct ? (
-				<div className="border rounded-xl bg-card overflow-hidden">
-					<Suspense fallback={<div className="h-20 animate-pulse bg-muted rounded" />}>
-						<Editor
-							key={editorKey}
-							firstLinePlaceholder="Write a comment..."
-							className="p-3 pb-0 bg-transparent"
-							onChange={setCommentContent}
-							submit={handleSubmitComment}
-							categories={categories}
-							tasks={tasks}
-							hideBlockHandle
-						/>
-					</Suspense>
-					<div className="flex items-center justify-end px-3 pb-3">
-						<Button
-							variant="primary"
-							size="sm"
-							onClick={handleSubmitComment}
-							disabled={isSubmitting || !commentContent}
-						>
-							{isSubmitting ? (
-								<IconLoader2 className="animate-spin size-4" />
-							) : (
-								<IconArrowBack className="size-4" />
-							)}
-						</Button>
-					</div>
-				</div>
-			) : (
-				<div className="border rounded-xl p-6 bg-card/50 border-dashed text-center">
-					<p className="text-muted-foreground text-sm">
-						{!session?.user
-							? "Sign in to leave a comment."
-							: taskStatus === "done" || taskStatus === "canceled"
-								? "This task is closed. Comments are disabled."
-								: "This organization has disabled public actions."}
-					</p>
-				</div>
-			)}
-		</div>
+			<PostCommentComposer
+				className="mt-8"
+				taskId={taskId}
+				organizationId={organizationId}
+				taskStatus={taskStatus}
+				tasks={tasks}
+			/>
+		</section>
 	);
 }

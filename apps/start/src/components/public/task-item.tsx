@@ -1,176 +1,138 @@
 import type { schema } from "@repo/database";
 import { cn } from "@repo/ui/lib/utils";
-import { extractHslValues, extractTaskText, formatCount, formatDateCompact, formatTaskKey } from "@repo/util";
-import { IconCalendar, IconChevronUp, IconCircleFilled, IconMessage } from "@tabler/icons-react";
-import { nanoid } from "nanoid";
-import { statusConfig } from "@/components/tasks/shared/config";
-import RenderIcon from "@/components/generic/RenderIcon";
-import { Tile, TileAction, TileDescription, TileHeader, TileTitle } from "@repo/ui/components/doras-ui/tile";
-import { Label } from "@repo/ui/components/label";
-import { Button } from "@repo/ui/components/button";
-import { InlineLabel } from "../tasks/shared/inlinelabel";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@repo/ui/components/tooltip";
+import { IconBrandGithub, IconMessage } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
+import { memo, type MouseEvent } from "react";
 import { usePublicOrganizationLayout } from "@/contexts/publicContextOrg";
+import { buildExcerpt } from "@/lib/portal/excerpt";
+import { formatBoardTime, formatShortName } from "@/lib/portal/board-row";
+import { isTeamMember } from "@/lib/portal/team";
+import { CategoryTag } from "./portal/ui/CategoryTag";
+import { LabelTag } from "./portal/ui/LabelTag";
+import { ListRow } from "./portal/ui/ListContainer";
+import { PortalAvatar } from "./portal/ui/PortalAvatar";
+import { ReleaseTag } from "./portal/ui/ReleaseTag";
+import { StatusChip } from "./portal/ui/StatusChip";
+import { VoteBox } from "./portal/ui/VoteBox";
+import { useBoardVote } from "./portal/board/useBoardVote";
 
-interface PublicTaskItemProps {
+export interface PublicTaskItemProps {
 	task: schema.TaskWithLabels;
-	categories?: schema.categoryType[];
-	voted?: boolean;
-	onVote?: () => void;
+	categories: ReadonlyArray<schema.categoryType>;
+	/** The release this post belongs to, when known. The tag is only shown while the post is not done yet. */
+	release?: { name: string } | null;
+	/** Marks the row open in Peek: raised background and an accent bar. */
+	selected?: boolean;
+	/** Compact rows (a post is showing in the board panel) drop the excerpt. */
+	compact?: boolean;
+	/**
+	 * Seam for Peek: called when the row's link is clicked. Call `event.preventDefault()` to stop the navigation to
+	 * `/orgs/$orgSlug/$shortId` (e.g. to open the panel instead); leave the event alone to let the link navigate.
+	 */
+	onOpen?: (task: schema.TaskWithLabels, event: MouseEvent<HTMLAnchorElement>) => void;
 }
 
-export function PublicTaskItem({ task, categories = [], voted, onVote }: PublicTaskItemProps) {
-	const status = statusConfig[task.status as keyof typeof statusConfig];
+/** One post on the board. The whole row is a link; the vote box sits above it and never navigates. */
+function PublicTaskItemBase({
+	task,
+	categories,
+	release,
+	selected = false,
+	compact = false,
+	onOpen,
+}: PublicTaskItemProps) {
 	const { organization } = usePublicOrganizationLayout();
+	const vote = useBoardVote(task);
 
-	const descriptionPreview = extractTaskText(task.description);
-	const taskCommentsCountString = task.comments?.length.toString() || "0";
+	const category = task.category ? categories.find((c) => c.id === task.category) : undefined;
+	const releaseTag = release && task.status !== "done" ? release : null;
+	const labels = task.labels ?? [];
+	const excerpt = compact ? "" : buildExcerpt(task.description);
+	const commentCount = task.comments?.length ?? 0;
+	const creator = task.createdBy ?? null;
+	const creatorName = formatShortName(creator?.displayName || creator?.name);
+	const time = formatBoardTime(task.createdAt);
+
+	const voteProps = {
+		count: vote.voteCount,
+		voted: vote.voted,
+		disabled: vote.disabled,
+		onToggle: vote.toggle,
+	};
 
 	return (
-		<Link
-			to="/orgs/$orgSlug/$shortId"
-			params={{ orgSlug: organization.slug, shortId: String(task.shortId) }}
-			className="block"
-		>
-			<Tile
-				className={cn(
-					"md:w-full flex-col gap-3 items-start p-6 bg-accent hover:bg-secondary border border-transparent",
-					task.status === "done" && "border-success bg-success/15 hover:bg-success/30"
-				)}
-			>
-				<div className="flex items-center justify-between w-full gap-9">
-					<TileHeader className="w-full">
-						<TileTitle asChild>
-							<Label variant={"heading"} className="text-lg font-bold">
-								{task.title}
-							</Label>
-						</TileTitle>
-						{descriptionPreview && (
-							<TileDescription className="text-sm text-muted-foreground line-clamp-2">
-								{descriptionPreview}
-							</TileDescription>
-						)}
-						<div className="flex flex-wrap items-center gap-2">
-							<InlineLabel
-								text={formatDateCompact(task.createdAt as Date)}
-								icon={<IconCalendar className="size-3" />}
-								className=" ps-5 pe-1"
-							/>
-
-							<InlineLabel
-								text={taskCommentsCountString}
-								icon={<IconMessage className="size-3" />}
-								className="rounded-lg ps-5 pe-1"
-							/>
-							<InlineLabel
-								text={status?.label || task.status}
-								icon={status?.icon(cn(status?.className, "size-3"))}
-								className={cn("rounded-lg ps-5 pe-1")}
-								style={{
-									background: `hsla(${extractHslValues(status.hsla)}, 0.1)`,
-								}}
-							/>
-							{(() => {
-								const category = categories.find((c) => c.id === task.category);
-								return category ? (
-									<InlineLabel
-										text={category.name}
-										className={cn("rounded-lg ps-5 pe-1")}
-										style={{
-											background: category.color
-												? `hsla(${extractHslValues(category.color)}, 0.1)`
-												: undefined,
-										}}
-										icon={
-											<RenderIcon
-												iconName={category.icon || "IconCategory"}
-												size={12}
-												color={category.color || undefined}
-												raw
-											/>
-										}
-									/>
-								) : null;
-							})()}
-							{task.labels && task.labels.length > 0 && (
-								<>
-									<InlineLabel
-										text={task.labels[0]?.name || ""}
-										className={cn("rounded-lg ps-5 pe-1")}
-										icon={
-											<IconCircleFilled
-												className={cn("size-3")}
-												style={{
-													color: task.labels[0]?.color || "var(--color-accent)",
-												}}
-											/>
-										}
-									/>
-									{task.labels.length > 1 && (
-										<Tooltip>
-											<TooltipTrigger>
-												<InlineLabel
-													text={`+${task.labels.length - 1} more`}
-													className={cn("bg-accent rounded-lg ps-5 pe-1")}
-													icon={
-														<div className="flex -space-x-1.5">
-															{task.labels.slice(1, 4).map((label) => (
-																<IconCircleFilled
-																	key={label.id + nanoid(5)}
-																	className="size-3"
-																	style={{
-																		color: label.color || "var(--foreground)",
-																	}}
-																/>
-															))}
-														</div>
-													}
-												/>
-											</TooltipTrigger>
-											<TooltipContent className="z-50">
-												{task.labels.map((label) => (
-													<div key={label.id} className="flex items-center gap-1">
-														<IconCircleFilled
-															className="size-3"
-															style={{
-																color: label.color || "var(--foreground)",
-															}}
-														/>
-														<span className="text-sm">{label.name}</span>
-													</div>
-												))}
-											</TooltipContent>
-										</Tooltip>
-									)}
-								</>
-							)}
-							<InlineLabel
-								text={task.shortId != null ? formatTaskKey(organization.shortId, task.shortId) : ""}
-								className="ps-1 pe-1"
-							/>
-						</div>
-					</TileHeader>
-					<TileAction className="justify-center">
-						<Button
-							variant="primary"
-							data-no-propagate
-							onClick={(e) => {
-								e.preventDefault();
-								e.stopPropagation();
-								onVote?.();
-							}}
-							className={cn(
-								"size-12 flex flex-col gap-0 aspect-square border-border font-bold bg-transparent hover:bg-primary/10 hover:border-primary",
-								voted && "border-primary bg-primary/10"
-							)}
-						>
-							<IconChevronUp />
-							{formatCount(task.voteCount)}
-						</Button>
-					</TileAction>
+		<ListRow selected={selected}>
+			<div className={cn("flex gap-3 p-4 md:gap-4 md:py-5 md:pr-6 md:pl-5", compact && "md:py-4 md:pr-5 md:pl-4")}>
+				<div className="relative z-10 shrink-0 self-start">
+					<VoteBox {...voteProps} size="sm" className="md:hidden" />
+					<VoteBox {...voteProps} size="md" className="hidden md:flex" />
 				</div>
-			</Tile>
-		</Link>
+
+				<Link
+					to="/orgs/$orgSlug/$shortId"
+					params={{ orgSlug: organization.slug, shortId: String(task.shortId) }}
+					onClick={(event) => onOpen?.(task, event)}
+					className="block min-w-0 flex-1 outline-none after:absolute after:inset-0 after:content-[''] focus-visible:after:ring-2 focus-visible:after:ring-portal-focus focus-visible:after:ring-inset"
+				>
+					<h3
+						className={cn(
+							"font-semibold text-base leading-[22px] tracking-[-0.011em] md:leading-6",
+							excerpt ? "mb-1 md:mb-0.5" : "mb-2"
+						)}
+					>
+						{task.title}
+					</h3>
+					{excerpt && (
+						<p className="mb-2.5 line-clamp-2 text-[14px] text-portal-fg-2 leading-[21px] md:mb-3 md:leading-[22px]">
+							{excerpt}
+						</p>
+					)}
+					<div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-[13px] text-portal-fg-3 leading-[18px] md:flex-nowrap md:gap-3.5">
+						<span className="flex min-w-0 items-center gap-3.5 md:overflow-hidden">
+							<StatusChip status={task.status} />
+							{category && <CategoryTag category={category} className="hidden md:inline-flex" />}
+							{releaseTag && <ReleaseTag name={releaseTag.name} className="hidden md:inline-flex" />}
+							{!releaseTag && labels[0] && (
+								<span className="hidden items-center gap-1.5 md:inline-flex">
+									<LabelTag label={labels[0]} />
+									{labels.length > 1 && <span className="text-portal-fg-3">+{labels.length - 1}</span>}
+								</span>
+							)}
+						</span>
+						<span className="hidden grow md:block" />
+						<span className="flex shrink-0 items-center gap-3 md:gap-3.5">
+							<span className="inline-flex items-center gap-1.5">
+								<IconMessage aria-hidden className="size-[15px]" stroke={1.75} />
+								<span className="sr-only">Comments: </span>
+								{commentCount}
+							</span>
+							{task.githubIssue && (
+								<span
+									className="hidden items-center md:inline-flex"
+									title={`Linked GitHub issue #${task.githubIssue.issueNumber}`}
+								>
+									<IconBrandGithub aria-hidden className="size-[15px]" stroke={1.75} />
+									<span className="sr-only">Linked GitHub issue</span>
+								</span>
+							)}
+							{creator && creatorName && (
+								<span className="inline-flex items-center gap-[7px]">
+									<PortalAvatar
+										name={creator.displayName || creator.name}
+										image={creator.image}
+										size={20}
+										ring={isTeamMember(creator.id, organization)}
+									/>
+									<span className="font-medium text-portal-fg-2">{creatorName}</span>
+								</span>
+							)}
+							{time && <span className="whitespace-nowrap md:min-w-16 md:text-right">{time}</span>}
+						</span>
+					</div>
+				</Link>
+			</div>
+		</ListRow>
 	);
 }
+
+export const PublicTaskItem = memo(PublicTaskItemBase);

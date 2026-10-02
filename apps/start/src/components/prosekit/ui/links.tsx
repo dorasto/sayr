@@ -8,6 +8,7 @@ import {
 import { Button } from "@repo/ui/components/button";
 import { Preview } from "@repo/ui/components/doras-ui/preview";
 import { normalizeUrl } from "@repo/ui/lib/utils";
+import { isSafeLinkHref } from "@/lib/portal/link-safety";
 import {
   IconExternalLink,
   IconCheck,
@@ -31,6 +32,8 @@ export default function Link(props: ReactMarkViewProps) {
   const href = props.mark.attrs.href as string;
   const isEditable = props.view.editable;
   const normalizedHref = normalizeUrl(href);
+  // Stored links can come from pasted HTML or older content: never render or open a script-capable scheme.
+  const safeHref = isSafeLinkHref(normalizedHref) ? normalizedHref : undefined;
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<Mode>("view");
 
@@ -57,6 +60,8 @@ export default function Link(props: ReactMarkViewProps) {
   };
 
   const handleSave = (newHref?: string) => {
+    // Only http(s) and mailto links are accepted (scheme-less ones get https): ignore anything else.
+    if (newHref && !isSafeLinkHref(normalizeUrl(newHref))) return;
     props.view.focus();
     const range = findLinkRange();
     if (range) {
@@ -107,7 +112,7 @@ export default function Link(props: ReactMarkViewProps) {
 
   const content = (
     <a
-      href={normalizedHref}
+      href={safeHref}
       className="text-primary hover:underline"
       ref={props.contentRef}
     />
@@ -145,7 +150,9 @@ export default function Link(props: ReactMarkViewProps) {
               variant="ghost"
               size="sm"
               className="h-8 gap-1"
-              onClick={() => window.open(normalizedHref, "_blank", "noopener")}
+              onClick={() => {
+                if (safeHref) window.open(safeHref, "_blank", "noopener");
+              }}
               title="Open link"
             >
               <IconExternalLink className="size-3.5" />

@@ -308,6 +308,7 @@ Before adding a new type, function, component, or utility anywhere in this repo:
 |---|---|
 | `page-header/` | `PageHeader` component (identity + toolbar zones), `UnifiedTaskView` integration, single-org vs cross-org patterns |
 | `page-component/` | `Page` layout + panel system (`IndentDrawer`, `sidebar-store`) — adding/toggling/resizing a side panel |
+| `public-portal/` | Public org portal (SAY-81): routes, `.portal` tokens, `portal/ui` primitives, `lib/portal` logic, shared hooks/query keys, Peek and which pages use which panel |
 | `board/` | The reusable cross-org task board (`apps/start/src/components/board/`) — rendering, fields, grouping, filtering, layout, command palette |
 | `board-saved-views/` | Personal saved views on the board — global store, breadcrumb switcher + panel header, dirty-state reset/update, Favourites sidebar |
 | `command-palette/` | Cmd+K command palette — registering commands, sub-views, auto-drill, badges |

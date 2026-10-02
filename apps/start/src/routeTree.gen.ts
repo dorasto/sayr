@@ -40,7 +40,10 @@ import { Route as adminOrgIdIndexRouteImport } from './routes/(admin)/$orgId/ind
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as adminSettingsConnectionsRouteRouteImport } from './routes/(admin)/settings/connections/route'
 import { Route as adminOrgIdTasksRouteRouteImport } from './routes/(admin)/$orgId/tasks/route'
+import { Route as OrgsOrgSlugRoadmapIndexRouteImport } from './routes/orgs/$orgSlug/roadmap/index'
 import { Route as OrgsOrgSlugReleasesIndexRouteImport } from './routes/orgs/$orgSlug/releases/index'
+import { Route as OrgsOrgSlugNewIndexRouteImport } from './routes/orgs/$orgSlug/new/index'
+import { Route as OrgsOrgSlugActivityIndexRouteImport } from './routes/orgs/$orgSlug/activity/index'
 import { Route as OrgsOrgSlugShortIdIndexRouteImport } from './routes/orgs/$orgSlug/$shortId/index'
 import { Route as adminSettingsSecurityIndexRouteImport } from './routes/(admin)/settings/security/index'
 import { Route as adminSettingsConnectionsIndexRouteImport } from './routes/(admin)/settings/connections/index'
@@ -226,10 +229,26 @@ const adminOrgIdTasksRouteRoute = adminOrgIdTasksRouteRouteImport.update({
   path: '/tasks',
   getParentRoute: () => adminOrgIdRouteRoute,
 } as any)
+const OrgsOrgSlugRoadmapIndexRoute = OrgsOrgSlugRoadmapIndexRouteImport.update({
+  id: '/roadmap/',
+  path: '/roadmap/',
+  getParentRoute: () => OrgsOrgSlugRouteRoute,
+} as any)
 const OrgsOrgSlugReleasesIndexRoute =
   OrgsOrgSlugReleasesIndexRouteImport.update({
     id: '/releases/',
     path: '/releases/',
+    getParentRoute: () => OrgsOrgSlugRouteRoute,
+  } as any)
+const OrgsOrgSlugNewIndexRoute = OrgsOrgSlugNewIndexRouteImport.update({
+  id: '/new/',
+  path: '/new/',
+  getParentRoute: () => OrgsOrgSlugRouteRoute,
+} as any)
+const OrgsOrgSlugActivityIndexRoute =
+  OrgsOrgSlugActivityIndexRouteImport.update({
+    id: '/activity/',
+    path: '/activity/',
     getParentRoute: () => OrgsOrgSlugRouteRoute,
   } as any)
 const OrgsOrgSlugShortIdIndexRoute = OrgsOrgSlugShortIdIndexRouteImport.update({
@@ -446,7 +465,10 @@ export interface FileRoutesByFullPath {
   '/settings/connections/': typeof adminSettingsConnectionsIndexRoute
   '/settings/security/': typeof adminSettingsSecurityIndexRoute
   '/orgs/$orgSlug/$shortId/': typeof OrgsOrgSlugShortIdIndexRoute
+  '/orgs/$orgSlug/activity/': typeof OrgsOrgSlugActivityIndexRoute
+  '/orgs/$orgSlug/new/': typeof OrgsOrgSlugNewIndexRoute
   '/orgs/$orgSlug/releases/': typeof OrgsOrgSlugReleasesIndexRoute
+  '/orgs/$orgSlug/roadmap/': typeof OrgsOrgSlugRoadmapIndexRoute
   '/$orgId/tasks/$taskShortId/': typeof adminOrgIdTasksTaskShortIdIndexRoute
   '/settings/org/$orgId/': typeof adminSettingsOrgOrgIdIndexRoute
   '/orgs/$orgSlug/releases/$releaseSlug/': typeof OrgsOrgSlugReleasesReleaseSlugIndexRoute
@@ -498,7 +520,10 @@ export interface FileRoutesByTo {
   '/settings/connections': typeof adminSettingsConnectionsIndexRoute
   '/settings/security': typeof adminSettingsSecurityIndexRoute
   '/orgs/$orgSlug/$shortId': typeof OrgsOrgSlugShortIdIndexRoute
+  '/orgs/$orgSlug/activity': typeof OrgsOrgSlugActivityIndexRoute
+  '/orgs/$orgSlug/new': typeof OrgsOrgSlugNewIndexRoute
   '/orgs/$orgSlug/releases': typeof OrgsOrgSlugReleasesIndexRoute
+  '/orgs/$orgSlug/roadmap': typeof OrgsOrgSlugRoadmapIndexRoute
   '/$orgId/tasks/$taskShortId': typeof adminOrgIdTasksTaskShortIdIndexRoute
   '/settings/org/$orgId': typeof adminSettingsOrgOrgIdIndexRoute
   '/orgs/$orgSlug/releases/$releaseSlug': typeof OrgsOrgSlugReleasesReleaseSlugIndexRoute
@@ -562,7 +587,10 @@ export interface FileRoutesById {
   '/(admin)/settings/connections/': typeof adminSettingsConnectionsIndexRoute
   '/(admin)/settings/security/': typeof adminSettingsSecurityIndexRoute
   '/orgs/$orgSlug/$shortId/': typeof OrgsOrgSlugShortIdIndexRoute
+  '/orgs/$orgSlug/activity/': typeof OrgsOrgSlugActivityIndexRoute
+  '/orgs/$orgSlug/new/': typeof OrgsOrgSlugNewIndexRoute
   '/orgs/$orgSlug/releases/': typeof OrgsOrgSlugReleasesIndexRoute
+  '/orgs/$orgSlug/roadmap/': typeof OrgsOrgSlugRoadmapIndexRoute
   '/(admin)/$orgId/tasks/$taskShortId/': typeof adminOrgIdTasksTaskShortIdIndexRoute
   '/(admin)/settings/org/$orgId/': typeof adminSettingsOrgOrgIdIndexRoute
   '/orgs/$orgSlug/releases/$releaseSlug/': typeof OrgsOrgSlugReleasesReleaseSlugIndexRoute
@@ -626,7 +654,10 @@ export interface FileRouteTypes {
     | '/settings/connections/'
     | '/settings/security/'
     | '/orgs/$orgSlug/$shortId/'
+    | '/orgs/$orgSlug/activity/'
+    | '/orgs/$orgSlug/new/'
     | '/orgs/$orgSlug/releases/'
+    | '/orgs/$orgSlug/roadmap/'
     | '/$orgId/tasks/$taskShortId/'
     | '/settings/org/$orgId/'
     | '/orgs/$orgSlug/releases/$releaseSlug/'
@@ -678,7 +709,10 @@ export interface FileRouteTypes {
     | '/settings/connections'
     | '/settings/security'
     | '/orgs/$orgSlug/$shortId'
+    | '/orgs/$orgSlug/activity'
+    | '/orgs/$orgSlug/new'
     | '/orgs/$orgSlug/releases'
+    | '/orgs/$orgSlug/roadmap'
     | '/$orgId/tasks/$taskShortId'
     | '/settings/org/$orgId'
     | '/orgs/$orgSlug/releases/$releaseSlug'
@@ -741,7 +775,10 @@ export interface FileRouteTypes {
     | '/(admin)/settings/connections/'
     | '/(admin)/settings/security/'
     | '/orgs/$orgSlug/$shortId/'
+    | '/orgs/$orgSlug/activity/'
+    | '/orgs/$orgSlug/new/'
     | '/orgs/$orgSlug/releases/'
+    | '/orgs/$orgSlug/roadmap/'
     | '/(admin)/$orgId/tasks/$taskShortId/'
     | '/(admin)/settings/org/$orgId/'
     | '/orgs/$orgSlug/releases/$releaseSlug/'
@@ -998,11 +1035,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof adminOrgIdTasksRouteRouteImport
       parentRoute: typeof adminOrgIdRouteRoute
     }
+    '/orgs/$orgSlug/roadmap/': {
+      id: '/orgs/$orgSlug/roadmap/'
+      path: '/roadmap'
+      fullPath: '/orgs/$orgSlug/roadmap/'
+      preLoaderRoute: typeof OrgsOrgSlugRoadmapIndexRouteImport
+      parentRoute: typeof OrgsOrgSlugRouteRoute
+    }
     '/orgs/$orgSlug/releases/': {
       id: '/orgs/$orgSlug/releases/'
       path: '/releases'
       fullPath: '/orgs/$orgSlug/releases/'
       preLoaderRoute: typeof OrgsOrgSlugReleasesIndexRouteImport
+      parentRoute: typeof OrgsOrgSlugRouteRoute
+    }
+    '/orgs/$orgSlug/new/': {
+      id: '/orgs/$orgSlug/new/'
+      path: '/new'
+      fullPath: '/orgs/$orgSlug/new/'
+      preLoaderRoute: typeof OrgsOrgSlugNewIndexRouteImport
+      parentRoute: typeof OrgsOrgSlugRouteRoute
+    }
+    '/orgs/$orgSlug/activity/': {
+      id: '/orgs/$orgSlug/activity/'
+      path: '/activity'
+      fullPath: '/orgs/$orgSlug/activity/'
+      preLoaderRoute: typeof OrgsOrgSlugActivityIndexRouteImport
       parentRoute: typeof OrgsOrgSlugRouteRoute
     }
     '/orgs/$orgSlug/$shortId/': {
@@ -1411,14 +1469,20 @@ const adminRouteRouteWithChildren = adminRouteRoute._addFileChildren(
 interface OrgsOrgSlugRouteRouteChildren {
   OrgsOrgSlugIndexRoute: typeof OrgsOrgSlugIndexRoute
   OrgsOrgSlugShortIdIndexRoute: typeof OrgsOrgSlugShortIdIndexRoute
+  OrgsOrgSlugActivityIndexRoute: typeof OrgsOrgSlugActivityIndexRoute
+  OrgsOrgSlugNewIndexRoute: typeof OrgsOrgSlugNewIndexRoute
   OrgsOrgSlugReleasesIndexRoute: typeof OrgsOrgSlugReleasesIndexRoute
+  OrgsOrgSlugRoadmapIndexRoute: typeof OrgsOrgSlugRoadmapIndexRoute
   OrgsOrgSlugReleasesReleaseSlugIndexRoute: typeof OrgsOrgSlugReleasesReleaseSlugIndexRoute
 }
 
 const OrgsOrgSlugRouteRouteChildren: OrgsOrgSlugRouteRouteChildren = {
   OrgsOrgSlugIndexRoute: OrgsOrgSlugIndexRoute,
   OrgsOrgSlugShortIdIndexRoute: OrgsOrgSlugShortIdIndexRoute,
+  OrgsOrgSlugActivityIndexRoute: OrgsOrgSlugActivityIndexRoute,
+  OrgsOrgSlugNewIndexRoute: OrgsOrgSlugNewIndexRoute,
   OrgsOrgSlugReleasesIndexRoute: OrgsOrgSlugReleasesIndexRoute,
+  OrgsOrgSlugRoadmapIndexRoute: OrgsOrgSlugRoadmapIndexRoute,
   OrgsOrgSlugReleasesReleaseSlugIndexRoute:
     OrgsOrgSlugReleasesReleaseSlugIndexRoute,
 }

@@ -19,6 +19,12 @@ export interface CommentData {
 	replyCount?: number;
 	latestReplyAuthor?: { id: string; name: string; image: string | null; displayName?: string | null } | null;
 	replyAuthors?: { id: string; name: string; image: string | null; displayName?: string | null }[];
+	/** Where the comment was written. GitHub-synced comments have no `createdBy`. */
+	source?: "sayr" | "github" | null;
+	/** GitHub login of the author, set on GitHub-synced comments. */
+	externalAuthorLogin?: string | null;
+	/** GitHub profile URL of the author, set on GitHub-synced comments. */
+	externalAuthorUrl?: string | null;
 }
 
 export interface CommentsPage {
@@ -28,12 +34,17 @@ export interface CommentsPage {
 		pageFromEnd: number;
 		totalPages: number;
 		hasMore: boolean;
+		/** Total top-level comments on the task (all pages). */
+		totalItems?: number;
 	};
 }
 
 export interface PublicCommentItemProps {
 	comment: CommentData;
+	/** Highest team the author belongs to. Any non-null value marks the author as a team member (Team pill + ring). */
 	memberTeamName: string | null;
+	/** The comment's author wrote the post itself (shows the Author pill). Never set on GitHub-origin comments. */
+	isAuthor?: boolean;
 	onToggleReaction?: (commentId: string, emoji: ReactionEmoji) => void;
 	users: schema.userType[];
 	currentUserId?: string;

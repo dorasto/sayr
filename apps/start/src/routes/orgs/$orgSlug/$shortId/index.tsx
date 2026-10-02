@@ -5,18 +5,14 @@ import {
 	getTaskByShortId,
 	getTaskComments,
 } from "@repo/database";
-import { Button } from "@repo/ui/components/button";
-import { cn } from "@repo/ui/lib/utils";
 import { formatTaskKey } from "@repo/util";
-import { IconArrowLeft, IconLayoutSidebarRight, IconLayoutSidebarRightFilled } from "@tabler/icons-react";
-import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import type { NodeJSON } from "prosekit/core";
-import { usePage, usePanel } from "@/components/generic/use-page";
 import { type LLMOComment, LLMOContent } from "@/components/llmo/llmo-content";
-import { PUBLIC_TASK_PANEL_ID, PublicTaskContent } from "@/components/public/public-task-content";
+import { PostNotAvailable } from "@/components/public/portal/post/PostNotAvailable";
+import { PublicTaskContent } from "@/components/public/public-task-content";
 import { prosekitHtmlFromJSON } from "@/lib/prosekit-ssr";
-import { sidebarActions } from "@/lib/sidebar/sidebar-store";
 import { extractTextContent } from "@/lib/util";
 import { getOgImageUrl, seo } from "@/seo";
 
@@ -244,31 +240,9 @@ export const Route = createFileRoute("/orgs/$orgSlug/$shortId/")({
 function RouteComponent() {
 	const { task, release, descriptionHtml, commentsHtml, org } = Route.useLoaderData();
 	const { orgSlug } = Route.useParams();
-	const { closePanel } = usePage();
-	const panel = usePanel(PUBLIC_TASK_PANEL_ID);
-	const panelOpen = panel.isOpen;
 
 	if (!task) {
-		return (
-			<div className="via-surface to-surface flex min-h-[60vh] items-center justify-center bg-[conic-gradient(at_bottom_left,var(--tw-gradient-stops))] from-primary">
-				<div className="mx-auto max-w-xl text-center text-white">
-					<h1 className="text-5xl font-black">Task Not Available</h1>
-
-					<p className="mb-7 mt-3">
-						Sorry, this task could not be found or isn't publicly available. It may have been removed, or the link
-						is incorrect.
-					</p>
-
-					<div className="flex place-content-center items-center gap-3">
-						<a href="/">
-							<Button className="border-surface-100! text-surface-100 w-full p-4 font-bold">
-								Back to organization
-							</Button>
-						</a>
-					</div>
-				</div>
-			</div>
-		);
+		return <PostNotAvailable orgSlug={orgSlug} />;
 	}
 
 	return (
@@ -291,29 +265,6 @@ function RouteComponent() {
 				url={`https://${org?.slug}.${import.meta.env.VITE_ROOT_DOMAIN}/${task.shortId}`}
 			/>
 
-			{/* Top bar */}
-			<div className="flex items-center justify-between h-11 shrink-0 border-b px-3">
-				<Link to={`/orgs/$orgSlug`} params={{ orgSlug: orgSlug }}>
-					<Button variant="ghost" className="w-fit text-xs p-1 h-auto rounded-lg" size="sm">
-						<IconArrowLeft className="size-3!" />
-						Back
-					</Button>
-				</Link>
-				<Button
-					variant="accent"
-					className={cn("gap-2 h-6 w-fit bg-accent border-transparent p-1", !panelOpen && "bg-transparent")}
-					onClick={() =>
-						panelOpen ? closePanel(PUBLIC_TASK_PANEL_ID) : sidebarActions.setOpen(PUBLIC_TASK_PANEL_ID, true)
-					}
-				>
-					{panelOpen ? (
-						<IconLayoutSidebarRightFilled className="w-3 h-3" />
-					) : (
-						<IconLayoutSidebarRight className="w-3 h-3" />
-					)}
-				</Button>
-			</div>
-			{/* Split pane */}
 			<div className="flex-1 min-h-0">
 				<PublicTaskContent task={task} release={release} />
 			</div>

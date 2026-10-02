@@ -1,43 +1,42 @@
-import { authClient } from "@repo/auth/client";
 import { db, getOrganizationPublic, getReleaseBySlug, schema } from "@repo/database";
 import { getEditionCapabilities } from "@repo/edition";
-import { Badge } from "@repo/ui/components/badge";
-import { Button } from "@repo/ui/components/button";
-import { Tile, TileAction, TileDescription, TileHeader, TileIcon, TileTitle } from "@repo/ui/components/doras-ui/tile";
-import { Label } from "@repo/ui/components/label";
-import { Separator } from "@repo/ui/components/separator";
 import { onWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
 import { cn } from "@repo/ui/lib/utils";
-import { extractTaskText, formatCount } from "@repo/util";
 import {
 	IconArrowLeft,
 	IconArrowUpRight,
 	IconLayoutSidebarRight,
 	IconLayoutSidebarRightFilled,
-	IconMessage,
-	IconTrendingUp,
+	IconRocket,
 } from "@tabler/icons-react";
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { and, eq } from "drizzle-orm";
-import type { NodeJSON } from "prosekit/core";
-import { useEffect, useMemo, useState } from "react";
-import { type AreaChartSeries, SimpleAreaChart } from "@/components/charts";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { Page } from "@/components/generic/page";
 import { usePage, usePanel } from "@/components/generic/use-page";
-import { SubWrapper } from "@/components/generic/wrapper";
-import Editor from "@/components/prosekit/editor";
+import { ReleaseDetailPanelContent } from "@/components/public/portal/releases/ReleaseDetailPanel";
+import { ReleaseHeader } from "@/components/public/portal/releases/ReleaseHeader";
+import { type ReleaseListTask, ReleaseTaskList } from "@/components/public/portal/releases/ReleaseTaskList";
+import { DESCRIPTION_PROSE } from "@/components/public/portal/post/prose";
+import { EmptyState } from "@/components/public/portal/ui/EmptyState";
+import { portalButtonVariants, PortalButton } from "@/components/public/portal/ui/PortalButton";
 import { PublicReleaseDiscussion } from "@/components/public/releases/public-release-discussion";
 import { PublicReleaseStatusUpdates } from "@/components/public/releases/public-release-status-updates";
 import { getReleaseStatusConfig } from "@/components/releases/config";
 import { LinkedGithubPRs } from "@/components/releases/linked-github-prs";
-import { ReleaseStats } from "@/components/releases/release-stats";
-import { statusConfig } from "@/components/tasks/shared/config";
 import { usePublicOrganizationLayout } from "@/contexts/publicContextOrg";
+import { usePanelViewportDefaults } from "@/hooks/portal/usePanelViewportDefaults";
+import { useIsOrgMember } from "@/hooks/useIsOrgMember";
 import { useWSMessageHandler, type WSMessageHandler } from "@/hooks/useWSMessageHandler";
+import { countUserPosts, getFirstParagraphText, getNotesAfterLede, orderReleaseTasks } from "@/lib/portal/release-page";
+import { getReleaseProgress } from "@/lib/portal/release-progress";
+import { findTeamMemberUser } from "@/lib/portal/team";
 import type { ServerEventMessage } from "@/lib/serverEvents";
 import { sidebarActions } from "@/lib/sidebar/sidebar-store";
 import { getOgImageUrl, seo } from "@/seo";
+
+const Editor = lazy(() => import("@/components/prosekit/editor"));
 
 const fetchPublicRelease = createServerFn({ method: "GET" })
 	.inputValidator((data: { orgSlug: string; releaseSlug: string }) => data)
@@ -130,42 +129,12 @@ export const Route = createFileRoute("/orgs/$orgSlug/releases/$releaseSlug/")({
 	component: ReleaseDetailPage,
 });
 
-// Not switched to @repo/util's formatDate/formatDateCompact: those hardcode
-// month: "short" and locale "en-US", whereas this uses month: "long" and the
-// browser's default locale (e.g. "September 18, 2025") — switching would
-// silently change the displayed text.
-function formatDate(date: Date | string | null | undefined): string {
-	if (!date) return "";
-	const d = date instanceof Date ? date : new Date(date);
-	return d.toLocaleDateString(undefined, {
-		year: "numeric",
-		month: "long",
-		day: "numeric",
-	});
-}
-
-type PublicTask = schema.taskType & {
-	labels: schema.labelType[];
-	assignees: Array<{
-		id: string;
-		name: string;
-		image: string | null;
-		createdAt: Date;
-	}>;
-};
-
-const TASK_STATUS_ORDER = ["backlog", "todo", "in-progress", "done", "canceled"] as const;
-
 const PUBLIC_RELEASE_DETAIL_PANEL_ID = "public-release-detail-panel";
 
 function ReleaseDetailPage() {
 	const { release, tasks, org } = Route.useLoaderData();
 	const params = Route.useParams();
 	const orgSlug = params.orgSlug;
-	const { setPanelContent, closePanel } = usePage();
-	const panel = usePanel(PUBLIC_RELEASE_DETAIL_PANEL_ID);
-	const panelOpen = panel.isOpen;
-	const { data: session } = authClient.useSession();
 	const router = useRouter();
 	const { serverEvents, organization } = usePublicOrganizationLayout();
 	const [statusUpdatesRefreshKey, setStatusUpdatesRefreshKey] = useState(0);
@@ -213,412 +182,220 @@ function ReleaseDetailPage() {
 		return unsubscribe;
 	}, [router]);
 
-	const taskStats = useMemo(() => {
-		const COMPLETED_STATUSES = ["done", "canceled"];
-		const completed = tasks.filter((t) => t.status && COMPLETED_STATUSES.includes(t.status)).length;
-		const inProgress = tasks.filter((t) => t.status === "in-progress").length;
-		const todo = tasks.filter((t) => t.status === "todo").length;
-		const backlog = tasks.filter((t) => t.status === "backlog").length;
-		const total = tasks.length;
-		return {
-			total,
-			completed,
-			inProgress,
-			todo,
-			backlog,
-			completionPercentage: total > 0 ? (completed / total) * 100 : 0,
-		};
-	}, [tasks]);
-
-	const progressData = useMemo(() => {
-		if (tasks.length === 0) return [];
-		const COMPLETED_STATUSES = ["done", "canceled"];
-		const now = new Date();
-		let earliestDate = now;
-		for (const task of tasks) {
-			if (task.createdAt) {
-				const created = new Date(task.createdAt);
-				if (created < earliestDate) earliestDate = created;
-			}
-		}
-		const minStartDate = new Date(now);
-		minStartDate.setDate(minStartDate.getDate() - 7);
-		if (earliestDate > minStartDate) earliestDate = minStartDate;
-		earliestDate.setHours(0, 0, 0, 0);
-		const days = Math.ceil((now.getTime() - earliestDate.getTime()) / (1000 * 60 * 60 * 24));
-		const dataPoints: Array<{
-			date: string;
-			completed: number;
-			total: number;
-		}> = [];
-		for (let i = 0; i <= days; i++) {
-			const date = new Date(earliestDate);
-			date.setDate(date.getDate() + i);
-			date.setHours(23, 59, 59, 999);
-			let totalTasks = 0;
-			let completedTasks = 0;
-			for (const task of tasks) {
-				if (!task.createdAt) continue;
-				const taskCreated = new Date(task.createdAt);
-				if (taskCreated <= date) {
-					totalTasks++;
-					if (task.status && COMPLETED_STATUSES.includes(task.status) && task.updatedAt) {
-						const taskCompleted = new Date(task.updatedAt);
-						if (taskCompleted <= date) completedTasks++;
-					}
-				}
-			}
-			dataPoints.push({
-				date: date.toLocaleDateString("en-US", {
-					month: "short",
-					day: "numeric",
-				}),
-				completed: completedTasks,
-				total: totalTasks,
-			});
-		}
-		return dataPoints;
-	}, [tasks]);
-
-	const areaSeries: AreaChartSeries[] = [
-		{
-			key: "total",
-			label: "Total Tasks",
-			color: "hsl(240, 5%, 64%)",
-			type: "area",
-		},
-		{
-			key: "completed",
-			label: "Completed",
-			color: "hsl(142, 76%, 36%)",
-			type: "area",
-		},
-	];
-
-	const daysUntilTarget = useMemo(() => {
-		if (!release?.targetDate) return null;
-		const target = new Date(release.targetDate);
-		const now = new Date();
-		target.setHours(0, 0, 0, 0);
-		now.setHours(0, 0, 0, 0);
-		return Math.round((target.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-	}, [release?.targetDate]);
-
-	// Panel header/body are release-guarded (`panelBody` is `null` without
-	// one) and registered via effect *before* the early return below — an
-	// effect declared after a conditional return changes hook count between
-	// renders. `release` can flip falsy on the same mounted instance (any of
-	// the SSE handlers above call `router.invalidate()`, and the loader
-	// returns a null release if it's deleted or the org disables its public
-	// page), which crashes React with "Rendered fewer hooks than expected."
-	const panelHeader = (
-		<div className="flex items-center gap-2 justify-between w-full">
-			<div className="flex items-center gap-2">
-				<Label className="text-sm font-semibold">Details</Label>
-			</div>
-			{session?.user && org && (
-				<a
-					href={`${import.meta.env.VITE_URL_ROOT}/${org.id}/releases/${params.releaseSlug}`}
-					target="_blank"
-					rel="noopener noreferrer"
-				>
-					<Button variant="ghost" size="sm" className="h-6 gap-1 text-xs text-muted-foreground">
-						<IconArrowUpRight />
-						Open internally
-					</Button>
-				</a>
-			)}
-		</div>
-	);
-
-	const panelBody = release ? (
-		<div className="flex flex-col gap-4">
-			{/* Progress chart */}
-			{tasks.length > 0 && (
-				<Tile className="md:w-full flex-col items-start gap-3">
-					<TileHeader className="w-full">
-						<TileIcon>
-							<IconTrendingUp />
-						</TileIcon>
-						<TileTitle>Release Progress</TileTitle>
-						<TileDescription>
-							{taskStats.completed}/{taskStats.total} tasks completed
-						</TileDescription>
-					</TileHeader>
-					<div className="w-full flex flex-col gap-2">
-						<SimpleAreaChart
-							data={progressData}
-							xKey="date"
-							series={areaSeries}
-							size="md"
-							stacked={false}
-							gradient={true}
-							showGrid={true}
-							formatXAxis={() => ""}
-						/>
-						<ReleaseStats
-							items={[
-								{
-									label: "Completed",
-									value: taskStats.completed,
-									cssVar: "success",
-								},
-								{
-									label: "In Progress",
-									value: taskStats.inProgress,
-									cssVar: "primary",
-								},
-								{
-									label: "To Do",
-									value: taskStats.todo,
-									cssVar: "foreground",
-								},
-								{
-									label: "Backlog",
-									value: taskStats.backlog,
-									cssVar: "muted-foreground",
-								},
-							]}
-						/>
-						{daysUntilTarget !== null && (
-							<div className="pt-2 border-t">
-								<div className="flex flex-col">
-									<span className="text-muted-foreground text-xs">Target Date</span>
-									<span className="font-medium text-sm">
-										{daysUntilTarget > 0
-											? `${daysUntilTarget} days remaining`
-											: daysUntilTarget === 0
-												? "Due today"
-												: `${Math.abs(daysUntilTarget)} days overdue`}
-									</span>
-								</div>
-							</div>
-						)}
-					</div>
-				</Tile>
-			)}
-
-			{/* Status Updates */}
-			<div className="flex flex-col gap-2">
-				<Label variant="subheading">Updates</Label>
-				<PublicReleaseStatusUpdates
-					organizationId={org?.id ?? ""}
-					orgSlug={orgSlug}
-					releaseSlug={params.releaseSlug}
-					releaseId={release.id}
-					refreshKey={statusUpdatesRefreshKey}
-				/>
-			</div>
-			<LinkedGithubPRs
-				organizationId={organization.id}
-				releaseId={release.id}
-				githubPR={release.githubPullRequests?.[0] || null}
-				editable={false}
-			/>
-		</div>
-	) : null;
-
-	// Panel body depends on live release/task/session state — real deps,
-	// not a set-once-on-mount effect. Still gated on isRegistered: Page
-	// defers registering the panel to its client-only pass, so this would
-	// otherwise race it on first mount.
-	useEffect(() => {
-		if (!panel.isRegistered) return;
-		setPanelContent(PUBLIC_RELEASE_DETAIL_PANEL_ID, panelBody);
-	}, [
-		panel.isRegistered,
-		setPanelContent,
-		release,
-		tasks,
-		taskStats,
-		progressData,
-		daysUntilTarget,
-		statusUpdatesRefreshKey,
-		org,
-		organization.id,
-	]);
-
-	if (!release) {
-		return (
-			<SubWrapper backButton={`/orgs/${orgSlug}/releases`} backButtonText="Releases">
-				<p className="text-muted-foreground">Release not found.</p>
-			</SubWrapper>
-		);
-	}
-
-	const cfg = getReleaseStatusConfig(release.status);
-
-	// Group tasks by status
-	const grouped = TASK_STATUS_ORDER.map((status) => ({
-		status,
-		tasks: tasks.filter((t) => t.status === status),
-	})).filter((g) => g.tasks.length > 0);
+	// `release` can flip falsy on a mounted instance (every SSE handler above invalidates the loader, which returns a
+	// null release if it was deleted or the org turned its public page off). Everything with hooks that depend on a
+	// release lives in `ReleaseDetailView`, so this early return never changes a hook count.
+	if (!release) return <ReleaseNotFound orgSlug={orgSlug} />;
 
 	return (
-		<div className="flex flex-col h-full">
-			{/* Top bar */}
-			<div className="flex items-center justify-between h-11 shrink-0 border-b px-3">
-				<Link to={`/orgs/$orgSlug/releases`} params={{ orgSlug }}>
-					<Button variant="ghost" className="w-fit text-xs p-1 h-auto rounded-xl" size="sm">
-						<IconArrowLeft className="size-3!" />
-						Releases
-					</Button>
-				</Link>
-				<Button
-					variant="accent"
-					className={cn("gap-2 h-6 w-fit bg-accent border-transparent p-1", !panelOpen && "bg-transparent")}
-					onClick={() =>
-						panelOpen
-							? closePanel(PUBLIC_RELEASE_DETAIL_PANEL_ID)
-							: sidebarActions.setOpen(PUBLIC_RELEASE_DETAIL_PANEL_ID, true)
+		<ReleaseDetailView
+			release={release}
+			tasks={tasks}
+			orgId={org?.id ?? ""}
+			orgSlug={orgSlug}
+			statusUpdatesRefreshKey={statusUpdatesRefreshKey}
+		/>
+	);
+}
+
+function ReleaseNotFound({ orgSlug }: { orgSlug: string }) {
+	return (
+		<div className="h-full overflow-y-auto">
+			<div className="mx-auto flex w-full max-w-[1120px] justify-center px-4 py-24">
+				<EmptyState
+					icon={<IconRocket className="size-6" />}
+					title="Release not found"
+					description="It may have been removed, or the link is wrong."
+					actions={
+						<Link
+							to="/orgs/$orgSlug/releases"
+							params={{ orgSlug }}
+							className={portalButtonVariants({ size: "md" })}
+						>
+							Back to the changelog
+						</Link>
 					}
-				>
-					{panelOpen ? (
-						<IconLayoutSidebarRightFilled className="w-3 h-3" />
-					) : (
-						<IconLayoutSidebarRight className="w-3 h-3" />
-					)}
-				</Button>
-			</div>
-
-			{/* Split pane */}
-			<div className="flex-1 min-h-0">
-				<Page
-					panels={{
-						right: {
-							id: PUBLIC_RELEASE_DETAIL_PANEL_ID,
-							header: panelHeader,
-							defaultOpen: true,
-							width: "380px",
-						},
-					}}
-					className="h-full"
-				>
-					{/* Left: scrollable content */}
-					<div className="h-full overflow-y-auto">
-						<div className="flex flex-col gap-6 p-6">
-							{/* Title + meta */}
-							<div className="flex flex-col gap-2">
-								<Badge variant="outline" className={cn("w-fit text-xs", cfg?.badgeClassName)}>
-									{cfg?.label}
-								</Badge>
-								<h1 className="text-4xl font-bold tracking-tight">{release.name}</h1>
-								<div className="flex items-center gap-3 flex-wrap">
-									{release.targetDate && release.status !== "released" && (
-										<span className="text-sm text-muted-foreground">
-											Target: {formatDate(release.targetDate)}
-										</span>
-									)}
-									{release.releasedAt && (
-										<span className="text-sm text-muted-foreground">
-											Released: {formatDate(release.releasedAt)}
-										</span>
-									)}
-								</div>
-							</div>
-
-							{/* Description */}
-							{release.description && (
-								<Editor readonly defaultContent={release.description as NodeJSON} hideBlockHandle />
-							)}
-							<div className="flex flex-col gap-3">
-								<Label>Tasks</Label>
-								<Separator />
-							</div>
-							{/* Task list grouped by status */}
-							<div className="flex flex-col gap-1">
-								{grouped.flatMap(({ tasks: groupTasks }) =>
-									groupTasks.map((task) => <TaskRow key={task.id} task={task} orgSlug={orgSlug} />)
-								)}
-							</div>
-
-							{/* Discussion Section */}
-							<div className="flex flex-col gap-3 pt-4">
-								<div className="flex items-center justify-between">
-									<Label variant="subheading">Discussion</Label>
-									<div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-										<IconMessage size={14} />
-										<span>Join the conversation</span>
-									</div>
-								</div>
-								<Separator />
-								<PublicReleaseDiscussion
-									releaseId={release.id}
-									releaseSlug={params.releaseSlug}
-									organizationId={org?.id ?? ""}
-									orgSlug={orgSlug}
-								/>
-							</div>
-						</div>
-					</div>
-				</Page>
+				/>
 			</div>
 		</div>
 	);
 }
 
-function TaskRow({ task, orgSlug }: { task: PublicTask; orgSlug: string }) {
-	const sc = statusConfig[task.status as keyof typeof statusConfig];
-	const descriptionPreview = extractTaskText(task.description);
+function ReleasePageBar({ orgSlug }: { orgSlug: string }) {
+	const panel = usePanel(PUBLIC_RELEASE_DETAIL_PANEL_ID);
+	const { closePanel } = usePage();
 
 	return (
-		<Link
-			to={`/orgs/$orgSlug/$shortId`}
-			params={{ orgSlug, shortId: (task.shortId as unknown as string) || "0" }}
-			className="transition-colors group"
-		>
-			<Tile
-				className="md:w-full hover:bg-accent rounded-xl"
-				style={
-					{
-						// background: `hsla(${extractHslValues(sc.hsla)}, 0.2)`,
-						// border: `1px solid hsla(${extractHslValues(sc.hsla)}, 0.2)`,
-					}
+		<div className="flex h-14 shrink-0 items-center justify-between border-portal-line border-b bg-portal-canvas px-2 md:h-11 md:px-3">
+			<Link
+				to="/orgs/$orgSlug/releases"
+				params={{ orgSlug }}
+				className="inline-flex h-8 items-center gap-2 rounded-portal-sm px-2 font-medium text-[13.5px] text-portal-fg-2 outline-none transition-colors hover:bg-portal-hover hover:text-portal-fg focus-visible:bg-portal-hover focus-visible:text-portal-fg focus-visible:ring-2 focus-visible:ring-portal-focus max-md:h-11 max-md:text-base"
+			>
+				<IconArrowLeft aria-hidden className="size-4" />
+				Changelog
+			</Link>
+			<PortalButton
+				variant="ghost"
+				size="sm"
+				aria-label={panel.isOpen ? "Hide progress and details" : "Show progress and details"}
+				aria-pressed={panel.isOpen}
+				className={cn("w-[30px] px-0 max-md:w-11", panel.isOpen && "bg-portal-raised text-portal-fg")}
+				onClick={() =>
+					panel.isOpen
+						? closePanel(PUBLIC_RELEASE_DETAIL_PANEL_ID)
+						: sidebarActions.setOpen(PUBLIC_RELEASE_DETAIL_PANEL_ID, true)
 				}
 			>
-				<TileHeader className="items-center">
-					<TileIcon
-						className="bg-transparent"
-						style={
-							{
-								// background: `hsla(${extractHslValues(sc.hsla)}, 0.1)`,
-							}
-						}
+				{panel.isOpen ? <IconLayoutSidebarRightFilled /> : <IconLayoutSidebarRight />}
+			</PortalButton>
+		</div>
+	);
+}
+
+function SectionHeading({ children, count }: { children: string; count?: number }) {
+	return (
+		<h2 className="mb-4 font-semibold text-portal-fg text-xl leading-7 tracking-[-0.018em]">
+			{children}
+			{count !== undefined && (
+				<span className="ml-2 font-medium text-portal-fg-3 text-sm tracking-normal">{count}</span>
+			)}
+		</h2>
+	);
+}
+
+/** A public release task as the loader returns it (the "no release" branch returns `[]`, hence the explicit type). */
+interface ReleaseViewTask extends ReleaseListTask {
+	createdBy: string | null;
+	labels: schema.labelType[];
+}
+
+interface ReleaseDetailViewProps {
+	release: NonNullable<ReturnType<typeof Route.useLoaderData>["release"]>;
+	tasks: ReadonlyArray<ReleaseViewTask>;
+	orgId: string;
+	orgSlug: string;
+	statusUpdatesRefreshKey: number;
+}
+
+function ReleaseDetailView({ release, tasks, orgId, orgSlug, statusUpdatesRefreshKey }: ReleaseDetailViewProps) {
+	const { organization, tasks: contextTasks } = usePublicOrganizationLayout();
+	const { setPanelContent } = usePage();
+	const panel = usePanel(PUBLIC_RELEASE_DETAIL_PANEL_ID);
+	const { modal } = usePanelViewportDefaults(PUBLIC_RELEASE_DETAIL_PANEL_ID);
+	const isMember = useIsOrgMember(organization);
+
+	// Won't do (`canceled`) tasks are not part of the release: the list, the progress and the user post count all use
+	// the same set.
+	const orderedTasks = useMemo(() => orderReleaseTasks(tasks, release.status), [tasks, release.status]);
+	const progress = useMemo(() => getReleaseProgress(orderedTasks), [orderedTasks]);
+	const lead = useMemo(() => findTeamMemberUser(release.leadId, organization), [release.leadId, organization]);
+	const userPostCount = useMemo(() => countUserPosts(orderedTasks, organization), [orderedTasks, organization]);
+
+	const lede = useMemo(() => getFirstParagraphText(release.description), [release.description]);
+	const notes = useMemo(() => getNotesAfterLede(release.description), [release.description]);
+
+	// The drawer is plain props, so it is memoised once per input change (an inline literal in the effect's deps would
+	// re-fire it every render — see the page-component skill). Gated on isRegistered: Page registers panels in its
+	// client-only pass, so a plain mount effect would race it and silently no-op.
+	const panelContent = useMemo(
+		() => (
+			<ReleaseDetailPanelContent
+				release={release}
+				progress={progress}
+				lead={lead}
+				userPostCount={userPostCount}
+				pullRequests={
+					<LinkedGithubPRs
+						organizationId={organization.id}
+						releaseId={release.id}
+						githubPR={release.githubPullRequests?.[0] || null}
+						editable={false}
+					/>
+				}
+			/>
+		),
+		[release, progress, lead, userPostCount, organization.id]
+	);
+	useEffect(() => {
+		if (!panel.isRegistered) return;
+		setPanelContent(PUBLIC_RELEASE_DETAIL_PANEL_ID, panelContent);
+	}, [panel.isRegistered, setPanelContent, panelContent]);
+
+	// Native drawer header (title + close button); members also get "Open internally".
+	useEffect(() => {
+		if (!panel.isRegistered) return;
+		sidebarActions.setPanelHeader(PUBLIC_RELEASE_DETAIL_PANEL_ID, {
+			title: "Release details",
+			actions:
+				isMember && orgId ? (
+					<a
+						href={`${import.meta.env.VITE_URL_ROOT}/${orgId}/releases/${release.slug}`}
+						target="_blank"
+						rel="noopener noreferrer"
+						className="inline-flex h-7 items-center gap-1 rounded-md px-2 text-muted-foreground text-xs outline-none transition-colors hover:bg-accent hover:text-foreground focus-visible:bg-accent focus-visible:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
 					>
-						{sc?.icon && sc.icon(`${sc.className}`)}
-					</TileIcon>
-					<TileTitle>{task.title}</TileTitle>
-					<TileDescription className="line-clamp-1">{descriptionPreview}</TileDescription>
-				</TileHeader>
-				<TileAction asChild>
-					<Label variant={"description"} className="shrink-0">
-						{formatCount(task.voteCount)} votes
-					</Label>
-				</TileAction>
-			</Tile>
-			{/*<div className="flex items-center gap-3">
-        <span className="flex-1 min-w-0 text-sm font-medium truncate group-hover:text-foreground">
-          {task.title} asdoif jasodif jasodif jasodif jasodf ijasodif jasodif
-          jaosidjf oasidj fijdf ddddddd
-        </span>
-        <div className="flex items-center gap-3 ml-auto">
-          <span className="shrink-0 text-xs text-muted-foreground">
-            #{task.shortId}
-          </span>
-        </div>
-      </div>
-      <p className="text-sm text-muted-foreground">{descriptionPreview}</p>
-      {sc?.icon && (
-        <InlineLabel
-          text={sc.label}
-          icon={sc.icon(`${sc.className}`)}
-          className="rounded-xl pe-2 w-fit"
-          style={{
-            background: `hsla(${extractHslValues(sc.hsla)}, 0.2)`,
-            border: `1px solid ${sc.hsla}`,
-          }}
-        />
-      )}*/}
-		</Link>
+						<IconArrowUpRight aria-hidden className="size-3.5" />
+						Open internally
+					</a>
+				) : undefined,
+		});
+	}, [panel.isRegistered, isMember, orgId, release.slug]);
+
+	return (
+		<Page
+			header={<ReleasePageBar orgSlug={orgSlug} />}
+			panels={{
+				right: {
+					id: PUBLIC_RELEASE_DETAIL_PANEL_ID,
+					header: { title: "Release details" },
+					defaultOpen: true,
+					width: "380px",
+					modal,
+				},
+			}}
+		>
+			<div className="mx-auto w-full max-w-[760px] px-4 pt-6 pb-12 md:px-6 md:pt-10 md:pb-20">
+				<ReleaseHeader release={release} lede={lede} />
+
+				{notes && (
+					<section className="mt-10">
+						<SectionHeading>Release notes</SectionHeading>
+						<div className={DESCRIPTION_PROSE}>
+							<Suspense fallback={<div className="h-20 animate-pulse rounded bg-portal-raised" />}>
+								<Editor readonly defaultContent={notes} tasks={contextTasks} hideBlockHandle />
+							</Suspense>
+						</div>
+					</section>
+				)}
+
+				<section className="mt-11">
+					<SectionHeading count={progress.total}>What is in it</SectionHeading>
+					<ReleaseTaskList tasks={orderedTasks} orgSlug={orgSlug} orgPrefix={organization.shortId} />
+				</section>
+
+				<div className="mt-12">
+					<PublicReleaseStatusUpdates
+						organizationId={orgId}
+						orgSlug={orgSlug}
+						releaseSlug={release.slug}
+						releaseId={release.id}
+						refreshKey={statusUpdatesRefreshKey}
+					/>
+				</div>
+
+				<hr className="mt-11 mb-7 border-portal-line" />
+
+				<section>
+					<SectionHeading>Discussion</SectionHeading>
+					<PublicReleaseDiscussion
+						releaseId={release.id}
+						releaseSlug={release.slug}
+						organizationId={orgId}
+						orgSlug={orgSlug}
+					/>
+				</section>
+			</div>
+		</Page>
 	);
 }

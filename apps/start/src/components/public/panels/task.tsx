@@ -1,247 +1,199 @@
-import { Button } from "@repo/ui/components/button";
-import { Tile, TileDescription, TileHeader, TileIcon, TileTitle } from "@repo/ui/components/doras-ui/tile";
-import { Label } from "@repo/ui/components/label";
-import { cn } from "@repo/ui/lib/utils";
-import { extractHslValues, formatDate, generateSlug } from "@repo/util";
-import { IconArrowUpRight, IconChevronUp, IconCircleFilled, IconTag } from "@tabler/icons-react";
+import type { schema } from "@repo/database";
+import { formatCount, formatDate, getDisplayName } from "@repo/util";
+import { IconArrowUpRight, IconBrandGithub, IconRocket } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
-import RenderIcon from "@/components/generic/RenderIcon";
-import { getReleaseStatusConfig } from "@/components/releases/config";
-import { InlineLabel } from "@/components/tasks";
-import { priorityConfig, statusConfig } from "@/components/tasks/shared/config";
+import type { ReactNode } from "react";
+import { CategoryTag } from "@/components/public/portal/ui/CategoryTag";
+import { LabelTag } from "@/components/public/portal/ui/LabelTag";
+import { PortalAvatar } from "@/components/public/portal/ui/PortalAvatar";
+import { PortalCard, PortalCardTitle } from "@/components/public/portal/ui/PortalCard";
+import { StatusChip } from "@/components/public/portal/ui/StatusChip";
+import { VoteButton } from "@/components/public/portal/ui/VoteButton";
+import { priorityConfig } from "@/components/tasks/shared/config";
 import { usePublicOrganizationLayout } from "@/contexts/publicContextOrg";
 import { usePublicTask } from "@/contexts/ContextPublicOrgTask";
+import { parseGithubIssueUrl } from "@/lib/portal/github-issue";
+import { findRelatedPosts } from "@/lib/portal/related";
 
-/**
- * "Details" header for the public task detail side panel — org membership
- * gets an "Open internally" shortcut, everyone else just sees the title.
- */
-export function PublicTaskPanelHeader() {
+/** "Open internally" shortcut for org members, rendered in the drawer's native header next to the close button. */
+export function PublicTaskPanelHeaderActions() {
 	const { organization } = usePublicOrganizationLayout();
 	const { task, isMember } = usePublicTask();
 
+	if (!isMember) return null;
+
 	return (
-		<div className="flex items-center gap-3 justify-between w-full">
-			<Label className="text-sm font-semibold">Details</Label>
-			{isMember && (
-				<a
-					href={`${import.meta.env.VITE_URL_ROOT}/${organization.id}/tasks/${task.shortId}`}
-					target="_blank"
-					rel="noopener noreferrer"
-				>
-					<Button variant="ghost" size="sm" className="h-6 gap-1 text-xs text-muted-foreground">
-						<IconArrowUpRight className="" />
-						Open internally
-					</Button>
-				</a>
-			)}
+		<a
+			href={`${import.meta.env.VITE_URL_ROOT}/${organization.id}/tasks/${task.shortId}`}
+			target="_blank"
+			rel="noopener noreferrer"
+			className="inline-flex h-7 items-center gap-1 rounded-md px-2 text-muted-foreground text-xs transition-colors hover:bg-accent focus-visible:bg-accent hover:text-foreground focus-visible:text-foreground"
+		>
+			<IconArrowUpRight aria-hidden className="size-3.5" />
+			Open internally
+		</a>
+	);
+}
+
+function VoteCard() {
+	const { task, isVoted, voteCount, voteDisabled, handleVote } = usePublicTask();
+
+	return (
+		<PortalCard>
+			<div className="mb-1 flex items-baseline gap-2">
+				<span className="font-bold text-4xl text-portal-fg leading-10 tracking-[-0.03em] tabular-nums">
+					{formatCount(voteCount)}
+				</span>
+				<span className="text-portal-fg-2 text-sm">
+					{voteCount === 1 ? "person wants this" : "people want this"}
+				</span>
+			</div>
+			<p className="mb-4 text-portal-fg-3 text-[13px]">
+				{voteDisabled || task.status === "canceled"
+					? "Voting is closed on this post."
+					: "Your vote helps the team decide what to build next."}
+			</p>
+			<VoteButton count={voteCount} voted={isVoted} disabled={voteDisabled} onToggle={handleVote} />
+		</PortalCard>
+	);
+}
+
+function DetailRow({ label, children }: { label: string; children: ReactNode }) {
+	return (
+		<div className="flex min-h-10 items-center justify-between gap-3 border-portal-line border-t py-1 text-[13.5px] first:border-t-0">
+			<dt className="text-portal-fg-3">{label}</dt>
+			<dd className="flex flex-wrap items-center justify-end gap-x-2 gap-y-1 text-right text-portal-fg">
+				{children}
+			</dd>
 		</div>
 	);
 }
 
-/**
- * Vote/status/priority/category/release/label tiles for the public task
- * detail side panel. Pulls everything from `usePublicTask()`/
- * `usePublicOrganizationLayout()` so it only needs to be handed to the panel
- * once — it stays in sync on its own as task/vote state changes.
- */
-export function PublicTaskPanelContent() {
+function DetailsCard() {
 	const { categories } = usePublicOrganizationLayout();
-	const { task, release, orgSlug, isVoted, voteCount, handleVote } = usePublicTask();
+	const { task, release, orgSlug } = usePublicTask();
 
-	const status = statusConfig[task.status as keyof typeof statusConfig];
-	const priority = priorityConfig[task.priority as keyof typeof priorityConfig];
+	const priority = task.priority !== "none" ? priorityConfig[task.priority as keyof typeof priorityConfig] : undefined;
 	const category = categories.find((c) => c.id === task.category);
+	const github = task.githubIssue ? parseGithubIssueUrl(task.githubIssue.issueUrl) : null;
+	const assignees = task.assignees ?? [];
+	const labels = task.labels ?? [];
 
 	return (
-		<div className="flex flex-col gap-0">
-			<div className="flex flex-col gap-1 p-1">
-				{/* Vote button */}
-				<Tile
-					className={cn(
-						"bg-card w-full cursor-pointer select-none hover:bg-accent md:w-full",
-						isVoted ? "text-primary bg-primary/20" : "text-muted-foreground"
-					)}
-					onClick={handleVote}
-				>
-					<TileHeader className="w-full">
-						<div className="flex flex-row gap-3 w-full">
-							<TileTitle className="flex items-center gap-2">
-								<TileIcon className={cn(isVoted ? "text-primary bg-primary/20" : "text-muted-foreground")}>
-									<IconChevronUp />
-								</TileIcon>
-								Votes
-							</TileTitle>
-							<span className="ml-auto text-sm text-muted-foreground font-medium">{voteCount}</span>
-						</div>
-					</TileHeader>
-				</Tile>
-
-				{/* Status */}
-				{status && (
-					<Tile className="bg-card w-full select-none md:w-full">
-						<TileHeader className="w-full">
-							<div className="flex flex-row gap-3 w-full">
-								<TileTitle className="flex items-center gap-2">
-									<TileIcon
-										style={{
-											background: `hsla(${extractHslValues(status.hsla)}, 0.1)`,
-										}}
-									>
-										{status.icon(cn(status.className, "size-4"))}
-									</TileIcon>
-									{status.label || task.status}
-								</TileTitle>
-							</div>
-						</TileHeader>
-					</Tile>
-				)}
-
-				{/* Priority */}
-				{priority && task.priority !== "none" && (
-					<Tile className="bg-card w-full select-none md:w-full">
-						<TileHeader className="w-full">
-							<div className="flex flex-row gap-3 w-full">
-								<TileTitle className="flex items-center gap-2">
-									<TileIcon>{priority.icon(cn(priority.className, "size-4"))}</TileIcon>
-									{priority.label}
-								</TileTitle>
-							</div>
-						</TileHeader>
-					</Tile>
-				)}
-
-				{/* Category */}
+		<PortalCard>
+			<PortalCardTitle>Details</PortalCardTitle>
+			<dl className="flex flex-col">
+				<DetailRow label="Status">
+					<StatusChip status={task.status} />
+				</DetailRow>
+				{priority && <DetailRow label="Priority">{priority.label}</DetailRow>}
 				{category && (
-					<Link to="/orgs/$orgSlug" params={{ orgSlug }} search={{ category: generateSlug(category.name) }}>
-						<Tile className="bg-card w-full select-none hover:bg-accent cursor-pointer md:w-full">
-							<TileHeader className="w-full">
-								<div className="flex flex-row gap-3 w-full">
-									<TileTitle className="flex items-center gap-2">
-										<TileIcon
-											style={{
-												background: category.color
-													? `hsla(${extractHslValues(category.color)}, 0.1)`
-													: undefined,
-											}}
-										>
-											<RenderIcon
-												iconName={category.icon || "IconCategory"}
-												size={16}
-												color={category.color || undefined}
-												raw
-											/>
-										</TileIcon>
-										{category.name}
-									</TileTitle>
-								</div>
-							</TileHeader>
-						</Tile>
-					</Link>
+					<DetailRow label="Category">
+						<CategoryTag category={category} className="text-portal-fg" />
+					</DetailRow>
 				)}
-				{/* Release */}
-				{release &&
-					(() => {
-						const releaseCfg = getReleaseStatusConfig(release.status);
-						const releaseDateLabel = (() => {
-							if (release.status === "released" && release.releasedAt) {
-								return `${formatDate(release.releasedAt)}`;
-							}
-							if (release.targetDate) {
-								return `Target ${formatDate(release.targetDate)}`;
-							}
-							return null;
-						})();
-						return (
-							<Link to="/orgs/$orgSlug/releases/$releaseSlug" params={{ orgSlug, releaseSlug: release.slug }}>
-								<Tile
-									className="bg-card w-full flex-col gap-1 items-start select-none hover:bg-accent cursor-pointer md:w-full"
-									style={{
-										border: `1px solid hsla(${extractHslValues(releaseCfg.hsla)}, 0.5)`,
-									}}
-								>
-									<TileHeader className="w-full gap-3">
-										<div className="flex flex-row gap-3 w-full">
-											<TileTitle className="flex items-center gap-2 w-full min-w-0">
-												<TileIcon>
-													<RenderIcon
-														iconName={release.icon || "IconRocket"}
-														size={16}
-														color={
-															release.status === "released"
-																? releaseCfg.hsla
-																: release.color || undefined
-														}
-														raw
-													/>
-												</TileIcon>
-												<div className="flex flex-col min-w-0 w-full">
-													<div className="flex items-center justify-between gap-2 min-w-0">
-														<span className="truncate min-w-0">{release.name}</span>
-														<span className="shrink-0 font-mono text-xs text-muted-foreground">
-															{release.slug}
-														</span>
-													</div>
-												</div>
-											</TileTitle>
-										</div>
-									</TileHeader>
-									<TileDescription asChild>
-										<div className="flex items-center gap-2">
-											{releaseCfg && (
-												<InlineLabel
-													text={`${releaseCfg.label} ${releaseDateLabel && ` - ${releaseDateLabel}`}`}
-													icon={releaseCfg.icon("size-3")}
-													className={cn(
-														"rounded-xl pe-3 border pointer-events-none",
-														releaseCfg.badgeClassName
-													)}
-												/>
-											)}
-										</div>
-									</TileDescription>
-								</Tile>
-							</Link>
-						);
-					})()}
+				{release && (
+					<DetailRow label="Release">
+						<Link
+							to="/orgs/$orgSlug/releases/$releaseSlug"
+							params={{ orgSlug, releaseSlug: release.slug }}
+							className="inline-flex items-center gap-1.5 font-medium text-portal-accent-ink hover:underline focus-visible:underline"
+						>
+							<IconRocket aria-hidden className="size-3.5" />
+							{release.name}
+						</Link>
+					</DetailRow>
+				)}
+				<DetailRow label={assignees.length > 1 ? "Assignees" : "Assignee"}>
+					{assignees.length > 0 ? (
+						assignees.map((assignee) => (
+							<span key={assignee.id} className="inline-flex items-center gap-2">
+								<PortalAvatar name={getDisplayName(assignee)} image={assignee.image} size={20} />
+								{getDisplayName(assignee)}
+							</span>
+						))
+					) : (
+						<span className="text-portal-fg-3">No one yet</span>
+					)}
+				</DetailRow>
+				{task.githubIssue && (
+					<DetailRow label="GitHub">
+						<a
+							href={task.githubIssue.issueUrl}
+							target="_blank"
+							rel="noopener noreferrer"
+							className="inline-flex items-center gap-1.5 font-medium text-portal-accent-ink hover:underline focus-visible:underline"
+						>
+							<IconBrandGithub aria-hidden className="size-3.5" />
+							{github ? `${github.repo}#${github.number}` : `#${task.githubIssue.issueNumber}`}
+						</a>
+					</DetailRow>
+				)}
+				{labels.length > 0 && (
+					<DetailRow label="Labels">
+						{labels.map((label) => (
+							<LabelTag key={label.id} label={label} className="text-portal-fg" />
+						))}
+					</DetailRow>
+				)}
+				{task.createdAt && <DetailRow label="Posted">{formatDate(task.createdAt, "en-GB")}</DetailRow>}
+				{task.updatedAt && <DetailRow label="Updated">{formatDate(task.updatedAt, "en-GB")}</DetailRow>}
+			</dl>
+		</PortalCard>
+	);
+}
 
-				{/* Labels */}
-				{task.labels && task.labels.length > 0 && (
-					<Tile className="bg-card w-full select-none md:w-full">
-						<TileHeader className="w-full">
-							<div className="flex flex-row gap-3 w-full">
-								<TileTitle className="flex items-start gap-2">
-									<TileIcon>
-										<IconTag className="size-4 text-muted-foreground" />
-									</TileIcon>
-									<div className="flex items-center gap-1.5 flex-wrap">
-										{task.labels.map((label) => (
-											<span
-												key={label.id}
-												className="flex items-center gap-1.5 border rounded-full px-1 pr-2"
-												style={{
-													borderColor: label.color || "var(--border)",
-													backgroundColor: label.color
-														? `hsla(${extractHslValues(label.color)}, 0.1)`
-														: undefined,
-												}}
-											>
-												<IconCircleFilled
-													size={12}
-													style={{
-														color: label.color || "var(--muted-foreground)",
-													}}
-												/>
-												<span>{label.name}</span>
-											</span>
-										))}
-									</div>
-								</TileTitle>
-							</div>
-						</TileHeader>
-					</Tile>
-				)}
-			</div>
+function RelatedPostsCard({ tasks }: { tasks: ReadonlyArray<schema.TaskWithLabels> }) {
+	const { task, orgSlug } = usePublicTask();
+	const related = findRelatedPosts({ id: task.id, category: task.category, labels: task.labels }, tasks);
+
+	if (related.length === 0) return null;
+
+	return (
+		<PortalCard>
+			<PortalCardTitle className="mb-1.5">Related posts</PortalCardTitle>
+			<ul>
+				{related.map((post) => (
+					<li key={post.id} className="border-portal-line border-t first:border-t-0">
+						{post.shortId != null ? (
+							<Link
+								to="/orgs/$orgSlug/$shortId"
+								params={{ orgSlug, shortId: String(post.shortId) }}
+								className="flex gap-3 py-2.5 transition-colors hover:text-portal-accent-ink focus-visible:text-portal-accent-ink"
+							>
+								<span className="min-w-7 pt-px text-center font-semibold text-[13px] text-portal-fg-2 tabular-nums">
+									{formatCount(post.voteCount)}
+								</span>
+								<span className="min-w-0 flex-1">
+									<span className="block font-medium text-sm leading-5 text-portal-fg">{post.title}</span>
+									<span className="mt-1.5 block">
+										<StatusChip status={post.status} />
+									</span>
+								</span>
+							</Link>
+						) : null}
+					</li>
+				))}
+			</ul>
+		</PortalCard>
+	);
+}
+
+interface PublicTaskPanelContentProps {
+	/** The org's public posts, for Related posts. Related hides when none match. */
+	tasks: ReadonlyArray<schema.TaskWithLabels>;
+}
+
+/**
+ * Details drawer for a post: Vote card, Details, Related posts. Reads live state from `usePublicTask()` /
+ * `usePublicOrganizationLayout()`, so it is handed to the panel once (memoised on `tasks`) and stays in sync.
+ */
+export function PublicTaskPanelContent({ tasks }: PublicTaskPanelContentProps) {
+	return (
+		<div className="flex flex-col gap-3 p-1">
+			<VoteCard />
+			<DetailsCard />
+			<RelatedPostsCard tasks={tasks} />
 		</div>
 	);
 }

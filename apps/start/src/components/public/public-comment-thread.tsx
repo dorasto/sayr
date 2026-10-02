@@ -1,17 +1,14 @@
 import { authClient } from "@repo/auth/client";
 import type { schema } from "@repo/database";
-import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
-import { Button } from "@repo/ui/components/button";
 import { headlessToast } from "@repo/ui/components/headless-toast";
-import { Label } from "@repo/ui/components/label";
-import { Separator } from "@repo/ui/components/separator";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
-import { cn } from "@repo/ui/lib/utils";
-import { getDisplayName, getInitials } from "@repo/util";
+import { getDisplayName } from "@repo/util";
 import { IconArrowBack, IconChevronDown, IconChevronUp, IconLoader2 } from "@tabler/icons-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { NodeJSON } from "prosekit/core";
 import { lazy, Suspense, useCallback, useMemo, useState } from "react";
+import { PortalAvatar } from "@/components/public/portal/ui/PortalAvatar";
+import { PortalButton } from "@/components/public/portal/ui/PortalButton";
 import type { ReactionEmoji } from "@/components/tasks/task/timeline/reactions";
 import { CreateTaskCommentAction, CreateTaskReactionAction, FetchCommentRepliesAction } from "@/lib/fetches/task";
 import { extractTextContent } from "@/lib/util";
@@ -21,7 +18,7 @@ import type { CommentData } from "./public-comments-types";
 const Editor = lazy(() => import("@/components/prosekit/editor"));
 
 /**
- * Collapsed thread trigger — rendered inside the parent comment card footer.
+ * Collapsed thread trigger — rendered inside the parent comment's footer.
  * Shows "N replies" with overlapping avatars of unique reply authors.
  */
 const MAX_VISIBLE_AVATARS = 3;
@@ -46,28 +43,31 @@ export function PublicCommentThreadTrigger({
 		<button
 			type="button"
 			onClick={onToggle}
-			className={cn(
-				"flex items-center gap-2 pt-2 mt-2 text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer border-t border-border/50 w-full",
-				replyCount === 0 && "pb-2"
-			)}
+			aria-expanded={expanded}
+			className="mt-2 flex min-h-8 w-fit max-md:min-h-11 cursor-pointer items-center gap-2 rounded-full pr-2 text-[13px] font-medium text-portal-fg-2 outline-none transition-colors hover:text-portal-fg focus-visible:ring-2 focus-visible:ring-portal-focus"
 		>
-			{expanded ? <IconChevronUp size={14} /> : <IconChevronDown size={14} />}
+			{expanded ? (
+				<IconChevronUp aria-hidden className="size-3.5" />
+			) : (
+				<IconChevronDown aria-hidden className="size-3.5" />
+			)}
 			{!expanded && visibleAuthors.length > 0 && (
-				<div className="flex items-center -space-x-1.5">
+				<span className="flex items-center -space-x-1.5">
 					{visibleAuthors.map((author) => (
-						<Avatar key={author.id} className="size-5 border-2 border-background rounded-full">
-							<AvatarImage src={author.image || ""} alt={getDisplayName(author)} />
-							<AvatarFallback className="text-[8px] rounded-full">
-								{getInitials(getDisplayName(author))}
-							</AvatarFallback>
-						</Avatar>
+						<PortalAvatar
+							key={author.id}
+							name={getDisplayName(author)}
+							image={author.image}
+							size={20}
+							className="border-2 border-portal-canvas"
+						/>
 					))}
 					{overflowCount > 0 && (
-						<div className="size-5 rounded-full border-2 border-background bg-muted flex items-center justify-center text-[9px] font-medium text-muted-foreground">
+						<span className="flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-portal-canvas bg-portal-raised px-1 font-medium text-portal-fg-2 text-xs">
 							+{overflowCount}
-						</div>
+						</span>
 					)}
-				</div>
+				</span>
 			)}
 			<span>
 				{expanded ? "Hide" : replyCount} {replyCount === 1 ? "reply" : "replies"}
@@ -91,6 +91,7 @@ export function PublicCommentThreadBody({
 	blockedUserIds,
 	isOrgMember,
 	canAct,
+	authorId,
 	fetchReplies,
 	onPostReply,
 }: {
@@ -106,6 +107,8 @@ export function PublicCommentThreadBody({
 	isOrgMember?: boolean;
 	/** Whether the current user can perform write actions (comment, react, reply). */
 	canAct?: boolean;
+	/** User id of the post's author — replies written by them get the Author pill. */
+	authorId?: string | null;
 	/** Optional custom fetch function for replies (e.g., for release comments). */
 	fetchReplies?: () => Promise<CommentData[]>;
 	/** Optional custom post reply function (e.g., for release comments). */
@@ -141,7 +144,7 @@ export function PublicCommentThreadBody({
 			return repliesRaw as CommentData[];
 		}
 		// Otherwise map from taskTimelineWithActor
-		return repliesRaw.map((r) => ({
+		return (repliesRaw as schema.taskTimelineWithActor[]).map((r) => ({
 			id: r.id,
 			taskId: r.taskId ?? parentComment.taskId,
 			organizationId: r.organizationId,
@@ -150,16 +153,19 @@ export function PublicCommentThreadBody({
 			createdAt: r.createdAt instanceof Date ? r.createdAt.toISOString() : String(r.createdAt ?? ""),
 			updatedAt:
 				r.updatedAt instanceof Date ? r.updatedAt.toISOString() : r.updatedAt ? String(r.updatedAt) : undefined,
-			createdBy: (r as any).actor
+			createdBy: r.actor
 				? {
-						id: (r as any).actor.id,
-						name: (r as any).actor.name,
-						image: (r as any).actor.image,
-						displayName: (r as any).actor.displayName ?? null,
+						id: r.actor.id,
+						name: r.actor.name,
+						image: r.actor.image,
+						displayName: r.actor.displayName ?? null,
 					}
 				: null,
 			reactions: r.reactions as CommentData["reactions"],
 			parentId: r.parentId ?? parentComment.id,
+			source: r.source,
+			externalAuthorLogin: r.externalAuthorLogin,
+			externalAuthorUrl: r.externalAuthorUrl,
 		}));
 	}, [repliesRaw, parentComment.taskId, parentComment.id, fetchReplies]);
 
@@ -242,47 +248,47 @@ export function PublicCommentThreadBody({
 	);
 
 	return (
-		<div>
+		<div className="mt-3 border-l-2 border-portal-line pl-5">
 			{isLoading ? (
-				<div className="flex items-center gap-2 py-3 px-4">
-					<IconLoader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-					<Label variant="description">Loading replies...</Label>
+				<div className="flex items-center gap-2 py-2 text-[13px] text-portal-fg-3">
+					<IconLoader2 aria-hidden className="size-4 animate-spin" />
+					Loading replies...
 				</div>
 			) : (
-				<div className="flex flex-col">
-					{replies.map((reply, index) => (
-						<div key={reply.id}>
-							{index > 0 && <Separator className="opacity-50" />}
-							<PublicCommentItem
-								comment={reply}
-								memberTeamName={reply.createdBy ? (memberHighestTeam.get(reply.createdBy.id) ?? null) : null}
-								onToggleReaction={canAct ? handleReplyReaction : undefined}
-								users={users}
-								currentUserId={currentUserId}
-								onEdit={onEdit}
-								onDelete={onDelete}
-								categories={categories}
-								tasks={tasks}
-								isReply
-								blockedUserIds={blockedUserIds}
-								isOrgMember={isOrgMember}
-							/>
-						</div>
-					))}
-				</div>
+				replies.length > 0 && (
+					<ul className="flex flex-col gap-[18px]">
+						{replies.map((reply) => (
+							<li key={reply.id}>
+								<PublicCommentItem
+									comment={reply}
+									memberTeamName={reply.createdBy ? (memberHighestTeam.get(reply.createdBy.id) ?? null) : null}
+									isAuthor={!!authorId && reply.createdBy?.id === authorId}
+									onToggleReaction={canAct ? handleReplyReaction : undefined}
+									users={users}
+									currentUserId={currentUserId}
+									onEdit={onEdit}
+									onDelete={onDelete}
+									categories={categories}
+									tasks={tasks}
+									isReply
+									blockedUserIds={blockedUserIds}
+									isOrgMember={isOrgMember}
+								/>
+							</li>
+						))}
+					</ul>
+				)
 			)}
 
 			{/* Reply input */}
 			{canAct && session?.user && (
-				<div className="-mb-3 -mx-3 overflow-hidden border-t">
-					<PublicReplyInput
-						parentComment={parentComment}
-						categories={categories}
-						tasks={tasks}
-						onReplyPosted={() => refetch()}
-						onPostReply={onPostReply}
-					/>
-				</div>
+				<PublicReplyInput
+					parentComment={parentComment}
+					categories={categories}
+					tasks={tasks}
+					onReplyPosted={() => refetch()}
+					onPostReply={onPostReply}
+				/>
 			)}
 		</div>
 	);
@@ -291,17 +297,6 @@ export function PublicCommentThreadBody({
 // -------------------------------------------------------------------
 // Compact reply input for the public board
 // -------------------------------------------------------------------
-
-/** Check if ProseMirror doc JSON has more than one block-level content node */
-function isMultiline(doc: NodeJSON | undefined): boolean {
-	if (!doc?.content) return false;
-	if (doc.content.length > 1) return true;
-	const first = doc.content[0];
-	if (first?.content) {
-		return first.content.some((node) => node.type === "hardBreak");
-	}
-	return false;
-}
 
 function PublicReplyInput({
 	parentComment,
@@ -326,7 +321,6 @@ function PublicReplyInput({
 
 	const commentText = extractTextContent(content);
 	const disabled = isSubmitting || commentText.length === 0;
-	const multiline = useMemo(() => isMultiline(content), [content]);
 
 	const handleSubmit = useCallback(async () => {
 		if (!content || isSubmitting || commentText.length === 0) return;
@@ -385,35 +379,27 @@ function PublicReplyInput({
 
 	const displayName = session?.user?.name ?? "User";
 
-	const replyButton = (
-		<Button variant="primary" size="icon" disabled={disabled} onClick={handleSubmit} className="h-7 w-7 shrink-0">
-			{isSubmitting ? <IconLoader2 className="animate-spin" size={14} /> : <IconArrowBack size={14} />}
-		</Button>
-	);
-
 	return (
-		<div className="text-foreground transition-all flex gap-2 items-start px-3 py-2">
-			<Avatar className="h-5 w-5 shrink-0 rounded-full mt-2">
-				<AvatarImage src={session?.user?.image || "/avatar.jpg"} alt={displayName} />
-				<AvatarFallback className="rounded-full bg-muted text-[10px] uppercase">
-					{getInitials(displayName)}
-				</AvatarFallback>
-			</Avatar>
-			<div className={cn("flex-1 min-w-0", !multiline && "flex items-center gap-2")}>
-				<div className={cn(!multiline && "flex-1 min-w-0")}>
-					<Suspense fallback={<div className="h-8 animate-pulse bg-muted rounded" />}>
-						<Editor
-							key={editorKey}
-							onChange={setContent}
-							categories={categories}
-							tasks={tasks}
-							submit={handleSubmit}
-							hideBlockHandle
-							firstLinePlaceholder="Reply..."
-						/>
-					</Suspense>
+		<div className="mt-4 flex items-start gap-3 text-portal-fg">
+			<PortalAvatar name={displayName} image={session?.user?.image} size={28} className="mt-1" />
+			<div className="min-w-0 flex-1 rounded-portal-md border border-portal-line-2 bg-portal-surface px-3 py-2 focus-within:border-portal-focus focus-within:ring-[3px] focus-within:ring-portal-accent-soft">
+				<Suspense fallback={<div className="h-8 animate-pulse rounded bg-portal-raised" />}>
+					<Editor
+						key={editorKey}
+						onChange={setContent}
+						categories={categories}
+						tasks={tasks}
+						submit={handleSubmit}
+						hideBlockHandle
+						firstLinePlaceholder="Write a reply..."
+					/>
+				</Suspense>
+				<div className="mt-1 flex items-center justify-end">
+					<PortalButton variant="primary" size="sm" disabled={disabled} onClick={handleSubmit}>
+						{isSubmitting ? <IconLoader2 aria-hidden className="animate-spin" /> : <IconArrowBack aria-hidden />}
+						Reply
+					</PortalButton>
 				</div>
-				{multiline ? <div className="flex items-center justify-end">{replyButton}</div> : replyButton}
 			</div>
 		</div>
 	);
