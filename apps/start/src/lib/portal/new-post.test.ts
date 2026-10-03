@@ -10,45 +10,8 @@ import {
 	parseDraft,
 	resolveInitialDraft,
 	serialiseDraft,
-	splitCategoryChips,
 	titleOnlyDraft,
 } from "./new-post";
-
-const category = (id: string, name: string) => ({ id, name });
-
-describe("splitCategoryChips", () => {
-	it("promotes Feature request, Bug and Feedback by name, in that order", () => {
-		const categories = [
-			category("1", "Docs"),
-			category("2", "Feedback"),
-			category("3", "Bug"),
-			category("4", "Feature request"),
-			category("5", "Other"),
-		];
-		const { chips, more } = splitCategoryChips(categories);
-		expect(chips.map((c) => c.id)).toEqual(["4", "3", "2"]);
-		expect(more.map((c) => c.id)).toEqual(["1", "5"]);
-	});
-
-	it("matches names case-insensitively and ignores a plural s", () => {
-		const { chips } = splitCategoryChips([category("1", " BUGS "), category("2", "feature requests")]);
-		expect(chips.map((c) => c.id)).toEqual(["2", "1"]);
-	});
-
-	it("tops up with the first remaining categories when a promoted name is missing", () => {
-		const categories = [category("1", "Docs"), category("2", "Bug"), category("3", "UX"), category("4", "API")];
-		const { chips, more } = splitCategoryChips(categories);
-		expect(chips.map((c) => c.id)).toEqual(["2", "1", "3"]);
-		expect(more.map((c) => c.id)).toEqual(["4"]);
-	});
-
-	it("uses the first three when none are promoted, and handles short lists", () => {
-		const four = [category("1", "A"), category("2", "B"), category("3", "C"), category("4", "D")];
-		expect(splitCategoryChips(four).chips.map((c) => c.id)).toEqual(["1", "2", "3"]);
-		expect(splitCategoryChips(four.slice(0, 2))).toEqual({ chips: four.slice(0, 2), more: [] });
-		expect(splitCategoryChips([])).toEqual({ chips: [], more: [] });
-	});
-});
 
 const paragraph = (text: string): NodeJSON => ({ type: "paragraph", content: text ? [{ type: "text", text }] : [] });
 const doc = (...content: NodeJSON[]): NodeJSON => ({ type: "doc", content });

@@ -1,48 +1,6 @@
 import type { NodeJSON } from "prosekit/core";
 import { DUPLICATE_LIMIT, DUPLICATE_MIN_TITLE_LENGTH, type DuplicateCandidate, findDuplicates } from "./duplicates";
 
-/** Category names the new post form puts first, in this order, when the org has them. */
-const PROMOTED_CATEGORY_NAMES: ReadonlyArray<string> = ["feature request", "bug", "feedback"];
-
-/** How many category chips sit in the row before the rest move into the "Other category" menu. */
-export const CATEGORY_CHIP_COUNT = 3;
-
-/** Case-insensitive, trimmed, singular form of a category name, so "Bugs" matches "bug". */
-function normaliseCategoryName(name: string): string {
-	return name.trim().toLowerCase().replace(/s$/, "");
-}
-
-export interface CategoryChipSplit<T> {
-	/** Shown as chips. */
-	chips: T[];
-	/** Everything else, for the "Other category" menu. */
-	more: T[];
-}
-
-/**
- * Picks the category chips for the new post form: Feature request, Bug and Feedback by name when the org has them, then
- * (if fewer than three were found) the first remaining categories in their original order. Everything else goes to
- * `more`.
- */
-export function splitCategoryChips<T extends { id: string; name: string }>(
-	categories: ReadonlyArray<T>,
-	chipCount: number = CATEGORY_CHIP_COUNT
-): CategoryChipSplit<T> {
-	const chips: T[] = [];
-	for (const promoted of PROMOTED_CATEGORY_NAMES) {
-		const match = categories.find(
-			(category) => normaliseCategoryName(category.name) === normaliseCategoryName(promoted)
-		);
-		if (match && !chips.includes(match)) chips.push(match);
-	}
-	for (const category of categories) {
-		if (chips.length >= chipCount) break;
-		if (!chips.includes(category)) chips.push(category);
-	}
-	const chipIds = new Set(chips.map((category) => category.id));
-	return { chips: chips.slice(0, chipCount), more: categories.filter((category) => !chipIds.has(category.id)) };
-}
-
 /** Priorities a visitor can pick on the new post form, in display order (same values the API accepts). */
 export const POST_PRIORITIES = [
 	{ value: "none", label: "No priority" },

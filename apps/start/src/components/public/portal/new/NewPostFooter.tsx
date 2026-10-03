@@ -1,7 +1,6 @@
 import { authClient } from "@repo/auth/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
 import { Button, buttonVariants } from "@repo/ui/components/button";
-import { cn } from "@repo/ui/lib/utils";
 import { ensureCdnUrl, getInitials } from "@repo/util";
 import { IconLoader2 } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
@@ -27,7 +26,7 @@ export function NewPostFooter({ orgSlug, loggedIn, isSubmitting, disabled, onSub
 	const userName = session?.user?.name?.trim() || "you";
 
 	return (
-		<div className="flex items-center gap-3 rounded-b-lg border-t bg-sidebar px-7 py-4 max-md:sticky max-md:bottom-0 max-md:z-10 max-md:-mx-4 max-md:flex-col max-md:items-stretch max-md:gap-2.5 max-md:rounded-none max-md:bg-background max-md:px-4 max-md:pt-3 max-md:pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+		<div className="flex items-center gap-3 border-t py-3 max-md:sticky max-md:bottom-0 max-md:z-10 max-md:-mx-4 max-md:flex-col max-md:items-stretch max-md:gap-2.5 max-md:rounded-none max-md:bg-background max-md:px-4 max-md:pt-3 max-md:pb-[max(0.75rem,env(safe-area-inset-bottom))]">
 			<div className="flex min-w-0 flex-1 items-center gap-3 text-[13.5px] text-muted-foreground max-md:flex-none max-md:text-xs">
 				{loggedIn ? (
 					<>
@@ -53,7 +52,7 @@ export function NewPostFooter({ orgSlug, loggedIn, isSubmitting, disabled, onSub
 				to="/orgs/$orgSlug"
 				params={{ orgSlug }}
 				onClick={onCancel}
-				className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "max-md:hidden")}
+				className={buttonVariants({ variant: "ghost", size: "sm" })}
 			>
 				Cancel
 			</Link>
