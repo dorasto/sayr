@@ -13,6 +13,7 @@ import {
 } from "@repo/ui/components/dropdown-menu";
 import { generateSlug } from "@repo/util";
 import {
+  IconCategory,
   IconChevronDown,
   IconFilter,
   IconLayoutSidebarRight,
@@ -20,6 +21,9 @@ import {
   IconSortDescending,
 } from "@tabler/icons-react";
 import { useState } from "react";
+import { STATUS_CONFIG } from "@/components/board/config/field-config";
+import { LabelBadge } from "@/components/board/fields/label-badge";
+import RenderIcon from "@/components/generic/RenderIcon";
 import { usePage, usePanel } from "@/components/generic/use-page";
 import {
   type BoardSort,
@@ -29,6 +33,13 @@ import {
 import { getPortalStatus } from "@/lib/portal/status";
 import { sidebarActions } from "@/lib/sidebar/sidebar-store";
 import { PUBLIC_BOARD_PANEL_ID } from "./BoardRailContent";
+
+/**
+ * Menu option look: no radio dot or check mark (the item's own indicator span is hidden); the chosen options are
+ * highlighted instead.
+ */
+const OPTION_CLASS =
+  "gap-2 rounded-lg pl-2 [&>span:first-child]:hidden data-checked:bg-secondary data-checked:font-medium data-checked:text-foreground";
 
 const SORT_LABELS: Record<BoardSort, string> = {
   mostPopular: "Most voted",
@@ -171,7 +182,11 @@ export function BoardPageBar({ toolbar }: BoardPageBarProps) {
               onValueChange={(value) => onSortChange(value as BoardSort)}
             >
               {(Object.keys(SORT_LABELS) as BoardSort[]).map((value) => (
-                <DropdownMenuRadioItem key={value} value={value}>
+                <DropdownMenuRadioItem
+                  key={value}
+                  value={value}
+                  className={OPTION_CLASS}
+                >
                   {SORT_LABELS[value]}
                 </DropdownMenuRadioItem>
               ))}
@@ -215,7 +230,9 @@ export function BoardPageBar({ toolbar }: BoardPageBarProps) {
                       key={status}
                       checked={statuses.includes(status)}
                       onCheckedChange={() => onStatusToggle(status)}
+                      className={OPTION_CLASS}
                     >
+                      {STATUS_CONFIG[status].icon("size-3.5 shrink-0")}
                       {getPortalStatus(status).label}
                     </DropdownMenuCheckboxItem>
                   ))}
@@ -232,15 +249,31 @@ export function BoardPageBar({ toolbar }: BoardPageBarProps) {
                     value={categorySlug ?? ""}
                     onValueChange={(value) => onCategoryChange(value || null)}
                   >
-                    <DropdownMenuRadioItem value="">
+                    <DropdownMenuRadioItem value="" className={OPTION_CLASS}>
+                      <IconCategory
+                        aria-hidden
+                        className="size-3.5 shrink-0 text-muted-foreground"
+                      />
                       All categories
                     </DropdownMenuRadioItem>
                     {categories.map((category) => (
                       <DropdownMenuRadioItem
                         key={category.id}
                         value={generateSlug(category.name)}
+                        className={OPTION_CLASS}
                       >
-                        {category.name}
+                        <span
+                          className="flex shrink-0"
+                          style={{ color: category.color ?? undefined }}
+                        >
+                          <RenderIcon
+                            iconName={category.icon || "IconCategory"}
+                            size={14}
+                            raw
+                            color={category.color ?? undefined}
+                          />
+                        </span>
+                        <span className="truncate">{category.name}</span>
                       </DropdownMenuRadioItem>
                     ))}
                   </DropdownMenuRadioGroup>
@@ -258,8 +291,9 @@ export function BoardPageBar({ toolbar }: BoardPageBarProps) {
                       key={label.id}
                       checked={labelIds.includes(label.id)}
                       onCheckedChange={() => onLabelToggle(label.id)}
+                      className={OPTION_CLASS}
                     >
-                      {label.name}
+                      <LabelBadge label={label} />
                     </DropdownMenuCheckboxItem>
                   ))}
                 </>
