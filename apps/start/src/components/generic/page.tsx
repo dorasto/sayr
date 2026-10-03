@@ -75,6 +75,48 @@ export interface PanelConfig {
   minWidth?: number;
   /** @default 720 */
   maxWidth?: number;
+  /**
+   * Desktop only: the panel is as tall as its content instead of always full
+   * height, growing up to full height, after which its content scrolls.
+   * @default false
+   */
+  fitContent?: boolean;
+  /** Extra classes for parts of this one panel, to restyle it on a single page. */
+  classNames?: PanelClassNames;
+}
+
+/** Extra classes per panel part, merged after the defaults (so they win). */
+export interface PanelSlotClassNames {
+  /** The floating card itself (border, background, radius, shadow). */
+  popup?: string;
+  /** The header row (title or tab bar, actions, close button). */
+  header?: string;
+  /** The scrolling content area under the header (has `p-2` by default). */
+  content?: string;
+}
+
+/**
+ * Slot classes for both breakpoints, plus `desktop` / `mobile` slot classes applied only there (merged after the
+ * shared ones), so no `md:` / `max-md:` prefixes are needed. The breakpoint is Page's own `useIsMobile`, the same one
+ * that makes the panel a bottom sheet.
+ */
+export interface PanelClassNames extends PanelSlotClassNames {
+  desktop?: PanelSlotClassNames;
+  mobile?: PanelSlotClassNames;
+}
+
+/** The slot classes for the current breakpoint: shared first, then that breakpoint's own. */
+function resolvePanelClassNames(
+  classNames: PanelClassNames | undefined,
+  isMobile: boolean,
+): PanelSlotClassNames | undefined {
+  if (!classNames) return undefined;
+  const own = isMobile ? classNames.mobile : classNames.desktop;
+  return {
+    popup: cn(classNames.popup, own?.popup),
+    header: cn(classNames.header, own?.header),
+    content: cn(classNames.content, own?.content),
+  };
 }
 
 export interface PageProps {
@@ -89,14 +131,21 @@ function PanelHeader({
   header,
   panelId,
   onClose,
+  className,
 }: {
   header: PanelHeaderConfig;
   panelId: string;
   onClose?: () => void;
+  className?: string;
 }) {
   const { title, icon, actions, showClose = true } = header;
   return (
-    <div className="flex h-11 w-full shrink-0 items-center border-b px-3">
+    <div
+      className={cn(
+        "flex h-11 w-full shrink-0 items-center border-b px-3",
+        className,
+      )}
+    >
       {(title || icon) && (
         <div className="flex min-w-0 flex-1 items-center gap-2">
           {icon}
@@ -133,15 +182,19 @@ function PanelTabBar({
   currentTab,
   header,
   onClose,
+  className,
 }: {
   panelId: string;
   tabs: Array<PanelTabConfig>;
   currentTab: string | undefined;
   header: PanelHeaderConfig | undefined;
   onClose?: () => void;
+  className?: string;
 }) {
   return (
-    <div className="flex h-11 shrink-0 items-center border-b px-2">
+    <div
+      className={cn("flex h-11 shrink-0 items-center border-b px-2", className)}
+    >
       <div className="scrollbar-hide flex min-w-0 items-center gap-1 overflow-x-auto">
         {tabs.map((tab) => (
           <button
@@ -164,9 +217,11 @@ function PanelTabBar({
         {header?.actions}
         {(header?.showClose ?? true) && (
           <Button
+            type="button"
             variant="ghost"
-            size="icon"
-            className="size-8"
+            size="sm"
+            className="h-6 w-6 gap-2 p-1"
+            aria-label="Close panel"
             onClick={(e) => {
               e.stopPropagation();
               onClose ? onClose() : sidebarActions.setOpen(panelId, false);
@@ -187,12 +242,14 @@ export function PanelContent({
   hideHeader = false,
   isPopover = false,
   onClose,
+  classNames,
 }: {
   panelId: string;
   fallbackHeader?: React.ReactNode | PanelHeaderConfig;
   hideHeader?: boolean;
   isPopover?: boolean;
   onClose?: () => void;
+  classNames?: PanelSlotClassNames;
 }) {
   const panelState = useStore(
     sidebarStore,
@@ -242,10 +299,14 @@ export function PanelContent({
                 currentTab={currentTab}
                 header={header}
                 onClose={onClose}
+                className={classNames?.header}
               />
             )}
             {/* key forces remount when switching items */}
-            <div key={lastTriggerId} className="flex-1 overflow-y-auto p-2">
+            <div
+              key={lastTriggerId}
+              className={cn("flex-1 overflow-y-auto p-2", classNames?.content)}
+            >
               {tabs.find((t) => t.id === currentTab)?.content ?? <div />}
             </div>
           </>
@@ -257,21 +318,30 @@ export function PanelContent({
                   header={header}
                   panelId={panelId}
                   onClose={onClose}
+                  className={classNames?.header}
                 />
               ) : fallbackHeader && isPanelHeaderConfig(fallbackHeader) ? (
                 <PanelHeader
                   header={fallbackHeader}
                   panelId={panelId}
                   onClose={onClose}
+                  className={classNames?.header}
                 />
               ) : (
                 fallbackHeader && (
-                  <div className="flex h-11 shrink-0 items-center border-b px-3">
+                  <div
+                    className={cn(
+                      "flex h-11 shrink-0 items-center border-b px-3",
+                      classNames?.header,
+                    )}
+                  >
                     {fallbackHeader}
                   </div>
                 )
               ))}
-            <div className="flex-1 overflow-y-auto p-2">
+            <div
+              className={cn("flex-1 overflow-y-auto p-2", classNames?.content)}
+            >
               {content || <div />}
             </div>
           </>
@@ -389,6 +459,14 @@ export function Page({
   // reads as a confusing, half-broken overlay instead of an obvious dialog.
   const leftModal = panels?.left?.modal ?? isMobile;
   const rightModal = panels?.right?.modal ?? isMobile;
+  const leftClassNames = resolvePanelClassNames(
+    panels?.left?.classNames,
+    isMobile,
+  );
+  const rightClassNames = resolvePanelClassNames(
+    panels?.right?.classNames,
+    isMobile,
+  );
 
   // A fresh open starts an unsettled window (see the refs' own comment
   // above) — mark it the instant `isLeftOpen`/`isRightOpen` flips true,
@@ -630,12 +708,15 @@ export function Page({
               }
               minWidth={panels.right.minWidth}
               maxWidth={panels.right.maxWidth}
+              fitContent={panels.right.fitContent}
+              className={rightClassNames?.popup}
             >
               <PanelContent
                 key={rightLastTriggerId}
                 panelId={panels.right.id}
                 fallbackHeader={panels.right.header}
                 onClose={() => sidebarActions.close(panels.right!.id)}
+                classNames={rightClassNames}
               />
             </IndentDrawerContent>
           </IndentDrawer>
@@ -687,12 +768,15 @@ export function Page({
               }
               minWidth={panels.left.minWidth}
               maxWidth={panels.left.maxWidth}
+              fitContent={panels.left.fitContent}
+              className={leftClassNames?.popup}
             >
               <PanelContent
                 key={leftLastTriggerId}
                 panelId={panels.left.id}
                 fallbackHeader={panels.left.header}
                 onClose={() => sidebarActions.close(panels.left!.id)}
+                classNames={leftClassNames}
               />
             </IndentDrawerContent>
           </IndentDrawer>

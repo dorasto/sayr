@@ -23,6 +23,7 @@ import {
   sortBoardTasks,
 } from "@/lib/portal/board-filters";
 import { parseCsvParam } from "@/lib/portal/board-row";
+import { normalizeShortId } from "@/lib/portal/peek";
 import type { ServerEventMessage } from "@/lib/serverEvents";
 import {
   BoardPageBar,
@@ -64,10 +65,28 @@ const BOARD_PANEL: PanelConfig = {
   defaultOpen: true,
   persistOpenState: false,
   width: "40dvw",
+  fitContent: true,
   resizable: false,
   height: "70dvh",
   minWidth: 280,
   maxWidth: 720,
+};
+
+/**
+ * Per-view panel classes, merged over `BOARD_PANEL` (Page reads them on every render, so they follow the view):
+ * the overview, and a post (Peek). Slots: `popup`, `header`, `content`.
+ */
+const OVERVIEW_PANEL_VIEW: Pick<PanelConfig, "classNames"> = {
+  classNames: {
+    desktop: {
+      popup: "bg-transparent border-transparent",
+      content: "p-0",
+      header: "hidden",
+    },
+  },
+};
+const POST_PANEL_VIEW: Pick<PanelConfig, "classNames"> = {
+  classNames: {},
 };
 
 export default function PublicOrgHomePage() {
@@ -89,6 +108,7 @@ export default function PublicOrgHomePage() {
     category: categoryParam,
     status: statusParam,
     labels: labelsParam,
+    task: taskParam,
     setBoardParams,
   } = useTasksSearchParams();
 
@@ -135,7 +155,18 @@ export default function PublicOrgHomePage() {
   const { releases } = useBoardReleases(organization.slug);
   // Modal and closed-on-load below 1024px (a sheet that never auto-opens); `undefined` (platform default) above.
   const { modal } = usePanelViewportDefaults(PUBLIC_BOARD_PANEL_ID);
-  const panels = useMemo(() => ({ right: { ...BOARD_PANEL, modal } }), [modal]);
+  // `?task` set = the panel is showing a post (BoardPanelProvider swaps the content on the same param).
+  const showingPost = normalizeShortId(taskParam) !== null;
+  const panels = useMemo(
+    () => ({
+      right: {
+        ...BOARD_PANEL,
+        ...(showingPost ? POST_PANEL_VIEW : OVERVIEW_PANEL_VIEW),
+        modal,
+      },
+    }),
+    [modal, showingPost],
+  );
 
   // Keep the shared layout copy of the loaded posts in sync (the post page's related posts, parent/sub-task lookup and
   // mentions read it). Only the unfiltered set is written: a category, status or label view must not shrink it.

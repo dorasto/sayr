@@ -1,6 +1,12 @@
 import { Button } from "@repo/ui/components/button";
 import { Label } from "@repo/ui/components/label";
-import { Tile, TileDescription, TileHeader, TileIcon, TileTitle } from "@repo/ui/components/doras-ui/tile";
+import {
+  Tile,
+  TileDescription,
+  TileHeader,
+  TileIcon,
+  TileTitle,
+} from "@repo/ui/components/doras-ui/tile";
 import { IconBulb } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
 import { useCallback, useMemo } from "react";
@@ -28,65 +34,75 @@ export const PUBLIC_BOARD_PANEL_ID = "public-board-panel";
  * from `BoardRailProvider`), so it is handed to the panel store once as `RAIL_CONTENT` and stays live by itself.
  */
 export function BoardRailContent() {
-	const { organization, categories } = usePublicOrganizationLayout();
-	const { counts, releases, activeCategorySlug, onCategoryChange } = useBoardRail();
-	const { canPost } = usePublicPostAbility();
-	const desktop = usePeekEnabled();
-	const hasLatestRelease = useMemo(() => pickLatestRelease(releases) !== null, [releases]);
+  const { organization, categories } = usePublicOrganizationLayout();
+  const { counts, releases, activeCategorySlug, onCategoryChange } =
+    useBoardRail();
+  const { canPost } = usePublicPostAbility();
+  const desktop = usePeekEnabled();
+  const hasLatestRelease = useMemo(
+    () => pickLatestRelease(releases) !== null,
+    [releases],
+  );
 
-	// Below 1024px the panel is a modal sheet over the list: once a category is picked, get out of the way so the
-	// filtered list is visible. On desktop the panel sits beside the list and stays open.
-	const handleCategorySelect = useCallback(
-		(slug: string | null) => {
-			onCategoryChange(slug);
-			if (!desktop) sidebarActions.close(PUBLIC_BOARD_PANEL_ID);
-		},
-		[onCategoryChange, desktop]
-	);
+  // Below 1024px the panel is a modal sheet over the list: once a category is picked, get out of the way so the
+  // filtered list is visible. On desktop the panel sits beside the list and stays open.
+  const handleCategorySelect = useCallback(
+    (slug: string | null) => {
+      onCategoryChange(slug);
+      if (!desktop) sidebarActions.close(PUBLIC_BOARD_PANEL_ID);
+    },
+    [onCategoryChange, desktop],
+  );
 
-	const isEmpty = !canPost && categories.length === 0 && !hasLatestRelease;
+  const isEmpty = !canPost && categories.length === 0 && !hasLatestRelease;
 
-	return (
-		<div className="flex flex-col gap-3">
-			{canPost && (
-				<Tile className="flex-col items-start gap-3 md:w-full">
-					<TileHeader className="w-full">
-						<TileIcon>
-							<IconBulb />
-						</TileIcon>
-						<TileTitle className="text-sm">Share an idea or report a bug</TileTitle>
-						<TileDescription className="text-xs">
-							Search first. If someone already posted it, give it your vote instead.
-						</TileDescription>
-					</TileHeader>
-					<Button
-						render={<Link {...newPostLink(organization.slug)} />}
-						nativeButton={false}
-						size="sm"
-						className="w-full max-md:h-11"
-					>
-						Write a post
-					</Button>
-				</Tile>
-			)}
-			<CategoriesCard
-				categories={categories}
-				counts={counts}
-				activeSlug={activeCategorySlug}
-				onSelect={handleCategorySelect}
-			/>
-			<LatestReleaseCard orgSlug={organization.slug} releases={releases} />
-			{isEmpty && (
-				<Label variant="description" className="block py-6 text-center">
-					Nothing to show here yet.
-				</Label>
-			)}
-		</div>
-	);
+  return (
+    <div className="flex flex-col gap-3">
+      {canPost && (
+        <Tile className="flex-col items-start gap-3 md:w-full">
+          <TileHeader className="w-full">
+            <TileIcon>
+              <IconBulb />
+            </TileIcon>
+            <TileTitle className="text-sm">
+              Share an idea or report a bug
+            </TileTitle>
+            <TileDescription className="text-xs">
+              Search first. If someone already posted it, give it your vote
+              instead.
+            </TileDescription>
+          </TileHeader>
+          <Button
+            render={<Link {...newPostLink(organization.slug)} />}
+            nativeButton={false}
+            size="sm"
+            className="w-full max-md:h-11"
+          >
+            Write a post
+          </Button>
+        </Tile>
+      )}
+      <CategoriesCard
+        categories={categories}
+        counts={counts}
+        activeSlug={activeCategorySlug}
+        onSelect={handleCategorySelect}
+      />
+      <LatestReleaseCard orgSlug={organization.slug} releases={releases} />
+      {isEmpty && (
+        <Label variant="description" className="block py-6 text-center">
+          Nothing to show here yet.
+        </Label>
+      )}
+    </div>
+  );
 }
 
 /** Stable element handed to the panel store once (it holds no props, see `BoardRailContent`). */
 export const RAIL_CONTENT = <BoardRailContent />;
 
 /** Header for the overview: the native bar with its built-in close button (which closes the whole panel). */
-export const RAIL_HEADER: PanelHeaderConfig = { title: "Overview" };
+export const RAIL_HEADER: PanelHeaderConfig = {
+  title: "Overview",
+  showClose: false,
+};
