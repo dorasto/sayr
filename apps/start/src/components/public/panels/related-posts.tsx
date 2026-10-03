@@ -2,9 +2,10 @@ import type { schema } from "@repo/database";
 import { formatCount } from "@repo/util";
 import { IconChevronUp } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
-import { StatusChip } from "@/components/public/portal/ui/StatusChip";
+import { FieldStatus } from "@/components/board/fields/field-status";
 import { usePublicTask } from "@/contexts/ContextPublicOrgTask";
 import { findRelatedPosts } from "@/lib/portal/related";
+import { getPortalStatus } from "@/lib/portal/status";
 import { DetailSection } from "./detail-section";
 
 interface RelatedPostsProps {
@@ -30,7 +31,7 @@ export function RelatedPosts({ tasks }: RelatedPostsProps) {
 								params={{ orgSlug, shortId: String(post.shortId) }}
 								className="flex items-center gap-2 rounded-lg border border-transparent p-1 transition-colors hover:border-border hover:bg-secondary focus-visible:border-border"
 							>
-								<StatusChip status={post.status} />
+								<FieldStatus task={post} label={getPortalStatus(post.status).label} />
 								<span className="min-w-0 flex-1 truncate">{post.title}</span>
 								<span className="inline-flex shrink-0 items-center gap-0.5 text-muted-foreground text-xs tabular-nums">
 									<IconChevronUp aria-hidden className="size-3.5" />

@@ -1,66 +1,42 @@
-import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
-import { ensureCdnUrl, formatDate, getDisplayName, getInitials } from "@repo/util";
-import { IconBrandGithub, IconRocket } from "@tabler/icons-react";
-import { Link } from "@tanstack/react-router";
-import { CategoryTag } from "@/components/public/portal/ui/CategoryTag";
-import { LabelTag } from "@/components/public/portal/ui/LabelTag";
+import { formatDate } from "@repo/util";
+import { IconBrandGithub } from "@tabler/icons-react";
+import { FieldAssignee } from "@/components/board/fields/field-assignee";
+import { FieldCategory } from "@/components/board/fields/field-category";
+import { FieldLabel } from "@/components/board/fields/field-label";
+import { FieldRelease } from "@/components/board/fields/field-release";
 import { usePublicTask } from "@/contexts/ContextPublicOrgTask";
-import { usePublicOrganizationLayout } from "@/contexts/publicContextOrg";
 import { parseGithubIssueUrl } from "@/lib/portal/github-issue";
 import { DetailSection } from "./detail-section";
 
 /**
- * The post's details in the panel: category, release, assignees, labels, GitHub issue and the posted date. Status sits
- * above the title on the page, and priority is the team's own triage, so neither is shown here.
+ * The post's details in the panel, using the board's read-only `Field*` components (the page wraps it in a
+ * `BoardProvider`): category, release, assignees, labels, plus the GitHub issue and posted date. Status sits on the
+ * page beside the author, and priority is the team's own triage, so neither is shown here.
  */
 export function PostDetails() {
-	const { categories } = usePublicOrganizationLayout();
-	const { task, release, orgSlug } = usePublicTask();
-
-	const category = categories.find((c) => c.id === task.category);
+	const { task, release } = usePublicTask();
 	const github = task.githubIssue ? parseGithubIssueUrl(task.githubIssue.issueUrl) : null;
-	const assignees = task.assignees ?? [];
-	const labels = task.labels ?? [];
 
 	return (
 		<>
-			{category && (
+			{task.category && (
 				<DetailSection label="Category">
-					<CategoryTag category={category} className="text-foreground text-sm" />
+					<FieldCategory task={task} />
 				</DetailSection>
 			)}
 			{release && (
 				<DetailSection label="Release">
-					<Link
-						to="/orgs/$orgSlug/releases/$releaseSlug"
-						params={{ orgSlug, releaseSlug: release.slug }}
-						className="inline-flex items-center gap-1.5 hover:underline focus-visible:underline"
-					>
-						<IconRocket aria-hidden className="size-4 text-muted-foreground" />
-						{release.name}
-					</Link>
+					<FieldRelease task={task} />
 				</DetailSection>
 			)}
-			{assignees.length > 0 && (
+			{task.assignees.length > 0 && (
 				<DetailSection label="Assigned to">
-					{assignees.map((assignee) => (
-						<span key={assignee.id} className="inline-flex items-center gap-1.5">
-							<Avatar className="size-5">
-								{assignee.image ? (
-									<AvatarImage src={ensureCdnUrl(assignee.image)} alt={getDisplayName(assignee)} />
-								) : null}
-								<AvatarFallback className="text-[10px]">{getInitials(getDisplayName(assignee))}</AvatarFallback>
-							</Avatar>
-							{getDisplayName(assignee)}
-						</span>
-					))}
+					<FieldAssignee task={task} />
 				</DetailSection>
 			)}
-			{labels.length > 0 && (
+			{task.labels.length > 0 && (
 				<DetailSection label="Labels">
-					{labels.map((label) => (
-						<LabelTag key={label.id} label={label} className="text-foreground" />
-					))}
+					<FieldLabel task={task} />
 				</DetailSection>
 			)}
 			{task.githubIssue && (
