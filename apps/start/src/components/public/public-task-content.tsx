@@ -1,11 +1,11 @@
 import type { schema } from "@repo/database";
 import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
-import { Button, buttonVariants } from "@repo/ui/components/button";
+import { Button } from "@repo/ui/components/button";
+import { Label } from "@repo/ui/components/label";
 import { Skeleton } from "@repo/ui/components/skeleton";
 import { useStateManagementFetch } from "@repo/ui/hooks/useStateManagement.ts";
 import { cn } from "@repo/ui/lib/utils";
-import { ensureCdnUrl, formatDate, formatTaskKey, getDisplayName, getInitials } from "@repo/util";
-import { IconArrowUpRight, IconBrandGithub } from "@tabler/icons-react";
+import { ensureCdnUrl, formatTaskKey, getDisplayName, getInitials } from "@repo/util";
 import { Link } from "@tanstack/react-router";
 import { lazy, Suspense, useEffect, useMemo } from "react";
 import LoginDialog from "@/components/auth/login";
@@ -19,7 +19,6 @@ import { useCanAct } from "@/components/public/portal/post/useCanAct";
 import { usePostComments } from "@/components/public/portal/post/usePostComments";
 import { CategoryTag } from "@/components/public/portal/ui/CategoryTag";
 import { Pill } from "@/components/public/portal/ui/Pill";
-import { Stepper } from "@/components/public/portal/ui/Stepper";
 import { StatusChip } from "@/components/public/portal/ui/StatusChip";
 import { VoteBox } from "@/components/public/portal/ui/VoteBox";
 import { PublicTaskPanelHeaderActions } from "@/components/public/panels/public-task-panel-header-actions";
@@ -27,7 +26,7 @@ import { PublicTaskPanelContent } from "@/components/public/panels/task";
 import { usePublicTask } from "@/contexts/ContextPublicOrgTask";
 import { usePublicOrganizationLayout } from "@/contexts/publicContextOrg";
 import { usePanelViewportDefaults } from "@/hooks/portal/usePanelViewportDefaults";
-import { parseGithubIssueUrl } from "@/lib/portal/github-issue";
+import { formatShortDate } from "@/lib/portal/board-row";
 import { getLatestUpdate } from "@/lib/portal/latest-update";
 import { isTeamMember } from "@/lib/portal/team";
 import { sidebarActions } from "@/lib/sidebar/sidebar-store";
@@ -54,7 +53,7 @@ function focusComposer() {
 
 /**
  * Public (unauthenticated) post page: one centred 760px article column plus a "Details" drawer (`public-task-panel`:
- * Vote card, Details, Related posts). Must render inside `PublicTaskProvider`
+ * vote button, details, related posts). Must render inside `PublicTaskProvider`
  * (apps/start/src/contexts/ContextPublicOrgTask.tsx), which holds all live task/vote/membership state so both this
  * component and the panel (apps/start/src/components/public/panels/task.tsx) read from context rather than one
  * prop-drilling into the other.
@@ -105,10 +104,6 @@ export function PublicTaskContent() {
 	const creator = task.createdBy;
 	const creatorId = creator?.id ?? null;
 	const creatorName = creator ? getDisplayName(creator) : null;
-	const githubParsed = task.githubIssue ? parseGithubIssueUrl(task.githubIssue.issueUrl) : null;
-	const githubReference = githubParsed
-		? `${githubParsed.repo}#${githubParsed.number}`
-		: `#${task.githubIssue?.issueNumber}`;
 
 	// The Details drawer pulls live state from usePublicTask()/usePublicOrganizationLayout() itself, so it only needs
 	// to be handed over once per `tasks` change. Memoised (not an inline literal) so the effect below does not loop.
@@ -145,145 +140,98 @@ export function PublicTaskContent() {
 		>
 			{/* min-h-full + flex pins the phone action bar to the bottom even when the post is shorter than the screen. */}
 			<div className="flex min-h-full flex-col">
-				<div className="mx-auto w-full max-w-[760px] flex-1 px-4 pt-6 pb-12 md:px-6 md:pt-10 md:pb-20">
+				<div className="mx-auto w-full max-w-[760px] flex-1 px-4 pt-4 pb-12 md:px-6 md:pb-20">
 					<article>
-						<header>
-							<div className="mb-3.5 flex flex-wrap items-center gap-x-2.5 gap-y-2">
+						<header className="flex flex-col gap-3">
+							<div className="flex flex-wrap items-center gap-2">
 								<StatusChip status={task.status} />
 								{category && <CategoryTag category={category} />}
-								<span className="text-[13px] text-muted-foreground">
+								<span className="text-muted-foreground text-xs">
 									{formatTaskKey(organization.shortId, task.shortId)}
 								</span>
 							</div>
-
 							{parent?.shortId != null && (
-								<p className="mb-2 text-[13.5px] text-muted-foreground">
+								<Label variant="description" className="block">
 									Part of{" "}
 									<Link
 										to="/orgs/$orgSlug/$shortId"
 										params={{ orgSlug, shortId: String(parent.shortId) }}
-										className="font-medium text-primary hover:underline"
+										className="font-medium text-foreground hover:underline"
 									>
 										{formatTaskKey(organization.shortId, parent.shortId)}
 										{parent.title ? ` ${parent.title}` : ""}
 									</Link>
-								</p>
+								</Label>
 							)}
-
-							<h1 className="font-bold text-[28px] text-foreground leading-[34px] tracking-[-0.03em] md:text-4xl md:leading-[42px] md:tracking-[-0.032em]">
-								{task.title}
-							</h1>
-
-							<div className="mt-4 mb-6 flex flex-wrap items-center gap-x-2.5 gap-y-2 text-[13.5px] text-muted-foreground md:mt-[18px] md:mb-7 md:text-sm">
+							{/* `!`: the global heading CSS is unlayered, so plain utilities would lose to its h1 size. */}
+							<h1 className="font-bold! text-2xl! text-foreground tracking-normal!">{task.title}</h1>
+							<div className="flex flex-wrap items-center gap-2 text-muted-foreground text-sm">
 								{creator && creatorName && (
 									<>
-										<Avatar className="size-7">
+										<Avatar className="size-5">
 											{creator.image ? (
 												<AvatarImage src={ensureCdnUrl(creator.image)} alt={creatorName} />
 											) : null}
-											<AvatarFallback className="text-xs font-semibold">
-												{getInitials(creatorName)}
-											</AvatarFallback>
+											<AvatarFallback className="text-[10px]">{getInitials(creatorName)}</AvatarFallback>
 										</Avatar>
-										<b className="font-semibold text-foreground">{creatorName}</b>
-										<Pill variant="author" />
+										<span className="font-medium text-foreground">{creatorName}</span>
 										{isTeamMember(creatorId, organization) && <Pill variant="team" />}
 									</>
 								)}
 								{task.createdAt && (
-									<span>
-										posted{" "}
-										<time dateTime={new Date(task.createdAt).toISOString()}>
-											{formatDate(task.createdAt, "en-GB")}
-										</time>
-									</span>
+									<time dateTime={new Date(task.createdAt).toISOString()}>
+										{formatShortDate(task.createdAt)}
+									</time>
 								)}
 							</div>
 						</header>
 
-						<div className="flex flex-col gap-5">
-							{task.status !== "canceled" && (
-								<div className="rounded-xl border bg-card px-4 pt-[18px] pb-3 md:px-7 md:pt-[22px] md:pb-[18px]">
-									<Stepper status={task.status} />
-								</div>
-							)}
+						<div className="mt-6 flex flex-col gap-3 empty:hidden">
 							<PostStatusBanner
 								task={task}
 								release={release}
 								orgSlug={orgSlug}
 								lastUpdateBy={latestUpdate?.createdBy ? getDisplayName(latestUpdate.createdBy) : null}
 							/>
-							{latestUpdate && (
-								<LatestUpdateCard
-									comment={latestUpdate}
-									isAuthor={!!creatorId && latestUpdate.createdBy?.id === creatorId}
-									tasks={tasks}
-								/>
-							)}
+							{latestUpdate && <LatestUpdateCard comment={latestUpdate} tasks={tasks} />}
 						</div>
 
 						{task.description && (
-							<div className={cn("mt-9", DESCRIPTION_PROSE)}>
+							<div className={cn("mt-6", DESCRIPTION_PROSE)}>
 								<Suspense fallback={<Skeleton className="h-20" />}>
 									<Editor readonly={true} defaultContent={task.description} tasks={tasks} hideBlockHandle />
 								</Suspense>
 							</div>
 						)}
 
-						{task.githubIssue && (
-							<div className="mt-8 flex items-center gap-3.5 rounded-xl border bg-card px-[18px] py-3.5">
-								<span
-									aria-hidden
-									className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-foreground"
-								>
-									<IconBrandGithub className="size-5" />
-								</span>
-								<div className="min-w-0 flex-1">
-									<div className="font-semibold text-foreground text-sm">Tracked on GitHub</div>
-									<div className="truncate text-[13px] text-muted-foreground">{githubReference}</div>
-								</div>
-								<a
-									href={task.githubIssue.issueUrl}
-									target="_blank"
-									rel="noopener noreferrer"
-									className={buttonVariants({ variant: "outline", size: "sm" })}
-								>
-									View issue
-									<IconArrowUpRight aria-hidden />
-								</a>
-							</div>
-						)}
-
 						{subtasks.length > 0 && (
-							<section aria-labelledby="post-subtasks-heading" className="mt-8">
-								<h2 id="post-subtasks-heading" className="mb-2 font-semibold text-[15px] text-foreground">
+							<section aria-label="Sub-tasks" className="mt-8 flex flex-col gap-1">
+								<Label variant="description" className="text-xs">
 									Sub-tasks
-								</h2>
-								<ul className="overflow-hidden rounded-xl border bg-card">
-									{subtasks.map((subtask) => (
-										<li key={subtask.id} className="border-t first:border-t-0">
-											{subtask.shortId != null ? (
+								</Label>
+								<ul className="flex flex-col gap-0.5">
+									{subtasks.map((subtask) =>
+										subtask.shortId != null ? (
+											<li key={subtask.id}>
 												<Link
 													to="/orgs/$orgSlug/$shortId"
 													params={{ orgSlug, shortId: String(subtask.shortId) }}
-													className="flex min-h-11 items-center gap-3 px-4 py-2 transition-colors hover:bg-accent"
+													className="flex items-center gap-2 rounded-lg border border-transparent p-1 text-sm transition-colors hover:border-border hover:bg-secondary focus-visible:border-border"
 												>
-													<span className="shrink-0 text-[13px] text-muted-foreground">
+													<StatusChip status={subtask.status} />
+													<span className="shrink-0 text-muted-foreground text-xs">
 														{formatTaskKey(organization.shortId, subtask.shortId)}
 													</span>
-													<span className="min-w-0 flex-1 truncate font-medium text-sm text-foreground">
-														{subtask.title ?? "Untitled"}
-													</span>
-													<StatusChip status={subtask.status} />
+													<span className="min-w-0 flex-1 truncate">{subtask.title ?? "Untitled"}</span>
 												</Link>
-											) : null}
-										</li>
-									))}
+											</li>
+										) : null
+									)}
 								</ul>
 							</section>
 						)}
 
-						<hr className="mt-11 mb-7 border-border" />
+						<hr className="my-8 border-border" />
 
 						<PublicComments
 							taskId={task.id}
