@@ -189,6 +189,7 @@ export function IndentDrawer({
   // a backdrop now blocking the background, a click on it should dismiss
   // like any other modal, unless the caller explicitly overrides it.
   disablePointerDismissal = !modal,
+  onOpenChange,
   children,
   ...props
 }: IndentDrawerProps) {
@@ -198,6 +199,17 @@ export function IndentDrawer({
       modal={modal}
       disablePointerDismissal={disablePointerDismissal}
       swipeDirection={swipeDirection ?? (isMobile ? "down" : side)}
+      onOpenChange={(open, eventDetails) => {
+        // Base UI closes drawers on Escape by default. On desktop a panel sits
+        // beside the page as part of the layout, so Escape must not close it
+        // (it still closes a menu or tooltip open inside it, which is topmost).
+        // On mobile the panel is a bottom sheet, where Escape closing it is right.
+        if (!open && eventDetails.reason === "escape-key" && !isMobile) {
+          eventDetails.cancel();
+          return;
+        }
+        onOpenChange?.(open, eventDetails);
+      }}
       {...props}
     >
       {children}

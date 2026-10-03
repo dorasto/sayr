@@ -54,7 +54,7 @@ interface BoardPanelProviderProps {
  * - the post header's X (`closePost`) and a click on the selected row go back to the overview when the panel was
  *   already open on it before the post was opened, and otherwise close the whole panel (the next open starts on the
  *   overview);
- * - any close of the whole panel (the overview header's X, Esc, drag-dismiss, the page toggle) is observed through
+ * - any close of the whole panel (the overview header's X, drag-dismiss, the page toggle, Esc on mobile) is observed through
  *   `usePanel().isOpen` and clears the param too, so the URL never names a post the panel is not showing.
  */
 export function BoardPanelProvider({ tasks, children }: BoardPanelProviderProps) {
@@ -184,7 +184,7 @@ export function BoardPanelProvider({ tasks, children }: BoardPanelProviderProps)
 		}
 	}, [panel.isRegistered, urlShortId, desktop, navigate, organization.slug, setTask]);
 
-	// Panel -> URL. Closing the whole panel (X on the overview, Esc, drag-dismiss, the page toggle) arrives as isOpen
+	// Panel -> URL. Closing the whole panel (X on the overview, drag-dismiss, the page toggle, Esc on mobile) arrives as isOpen
 	// going false; if a post was selected, drop it from the URL. The URL effect above then puts the overview back so
 	// the next open starts there.
 	const wasOpen = useRef(false);
