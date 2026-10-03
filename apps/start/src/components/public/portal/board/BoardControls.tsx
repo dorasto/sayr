@@ -13,6 +13,7 @@ import {
 } from "@repo/ui/components/dropdown-menu";
 import { generateSlug } from "@repo/util";
 import {
+  IconArrowLeft,
   IconCategory,
   IconFilter,
   IconLayoutKanban,
@@ -23,6 +24,7 @@ import { LabelBadge } from "@/components/board/fields/label-badge";
 import RenderIcon from "@/components/generic/RenderIcon";
 import type { BoardSort } from "@/lib/portal/board-filters";
 import { getPortalStatus } from "@/lib/portal/status";
+import { is } from "drizzle-orm";
 
 /**
  * Menu option look: no radio dot or check mark (the item's own indicator span is hidden); the chosen options are
@@ -151,7 +153,7 @@ export function BoardControls({ toolbar }: BoardControlsProps) {
               }
             >
               <IconFilter aria-hidden className="size-3.5" />
-              <span className="max-md:sr-only">Filter</span>
+
               {activeFilterCount > 0 && (
                 <span className="tabular-nums">{activeFilterCount}</span>
               )}
@@ -257,16 +259,26 @@ export function BoardControls({ toolbar }: BoardControlsProps) {
 
         <Button
           type="button"
-          variant={isRoadmap ? "secondary" : "ghost"}
+          variant={"ghost"}
           size="sm"
           aria-pressed={isRoadmap}
-          tooltipText={isRoadmap ? "Back to the list" : "What's planned, in progress and shipped"}
+          tooltipText={
+            isRoadmap
+              ? "Back to the list"
+              : "What's planned, in progress and shipped"
+          }
           tooltipSide="bottom"
           className="h-6 gap-2 px-2 max-md:w-6 max-md:p-1"
           onClick={() => onLayoutChange(isRoadmap ? "list" : "roadmap")}
         >
-          <IconLayoutKanban aria-hidden className="size-3.5" />
-          <span className="max-md:sr-only">Roadmap</span>
+          {!isRoadmap ? (
+            <IconLayoutKanban aria-hidden />
+          ) : (
+            <IconArrowLeft aria-hidden />
+          )}
+          <span className="max-md:sr-only">
+            {!isRoadmap ? "Roadmap" : "List"}
+          </span>
         </Button>
       </div>
     </div>
