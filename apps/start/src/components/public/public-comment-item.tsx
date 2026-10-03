@@ -142,7 +142,10 @@ export function PublicCommentItem({
 	const hasReactions = !!reactions && Object.values(reactions).some((info) => info.count > 0);
 	// A comment that already shows "N replies" needs no separate Reply action.
 	const showReply = !!onReply && !isReply && (comment.replyCount ?? 0) === 0;
-	const showActions = !isEditing && (showReply || !!commentLink || canManage);
+	// With no reactions yet, the add-reaction button joins the hover actions in the header instead of taking a row of its
+	// own under the comment; once there are reactions it sits beside the chips.
+	const pickerInHeader = !!onToggleReaction && !hasReactions;
+	const showActions = !isEditing && (pickerInHeader || showReply || !!commentLink || canManage);
 	const myReactions = Object.entries(reactions ?? {})
 		.filter(([, info]) => !!currentUserId && info.users.includes(currentUserId))
 		.map(([emoji]) => emoji as ReactionEmoji);
@@ -211,6 +214,12 @@ export function PublicCommentItem({
 
 						{showActions && (
 							<div className="flex shrink-0 items-center gap-1 transition-opacity md:opacity-0 md:focus-within:opacity-100 md:group-hover/comment:opacity-100 md:has-data-popup-open:opacity-100">
+								{pickerInHeader && (
+									<ReactionPicker
+										onSelect={(emoji) => onToggleReaction(comment.id, emoji)}
+										existingReactions={myReactions}
+									/>
+								)}
 								{showReply && (
 									<Tooltip>
 										<TooltipTrigger
@@ -308,7 +317,7 @@ export function PublicCommentItem({
 						)
 					)}
 
-					{!isEditing && (hasReactions || onToggleReaction) && (
+					{!isEditing && hasReactions && (
 						<div className="mt-1 flex flex-wrap items-center gap-1">
 							<CommentReactions
 								className="contents"
