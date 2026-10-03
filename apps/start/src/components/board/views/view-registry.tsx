@@ -1,10 +1,10 @@
 import { IconLayoutGrid, IconLayoutKanban, IconLayoutList } from "@tabler/icons-react";
 import { useBoardViewsOverride } from "../core/board-data";
 import type { TaskItem } from "../core/board-item";
+import { useBoardViewState } from "../filter/use-board-view-state";
 import { BoardCardView } from "./board-card-view";
 import { BoardKanbanView } from "./board-kanban-view";
 import { BoardListView } from "./board-list-view";
-import { useBoardViewState } from "../filter/use-board-view-state";
 import { type BoardViewDefinition, getBoardView } from "./view-registry-model";
 
 export { type BoardViewDefinition, type BoardViewSupports, getBoardView } from "./view-registry-model";
@@ -62,8 +62,11 @@ export const CARD_VIEW: BoardViewDefinition = {
 	supports: { grouping: true, subGrouping: false, drag: false, sort: true, subtasks: "flat" },
 };
 
-/** The views a board offers when its provider registers none of its own: what the admin /home gets. */
-export const DEFAULT_BOARD_VIEWS: readonly BoardViewDefinition[] = [LIST_VIEW, KANBAN_VIEW, CARD_VIEW];
+/**
+ * The views a board offers when its provider registers none of its own: what the admin /home gets. `CARD_VIEW` is for
+ * pages that register it; a saved admin view still set to "card" falls back to the list.
+ */
+export const DEFAULT_BOARD_VIEWS: readonly BoardViewDefinition[] = [LIST_VIEW, KANBAN_VIEW];
 
 /** The views registered on the surrounding `BoardProvider` (`DEFAULT_BOARD_VIEWS` when it gave none). */
 export function useBoardViews(): readonly BoardViewDefinition[] {

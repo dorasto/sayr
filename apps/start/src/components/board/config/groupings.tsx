@@ -105,7 +105,7 @@ export interface BoardGroupingOptions {
 // generic Tailwind/theme utility classes, not code imported from the old
 // system. Backlog/todo both read as neutral "not started yet" grays; todo is
 // deliberately a shade more present than backlog.
-const STATUS_TONE_CLASSES: Record<StatusValue, string | undefined> = {
+export const STATUS_TONE_CLASSES: Record<StatusValue, string | undefined> = {
   backlog: "bg-muted/50",
   todo: "bg-muted",
   "in-progress": "bg-primary/5",

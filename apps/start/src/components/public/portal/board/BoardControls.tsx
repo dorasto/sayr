@@ -14,19 +14,14 @@ import {
 import { generateSlug } from "@repo/util";
 import {
   IconCategory,
-  IconChevronDown,
   IconFilter,
-  IconSortDescending,
+  IconLayoutKanban,
 } from "@tabler/icons-react";
 import { useState } from "react";
 import { STATUS_CONFIG } from "@/components/board/config/field-config";
 import { LabelBadge } from "@/components/board/fields/label-badge";
 import RenderIcon from "@/components/generic/RenderIcon";
-import {
-  type BoardSort,
-  type BoardTab,
-  getTabStatuses,
-} from "@/lib/portal/board-filters";
+import type { BoardSort } from "@/lib/portal/board-filters";
 import { getPortalStatus } from "@/lib/portal/status";
 
 /**
@@ -50,17 +45,12 @@ const STATUS_ORDER = [
   "canceled",
 ] as const;
 
-const TABS: ReadonlyArray<{ value: BoardTab; label: string }> = [
-  { value: "active", label: "Active" },
-  { value: "done", label: "Done" },
-  { value: "all", label: "All" },
-];
+/** How the board shows its posts: the list, or the roadmap kanban (`?layout=roadmap`). */
+export type BoardLayout = "list" | "roadmap";
 
 export interface BoardToolbarProps {
-  tab: BoardTab;
-  onTabChange: (tab: BoardTab) => void;
-  /** Tab counts; a missing entry means the count is not exact yet and is hidden. */
-  counts: Partial<Record<BoardTab, number>>;
+  layout: BoardLayout;
+  onLayoutChange: (layout: BoardLayout) => void;
   sort: BoardSort;
   onSortChange: (sort: BoardSort) => void;
   categories: ReadonlyArray<schema.categoryType>;
@@ -79,15 +69,15 @@ interface BoardControlsProps {
 }
 
 /**
- * The board's tab and menu row, at the bottom of `BoardFeedbackCard`: the tabs on the left (Active / Done / All with
- * counts, underlined), then the sort and filter menus (icon-only on phones). Everything is driven by `toolbar` (built
- * fresh by the page on every render, so tab, sort, filter and count changes always reach the row).
+ * The board's control row, at the bottom of `BoardFeedbackCard`. List: the sort options as underlined tabs on the left
+ * (Most voted / Newest / Recently updated). Roadmap: a short note there instead (its columns have their own order).
+ * On the right, the filter menu (no status section on the roadmap, whose columns are the statuses) and the Roadmap
+ * toggle. Everything is driven by `toolbar` (built fresh by the page on every render, so changes always reach the row).
  */
 export function BoardControls({ toolbar }: BoardControlsProps) {
   const {
-    tab,
-    onTabChange,
-    counts,
+    layout,
+    onLayoutChange,
     sort,
     onSortChange,
     categories,
@@ -100,91 +90,50 @@ export function BoardControls({ toolbar }: BoardControlsProps) {
     onStatusToggle,
     onClearFilters,
   } = toolbar;
-  const [isSortOpen, setIsSortOpen] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const isRoadmap = layout === "roadmap";
 
-  // Status filter only offers statuses that can appear under the current tab: Done has just one, and Won't do
-  // (canceled) is only reachable under All.
-  const tabStatuses = getTabStatuses(tab);
-  const statusOptions =
-    tab === "done"
-      ? []
-      : STATUS_ORDER.filter(
-          (status) => !tabStatuses || tabStatuses.includes(status),
-        );
+  // The roadmap's columns are the statuses, so it has no status filter.
+  const statusOptions = isRoadmap ? [] : STATUS_ORDER;
   const activeFilterCount =
     (categorySlug ? 1 : 0) +
     labelIds.length +
-    (tab === "done" ? 0 : statuses.length);
+    (isRoadmap ? 0 : statuses.length);
   const hasFilterMenu =
     statusOptions.length > 0 || categories.length > 0 || labels.length > 0;
 
   return (
     <div className="flex h-10 items-center gap-2 px-1">
-      <Tabs
-        value={tab}
-        onValueChange={(value) => onTabChange(value as BoardTab)}
-        className="min-w-0 flex-1 gap-0 self-stretch"
-      >
-        <TabsList
-          variant="underline"
-          // The indicator sits inside the strip (not 1px below it) so the scroll container doesn't clip it.
-          className="w-full flex-1 items-stretch justify-start gap-1 overflow-x-auto data-[orientation=horizontal]:py-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden *:data-[slot=tabs-trigger]:hover:bg-transparent **:data-[slot=tab-indicator]:translate-y-0!"
+      {isRoadmap ? (
+        <span className="min-w-0 flex-1 truncate px-2 text-muted-foreground text-xs">
+          Planned, in progress and recently shipped
+        </span>
+      ) : (
+        <Tabs
+          value={sort}
+          onValueChange={(value) => onSortChange(value as BoardSort)}
+          className="min-w-0 flex-1 gap-0 self-stretch"
         >
-          {TABS.map((item) => (
-            <TabsTab
-              key={item.value}
-              value={item.value}
-              className="h-auto shrink-0 grow-0 gap-2 rounded-none px-2.5 text-muted-foreground text-sm hover:text-foreground focus-visible:ring-0 data-active:text-foreground sm:h-auto md:px-3"
-            >
-              {item.label}
-              {counts[item.value] !== undefined && (
-                <span className="font-medium text-muted-foreground text-xs tabular-nums">
-                  {counts[item.value]}
-                </span>
-              )}
-            </TabsTab>
-          ))}
-        </TabsList>
-      </Tabs>
+          <TabsList
+            variant="underline"
+            aria-label="Sort posts"
+            // The indicator sits inside the strip (not 1px below it) so the scroll container doesn't clip it.
+            className="w-full flex-1 items-stretch justify-start gap-1 overflow-x-auto data-[orientation=horizontal]:py-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden *:data-[slot=tabs-trigger]:hover:bg-transparent **:data-[slot=tab-indicator]:translate-y-0!"
+          >
+            {(Object.keys(SORT_LABELS) as BoardSort[]).map((value) => (
+              <TabsTab
+                key={value}
+                value={value}
+                className="h-auto shrink-0 grow-0 gap-2 rounded-none px-2.5 text-muted-foreground text-sm hover:text-foreground focus-visible:ring-0 data-active:text-foreground sm:h-auto md:px-3"
+              >
+                {SORT_LABELS[value]}
+              </TabsTab>
+            ))}
+          </TabsList>
+        </Tabs>
+      )}
 
       <div className="flex shrink-0 items-center gap-1.5 md:gap-2">
-        <DropdownMenu open={isSortOpen} onOpenChange={setIsSortOpen}>
-          <DropdownMenuTrigger
-            render={
-              <Button
-                type="button"
-                variant={isSortOpen ? "secondary" : "ghost"}
-                size="sm"
-                className="h-6 gap-2 px-2 max-md:w-6 max-md:p-1"
-              />
-            }
-          >
-            <IconSortDescending aria-hidden className="size-3.5" />
-            <span className="max-md:sr-only">{SORT_LABELS[sort]}</span>
-            <IconChevronDown aria-hidden className="size-3.5 max-md:hidden" />
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel className="text-muted-foreground text-xs">
-              Sort by
-            </DropdownMenuLabel>
-            <DropdownMenuRadioGroup
-              value={sort}
-              onValueChange={(value) => onSortChange(value as BoardSort)}
-            >
-              {(Object.keys(SORT_LABELS) as BoardSort[]).map((value) => (
-                <DropdownMenuRadioItem
-                  key={value}
-                  value={value}
-                  className={OPTION_CLASS}
-                >
-                  {SORT_LABELS[value]}
-                </DropdownMenuRadioItem>
-              ))}
-            </DropdownMenuRadioGroup>
-          </DropdownMenuContent>
-        </DropdownMenu>
-
         {hasFilterMenu && (
           <DropdownMenu open={isFilterOpen} onOpenChange={setIsFilterOpen}>
             <DropdownMenuTrigger
@@ -305,6 +254,20 @@ export function BoardControls({ toolbar }: BoardControlsProps) {
             </DropdownMenuContent>
           </DropdownMenu>
         )}
+
+        <Button
+          type="button"
+          variant={isRoadmap ? "secondary" : "ghost"}
+          size="sm"
+          aria-pressed={isRoadmap}
+          tooltipText={isRoadmap ? "Back to the list" : "What's planned, in progress and shipped"}
+          tooltipSide="bottom"
+          className="h-6 gap-2 px-2 max-md:w-6 max-md:p-1"
+          onClick={() => onLayoutChange(isRoadmap ? "list" : "roadmap")}
+        >
+          <IconLayoutKanban aria-hidden className="size-3.5" />
+          <span className="max-md:sr-only">Roadmap</span>
+        </Button>
       </div>
     </div>
   );

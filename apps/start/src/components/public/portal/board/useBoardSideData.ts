@@ -2,7 +2,6 @@ import type { schema } from "@repo/database";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { mergeReleaseLists } from "@/lib/portal/merge-releases";
-import type { PortalDateInput } from "@/lib/portal/time";
 
 const baseApiUrl = import.meta.env.VITE_APP_ENV === "development" ? "/backend-api/internal" : "/api/internal";
 const basePublicApiUrl = import.meta.env.VITE_APP_ENV === "development" ? "/backend-api/public/v1" : "/api/public/v1";
@@ -31,15 +30,8 @@ export function useBoardCounts(organizationId: string) {
 }
 
 /** A release as the public releases endpoint serialises it (dates arrive as ISO strings). */
-export interface PublicReleaseSummary {
-	id: string;
-	name: string;
-	slug: string;
-	status: schema.releaseType["status"];
-	releasedAt?: PortalDateInput;
-	targetDate?: PortalDateInput;
-	createdAt?: PortalDateInput;
-}
+/** A release as the public releases endpoint returns it (the full row). */
+export type PublicReleaseSummary = schema.releaseType;
 
 export const boardReleasesKey = (orgSlug: string) => ["board-releases", orgSlug] as const;
 

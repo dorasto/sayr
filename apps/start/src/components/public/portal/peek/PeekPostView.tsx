@@ -46,10 +46,8 @@ export function PeekPostView({ post }: PeekPostViewProps) {
   return (
     <article className="flex flex-col gap-4">
       <header className="flex flex-col gap-3">
-        <div className="flex items-center gap-2">
-          <StatusChip status={post.status} />
-          {category && <CategoryTag category={category} />}
-          {release && <ReleaseTag name={release.name} />}
+        <div className="flex items-center">
+          <StatusChip status={post.status} className="w-fit" />
           <VoteBox
             count={vote.voteCount}
             voted={vote.voted}
@@ -59,9 +57,11 @@ export function PeekPostView({ post }: PeekPostViewProps) {
             className="ml-auto"
           />
         </div>
+
         <Label variant="heading" className="block text-lg leading-7">
           {post.title}
         </Label>
+
         <div className="flex items-center gap-2 text-[13px] text-muted-foreground">
           {creator && creatorName && (
             <span className="inline-flex items-center gap-1.5">
@@ -91,6 +91,10 @@ export function PeekPostView({ post }: PeekPostViewProps) {
               {post.githubIssue.issueNumber}
             </a>
           )}
+        </div>
+        <div className="flex flex-col gap-2">
+          {category && <CategoryTag category={category} />}
+          {release && <ReleaseTag className="" name={release.name} />}
         </div>
       </header>
 

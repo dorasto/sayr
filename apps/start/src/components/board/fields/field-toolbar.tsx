@@ -9,7 +9,7 @@ import { FieldVisibility } from "./field-visibility";
 
 const DEFAULT_FIELDS = ["status", "priority", "visibility", "assignee", "label", "category", "release"] as const;
 
-type BoardField = (typeof DEFAULT_FIELDS)[number];
+export type BoardField = (typeof DEFAULT_FIELDS)[number];
 
 interface FieldToolbarProps {
 	task: schema.TaskWithLabels;

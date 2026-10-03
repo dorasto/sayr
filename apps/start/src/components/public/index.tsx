@@ -17,17 +17,21 @@ import {
 } from "@/hooks/useWSMessageHandler";
 import {
   type BoardSort,
+  ACTIVE_STATUSES,
   type BoardTab,
-  countByTab,
   filterBoardTasks,
   sortBoardTasks,
 } from "@/lib/portal/board-filters";
 import { parseCsvParam } from "@/lib/portal/board-row";
 import { normalizeShortId } from "@/lib/portal/peek";
 import type { ServerEventMessage } from "@/lib/serverEvents";
-import type { BoardToolbarProps } from "./portal/board/BoardControls";
+import type {
+  BoardLayout,
+  BoardToolbarProps,
+} from "./portal/board/BoardControls";
 import { BoardFeedbackCard } from "./portal/board/BoardFeedbackCard";
 import { BoardPageBar } from "./portal/board/BoardPageBar";
+import { PublicRoadmapView } from "./portal/roadmap/PublicRoadmapView";
 import { BoardPanelProvider } from "./portal/board/BoardPanelProvider";
 import {
   PUBLIC_BOARD_PANEL_ID,
@@ -63,7 +67,7 @@ const BOARD_PANEL: PanelConfig = {
   header: RAIL_HEADER,
   defaultOpen: true,
   persistOpenState: false,
-  width: "40dvw",
+  width: "30dvw",
   fitContent: true,
   resizable: false,
   height: "70dvh",
@@ -89,7 +93,7 @@ const POST_PANEL_VIEW: Pick<PanelConfig, "classNames"> = {
     desktop: {
       popup: "bg-transparent border-transparent",
       content: "p-0 pt-3",
-      header: "border-transparent",
+      header: "border-transparent px-0",
     },
   },
 };
@@ -108,7 +112,7 @@ export default function PublicOrgHomePage() {
   const orgId = organization.id;
 
   const {
-    tab: tabParam,
+    layout: layoutParam,
     sort: sortParam,
     category: categoryParam,
     status: statusParam,
@@ -118,8 +122,7 @@ export default function PublicOrgHomePage() {
   } = useTasksSearchParams();
 
   // URL state -> board state
-  const tab: BoardTab =
-    tabParam === "done" || tabParam === "all" ? tabParam : "active";
+  const layout: BoardLayout = layoutParam === "roadmap" ? "roadmap" : "list";
   const sort: BoardSort =
     sortParam === "newest" || sortParam === "updated"
       ? sortParam
@@ -139,6 +142,12 @@ export default function PublicOrgHomePage() {
       ),
     [statusParam],
   );
+  // No tabs: the list shows open posts, and filtering by Done or Won't do also loads the closed ones.
+  const tab: BoardTab = statuses.some(
+    (status) => !ACTIVE_STATUSES.includes(status),
+  )
+    ? "all"
+    : "active";
   const labelIds = useMemo(
     () =>
       parseCsvParam(labelsParam).filter((id) =>
@@ -176,7 +185,6 @@ export default function PublicOrgHomePage() {
   // Keep the shared layout copy of the loaded posts in sync (the post page's related posts, parent/sub-task lookup and
   // mentions read it). Only the unfiltered set is written: a category, status or label view must not shrink it.
   const isUnfilteredSet =
-    tab !== "done" &&
     !category &&
     statuses.length === 0 &&
     labelIds.length === 0 &&
@@ -310,25 +318,8 @@ export default function PublicOrgHomePage() {
     fetchNextPage,
   ]);
 
-  // Tab counts: Active is exact from the counts endpoint. Done / All are only exact once every closed-mode page is
-  // loaded (the backend has no status filter), so they are hidden until then and whenever a category narrows the set.
-  const closedLoaded =
-    tab !== "active" &&
-    !category &&
-    !list.hasNextPage &&
-    !list.isPlaceholderData &&
-    !list.isLoading;
-  const loadedCounts = closedLoaded ? countByTab(list.tasks) : null;
-  const tabCounts: Partial<Record<BoardTab, number>> = {
-    active: countsQuery.data?.open,
-    done: loadedCounts?.done,
-    all: loadedCounts?.all,
-  };
-
   const hasActiveFilters =
-    !!category ||
-    labelIds.length > 0 ||
-    (tab !== "done" && statuses.length > 0);
+    !!category || labelIds.length > 0 || statuses.length > 0;
 
   const setCsv = (current: string[], value: string): string | null => {
     const next = current.includes(value)
@@ -347,13 +338,12 @@ export default function PublicOrgHomePage() {
   );
   const categorySlug = category ? generateSlug(category.name) : null;
 
-  // The tabs, sort and filter menus live in the Page's top bar. Built on every render (no memo, no module constant)
-  // so a tab, sort, filter or count change always reaches the bar instead of a stale element.
+  // The sort tabs, filter menu and Roadmap toggle live in the Feedback card. Built on every render (no memo, no module
+  // constant) so a sort, filter or layout change always reaches the card instead of a stale element.
   const toolbar: BoardToolbarProps = {
-    tab,
-    onTabChange: (next) =>
-      setBoardParams({ tab: next === "active" ? null : next, status: null }),
-    counts: tabCounts,
+    layout,
+    onLayoutChange: (next) =>
+      setBoardParams({ layout: next === "list" ? null : next }),
     sort,
     onSortChange: (next) =>
       setBoardParams({ sort: next === "mostPopular" ? null : next }),
@@ -378,32 +368,45 @@ export default function PublicOrgHomePage() {
     >
       <BoardPanelProvider tasks={list.tasks}>
         <Page panels={panels} className="">
-          <BoardPageBar />
-          <PublicTaskView
-            header={<BoardFeedbackCard toolbar={toolbar} />}
-            tab={tab}
-            tasks={visibleTasks}
-            isLoading={list.isLoading}
-            isError={list.isError}
-            isFetchingMore={
-              list.isFetchingNextPage ||
-              list.isPlaceholderData ||
-              (list.isFetching && visibleTasks.length === 0)
-            }
-            hasMore={!!list.hasNextPage}
-            hasActiveFilters={hasActiveFilters}
-            // Only the All tab's total counts every post; Active's is open-only, so an empty Active is not an empty board.
-            boardIsEmpty={
-              !hasActiveFilters &&
-              tab === "all" &&
-              !list.isPlaceholderData &&
-              list.totalItems === 0
-            }
-            onShowMore={() => void list.fetchNextPage()}
-            onRetry={() => void list.refetch()}
-            onClearFilters={clearFilters}
-            onShowAll={() => setBoardParams({ tab: "all", status: null })}
-          />
+          {layout === "roadmap" ? (
+            // The roadmap fills the page height (no page scroll); its columns scroll on their own.
+            <div className="flex h-full flex-col">
+              <BoardPageBar />
+              <PublicRoadmapView
+                header={<BoardFeedbackCard toolbar={toolbar} />}
+                categoryId={category?.id ?? null}
+                labelIds={labelIds}
+              />
+            </div>
+          ) : (
+            <>
+              <BoardPageBar />
+              <PublicTaskView
+                header={<BoardFeedbackCard toolbar={toolbar} />}
+                tab={tab}
+                tasks={visibleTasks}
+                isLoading={list.isLoading}
+                isError={list.isError}
+                isFetchingMore={
+                  list.isFetchingNextPage ||
+                  list.isPlaceholderData ||
+                  (list.isFetching && visibleTasks.length === 0)
+                }
+                hasMore={!!list.hasNextPage}
+                hasActiveFilters={hasActiveFilters}
+                // No open posts and no filters: treat it as an empty board ("be the first").
+                boardIsEmpty={
+                  !hasActiveFilters &&
+                  !list.isPlaceholderData &&
+                  list.totalItems === 0
+                }
+                onShowMore={() => void list.fetchNextPage()}
+                onRetry={() => void list.refetch()}
+                onClearFilters={clearFilters}
+                onShowAll={() => setBoardParams({ layout: "roadmap" })}
+              />
+            </>
+          )}
         </Page>
       </BoardPanelProvider>
     </BoardRailProvider>

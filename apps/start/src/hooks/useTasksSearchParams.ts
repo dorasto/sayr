@@ -77,6 +77,8 @@ export function useTasksSearchParams() {
 	const sort = useMemo(() => searchParams.get("sort") ?? null, [searchParams]);
 	const status = useMemo(() => searchParams.get("status") ?? null, [searchParams]);
 	const labels = useMemo(() => searchParams.get("labels") ?? null, [searchParams]);
+	// Public board layout: unset = the list, `roadmap` = the roadmap kanban.
+	const layout = useMemo(() => searchParams.get("layout") ?? null, [searchParams]);
 	// Public post comment permalink (`?comment=<id>`): the comment to highlight and scroll to.
 	const comment = useMemo(() => searchParams.get("comment") ?? null, [searchParams]);
 
@@ -162,8 +164,10 @@ export function useTasksSearchParams() {
 			status?: string | null;
 			labels?: string | null;
 			category?: string | null;
+			layout?: string | null;
 		}) => {
 			const updates: Record<string, string | null> = {};
+			if (params.layout !== undefined) updates.layout = params.layout;
 			if (params.tab !== undefined) updates.tab = params.tab;
 			if (params.sort !== undefined) updates.sort = params.sort;
 			if (params.status !== undefined) updates.status = params.status;
@@ -189,6 +193,7 @@ export function useTasksSearchParams() {
 		sort,
 		status,
 		labels,
+		layout,
 		comment,
 
 		// Individual setters

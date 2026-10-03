@@ -5,6 +5,8 @@ import PublicOrgHomePage from "@/components/public";
 interface BoardSearch {
 	/** Category slug. */
 	category?: string;
+	/** `roadmap` = the roadmap kanban instead of the list. */
+	layout?: string;
 	/** Comma-separated label ids. */
 	labels?: string;
 }
@@ -19,6 +21,7 @@ export const Route = createFileRoute("/orgs/$orgSlug/")({
 		...search,
 		category: asString(search.category),
 		labels: asString(search.labels),
+		layout: asString(search.layout),
 	}),
 	component: OrgDashboard,
 });

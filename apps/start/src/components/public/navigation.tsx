@@ -16,7 +16,7 @@ import { getOrgSlugFromPath, getPortalSection } from "@/lib/portal/nav";
 import LoginDialog from "../auth/login";
 import { PortalSearch } from "./portal/search/PortalSearch";
 
-/** 64px public top bar: org mark + name, Feedback / Roadmap / Changelog (+ Activity when logged in), search palette trigger, Log in or user avatar. */
+/** 64px public top bar: org mark + name, Feedback / Changelog (+ Activity when logged in), search palette trigger, Log in or user avatar. */
 export default function PublicNavigation() {
   const { data: session, isPending: sessionPending } = authClient.useSession();
   const { organization } = usePublicOrganizationLayout();
@@ -29,11 +29,6 @@ export default function PublicNavigation() {
   const feedbackPath: string = `/orgs/${orgSlug}`;
   const navLinks: { to: string; label: string; active: boolean }[] = [
     { to: feedbackPath, label: "Feedback", active: section === "feedback" },
-    {
-      to: `/orgs/${orgSlug}/roadmap`,
-      label: "Roadmap",
-      active: section === "roadmap",
-    },
     {
       to: `/orgs/${orgSlug}/releases`,
       label: "Changelog",
