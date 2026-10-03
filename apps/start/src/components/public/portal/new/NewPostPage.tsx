@@ -9,6 +9,7 @@ import { NewPostFooter } from "@/components/public/portal/new/NewPostFooter";
 import { PostDetailsEditor } from "@/components/public/portal/new/PostDetailsEditor";
 import { PostingDisabledCard } from "@/components/public/portal/new/PostingDisabledCard";
 import { PostTitleField } from "@/components/public/portal/new/PostTitleField";
+import { SimilarPostsList } from "@/components/public/portal/new/SimilarPostsList";
 import { TemplateChooser } from "@/components/public/portal/new/TemplateChooser";
 import { TemplatePicker } from "@/components/public/portal/new/TemplatePicker";
 import { usePublicPostAbility } from "@/components/public/public-task-creator";
@@ -263,12 +264,9 @@ export function NewPostPage({ initialTitle }: NewPostPageProps) {
                     onSelect={handleTemplateSelect}
                   />
                 )}
-                <PostTitleField
-                  value={title}
-                  onChange={setTitle}
-                  similar={similar}
-                />
+                <PostTitleField value={title} onChange={setTitle} />
               </div>
+              {similar.length > 0 && <SimilarPostsList posts={similar} />}
               <PostDetailsEditor
                 ready={restored}
                 editorKey={editorKey}
