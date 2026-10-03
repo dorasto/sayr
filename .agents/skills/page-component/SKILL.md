@@ -75,7 +75,7 @@ import { Page } from "@/components/generic/page";
 | `resizable` | `boolean` | `true` | Desktop-only drag-to-resize on the panel's near edge. Ignored for anchored panels and always off on mobile regardless of this flag |
 | `minWidth` / `maxWidth` | `number` | `280` / `720` | Resize clamp, in px |
 
-Every panel is resizable by default — you don't need to opt in. Users drag the handle on the panel's near edge; the resized width persists per-panel to `localStorage` (same mechanism as open/closed state) and survives reloads, overriding `width` until the user resizes again.
+Every panel is resizable by default — you don't need to opt in. Users drag the handle on the panel's near edge; the resized width persists per-panel to `localStorage` (same mechanism as open/closed state) and survives reloads, overriding `width` until the user resizes again. A panel with `resizable: false` ignores any saved width (e.g. one left over from before the route turned resizing off) and always renders at its configured `width`; the saved value stays in the store, so turning resizing back on restores it.
 
 ## Mobile behavior
 

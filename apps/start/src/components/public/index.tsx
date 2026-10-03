@@ -29,7 +29,10 @@ import {
   type BoardToolbarProps,
 } from "./portal/board/BoardPageBar";
 import { BoardPanelProvider } from "./portal/board/BoardPanelProvider";
-import { PUBLIC_BOARD_PANEL_ID, RAIL_HEADER } from "./portal/board/BoardRailContent";
+import {
+  PUBLIC_BOARD_PANEL_ID,
+  RAIL_HEADER,
+} from "./portal/board/BoardRailContent";
 import { BoardRailProvider } from "./portal/board/BoardRailProvider";
 import {
   boardCountsKey,
@@ -59,7 +62,9 @@ const BOARD_PANEL: PanelConfig = {
   // Fallback until the provider has put the overview header in the store.
   header: RAIL_HEADER,
   defaultOpen: true,
-  width: "380px",
+  persistOpenState: false,
+  width: "40dvw",
+  resizable: false,
   height: "70dvh",
   minWidth: 280,
   maxWidth: 720,

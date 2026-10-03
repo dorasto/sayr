@@ -406,13 +406,17 @@ export function Page({
   // sidebar-store.ts. Fed to BOTH IndentDrawerRegion and IndentDrawerContent
   // below so the push-margin and the drawer's own rendered width can never
   // drift apart, regardless of whether the underlying value is a px number
-  // or the route's original width string (fixed px, %, whatever).
-  const leftWidth = leftPanelState?.resizedWidth
-    ? `${leftPanelState.resizedWidth}px`
-    : panels?.left?.width;
-  const rightWidth = rightPanelState?.resizedWidth
-    ? `${rightPanelState.resizedWidth}px`
-    : panels?.right?.width;
+  // or the route's original width string (fixed px, %, whatever). A panel
+  // with `resizable: false` ignores any saved drag width (one left over from
+  // before the route turned resizing off) and uses its configured width.
+  const leftWidth =
+    (panels?.left?.resizable ?? true) && leftPanelState?.resizedWidth
+      ? `${leftPanelState.resizedWidth}px`
+      : panels?.left?.width;
+  const rightWidth =
+    (panels?.right?.resizable ?? true) && rightPanelState?.resizedWidth
+      ? `${rightPanelState.resizedWidth}px`
+      : panels?.right?.width;
 
   useEffect(() => {
     setIsClient(true);
