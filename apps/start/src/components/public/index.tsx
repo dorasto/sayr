@@ -25,10 +25,9 @@ import {
 import { parseCsvParam } from "@/lib/portal/board-row";
 import { normalizeShortId } from "@/lib/portal/peek";
 import type { ServerEventMessage } from "@/lib/serverEvents";
-import {
-  BoardPageBar,
-  type BoardToolbarProps,
-} from "./portal/board/BoardPageBar";
+import type { BoardToolbarProps } from "./portal/board/BoardControls";
+import { BoardFeedbackCard } from "./portal/board/BoardFeedbackCard";
+import { BoardPageBar } from "./portal/board/BoardPageBar";
 import { BoardPanelProvider } from "./portal/board/BoardPanelProvider";
 import {
   PUBLIC_BOARD_PANEL_ID,
@@ -372,12 +371,9 @@ export default function PublicOrgHomePage() {
       onCategoryChange={setCategorySlug}
     >
       <BoardPanelProvider tasks={list.tasks}>
-        <Page
-          header={<BoardPageBar toolbar={toolbar} />}
-          panels={panels}
-          className=""
-        >
+        <Page header={<BoardPageBar />} panels={panels} className="">
           <PublicTaskView
+            header={<BoardFeedbackCard toolbar={toolbar} />}
             tab={tab}
             tasks={visibleTasks}
             isLoading={list.isLoading}

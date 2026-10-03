@@ -1,43 +1,30 @@
-import { Button } from "@repo/ui/components/button";
 import { Label } from "@repo/ui/components/label";
-import {
-  Tile,
-  TileDescription,
-  TileHeader,
-  TileIcon,
-  TileTitle,
-} from "@repo/ui/components/doras-ui/tile";
-import { IconBulb } from "@tabler/icons-react";
-import { Link } from "@tanstack/react-router";
 import { useCallback, useMemo } from "react";
 import { usePublicOrganizationLayout } from "@/contexts/publicContextOrg";
 import { pickLatestRelease } from "@/lib/portal/board-row";
 import type { PanelHeaderConfig } from "@/lib/sidebar/sidebar-store";
 import { sidebarActions } from "@/lib/sidebar/sidebar-store";
-import { usePublicPostAbility } from "../../public-task-creator";
 import { usePeekEnabled } from "../peek/usePeekEnabled";
 import { useBoardRail } from "./BoardRailProvider";
 import { CategoriesCard } from "./CategoriesCard";
 import { LatestReleaseCard } from "./LatestReleaseCard";
-import { newPostLink } from "./new-post-path";
 
 /**
- * Id of the board's single right-hand panel. It shows the overview (composer, categories, latest release) by default
+ * Id of the board's single right-hand panel. It shows the overview (categories, latest release) by default
  * and swaps to a post (Peek) while one is selected. The board registers it on its `Page`; `BoardPanelProvider` drives it.
  * (Renamed from `public-peek-panel` so a persisted open/closed value from the old, closed-by-default panel is not reused.)
  */
 export const PUBLIC_BOARD_PANEL_ID = "public-board-panel";
 
 /**
- * Body of the board panel while no post is selected: the "Share an idea" card (a link to the full new-post form, hidden
- * when the viewer can not post), "Browse by category" and "Latest release". Takes no props (it reads the board's data
+ * Body of the board panel while no post is selected: "Browse by category" and "Latest release" (the "Write a post"
+ * button lives in `BoardFeedbackCard` above the posts). Takes no props (it reads the board's data
  * from `BoardRailProvider`), so it is handed to the panel store once as `RAIL_CONTENT` and stays live by itself.
  */
 export function BoardRailContent() {
   const { organization, categories } = usePublicOrganizationLayout();
   const { counts, releases, activeCategorySlug, onCategoryChange } =
     useBoardRail();
-  const { canPost } = usePublicPostAbility();
   const desktop = usePeekEnabled();
   const hasLatestRelease = useMemo(
     () => pickLatestRelease(releases) !== null,
@@ -54,34 +41,10 @@ export function BoardRailContent() {
     [onCategoryChange, desktop],
   );
 
-  const isEmpty = !canPost && categories.length === 0 && !hasLatestRelease;
+  const isEmpty = categories.length === 0 && !hasLatestRelease;
 
   return (
     <div className="flex flex-col gap-3">
-      {canPost && (
-        <Tile className="flex-col items-start gap-3 md:w-full">
-          <TileHeader className="w-full">
-            <TileIcon>
-              <IconBulb />
-            </TileIcon>
-            <TileTitle className="text-sm">
-              Share an idea or report a bug
-            </TileTitle>
-            <TileDescription className="text-xs">
-              Search first. If someone already posted it, give it your vote
-              instead.
-            </TileDescription>
-          </TileHeader>
-          <Button
-            render={<Link {...newPostLink(organization.slug)} />}
-            nativeButton={false}
-            size="sm"
-            className="w-full max-md:h-11"
-          >
-            Write a post
-          </Button>
-        </Tile>
-      )}
       <CategoriesCard
         categories={categories}
         counts={counts}

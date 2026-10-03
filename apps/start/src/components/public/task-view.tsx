@@ -1,9 +1,8 @@
 import type { schema } from "@repo/database";
 import { Button } from "@repo/ui/components/button";
 import { Skeleton } from "@repo/ui/components/skeleton";
-import { IconAlertTriangle, IconPlus, IconRefresh } from "@tabler/icons-react";
-import { Link } from "@tanstack/react-router";
-import { useCallback, useMemo, useRef } from "react";
+import { IconAlertTriangle, IconRefresh } from "@tabler/icons-react";
+import { type ReactNode, useCallback, useMemo, useRef } from "react";
 import { Board } from "@/components/board/board";
 import { type BoardDataSource, BoardProvider } from "@/components/board/core/board-data";
 import { READ_ONLY_CAPABILITIES } from "@/components/board/core/capabilities";
@@ -16,8 +15,6 @@ import { FLAT_LIST_VIEW } from "@/components/board/views/view-registry";
 import { usePublicOrganizationLayout } from "@/contexts/publicContextOrg";
 import type { BoardTab } from "@/lib/portal/board-filters";
 import { BoardEmptyState } from "./portal/board/BoardEmptyState";
-import { newPostLink } from "./portal/board/new-post-path";
-import { usePublicPostAbility } from "./public-task-creator";
 import { PublicTaskItem } from "./task-item";
 
 // Everything `BoardProvider` gets besides the data is a module-level constant (the provider wants stable identities).
@@ -27,7 +24,7 @@ const PUBLIC_BOARD_VIEWS = [FLAT_LIST_VIEW];
 
 const PUBLIC_BOARD_RENDERERS: BoardRenderers = { row: PublicTaskItem };
 
-/** Controlled and read-only: the page bar owns tabs, sort and filters, so the board shows posts as given. */
+/** Controlled and read-only: the Feedback card owns tabs, sort and filters, so the board shows posts as given. */
 const PUBLIC_BOARD_SCOPE: BoardScope = {
 	key: "public-board",
 	persistence: "controlled",
@@ -44,7 +41,9 @@ const PUBLIC_BOARD_SCOPE: BoardScope = {
 const SKELETON_TITLE_WIDTHS = ["62%", "48%", "70%"];
 
 interface PublicTaskViewProps {
-	/** The active tab (the tabs themselves live in the page bar); picks the empty state. */
+	/** Shown above the posts (the Feedback card with the tabs, sort and filters). */
+	header?: ReactNode;
+	/** The active tab (the tabs themselves live in the Feedback card); picks the empty state. */
 	tab: BoardTab;
 	/** Posts to show: already tab/filter/sort applied. */
 	tasks: ReadonlyArray<schema.TaskWithLabels>;
@@ -69,6 +68,7 @@ interface PublicTaskViewProps {
  * re-sorts the server-ranked pages.
  */
 export function PublicTaskView({
+	header,
 	tab,
 	tasks,
 	isLoading,
@@ -82,8 +82,7 @@ export function PublicTaskView({
 	onClearFilters,
 	onShowAll,
 }: PublicTaskViewProps) {
-	const { organization, categories, labels } = usePublicOrganizationLayout();
-	const { canPost } = usePublicPostAbility();
+	const { categories, labels } = usePublicOrganizationLayout();
 
 	// A stable `loadMore` so the data source only changes when the posts or paging state do.
 	const onShowMoreRef = useRef(onShowMore);
@@ -114,18 +113,7 @@ export function PublicTaskView({
 			renderers={PUBLIC_BOARD_RENDERERS}
 		>
 			<section className="w-full min-w-0 px-4 pt-5 pb-16 md:pt-3">
-				{/* Below 1024px the panel is a sheet that never opens by itself: this goes straight to the form. */}
-				{canPost && (
-					<Button
-						render={<Link {...newPostLink(organization.slug)} />}
-						nativeButton={false}
-						size="lg"
-						className="mb-5 h-12 w-full lg:hidden"
-					>
-						<IconPlus aria-hidden />
-						Share an idea or report a bug
-					</Button>
-				)}
+				{header}
 
 				{showError ? (
 					<div
