@@ -10,6 +10,7 @@ import {
 	ComboBoxSearch,
 	ComboBoxTrigger,
 } from "@repo/ui/components/tomui/combo-box-unified";
+import RenderIcon from "@/components/generic/RenderIcon";
 import { useBoardCapabilities, useBoardData, useBoardItemActions } from "../core/board-data";
 import { StaticField } from "./static-field";
 
@@ -20,7 +21,7 @@ interface FieldCategoryProps {
 /**
  * Compact category pill — hidden entirely when the task has no category
  * (matches the existing org-scoped row's CategoryBadgeButton, which also
- * renders null on empty), a colored-dot pill when it does. Still a full
+ * renders null on empty), a pill with the category's icon (in its colour) when it does. Still a full
  * ComboBox trigger underneath, so clicking it reassigns/clears the category
  * — assigning a category to a task that has none is done from the task
  * detail page, not from this compact row/card badge.
@@ -36,7 +37,9 @@ export function FieldCategory({ task }: FieldCategoryProps) {
 
 	const pill = (
 		<Badge variant="secondary" className="flex h-5 max-w-24 items-center gap-1 px-1.5 text-[11px] font-medium">
-			<span className="size-1.5 rounded-full shrink-0" style={{ backgroundColor: current.color ?? "#9CA3AF" }} />
+			<span className="flex shrink-0" style={{ color: current.color ?? undefined }}>
+				<RenderIcon iconName={current.icon || "IconCategory"} size={10} raw color={current.color ?? undefined} />
+			</span>
 			<span className="truncate">{current.name}</span>
 		</Badge>
 	);

@@ -1,4 +1,5 @@
 import type { schema } from "@repo/database";
+import { Label } from "@repo/ui/components/label";
 import { formatCount } from "@repo/util";
 import { IconChevronUp } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
@@ -6,7 +7,6 @@ import { FieldStatus } from "@/components/board/fields/field-status";
 import { usePublicTask } from "@/contexts/ContextPublicOrgTask";
 import { findRelatedPosts } from "@/lib/portal/related";
 import { getPortalStatus } from "@/lib/portal/status";
-import { DetailSection } from "./detail-section";
 
 interface RelatedPostsProps {
 	/** The org's public posts to match against. */
@@ -21,7 +21,8 @@ export function RelatedPosts({ tasks }: RelatedPostsProps) {
 	if (related.length === 0) return null;
 
 	return (
-		<DetailSection label="Related posts">
+		<section aria-label="Related posts" className="flex flex-col gap-1.5 border-t pt-4">
+			<Label variant="description">Related posts</Label>
 			<ul className="flex w-full flex-col gap-0.5">
 				{related.map((post) =>
 					post.shortId != null ? (
@@ -42,6 +43,6 @@ export function RelatedPosts({ tasks }: RelatedPostsProps) {
 					) : null
 				)}
 			</ul>
-		</DetailSection>
+		</section>
 	);
 }

@@ -6,12 +6,14 @@ interface DetailSectionProps {
 	children: ReactNode;
 }
 
-/** One section of the post's Details panel: a small label over its value, like the admin task sidebar. */
+/** One row of the post's Details panel: a small label with its value beside it. */
 export function DetailSection({ label, children }: DetailSectionProps) {
 	return (
-		<section aria-label={label} className="flex flex-col gap-1.5">
-			<Label variant="description">{label}</Label>
-			<div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm">{children}</div>
-		</section>
+		<div className="flex min-h-7 items-center gap-3">
+			<Label variant="description" className="w-24 shrink-0">
+				{label}
+			</Label>
+			<div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5 text-sm">{children}</div>
+		</div>
 	);
 }

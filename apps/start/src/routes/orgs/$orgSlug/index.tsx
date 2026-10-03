@@ -1,7 +1,25 @@
-import PublicOrgHomePage from "@/components/public";
 import { createFileRoute } from "@tanstack/react-router";
+import PublicOrgHomePage from "@/components/public";
+
+/** Board filters other pages link to (a post's category or label). The board reads every param itself. */
+interface BoardSearch {
+	/** Category slug. */
+	category?: string;
+	/** Comma-separated label ids. */
+	labels?: string;
+}
+
+function asString(value: unknown): string | undefined {
+	return typeof value === "string" && value ? value : undefined;
+}
 
 export const Route = createFileRoute("/orgs/$orgSlug/")({
+	// Spread first so the board's other params (tab, sort, status, task...) are kept as they are.
+	validateSearch: (search: Record<string, unknown>): BoardSearch => ({
+		...search,
+		category: asString(search.category),
+		labels: asString(search.labels),
+	}),
 	component: OrgDashboard,
 });
 
