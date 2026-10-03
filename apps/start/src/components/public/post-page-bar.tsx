@@ -27,18 +27,19 @@ export function PostPageBar({ orgSlug, panelId }: PostPageBarProps) {
         params={{ orgSlug }}
         className={cn(
           buttonVariants({ variant: "ghost", size: "sm" }),
-          "h-8 gap-2 px-2 text-[13.5px]",
+          "h-6 gap-2 px-2",
         )}
       >
         <IconArrowLeft aria-hidden className="size-4" />
         Feedback
       </Link>
       <Button
-        variant="ghost"
-        size="icon"
+        type="button"
+        variant={panel.isOpen ? "secondary" : "ghost"}
+        size="sm"
         aria-label={panel.isOpen ? "Hide details" : "Show details"}
         aria-pressed={panel.isOpen}
-        className={cn("size-8", panel.isOpen && "bg-accent text-foreground")}
+        className="h-6 w-6 gap-2 p-1"
         onClick={() =>
           panel.isOpen
             ? closePanel(panelId)

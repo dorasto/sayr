@@ -11,7 +11,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@repo/ui/components/dropdown-menu";
-import { cn } from "@repo/ui/lib/utils";
 import { generateSlug } from "@repo/util";
 import {
   IconChevronDown,
@@ -20,6 +19,7 @@ import {
   IconLayoutSidebarRightFilled,
   IconSortDescending,
 } from "@tabler/icons-react";
+import { useState } from "react";
 import { usePage, usePanel } from "@/components/generic/use-page";
 import {
   type BoardSort,
@@ -98,6 +98,8 @@ export function BoardPageBar({ toolbar }: BoardPageBarProps) {
   } = toolbar;
   const panel = usePanel(PUBLIC_BOARD_PANEL_ID);
   const { closePanel } = usePage();
+  const [isSortOpen, setIsSortOpen] = useState(false);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   // Status filter only offers statuses that can appear under the current tab: Done has just one, and Won't do
   // (canceled) is only reachable under All.
@@ -145,13 +147,14 @@ export function BoardPageBar({ toolbar }: BoardPageBarProps) {
       </Tabs>
 
       <div className="flex shrink-0 items-center gap-1.5 md:gap-2">
-        <DropdownMenu>
+        <DropdownMenu open={isSortOpen} onOpenChange={setIsSortOpen}>
           <DropdownMenuTrigger
             render={
               <Button
-                variant="outline"
+                type="button"
+                variant={isSortOpen ? "secondary" : "ghost"}
                 size="sm"
-                className="max-md:h-11 max-md:min-w-11 max-md:px-0"
+                className="h-6 gap-2 px-2 max-md:w-6 max-md:p-1"
               />
             }
           >
@@ -177,17 +180,18 @@ export function BoardPageBar({ toolbar }: BoardPageBarProps) {
         </DropdownMenu>
 
         {hasFilterMenu && (
-          <DropdownMenu>
+          <DropdownMenu open={isFilterOpen} onOpenChange={setIsFilterOpen}>
             <DropdownMenuTrigger
               render={
                 <Button
-                  variant="outline"
+                  type="button"
+                  variant={
+                    isFilterOpen || activeFilterCount > 0
+                      ? "secondary"
+                      : "ghost"
+                  }
                   size="sm"
-                  className={cn(
-                    "max-md:h-11 max-md:min-w-11 max-md:px-0",
-                    activeFilterCount > 0 &&
-                      "border-primary/50 bg-primary/15 text-primary",
-                  )}
+                  className="h-6 gap-2 px-2 max-md:min-w-6 max-md:p-1"
                 />
               }
             >
@@ -278,14 +282,12 @@ export function BoardPageBar({ toolbar }: BoardPageBarProps) {
         )}
 
         <Button
-          variant="ghost"
+          type="button"
+          variant={panel.isOpen ? "secondary" : "ghost"}
           size="sm"
           aria-label={panel.isOpen ? "Hide panel" : "Show panel"}
           aria-pressed={panel.isOpen}
-          className={cn(
-            "w-9 shrink-0 px-0 max-md:h-11 max-md:w-11",
-            panel.isOpen && "bg-accent text-foreground",
-          )}
+          className="h-6 w-6 shrink-0 gap-2 p-1"
           onClick={() =>
             panel.isOpen
               ? closePanel(PUBLIC_BOARD_PANEL_ID)

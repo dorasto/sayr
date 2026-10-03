@@ -109,8 +109,11 @@ function PanelHeader({
         {actions}
         {showClose && (
           <Button
+            type="button"
             variant="ghost"
-            size="icon"
+            size="sm"
+            className="h-6 w-6 gap-2 p-1"
+            aria-label="Close panel"
             onClick={(e) => {
               e.stopPropagation();
               onClose ? onClose() : sidebarActions.setOpen(panelId, false);

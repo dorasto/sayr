@@ -1,5 +1,6 @@
 import type { schema } from "@repo/database";
 import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
+import { Button } from "@repo/ui/components/button";
 import { ensureCdnUrl, formatCount, formatDate, formatTaskKey, getDisplayName, getInitials } from "@repo/util";
 import { IconArrowUpRight, IconChevronUp, IconRocket } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
@@ -113,15 +114,25 @@ export function ReleaseDetailView({ release, tasks, orgId, orgSlug, statusUpdate
 			title: "Release details",
 			actions:
 				isMember && orgId ? (
-					<a
-						href={`${import.meta.env.VITE_URL_ROOT}/${orgId}/releases/${release.slug}`}
-						target="_blank"
-						rel="noopener noreferrer"
-						className="inline-flex h-7 items-center gap-1 rounded-md px-2 text-muted-foreground text-xs outline-none transition-colors hover:bg-accent hover:text-foreground focus-visible:bg-accent focus-visible:text-foreground"
+					<Button
+						variant="ghost"
+						size="sm"
+						className="h-6 w-6 gap-2 p-1"
+						aria-label="Open internally"
+						tooltipText="Open in the admin app"
+						tooltipSide="bottom"
+						nativeButton={false}
+						render={
+							// biome-ignore lint/a11y/useAnchorContent: the Button supplies the icon and aria-label
+							<a
+								href={`${import.meta.env.VITE_URL_ROOT}/${orgId}/releases/${release.slug}`}
+								target="_blank"
+								rel="noopener noreferrer"
+							/>
+						}
 					>
-						<IconArrowUpRight aria-hidden className="size-3.5" />
-						Open internally
-					</a>
+						<IconArrowUpRight aria-hidden />
+					</Button>
 				) : undefined,
 		});
 	}, [panel.isRegistered, isMember, orgId, release.slug]);

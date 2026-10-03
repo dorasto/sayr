@@ -18,7 +18,8 @@ export function PublicTaskPanelHeaderActions() {
 			{isMember && (
 				<Button
 					variant="ghost"
-					size="icon"
+					size="sm"
+					className="h-6 w-6 gap-2 p-1"
 					aria-label="Open internally"
 					tooltipText="Open in the admin app"
 					tooltipSide="bottom"

@@ -33,14 +33,15 @@ export function PeekHeaderActions() {
       {shortId !== null && (
         <>
           <Button
+            type="button"
             variant="ghost"
-            size="icon"
+            size="sm"
             onClick={copyLink}
             aria-label="Copy link"
             title="Copy link"
             tooltipText="Copy URL"
             tooltipSide="top"
-            className="size-8"
+            className="h-6 w-6 gap-2 p-1"
           >
             <IconLink aria-hidden />
           </Button>
@@ -49,7 +50,7 @@ export function PeekHeaderActions() {
             params={{ orgSlug: organization.slug, shortId: String(shortId) }}
             className={cn(
               buttonVariants({ variant: "ghost", size: "sm" }),
-              "size-8",
+              "h-6 w-6 gap-2 p-1",
             )}
           >
             <IconArrowUpRight aria-hidden />
@@ -57,12 +58,13 @@ export function PeekHeaderActions() {
         </>
       )}
       <Button
+        type="button"
         variant="ghost"
-        size="icon"
+        size="sm"
         onClick={closePost}
         aria-label="Close post"
         title="Close post"
-        className="size-8"
+        className="h-6 w-6 gap-2 p-1"
       >
         <IconX />
       </Button>

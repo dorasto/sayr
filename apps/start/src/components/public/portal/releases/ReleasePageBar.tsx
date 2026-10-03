@@ -1,4 +1,4 @@
-import { Button } from "@repo/ui/components/button";
+import { Button, buttonVariants } from "@repo/ui/components/button";
 import { cn } from "@repo/ui/lib/utils";
 import { IconArrowLeft, IconLayoutSidebarRight, IconLayoutSidebarRightFilled } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
@@ -21,17 +21,18 @@ export function ReleasePageBar({ orgSlug, panelId }: ReleasePageBarProps) {
 			<Link
 				to="/orgs/$orgSlug/releases"
 				params={{ orgSlug }}
-				className="inline-flex h-8 items-center gap-2 rounded-md px-2 font-medium text-[13.5px] text-muted-foreground outline-none transition-colors hover:bg-accent hover:text-foreground focus-visible:bg-accent focus-visible:text-foreground max-md:h-11 max-md:text-base"
+				className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "h-6 gap-2 px-2")}
 			>
 				<IconArrowLeft aria-hidden className="size-4" />
 				Changelog
 			</Link>
 			<Button
-				variant="ghost"
-				size="icon"
+				type="button"
+				variant={panel.isOpen ? "secondary" : "ghost"}
+				size="sm"
 				aria-label={panel.isOpen ? "Hide progress and details" : "Show progress and details"}
 				aria-pressed={panel.isOpen}
-				className={cn("size-[30px] max-md:size-11", panel.isOpen && "bg-muted text-foreground")}
+				className="h-6 w-6 gap-2 p-1"
 				onClick={() => (panel.isOpen ? closePanel(panelId) : sidebarActions.setOpen(panelId, true))}
 			>
 				{panel.isOpen ? <IconLayoutSidebarRightFilled /> : <IconLayoutSidebarRight />}
