@@ -79,13 +79,19 @@ const OVERVIEW_PANEL_VIEW: Pick<PanelConfig, "classNames"> = {
   classNames: {
     desktop: {
       popup: "bg-transparent border-transparent",
-      content: "p-0",
+      content: "p-0 pt-11",
       header: "hidden",
     },
   },
 };
 const POST_PANEL_VIEW: Pick<PanelConfig, "classNames"> = {
-  classNames: {},
+  classNames: {
+    desktop: {
+      popup: "bg-transparent border-transparent",
+      content: "p-0 pt-3",
+      header: "border-transparent",
+    },
+  },
 };
 
 export default function PublicOrgHomePage() {
@@ -371,7 +377,8 @@ export default function PublicOrgHomePage() {
       onCategoryChange={setCategorySlug}
     >
       <BoardPanelProvider tasks={list.tasks}>
-        <Page header={<BoardPageBar />} panels={panels} className="">
+        <Page panels={panels} className="">
+          <BoardPageBar />
           <PublicTaskView
             header={<BoardFeedbackCard toolbar={toolbar} />}
             tab={tab}
