@@ -5,6 +5,7 @@ import {
   AvatarImage,
 } from "@repo/ui/components/avatar";
 import { Button } from "@repo/ui/components/button";
+import { Skeleton } from "@repo/ui/components/skeleton";
 import { cn } from "@repo/ui/lib/utils";
 import { ensureCdnUrl, getInitials } from "@repo/util";
 import { Link, useRouterState } from "@tanstack/react-router";
@@ -17,7 +18,7 @@ import { PortalSearch } from "./portal/search/PortalSearch";
 
 /** 64px public top bar: org mark + name, Feedback / Roadmap / Changelog (+ Activity when logged in), search palette trigger, Log in or user avatar. */
 export default function PublicNavigation() {
-  const { data: session } = authClient.useSession();
+  const { data: session, isPending: sessionPending } = authClient.useSession();
   const { organization } = usePublicOrganizationLayout();
   const [settingsOpen, setSettingsOpen] = useState(false);
 
@@ -100,7 +101,12 @@ export default function PublicNavigation() {
 
           {/* Auth */}
           <div className="shrink-0">
-            {session ? (
+            {/* Same box as the avatar button, so nothing shifts once the session loads. */}
+            {sessionPending && !session ? (
+              <div className="flex items-center justify-center max-md:size-11">
+                <Skeleton className="size-8 rounded-full" />
+              </div>
+            ) : session ? (
               <button
                 type="button"
                 aria-label="Account settings"
