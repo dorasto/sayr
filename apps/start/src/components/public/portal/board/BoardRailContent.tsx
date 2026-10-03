@@ -1,5 +1,7 @@
 import { Button } from "@repo/ui/components/button";
-import { Card } from "@repo/ui/components/card";
+import { Label } from "@repo/ui/components/label";
+import { Tile, TileDescription, TileHeader, TileIcon, TileTitle } from "@repo/ui/components/doras-ui/tile";
+import { IconBulb } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
 import { useCallback, useMemo } from "react";
 import { usePublicOrganizationLayout } from "@/contexts/publicContextOrg";
@@ -45,13 +47,18 @@ export function BoardRailContent() {
 	const isEmpty = !canPost && categories.length === 0 && !hasLatestRelease;
 
 	return (
-		<div className="flex flex-col gap-4 p-1">
+		<div className="flex flex-col gap-3">
 			{canPost && (
-				<Card className="p-5">
-					<h2 className="mb-1 font-semibold text-[15px]">Share an idea or report a bug</h2>
-					<p className="mb-3.5 text-[13px] text-muted-foreground leading-[19px]">
-						Search first. If someone already posted it, give it your vote instead.
-					</p>
+				<Tile className="flex-col items-start gap-3 md:w-full">
+					<TileHeader className="w-full">
+						<TileIcon>
+							<IconBulb />
+						</TileIcon>
+						<TileTitle className="text-sm">Share an idea or report a bug</TileTitle>
+						<TileDescription className="text-xs">
+							Search first. If someone already posted it, give it your vote instead.
+						</TileDescription>
+					</TileHeader>
 					<Button
 						render={<Link {...newPostLink(organization.slug)} />}
 						nativeButton={false}
@@ -60,7 +67,7 @@ export function BoardRailContent() {
 					>
 						Write a post
 					</Button>
-				</Card>
+				</Tile>
 			)}
 			<CategoriesCard
 				categories={categories}
@@ -70,7 +77,9 @@ export function BoardRailContent() {
 			/>
 			<LatestReleaseCard orgSlug={organization.slug} releases={releases} />
 			{isEmpty && (
-				<p className="px-2 py-6 text-center text-[13.5px] text-muted-foreground">Nothing to show here yet.</p>
+				<Label variant="description" className="block py-6 text-center">
+					Nothing to show here yet.
+				</Label>
 			)}
 		</div>
 	);

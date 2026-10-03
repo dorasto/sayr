@@ -1,10 +1,11 @@
-import { Card } from "@repo/ui/components/card";
-import { IconArrowRight } from "@tabler/icons-react";
+import { buttonVariants } from "@repo/ui/components/button";
+import { Tile, TileDescription, TileHeader, TileIcon, TileTitle } from "@repo/ui/components/doras-ui/tile";
+import { cn } from "@repo/ui/lib/utils";
+import { IconArrowRight, IconRocket } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { formatShortDate, pickLatestRelease } from "@/lib/portal/board-row";
 import { getReleaseDate } from "@/lib/portal/status";
-import { Pill } from "../ui/Pill";
 import { type PublicReleaseSummary, useReleaseTaskCount } from "./useBoardSideData";
 
 interface LatestReleaseCardProps {
@@ -23,28 +24,30 @@ export function LatestReleaseCard({ orgSlug, releases }: LatestReleaseCardProps)
 	const shipped = taskCount === null ? null : `${taskCount} ${taskCount === 1 ? "post" : "posts"} shipped`;
 
 	return (
-		<Card className="p-5">
-			<div className="mb-3 flex items-center justify-between gap-2">
-				<h3 className="font-semibold text-[13px]">Latest release</h3>
-				<Pill variant="gh">{latest.slug}</Pill>
-			</div>
+		<Tile className="flex-col items-stretch gap-3 md:w-full">
+			<TileHeader className="w-full">
+				<TileIcon>
+					<IconRocket />
+				</TileIcon>
+				<TileTitle className="text-sm">Latest release</TileTitle>
+				<TileDescription className="text-xs">{latest.slug}</TileDescription>
+			</TileHeader>
 			<Link
 				to="/orgs/$orgSlug/releases/$releaseSlug"
 				params={{ orgSlug, releaseSlug: latest.slug }}
-				className="block outline-none"
+				className="flex flex-col rounded-lg border border-transparent p-1.5 outline-none transition-colors hover:border-border hover:bg-secondary focus-visible:border-border"
 			>
-				<p className="font-semibold text-sm leading-[21px] tracking-[-0.006em]">{latest.name}</p>
-				<p className="mt-1.5 text-[13px] text-muted-foreground">{[date, shipped].filter(Boolean).join(" · ")}</p>
+				<span className="truncate font-medium text-sm">{latest.name}</span>
+				<span className="text-muted-foreground text-xs">{[date, shipped].filter(Boolean).join(" · ")}</span>
 			</Link>
-			<div className="my-3.5 h-px bg-border" />
 			<Link
 				to="/orgs/$orgSlug/releases"
 				params={{ orgSlug }}
-				className="inline-flex items-center gap-1.5 font-medium text-[13px] text-primary max-md:min-h-11 hover:underline focus-visible:underline"
+				className={cn(buttonVariants({ variant: "outline", size: "sm" }), "w-full max-md:h-11")}
 			>
 				Read the changelog
-				<IconArrowRight aria-hidden className="size-3.5" />
+				<IconArrowRight aria-hidden />
 			</Link>
-		</Card>
+		</Tile>
 	);
 }
