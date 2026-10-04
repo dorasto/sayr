@@ -103,21 +103,23 @@ export function ReleaseHeader({ release, onUpdate }: ReleaseHeaderProps) {
 			<div className="relative flex items-center">
 				{/* Icon Popover */}
 				<Popover modal>
-					<PopoverTrigger asChild>
-						<Button
-							variant="ghost"
-							className="h-auto w-auto p-0 border-transparent rounded-lg overflow-hidden shrink-0"
-						>
-							<div
-								className="p-1 rounded-lg"
-								style={{
-									background: editColor.hsla ? `hsla(${extractHslValues(editColor.hsla)}, 0.2)` : undefined,
-								}}
+					<PopoverTrigger
+						render={
+							<Button
+								variant="ghost"
+								className="h-auto w-auto p-0 border-transparent rounded-lg overflow-hidden shrink-0"
 							>
-								<RenderIcon iconName={editIcon} size={20} color={editColor.hsla || undefined} raw />
-							</div>
-						</Button>
-					</PopoverTrigger>
+								<div
+									className="p-1 rounded-lg"
+									style={{
+										background: editColor.hsla ? `hsla(${extractHslValues(editColor.hsla)}, 0.2)` : undefined,
+									}}
+								>
+									<RenderIcon iconName={editIcon} size={20} color={editColor.hsla || undefined} raw />
+								</div>
+							</Button>
+						}
+					/>
 					<PopoverContent className="p-0 w-64 md:w-96">
 						<div className="flex flex-col gap-3">
 							<div className="p-3">

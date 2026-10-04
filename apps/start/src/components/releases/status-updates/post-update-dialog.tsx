@@ -106,14 +106,19 @@ export function PostUpdateDialog({ open, onOpenChange, account, availableUsers, 
 						<AdaptiveDialogTitle asChild>
 							<div className="flex items-center gap-3 w-full">
 								<DropdownMenu>
-									<DropdownMenuTrigger asChild>
-										<Badge
-											variant="outline"
-											className={cn("gap-1 text-xs cursor-pointer border", healthConfig[health].className)}
-										>
-											{healthConfig[health].icon} {healthConfig[health].label}
-										</Badge>
-									</DropdownMenuTrigger>
+									<DropdownMenuTrigger
+										render={
+											<Badge
+												variant="outline"
+												className={cn(
+													"gap-1 text-xs cursor-pointer border",
+													healthConfig[health].className
+												)}
+											>
+												{healthConfig[health].icon} {healthConfig[health].label}
+											</Badge>
+										}
+									/>
 									<DropdownMenuContent>
 										{(["on_track", "at_risk", "off_track"] as Health[]).map((h) => (
 											<DropdownMenuItem
@@ -132,27 +137,29 @@ export function PostUpdateDialog({ open, onOpenChange, account, availableUsers, 
 								</DropdownMenu>
 								{/* visibility */}
 								<DropdownMenu>
-									<DropdownMenuTrigger asChild>
-										<Badge
-											variant="outline"
-											className={cn(
-												"gap-1 text-xs cursor-pointer border"
-												// healthConfig[health].className,
-											)}
-										>
-											{visibility === "internal" ? (
-												<>
-													<IconLock size={14} />
-													<span>Internal only</span>
-												</>
-											) : (
-												<>
-													<IconLockOpen2 size={14} />
-													<span>Public</span>
-												</>
-											)}
-										</Badge>
-									</DropdownMenuTrigger>
+									<DropdownMenuTrigger
+										render={
+											<Badge
+												variant="outline"
+												className={cn(
+													"gap-1 text-xs cursor-pointer border"
+													// healthConfig[health].className,
+												)}
+											>
+												{visibility === "internal" ? (
+													<>
+														<IconLock size={14} />
+														<span>Internal only</span>
+													</>
+												) : (
+													<>
+														<IconLockOpen2 size={14} />
+														<span>Public</span>
+													</>
+												)}
+											</Badge>
+										}
+									/>
 									<DropdownMenuContent>
 										{(["public", "internal"] as Visibility[]).map((v) => (
 											<DropdownMenuItem

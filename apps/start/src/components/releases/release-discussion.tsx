@@ -265,11 +265,13 @@ function TopLevelCommentCard({
 									</Button>
 									{(isOwn || canManage) && (
 										<DropdownMenu>
-											<DropdownMenuTrigger asChild>
-												<Button variant="ghost" size="icon" className="h-6 w-6">
-													<IconDots size={14} />
-												</Button>
-											</DropdownMenuTrigger>
+											<DropdownMenuTrigger
+												render={
+													<Button variant="ghost" size="icon" className="h-6 w-6">
+														<IconDots size={14} />
+													</Button>
+												}
+											/>
 											<DropdownMenuContent align="end">
 												{isOwn && (
 													<DropdownMenuItem onClick={() => setIsEditing(true)}>

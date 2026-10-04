@@ -298,19 +298,21 @@ export function ReleaseFieldToolbar({
 					<div className="flex flex-col gap-1.5">
 						{editable ? (
 							<DropdownMenu>
-								<DropdownMenuTrigger asChild>
-									<Button
-										variant="primary"
-										size="sm"
-										className={cn(
-											"border-transparent! rounded-xl cursor-pointer gap-1.5 justify-start text-xs h-auto p-1 w-fit",
-											releaseStatusConfig[currentStatus].badgeClassName
-										)}
-									>
-										{releaseStatusConfig[currentStatus].icon("w-3 h-3")}
-										{releaseStatusConfig[currentStatus].label}
-									</Button>
-								</DropdownMenuTrigger>
+								<DropdownMenuTrigger
+									render={
+										<Button
+											variant="primary"
+											size="sm"
+											className={cn(
+												"border-transparent! rounded-xl cursor-pointer gap-1.5 justify-start text-xs h-auto p-1 w-fit",
+												releaseStatusConfig[currentStatus].badgeClassName
+											)}
+										>
+											{releaseStatusConfig[currentStatus].icon("w-3 h-3")}
+											{releaseStatusConfig[currentStatus].label}
+										</Button>
+									}
+								/>
 								<DropdownMenuContent align="start">
 									{statusOptions.map((opt) => (
 										<DropdownMenuItem
@@ -345,19 +347,21 @@ export function ReleaseFieldToolbar({
 					<div className="flex flex-col gap-1.5">
 						{editable ? (
 							<Popover>
-								<PopoverTrigger asChild>
-									<Button
-										variant="primary"
-										size="sm"
-										className={cn(
-											"border-transparent! bg-transparent rounded-xl cursor-pointer gap-1.5 justify-start text-xs h-auto p-1 w-fit",
-											release.targetDate ? "text-foreground" : "text-muted-foreground"
-										)}
-									>
-										<IconCalendarStats className="w-3 h-3" />
-										{release.targetDate ? formatDate(release.targetDate) : "No target date"}
-									</Button>
-								</PopoverTrigger>
+								<PopoverTrigger
+									render={
+										<Button
+											variant="primary"
+											size="sm"
+											className={cn(
+												"border-transparent! bg-transparent rounded-xl cursor-pointer gap-1.5 justify-start text-xs h-auto p-1 w-fit",
+												release.targetDate ? "text-foreground" : "text-muted-foreground"
+											)}
+										>
+											<IconCalendarStats className="w-3 h-3" />
+											{release.targetDate ? formatDate(release.targetDate) : "No target date"}
+										</Button>
+									}
+								/>
 								<PopoverContent className="w-auto p-0" align="start">
 									<Calendar
 										mode="single"
@@ -393,19 +397,21 @@ export function ReleaseFieldToolbar({
 					<div className="flex flex-col gap-1.5">
 						{editable ? (
 							<Popover>
-								<PopoverTrigger asChild>
-									<Button
-										variant="primary"
-										size="sm"
-										className={cn(
-											"border-transparent! bg-transparent rounded-xl cursor-pointer gap-1.5 justify-start text-xs h-auto p-1 w-fit",
-											release.releasedAt ? "text-foreground" : "text-muted-foreground"
-										)}
-									>
-										<IconCalendarCheck className="w-3 h-3" />
-										{release.releasedAt ? formatDate(release.releasedAt) : "No release date"}
-									</Button>
-								</PopoverTrigger>
+								<PopoverTrigger
+									render={
+										<Button
+											variant="primary"
+											size="sm"
+											className={cn(
+												"border-transparent! bg-transparent rounded-xl cursor-pointer gap-1.5 justify-start text-xs h-auto p-1 w-fit",
+												release.releasedAt ? "text-foreground" : "text-muted-foreground"
+											)}
+										>
+											<IconCalendarCheck className="w-3 h-3" />
+											{release.releasedAt ? formatDate(release.releasedAt) : "No release date"}
+										</Button>
+									}
+								/>
 								<PopoverContent className="w-auto p-0" align="start">
 									<Calendar
 										mode="single"
@@ -455,25 +461,29 @@ export function ReleaseFieldToolbar({
 					<div className="flex flex-col gap-1.5">
 						{editable ? (
 							<DropdownMenu>
-								<DropdownMenuTrigger asChild>
-									<Button
-										variant="primary"
-										size="sm"
-										className="border-transparent! bg-transparent rounded-xl cursor-pointer gap-1.5 justify-start text-xs h-auto p-1 w-fit"
-									>
-										{currentLead?.image ? (
-											<Avatar className="h-3 w-3">
-												<AvatarImage src={ensureCdnUrl(currentLead.image)} alt={currentLead.name} />
-												<AvatarFallback className="text-xs">{getInitials(currentLead.name)}</AvatarFallback>
-											</Avatar>
-										) : (
-											<IconUser className="w-3 h-3 text-muted-foreground" />
-										)}
-										<span className={currentLead ? "text-foreground" : "text-muted-foreground"}>
-											{currentLead ? getDisplayName(currentLead) : "No lead"}
-										</span>
-									</Button>
-								</DropdownMenuTrigger>
+								<DropdownMenuTrigger
+									render={
+										<Button
+											variant="primary"
+											size="sm"
+											className="border-transparent! bg-transparent rounded-xl cursor-pointer gap-1.5 justify-start text-xs h-auto p-1 w-fit"
+										>
+											{currentLead?.image ? (
+												<Avatar className="h-3 w-3">
+													<AvatarImage src={ensureCdnUrl(currentLead.image)} alt={currentLead.name} />
+													<AvatarFallback className="text-xs">
+														{getInitials(currentLead.name)}
+													</AvatarFallback>
+												</Avatar>
+											) : (
+												<IconUser className="w-3 h-3 text-muted-foreground" />
+											)}
+											<span className={currentLead ? "text-foreground" : "text-muted-foreground"}>
+												{currentLead ? getDisplayName(currentLead) : "No lead"}
+											</span>
+										</Button>
+									}
+								/>
 								<DropdownMenuContent align="start">
 									{currentLead && (
 										<DropdownMenuItem
@@ -722,19 +732,21 @@ export function ReleaseFieldToolbar({
 
 			{showField("targetDate") && (
 				<Popover>
-					<PopoverTrigger asChild>
-						<Button
-							variant="primary"
-							size="sm"
-							className={cn(
-								"w-fit text-xs h-7 border border-transparent hover:border-border bg-accent text-accent-foreground hover:bg-secondary rounded-xl px-2",
-								release.targetDate ? "" : "text-muted-foreground"
-							)}
-						>
-							<IconCalendarStats className="h-3.5 w-3.5" />
-							{release.targetDate ? formatDate(release.targetDate) : "Target date"}
-						</Button>
-					</PopoverTrigger>
+					<PopoverTrigger
+						render={
+							<Button
+								variant="primary"
+								size="sm"
+								className={cn(
+									"w-fit text-xs h-7 border border-transparent hover:border-border bg-accent text-accent-foreground hover:bg-secondary rounded-xl px-2",
+									release.targetDate ? "" : "text-muted-foreground"
+								)}
+							>
+								<IconCalendarStats className="h-3.5 w-3.5" />
+								{release.targetDate ? formatDate(release.targetDate) : "Target date"}
+							</Button>
+						}
+					/>
 					<PopoverContent className="w-auto p-0" align="start">
 						<div className="p-2 flex items-center gap-2 bg-accent">
 							<Label variant={"subheading"}>Target date</Label>
@@ -764,19 +776,21 @@ export function ReleaseFieldToolbar({
 
 			{showField("releasedAt") && (
 				<Popover>
-					<PopoverTrigger asChild>
-						<Button
-							variant="primary"
-							size="sm"
-							className={cn(
-								"w-fit text-xs h-7 border border-transparent hover:border-border bg-accent text-accent-foreground hover:bg-secondary rounded-xl px-2",
-								release.releasedAt ? "" : "text-muted-foreground"
-							)}
-						>
-							<IconCalendarCheck className="h-3.5 w-3.5" />
-							{release.releasedAt ? formatDate(release.releasedAt) : "Release date"}
-						</Button>
-					</PopoverTrigger>
+					<PopoverTrigger
+						render={
+							<Button
+								variant="primary"
+								size="sm"
+								className={cn(
+									"w-fit text-xs h-7 border border-transparent hover:border-border bg-accent text-accent-foreground hover:bg-secondary rounded-xl px-2",
+									release.releasedAt ? "" : "text-muted-foreground"
+								)}
+							>
+								<IconCalendarCheck className="h-3.5 w-3.5" />
+								{release.releasedAt ? formatDate(release.releasedAt) : "Release date"}
+							</Button>
+						}
+					/>
 					<PopoverContent className="w-auto p-0" align="start">
 						<div className="p-2 flex items-center gap-2 bg-accent">
 							<Label variant={"subheading"}>Release date</Label>
@@ -871,23 +885,25 @@ export function ReleaseFieldToolbar({
 
 			{showField("lead") && (
 				<DropdownMenu>
-					<DropdownMenuTrigger asChild>
-						<Button
-							variant="primary"
-							size="sm"
-							className="w-fit text-xs h-7 border border-transparent hover:border-border bg-accent text-accent-foreground hover:bg-secondary rounded-xl px-2"
-						>
-							{currentLead?.image ? (
-								<Avatar className="h-3.5 w-3.5">
-									<AvatarImage src={ensureCdnUrl(currentLead.image)} alt={currentLead.name} />
-									<AvatarFallback className="text-xs">{getInitials(currentLead.name)}</AvatarFallback>
-								</Avatar>
-							) : (
-								<IconUser className="h-3.5 w-3.5" />
-							)}
-							{currentLead ? getDisplayName(currentLead) : "Lead"}
-						</Button>
-					</DropdownMenuTrigger>
+					<DropdownMenuTrigger
+						render={
+							<Button
+								variant="primary"
+								size="sm"
+								className="w-fit text-xs h-7 border border-transparent hover:border-border bg-accent text-accent-foreground hover:bg-secondary rounded-xl px-2"
+							>
+								{currentLead?.image ? (
+									<Avatar className="h-3.5 w-3.5">
+										<AvatarImage src={ensureCdnUrl(currentLead.image)} alt={currentLead.name} />
+										<AvatarFallback className="text-xs">{getInitials(currentLead.name)}</AvatarFallback>
+									</Avatar>
+								) : (
+									<IconUser className="h-3.5 w-3.5" />
+								)}
+								{currentLead ? getDisplayName(currentLead) : "Lead"}
+							</Button>
+						}
+					/>
 					<DropdownMenuContent align="start">
 						{currentLead && (
 							<DropdownMenuItem
