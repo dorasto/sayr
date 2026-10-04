@@ -15,30 +15,43 @@ import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { cn } from "@repo/ui/lib/utils";
 import { getInitials } from "@repo/util";
 import { IconUserOff } from "@tabler/icons-react";
-import { useMemo } from "react";
-import { useLanderData } from "@/contexts/ContextLander";
 import { updateAssigneesToTaskAction } from "@/lib/fetches/task";
-import { useBoardTaskFieldAction } from "./use-board-task-field-action";
+import { useBoardAssignableUsers, useBoardCapabilities, useBoardItemActions } from "../core/board-data";
+import { StaticField } from "./static-field";
 
 interface FieldAssigneeProps {
 	task: schema.TaskWithLabels;
 }
 
 export function FieldAssignee({ task }: FieldAssigneeProps) {
-	const { tasks } = useLanderData();
+	const { canEditFields } = useBoardCapabilities();
 	const { value: sseClientId } = useStateManagement<string>("sse-clientId", "");
-	const { execute } = useBoardTaskFieldAction(task);
-	const availableUsers = useMemo(() => {
-		const users = new Map<string, schema.UserSummary>();
-		for (const orgTask of tasks) {
-			if (orgTask.organizationId !== task.organizationId) continue;
-			for (const user of orgTask.assignees) {
-				users.set(user.id, user);
-			}
-		}
-		return Array.from(users.values());
-	}, [task.organizationId, tasks]);
+	const { execute } = useBoardItemActions(task);
+	const availableUsers = useBoardAssignableUsers(task.organizationId);
 	const assigneeIds = task.assignees.map((assignee) => assignee.id);
+
+	const avatarStack = task.assignees.slice(0, 3).map((assignee, index) => (
+		<Avatar
+			key={assignee.id}
+			className={cn("rounded-full h-5 w-5 border border-background", index > 0 && "relative")}
+			style={{ zIndex: task.assignees.length - index }}
+		>
+			<AvatarImage src={assignee.image ?? undefined} alt={assignee.name ?? "Assignee"} />
+			<AvatarFallback className="rounded-full bg-accent uppercase text-[10px]">
+				{getInitials(assignee.name)}
+			</AvatarFallback>
+		</Avatar>
+	));
+
+	if (!canEditFields) {
+		return task.assignees.length === 0 ? (
+			<StaticField className="inline-flex size-5 items-center justify-center rounded-full border border-transparent bg-accent text-accent-foreground">
+				<IconUserOff className="h-3 w-3 shrink-0" />
+			</StaticField>
+		) : (
+			<StaticField className="flex items-center -space-x-2">{avatarStack}</StaticField>
+		);
+	}
 
 	return (
 		<ComboBox
@@ -65,18 +78,7 @@ export function FieldAssignee({ task }: FieldAssigneeProps) {
 					</Button>
 				) : (
 					<button type="button" data-no-propagate className="flex items-center -space-x-2 cursor-pointer">
-						{task.assignees.slice(0, 3).map((assignee, index) => (
-							<Avatar
-								key={assignee.id}
-								className={cn("rounded-full h-5 w-5 border border-background", index > 0 && "relative")}
-								style={{ zIndex: task.assignees.length - index }}
-							>
-								<AvatarImage src={assignee.image ?? undefined} alt={assignee.name ?? "Assignee"} />
-								<AvatarFallback className="rounded-full bg-accent uppercase text-[10px]">
-									{getInitials(assignee.name)}
-								</AvatarFallback>
-							</Avatar>
-						))}
+						{avatarStack}
 					</button>
 				)}
 			</ComboBoxTrigger>

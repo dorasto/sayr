@@ -9,7 +9,6 @@ import {
 	AlertDialogTitle,
 } from "@repo/ui/components/alert-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
-import { Badge } from "@repo/ui/components/badge";
 import { Button } from "@repo/ui/components/button";
 import {
 	DropdownMenu,
@@ -18,31 +17,46 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@repo/ui/components/dropdown-menu";
+import { headlessToast } from "@repo/ui/components/headless-toast";
 import { Label } from "@repo/ui/components/label";
+import { Skeleton } from "@repo/ui/components/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@repo/ui/components/tooltip";
 import { cn } from "@repo/ui/lib/utils";
-import { formatDateTimeFromNow, getDisplayName, getInitials } from "@repo/util";
+import { ensureCdnUrl, formatDateTimeFromNow, getDisplayName, getInitials } from "@repo/util";
 import {
 	IconBan,
 	IconCheck,
 	IconDots,
+	IconLink,
 	IconLoader2,
+	IconLock,
 	IconMessage,
 	IconPencil,
-	IconShieldCheck,
 	IconTrash,
 	IconX,
 } from "@tabler/icons-react";
 import type { NodeJSON } from "prosekit/core";
-import { lazy, Suspense, useCallback, useState } from "react";
-import { ReactionDisplay, type ReactionEmoji, ReactionPicker } from "@/components/tasks/task/timeline/reactions";
+import { lazy, Suspense, useCallback, useRef, useState } from "react";
+import { COMMENT_PROSE } from "@/components/public/portal/post/prose";
+import { Pill } from "@/components/public/portal/ui/Pill";
+import { type ReactionEmoji, ReactionPicker } from "@/components/tasks/task/timeline/reactions";
+import { useScrollIntoViewWhileSettling } from "@/hooks/portal/useScrollIntoViewWhileSettling";
+import { CommentReactions } from "./comment-reactions";
 import type { PublicCommentItemProps } from "./public-comments-types";
 
 const Editor = lazy(() => import("@/components/prosekit/editor"));
 
+/**
+ * One comment or reply: avatar, name, Author/Team pills, time, body and reaction chips. Reply and the actions menu
+ * (Copy link, Edit, Delete) sit at the right of the header and the add-reaction picker sits after the chips; all three
+ * only show on hover, like the admin timeline. GitHub-origin comments show an initials avatar, the GitHub login (linked to the profile) and a "via GitHub"
+ * pill, and never an Author/Team badge. `footer` (the reply thread) renders under the comment, outside its hover area,
+ * so hovering a reply never reveals the parent's actions. Wrap it in an `li` when it is part of a list.
+ */
 export function PublicCommentItem({
 	comment,
 	memberTeamName,
+	isAuthor = false,
 	onToggleReaction,
 	users,
 	currentUserId,
@@ -55,22 +69,44 @@ export function PublicCommentItem({
 	onReply,
 	blockedUserIds,
 	isOrgMember,
+	commentLink,
+	highlighted = false,
 }: PublicCommentItemProps) {
-	const isBlocked = !!comment.createdBy && !!blockedUserIds?.has(comment.createdBy.id);
-
-	const authorName = comment.createdBy ? getDisplayName(comment.createdBy) : "Anonymous";
-	const reactions = comment.reactions?.reactions;
-	const hasReactions = reactions && Object.keys(reactions).length > 0;
-
-	const isOwnComment = !!currentUserId && comment.createdBy?.id === currentUserId;
-
 	const [isEditing, setIsEditing] = useState(false);
 	const [editedContent, setEditedContent] = useState<NodeJSON | undefined>(comment.content);
 	const [isSaving, setIsSaving] = useState(false);
 	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 	const [isDeleting, setIsDeleting] = useState(false);
+	const rowRef = useRef<HTMLDivElement>(null);
 
+	const isBlocked = !!comment.createdBy && !!blockedUserIds?.has(comment.createdBy.id);
+
+	const isGithub = comment.source === "github";
+	const isTeam = !isGithub && !!memberTeamName;
+	const showAuthorPill = !isGithub && isAuthor;
+	const authorName =
+		isGithub && comment.externalAuthorLogin
+			? comment.externalAuthorLogin
+			: comment.createdBy
+				? getDisplayName(comment.createdBy)
+				: "Anonymous";
+	const reactions = comment.reactions?.reactions;
+
+	const isOwnComment = !!currentUserId && comment.createdBy?.id === currentUserId;
 	const canSave = !!editedContent && editedContent !== comment.content;
+
+	// Opened from this comment's link: bring it into view and keep it there while the post above finishes loading.
+	useScrollIntoViewWhileSettling(rowRef, highlighted);
+
+	const handleCopyLink = useCallback(async () => {
+		if (!commentLink) return;
+		try {
+			await navigator.clipboard.writeText(commentLink);
+			headlessToast.success({ title: "Link copied" });
+		} catch {
+			headlessToast.error({ title: "Could not copy the link" });
+		}
+	}, [commentLink]);
 
 	const handleSave = useCallback(async () => {
 		if (!editedContent || !canSave || !onEdit) return;
@@ -102,132 +138,154 @@ export function PublicCommentItem({
 		return null;
 	}
 
+	const canManage = isOwnComment && (!!onEdit || !!onDelete);
+	const hasReactions = !!reactions && Object.values(reactions).some((info) => info.count > 0);
+	// A comment that already shows "N replies" needs no separate Reply action.
+	const showReply = !!onReply && !isReply && (comment.replyCount ?? 0) === 0;
+	// With no reactions yet, the add-reaction button joins the hover actions in the header instead of taking a row of its
+	// own under the comment; once there are reactions it sits beside the chips.
+	const pickerInHeader = !!onToggleReaction && !hasReactions;
+	const showActions = !isEditing && (pickerInHeader || showReply || !!commentLink || canManage);
+	const myReactions = Object.entries(reactions ?? {})
+		.filter(([, info]) => !!currentUserId && info.users.includes(currentUserId))
+		.map(([emoji]) => emoji as ReactionEmoji);
+
 	return (
 		<>
 			<div
+				ref={rowRef}
+				id={`comment-${comment.id}`}
 				className={cn(
-					"rounded-xl bg-muted border",
-					isReply ? "p-2 border-0 bg-transparent group/public-reply" : "p-3 group/public-comment",
-					comment.visibility === "internal" && "border-primary/30 bg-primary/5"
+					"group/comment -mx-2 flex gap-2.5 rounded-lg px-2 py-1.5",
+					comment.visibility === "internal" && "bg-primary/5 ring-1 ring-primary/30",
+					highlighted && "bg-accent ring-2 ring-primary/60"
 				)}
 			>
-				<div className="flex gap-3">
-					<Avatar className={cn("shrink-0 mt-0.5", isReply ? "size-6" : "size-8")}>
-						<AvatarImage src={comment.createdBy?.image || ""} alt={authorName} />
-						<AvatarFallback className="text-xs">{getInitials(authorName)}</AvatarFallback>
-					</Avatar>
-					<div className="flex flex-col gap-1 min-w-0 flex-1">
-						<div className="flex items-center gap-2">
-							<Label variant="description" className="text-sm font-medium">
-								{authorName}
-							</Label>
-							{memberTeamName && (
-								<Tooltip delayDuration={200}>
-									<TooltipTrigger asChild>
-										<Badge
-											variant="outline"
-											className="gap-1 text-xs py-0 h-5 bg-primary/10 border-primary/20 text-primary"
-										>
-											<IconShieldCheck className="size-3" />
-											{memberTeamName}
-										</Badge>
-									</TooltipTrigger>
-									<TooltipContent side="top">
-										<span className="text-xs">This user is a member of {memberTeamName}.</span>
-									</TooltipContent>
-								</Tooltip>
-							)}
-							{isBlocked && isOrgMember && (
-								<Tooltip delayDuration={200}>
-									<TooltipTrigger asChild>
-										<Badge
-											variant="outline"
-											className="gap-1 text-xs py-0 h-5 bg-destructive/10 border-destructive/20 text-destructive"
-										>
-											<IconBan className="size-3" />
-											Blocked user
-										</Badge>
-									</TooltipTrigger>
-									<TooltipContent side="top">
-										<span className="text-xs">This user has been blocked by an administrator.</span>
-									</TooltipContent>
-								</Tooltip>
-							)}
-							<span className="text-xs text-muted-foreground">{formatDateTimeFromNow(comment.createdAt)}</span>
-							{comment.updatedAt && comment.updatedAt !== comment.createdAt && (
-								<span className="text-xs text-muted-foreground italic">(edited)</span>
-							)}
-
-							{/* Inline actions — reaction picker + actions dropdown */}
-							{!isEditing && (
-								<div
-									className={cn(
-										"flex items-center gap-1 ml-auto opacity-0 has-data-[state=open]:opacity-100 transition-opacity",
-										isReply
-											? "group-hover/public-reply:opacity-100"
-											: "group-hover/public-comment:opacity-100"
-									)}
+				<Avatar className={cn("mt-0.5", isReply ? "size-5" : "size-6")}>
+					{!isGithub && comment.createdBy?.image ? (
+						<AvatarImage src={ensureCdnUrl(comment.createdBy.image)} alt={authorName} />
+					) : null}
+					<AvatarFallback className="text-xs font-semibold">{getInitials(authorName)}</AvatarFallback>
+				</Avatar>
+				<div className="min-w-0 flex-1">
+					<div className="flex min-h-6 items-start gap-2">
+						<div className="flex min-h-6 min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1">
+							{isGithub && comment.externalAuthorUrl ? (
+								<a
+									href={comment.externalAuthorUrl}
+									target="_blank"
+									rel="noopener noreferrer"
+									className="font-semibold text-sm text-foreground hover:underline"
 								>
-									{onToggleReaction && (
-										<ReactionPicker
-											onSelect={(emoji) => onToggleReaction(comment.id, emoji)}
-											existingReactions={
-												currentUserId && reactions
-													? (Object.entries(reactions)
-															.filter(([, data]) => data.users.includes(currentUserId))
-															.map(([emoji]) => emoji) as ReactionEmoji[])
-													: []
-											}
-										/>
-									)}
-									{onReply && !isReply && (
-										<Button
-											variant="ghost"
-											size="icon"
-											className="p-1 h-auto w-auto aspect-square"
-											onClick={onReply}
-										>
-											<IconMessage size={16} />
-										</Button>
-									)}
-									{isOwnComment && (onEdit || onDelete) && (
-										<DropdownMenu>
-											<DropdownMenuTrigger asChild>
-												<Button
-													variant="ghost"
-													size="icon"
-													className="p-1 h-auto w-auto aspect-square data-[state=open]:bg-accent"
-												>
-													<IconDots size={16} />
-												</Button>
-											</DropdownMenuTrigger>
-											<DropdownMenuContent align="end">
-												{onEdit && (
-													<DropdownMenuItem onClick={() => setIsEditing(true)}>
-														<IconPencil size={16} />
-														Edit
-													</DropdownMenuItem>
-												)}
-												{onEdit && onDelete && <DropdownMenuSeparator />}
-												{onDelete && (
-													<DropdownMenuItem
-														onClick={() => setDeleteDialogOpen(true)}
-														className="text-destructive focus:text-destructive"
-													>
-														<IconTrash size={16} />
-														Delete
-													</DropdownMenuItem>
-												)}
-											</DropdownMenuContent>
-										</DropdownMenu>
-									)}
-								</div>
+									{authorName}
+								</a>
+							) : (
+								<b className="font-semibold text-sm text-foreground">{authorName}</b>
+							)}
+							{showAuthorPill && <Pill variant="author" />}
+							{isTeam && <Pill variant="team" />}
+							{isGithub && <Pill variant="gh" />}
+							{isBlocked && isOrgMember && (
+								<span className="inline-flex h-[22px] items-center gap-1 rounded-md bg-destructive/15 px-2 font-semibold text-destructive text-xs">
+									<IconBan aria-hidden className="size-3" />
+									Blocked user
+								</span>
+							)}
+							<time dateTime={comment.createdAt} className="text-[13px] text-muted-foreground">
+								{formatDateTimeFromNow(comment.createdAt)}
+							</time>
+							{comment.updatedAt && comment.updatedAt !== comment.createdAt && (
+								<span className="text-[13px] text-muted-foreground italic">(edited)</span>
+							)}
+							{comment.visibility === "internal" && (
+								<Tooltip>
+									<TooltipTrigger
+										render={
+											<span className="inline-flex items-center text-muted-foreground">
+												<IconLock aria-hidden className="size-3.5" />
+												<span className="sr-only">Internal comment</span>
+											</span>
+										}
+									/>
+									<TooltipContent>Internal comment. Only team members can see it.</TooltipContent>
+								</Tooltip>
 							)}
 						</div>
 
-						{isEditing ? (
-							<>
-								<Suspense fallback={<div className="h-16 animate-pulse bg-muted rounded" />}>
+						{showActions && (
+							<div className="flex shrink-0 items-center gap-1 transition-opacity md:opacity-0 md:focus-within:opacity-100 md:group-hover/comment:opacity-100 md:has-data-popup-open:opacity-100">
+								{pickerInHeader && (
+									<ReactionPicker
+										onSelect={(emoji) => onToggleReaction(comment.id, emoji)}
+										existingReactions={myReactions}
+									/>
+								)}
+								{showReply && (
+									<Tooltip>
+										<TooltipTrigger
+											render={
+												<Button
+													variant="ghost"
+													size="icon"
+													aria-label="Reply"
+													className="aspect-square h-auto w-auto p-1"
+													onClick={onReply}
+												>
+													<IconMessage size={16} />
+												</Button>
+											}
+										/>
+										<TooltipContent>Reply</TooltipContent>
+									</Tooltip>
+								)}
+								{(commentLink || canManage) && (
+									<DropdownMenu>
+										<DropdownMenuTrigger
+											render={
+												<Button
+													variant="ghost"
+													size="icon"
+													aria-label="Comment actions"
+													className="aspect-square h-auto w-auto p-1 data-popup-open:bg-accent"
+												>
+													<IconDots size={16} />
+												</Button>
+											}
+										/>
+										<DropdownMenuContent align="end">
+											{commentLink && (
+												<DropdownMenuItem onClick={handleCopyLink}>
+													<IconLink size={16} />
+													Copy link
+												</DropdownMenuItem>
+											)}
+											{commentLink && canManage && <DropdownMenuSeparator />}
+											{isOwnComment && onEdit && (
+												<DropdownMenuItem onClick={() => setIsEditing(true)}>
+													<IconPencil size={16} />
+													Edit
+												</DropdownMenuItem>
+											)}
+											{isOwnComment && onDelete && (
+												<DropdownMenuItem
+													onClick={() => setDeleteDialogOpen(true)}
+													className="text-destructive focus:text-destructive"
+												>
+													<IconTrash size={16} />
+													Delete
+												</DropdownMenuItem>
+											)}
+										</DropdownMenuContent>
+									</DropdownMenu>
+								)}
+							</div>
+						)}
+					</div>
+
+					{isEditing ? (
+						<>
+							<div className="overflow-hidden rounded-lg border bg-background p-3 focus-within:border-ring">
+								<Suspense fallback={<Skeleton className="h-16" />}>
 									<Editor
 										defaultContent={comment.content}
 										categories={categories}
@@ -237,65 +295,50 @@ export function PublicCommentItem({
 										hideBlockHandle
 									/>
 								</Suspense>
-								<div className="flex items-center gap-2 mt-2 justify-end">
-									<Button
-										variant="ghost"
-										size="sm"
-										onClick={handleCancel}
-										disabled={isSaving}
-										className="text-muted-foreground hover:text-foreground"
-									>
-										<IconX size={16} />
-										Cancel
-									</Button>
-									<Button variant="primary" size="sm" onClick={handleSave} disabled={isSaving || !canSave}>
-										<IconCheck size={16} />
-										{isSaving ? "Saving..." : "Update comment"}
-									</Button>
-								</div>
-							</>
-						) : (
-							comment.content && (
-								<div className="prose prose-sm dark:prose-invert max-w-none">
-									<Suspense fallback={<div className="h-4 animate-pulse bg-muted rounded w-3/4" />}>
-										<Editor readonly={true} defaultContent={comment.content} tasks={tasks} hideBlockHandle />
-									</Suspense>
-								</div>
-							)
-						)}
-					</div>
-				</div>
+							</div>
+							<div className="mt-2 flex items-center justify-end gap-2">
+								<Button variant="ghost" size="sm" onClick={handleCancel} disabled={isSaving}>
+									<IconX aria-hidden />
+									Cancel
+								</Button>
+								<Button size="sm" onClick={handleSave} disabled={isSaving || !canSave}>
+									<IconCheck aria-hidden />
+									{isSaving ? "Saving..." : "Update comment"}
+								</Button>
+							</div>
+						</>
+					) : (
+						comment.content && (
+							<div className={COMMENT_PROSE}>
+								<Suspense fallback={<Skeleton className="h-4 w-3/4" />}>
+									<Editor readonly={true} defaultContent={comment.content} tasks={tasks} hideBlockHandle />
+								</Suspense>
+							</div>
+						)
+					)}
 
-				{/* Reactions + thread footer — full card width */}
-				{hasReactions && (
-					<div className="mt-1">
-						{onToggleReaction ? (
-							<ReactionDisplay
+					{!isEditing && hasReactions && (
+						<div className="mt-1 flex flex-wrap items-center gap-1">
+							<CommentReactions
+								className="contents"
 								reactions={reactions}
-								toggleReaction={(emoji) => onToggleReaction(comment.id, emoji)}
+								onToggle={onToggleReaction ? (emoji) => onToggleReaction(comment.id, emoji) : undefined}
 								users={users}
 								currentUserId={currentUserId}
 							/>
-						) : (
-							<div className="flex items-center gap-1 flex-wrap">
-								{Object.entries(reactions).map(([emoji, info]) => (
-									<span
-										key={emoji}
-										className={cn(
-											"inline-flex items-center gap-1 h-6 px-2 text-sm rounded-full",
-											"bg-accent/50 border border-border"
-										)}
-									>
-										<span className="text-base leading-none">{emoji}</span>
-										<span className="text-xs font-medium">{info.count}</span>
-									</span>
-								))}
-							</div>
-						)}
-					</div>
-				)}
-				{footer}
+							{onToggleReaction && (
+								<div className="flex transition-opacity md:opacity-0 md:focus-within:opacity-100 md:group-hover/comment:opacity-100 md:has-data-popup-open:opacity-100">
+									<ReactionPicker
+										onSelect={(emoji) => onToggleReaction(comment.id, emoji)}
+										existingReactions={myReactions}
+									/>
+								</div>
+							)}
+						</div>
+					)}
+				</div>
 			</div>
+			{footer && <div className="pl-8.5">{footer}</div>}
 
 			{/* Delete Confirmation Dialog */}
 			<AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
@@ -317,7 +360,7 @@ export function PublicCommentItem({
 						>
 							{isDeleting ? (
 								<>
-									<IconLoader2 className="animate-spin size-4 mr-1" />
+									<IconLoader2 className="mr-1 size-4 animate-spin" />
 									Deleting...
 								</>
 							) : (

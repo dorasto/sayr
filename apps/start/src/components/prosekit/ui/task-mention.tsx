@@ -8,6 +8,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@repo/ui/components/too
 import { Link } from "@tanstack/react-router";
 import { priorityConfig, RenderCategory, RenderLabel, statusConfig } from "@/components/tasks";
 import { InlineLabel } from "@/components/tasks/shared/inlinelabel";
+import { usePublicOrganizationLayoutOptional } from "@/contexts/publicContextOrg";
 import { cn } from "@/lib/utils";
 import { IconHash } from "@tabler/icons-react";
 import { extractTaskText, formatTaskKey } from "@repo/util";
@@ -34,15 +35,21 @@ export function TaskMention({ task, categories, hide }: TaskMentionProps) {
 	// form shown to the user (e.g. "SAY-123"), used everywhere else below.
 	const routeShortId = String(task.shortId);
 	const displayKey = orgShortId ? formatTaskKey(orgShortId, task.shortId) : routeShortId;
+	// On the public portal, a task of the same org links to its public post page (the router maps `/orgs/$orgSlug/...`
+	// to the org's own subdomain); everywhere else it links into admin.
+	const publicOrg = usePublicOrganizationLayoutOptional()?.organization;
+	const linkProps =
+		publicOrg && publicOrg.id === task.organizationId
+			? ({ to: "/orgs/$orgSlug/$shortId", params: { orgSlug: publicOrg.slug, shortId: routeShortId } } as const)
+			: ({
+					to: "/$orgId/tasks/$taskShortId",
+					params: { orgId: task.organizationId, taskShortId: routeShortId },
+				} as const);
 
 	return (
 		<Tooltip>
 			<TooltipTrigger asChild>
-				<Link
-					to="/$orgId/tasks/$taskShortId"
-					params={{ orgId: task.organizationId, taskShortId: routeShortId }}
-					disabled={hide}
-				>
+				<Link {...linkProps} disabled={hide}>
 					{/* Title & Short ID */}
 					<InlineLabel
 						className="text-sm ps-5 align-bottom shrink-0 pr-1.5 rounded-lg bg-accent text-accent-foreground"
@@ -104,7 +111,7 @@ export function TaskMention({ task, categories, hide }: TaskMentionProps) {
 				className="max-w-xs w-60 p-0 flex flex-col gap-1 text-sm"
 				hidden={hide}
 			>
-				<Link to="/$orgId/tasks/$taskShortId" params={{ orgId: task.organizationId, taskShortId: routeShortId }}>
+				<Link {...linkProps}>
 					<div className="flex items-center gap-1 p-1">
 						<Label variant={"subheading"} className="p-1 truncate">
 							{task.title}

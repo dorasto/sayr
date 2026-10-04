@@ -5,15 +5,50 @@ import {
   AvatarImage,
 } from "@repo/ui/components/avatar";
 import { getInitials } from "@repo/util";
+import {
+  IconAlertSquareFilled,
+  IconBuilding,
+  IconCategory,
+  IconList,
+  IconListDetails,
+  IconRocket,
+  IconUser,
+} from "@tabler/icons-react";
 import type { ReactNode } from "react";
-import type { TaskGroupingId } from "../filter/types";
+import type { BoardDataSource } from "../core/board-data";
+import type { TaskItem } from "../core/board-item";
 import type { PriorityValue, StatusValue } from "./field-config";
 import { PRIORITY_CONFIG, STATUS_CONFIG } from "./field-config";
+import {
+  type BoardColumn,
+  type BoardGroupingContext,
+  type BoardGroupingDefinition,
+  bucketByAssignee,
+  bucketByCategory,
+  bucketByOrg,
+  bucketByRelease,
+  bucketByValue,
+  createGroupingRegistry,
+  getCategoryDropPatch,
+  getPriorityDropPatch,
+  getReleaseDropPatch,
+  getStatusDropPatch,
+  type GroupingRegistry,
+  NONE_COLUMN_ID,
+  NONE_GROUPING_ID,
+  omitCompletedStatuses,
+  resolveEffectiveSubGrouping,
+  resolveGroupingDefinition,
+} from "./grouping-registry";
 
-export const UNASSIGNED_GROUP_ID = "__unassigned__";
-export const UNCATEGORIZED_GROUP_ID = "__uncategorized__";
-export const NO_RELEASE_GROUP_ID = "__no_release__";
-export const NO_ORG_GROUP_ID = "__no_org__";
+// The group ids are defined with the pure registry helpers; re-exported so existing
+// importers (drag actions, tests) keep their import path.
+export {
+  NO_ORG_GROUP_ID,
+  NO_RELEASE_GROUP_ID,
+  UNASSIGNED_GROUP_ID,
+  UNCATEGORIZED_GROUP_ID,
+} from "./grouping-registry";
 
 export interface BoardTaskGroup {
   id: string;
@@ -29,12 +64,16 @@ export interface BoardTaskGroup {
   /** Raw hex tint for category/release groups — these are user-picked colors with no theme-token equivalent. */
   color?: string;
   tasks: schema.TaskWithLabels[];
+  /** Carried through from `BoardColumn` — none of the built-in groupings set these. */
+  header?: ReactNode;
+  description?: ReactNode;
+  emptyMessage?: string;
   subGroups?: BoardTaskGroup[];
 }
 
 export interface BoardGroupingOptions {
-  categories?: schema.categoryType[];
-  releases?: schema.releaseType[];
+  categories?: readonly schema.categoryType[];
+  releases?: readonly schema.releaseType[];
   /**
    * When false, the Done/Canceled status groups are dropped from the
    * returned array entirely (not left present-but-empty for the UI to
@@ -48,18 +87,17 @@ export interface BoardGroupingOptions {
    * re-filter tasks here — only the two group entries themselves.
    */
   showCompletedTasks?: boolean;
-}
-
-const COMPLETED_STATUSES = new Set<StatusValue>(["done", "canceled"]);
-
-function createGroup(
-  id: string,
-  label: string,
-  tasks: schema.TaskWithLabels[],
-  icon?: ReactNode,
-  tone?: { toneClassName?: string; color?: string },
-): BoardTaskGroup {
-  return { id, label, icon, tasks, ...tone };
+  /** Registry to resolve the grouping id in; defaults to the built-ins. Views pass the provider's (built-ins + page-supplied). */
+  groupings?: GroupingRegistry;
+  /**
+   * The full data source the grouping's context should carry. Absent = synthesized from the tasks being grouped
+   * plus `categories`/`releases` above (what the built-ins read).
+   */
+  data?: BoardDataSource;
+  /** Overrides `data.pagination.hasMore` for the context's `partial`. */
+  partial?: boolean;
+  /** Injected "today" for groupings that depend on it. */
+  now?: Date;
 }
 
 // Same theme-token classes the app's existing group-header styling already
@@ -67,7 +105,7 @@ function createGroup(
 // generic Tailwind/theme utility classes, not code imported from the old
 // system. Backlog/todo both read as neutral "not started yet" grays; todo is
 // deliberately a shade more present than backlog.
-const STATUS_TONE_CLASSES: Record<StatusValue, string | undefined> = {
+export const STATUS_TONE_CLASSES: Record<StatusValue, string | undefined> = {
   backlog: "bg-muted/50",
   todo: "bg-muted",
   "in-progress": "bg-primary/5",
@@ -83,85 +121,83 @@ const PRIORITY_TONE_CLASSES: Record<PriorityValue, string | undefined> = {
   none: undefined,
 };
 
-function groupByAssignee(tasks: schema.TaskWithLabels[]): BoardTaskGroup[] {
-  const assignees = new Map<string, schema.UserSummary>();
-  for (const task of tasks) {
-    for (const assignee of task.assignees) {
-      assignees.set(assignee.id, assignee);
-    }
-  }
+const STATUS_KEYS = Object.keys(STATUS_CONFIG) as StatusValue[];
+const PRIORITY_KEYS = Object.keys(PRIORITY_CONFIG) as PriorityValue[];
 
-  return [
-    ...Array.from(assignees.values()).map((assignee) =>
-      createGroup(
-        assignee.id,
-        assignee.name ?? "Unknown user",
-        tasks.filter((task) =>
-          task.assignees.some(
-            (taskAssignee) => taskAssignee.id === assignee.id,
-          ),
-        ),
-      ),
+const statusGrouping: BoardGroupingDefinition = {
+  id: "status",
+  label: "Status",
+  icon: <IconListDetails className="h-4 w-4" />,
+  persistable: true,
+  group: (items, { showCompletedTasks }) =>
+    bucketByValue(
+      items,
+      omitCompletedStatuses(STATUS_KEYS, showCompletedTasks),
+      (task) => task.status,
+    ).map(({ id, items: bucket }) => ({
+      id,
+      label: STATUS_CONFIG[id].label,
+      items: bucket,
+      // h-3.5 w-3.5 — matches the glyph size FieldStatus/FieldPriority render
+      // on the rows below (field-status.tsx/field-priority.tsx both call
+      // icon("h-3.5 w-3.5")), so the header's icon isn't visibly larger.
+      icon: STATUS_CONFIG[id].icon("h-3.5 w-3.5"),
+      toneClassName: STATUS_TONE_CLASSES[id],
+    })),
+  getDropPatch: (item, columnId) => getStatusDropPatch(item, columnId),
+};
+
+const priorityGrouping: BoardGroupingDefinition = {
+  id: "priority",
+  label: "Priority",
+  icon: <IconAlertSquareFilled className="h-4 w-4" />,
+  persistable: true,
+  group: (items) =>
+    bucketByValue(items, PRIORITY_KEYS, (task) => task.priority).map(
+      ({ id, items: bucket }) => ({
+        id,
+        label: PRIORITY_CONFIG[id].label,
+        items: bucket,
+        // Same h-3.5 w-3.5 sizing note as statusGrouping above.
+        icon: PRIORITY_CONFIG[id].icon("h-3.5 w-3.5"),
+        toneClassName: PRIORITY_TONE_CLASSES[id],
+      }),
     ),
-    createGroup(
-      UNASSIGNED_GROUP_ID,
-      "Unassigned",
-      tasks.filter((task) => task.assignees.length === 0),
-    ),
-  ];
-}
+  getDropPatch: (item, columnId) => getPriorityDropPatch(item, columnId),
+};
 
-function groupByCategory(
-  tasks: schema.TaskWithLabels[],
-  categories: schema.categoryType[],
-): BoardTaskGroup[] {
-  const categoriesById = new Map(
-    categories.map((category) => [category.id, category]),
-  );
-  const knownCategoryGroups = categories.map((category) =>
-    createGroup(
-      category.id,
-      category.name,
-      tasks.filter((task) => task.category === category.id),
-      undefined,
-      { color: category.color ?? undefined },
-    ),
-  );
-  const uncategorizedTasks = tasks.filter(
-    (task) => !task.category || !categoriesById.has(task.category),
-  );
+const assigneeGrouping: BoardGroupingDefinition = {
+  id: "assignee",
+  label: "Assignee",
+  icon: <IconUser className="h-4 w-4" />,
+  persistable: true,
+  // A task with several assignees sits in several columns at once.
+  multiMembership: true,
+  group: (items) => bucketByAssignee(items),
+  // No getDropPatch: a task can appear in several assignee buckets, and a drop
+  // can't express whether existing assignees should be retained, so assignee
+  // regrouping intentionally no-ops.
+};
 
-  return [
-    ...knownCategoryGroups,
-    createGroup(UNCATEGORIZED_GROUP_ID, "Uncategorized", uncategorizedTasks),
-  ];
-}
+const categoryGrouping: BoardGroupingDefinition = {
+  id: "category",
+  label: "Category",
+  icon: <IconCategory className="h-4 w-4" />,
+  persistable: true,
+  group: (items, { data }) => bucketByCategory(items, data.categories),
+  getDropPatch: (item, columnId, { data }) =>
+    getCategoryDropPatch(item, columnId, data.categories),
+};
 
-function groupByRelease(
-  tasks: schema.TaskWithLabels[],
-  releases: schema.releaseType[],
-): BoardTaskGroup[] {
-  const releasesById = new Map(
-    releases.map((release) => [release.id, release]),
-  );
-  const knownReleaseGroups = releases.map((release) =>
-    createGroup(
-      release.id,
-      release.name,
-      tasks.filter((task) => task.releaseId === release.id),
-      undefined,
-      { color: release.color ?? undefined },
-    ),
-  );
-  const noReleaseTasks = tasks.filter(
-    (task) => !task.releaseId || !releasesById.has(task.releaseId),
-  );
-
-  return [
-    ...knownReleaseGroups,
-    createGroup(NO_RELEASE_GROUP_ID, "No release", noReleaseTasks),
-  ];
-}
+const releaseGrouping: BoardGroupingDefinition = {
+  id: "release",
+  label: "Release",
+  icon: <IconRocket className="h-4 w-4" />,
+  persistable: true,
+  group: (items, { data }) => bucketByRelease(items, data.releases),
+  getDropPatch: (item, columnId, { data }) =>
+    getReleaseDropPatch(item, columnId, data.releases),
+};
 
 /**
  * Groups tasks by their organization — the whole point of this cross-org
@@ -170,108 +206,150 @@ function groupByRelease(
  * it); a task somehow missing it falls into "No organization" rather than
  * being dropped.
  */
-function groupByOrg(tasks: schema.TaskWithLabels[]): BoardTaskGroup[] {
-  const orgs = new Map<
-    string,
-    NonNullable<schema.TaskWithLabels["organization"]>
-  >();
-  for (const task of tasks) {
-    if (task.organization) orgs.set(task.organization.id, task.organization);
-  }
+const orgGrouping: BoardGroupingDefinition = {
+  id: "org",
+  label: "Organization",
+  icon: <IconBuilding className="h-4 w-4" />,
+  persistable: true,
+  group: (items) =>
+    bucketByOrg(items).map(({ id, label, items: bucket, logo, isKnownOrg }) => ({
+      id,
+      label,
+      items: bucket,
+      icon: isKnownOrg ? (
+        <Avatar className="size-3.5 rounded-sm">
+          <AvatarImage src={logo ?? undefined} alt={label} />
+          <AvatarFallback className="rounded-sm text-[7px]">
+            {getInitials(label)}
+          </AvatarFallback>
+        </Avatar>
+      ) : undefined,
+    })),
+  // No getDropPatch: a task's organization isn't a mutable field — dragging
+  // between org groups can't reassign it, so org regrouping intentionally no-ops.
+};
 
-  const knownOrgGroups = Array.from(orgs.values()).map((org) =>
-    createGroup(
-      org.id,
-      org.name,
-      tasks.filter((task) => task.organizationId === org.id),
-      <Avatar className="size-3.5 rounded-sm">
-        <AvatarImage src={org.logo ?? undefined} alt={org.name} />
-        <AvatarFallback className="rounded-sm text-[7px]">
-          {getInitials(org.name)}
-        </AvatarFallback>
-      </Avatar>,
-    ),
-  );
-  const noOrgTasks = tasks.filter((task) => !task.organization);
+/** Every item in one column; views render it as ungrouped (no group header). Not a Group-by menu option. */
+const noneGrouping: BoardGroupingDefinition = {
+  id: NONE_GROUPING_ID,
+  label: "None",
+  icon: <IconList className="h-4 w-4" />,
+  // Page-local: never stored in a saved view (TaskGroupingId has no "none").
+  persistable: false,
+  canSubGroup: false,
+  group: (items) => [{ id: NONE_COLUMN_ID, label: "All", items: [...items] }],
+};
 
-  return noOrgTasks.length > 0
-    ? [
-        ...knownOrgGroups,
-        createGroup(NO_ORG_GROUP_ID, "No organization", noOrgTasks),
-      ]
-    : knownOrgGroups;
-}
+/**
+ * The built-ins, in "Group by" menu order (status, org, priority, assignee,
+ * category, release — NOT the order a kanban would list them). `none` is last
+ * and is kept out of the menu by config/grouping-options.tsx.
+ */
+export const BUILT_IN_GROUPINGS: readonly BoardGroupingDefinition[] = [
+  statusGrouping,
+  orgGrouping,
+  priorityGrouping,
+  assigneeGrouping,
+  categoryGrouping,
+  releaseGrouping,
+  noneGrouping,
+];
 
-/** Groups board tasks without importing the retired task-view system. */
-export function groupTasks(
-  tasks: schema.TaskWithLabels[],
-  groupBy: TaskGroupingId,
+/** The registry used when a page passes no extra definitions to `BoardProvider`. */
+export const DEFAULT_GROUPING_REGISTRY: GroupingRegistry =
+  createGroupingRegistry(BUILT_IN_GROUPINGS);
+
+function buildGroupingContext(
+  tasks: readonly TaskItem[],
   {
     categories = [],
     releases = [],
     showCompletedTasks = true,
-  }: BoardGroupingOptions = {},
+    data,
+    partial,
+    now,
+  }: BoardGroupingOptions,
+): BoardGroupingContext {
+  return {
+    data: data ?? { items: tasks, labels: [], categories, releases },
+    showCompletedTasks,
+    partial: partial ?? data?.pagination?.hasMore ?? false,
+    now: now ?? new Date(),
+  };
+}
+
+/** Maps a registry column to the `tasks`-keyed shape the views consume. */
+function columnToGroup(column: BoardColumn): BoardTaskGroup {
+  const { items, subGroups, ...rest } = column;
+  return {
+    ...rest,
+    tasks: items,
+    subGroups: subGroups?.map(columnToGroup),
+  };
+}
+
+/**
+ * Groups tasks into registry columns (`items`-keyed). `groupBy` is any registered id (an unknown
+ * one falls back to status), looked up in `options.groupings` (default: built-ins).
+ */
+export function groupTasksAsColumns(
+  tasks: readonly schema.TaskWithLabels[],
+  groupBy: string,
+  options: BoardGroupingOptions = {},
+): BoardColumn[] {
+  return resolveGroupingDefinition(
+    options.groupings ?? DEFAULT_GROUPING_REGISTRY,
+    groupBy,
+  ).group(tasks, buildGroupingContext(tasks, options));
+}
+
+/**
+ * One optional sub-grouping level, as registry columns. A primary grouping with
+ * `canSubGroup: false` gets no sub-groups.
+ */
+export function applyNestedGroupingAsColumns(
+  tasks: readonly schema.TaskWithLabels[],
+  groupBy: string,
+  subGroupBy: string,
+  options: BoardGroupingOptions = {},
+): BoardColumn[] {
+  const effectiveSubGroupBy = resolveEffectiveSubGrouping(
+    options.groupings ?? DEFAULT_GROUPING_REGISTRY,
+    groupBy,
+    subGroupBy,
+  );
+  return groupTasksAsColumns(tasks, groupBy, options).map((column) => ({
+    ...column,
+    subGroups:
+      effectiveSubGroupBy === NONE_GROUPING_ID
+        ? undefined
+        : groupTasksAsColumns(column.items, effectiveSubGroupBy, options),
+  }));
+}
+
+/**
+ * Groups board tasks without importing the retired task-view system. A
+ * facade over the grouping registry that returns the `tasks`-keyed shape the
+ * list view consumes (see `groupTasksAsColumns`).
+ */
+export function groupTasks(
+  tasks: readonly schema.TaskWithLabels[],
+  groupBy: string,
+  options: BoardGroupingOptions = {},
 ): BoardTaskGroup[] {
-  switch (groupBy) {
-    case "status":
-      return (Object.keys(STATUS_CONFIG) as StatusValue[])
-        .filter(
-          (status) => showCompletedTasks || !COMPLETED_STATUSES.has(status),
-        )
-        .map((status) => {
-          const config = STATUS_CONFIG[status];
-          return createGroup(
-            status,
-            config.label,
-            tasks.filter((task) => task.status === status),
-            // h-3.5 w-3.5 — matches the glyph size FieldStatus/FieldPriority render
-            // on the rows below (field-status.tsx/field-priority.tsx both call
-            // icon("h-3.5 w-3.5")), so the header's icon isn't visibly larger.
-            config.icon("h-3.5 w-3.5"),
-            { toneClassName: STATUS_TONE_CLASSES[status] },
-          );
-        });
-    case "priority":
-      return (Object.keys(PRIORITY_CONFIG) as PriorityValue[]).map(
-        (priority) => {
-          const config = PRIORITY_CONFIG[priority];
-          return createGroup(
-            priority,
-            config.label,
-            tasks.filter((task) => task.priority === priority),
-            // h-3.5 w-3.5 — matches the glyph size FieldStatus/FieldPriority render
-            // on the rows below (field-status.tsx/field-priority.tsx both call
-            // icon("h-3.5 w-3.5")), so the header's icon isn't visibly larger.
-            config.icon("h-3.5 w-3.5"),
-            { toneClassName: PRIORITY_TONE_CLASSES[priority] },
-          );
-        },
-      );
-    case "assignee":
-      return groupByAssignee(tasks);
-    case "category":
-      return groupByCategory(tasks, categories);
-    case "release":
-      return groupByRelease(tasks, releases);
-    case "org":
-      return groupByOrg(tasks);
-  }
+  return groupTasksAsColumns(tasks, groupBy, options).map(columnToGroup);
 }
 
 /** Applies one optional subgrouping level for the list and kanban board views. */
 export function applyNestedGrouping(
-  tasks: schema.TaskWithLabels[],
-  groupBy: TaskGroupingId,
-  subGroupBy: TaskGroupingId | "none",
+  tasks: readonly schema.TaskWithLabels[],
+  groupBy: string,
+  subGroupBy: string,
   options: BoardGroupingOptions = {},
 ): BoardTaskGroup[] {
-  return groupTasks(tasks, groupBy, options).map((group) => ({
-    ...group,
-    subGroups:
-      subGroupBy === "none"
-        ? undefined
-        : groupTasks(group.tasks, subGroupBy, options),
-  }));
+  return applyNestedGroupingAsColumns(tasks, groupBy, subGroupBy, options).map(
+    columnToGroup,
+  );
 }
 
 // Same order the status grouping itself uses (backlog → canceled) — reused
@@ -291,7 +369,7 @@ const STATUS_ORDER = Object.keys(STATUS_CONFIG) as StatusValue[];
  * etc.) has nowhere to nest under, so it's treated as top-level.
  */
 export function getTopLevelTasks(
-  tasks: schema.TaskWithLabels[],
+  tasks: readonly schema.TaskWithLabels[],
 ): schema.TaskWithLabels[] {
   const ids = new Set(tasks.map((task) => task.id));
   return tasks.filter((task) => !task.parentId || !ids.has(task.parentId));
@@ -304,7 +382,7 @@ export function getTopLevelTasks(
  * extra fetch is needed). Sorted with anything not done/canceled first.
  */
 export function buildSubtaskMap(
-  tasks: schema.TaskWithLabels[],
+  tasks: readonly schema.TaskWithLabels[],
 ): Map<string, schema.TaskWithLabels[]> {
   const ids = new Set(tasks.map((task) => task.id));
   const map = new Map<string, schema.TaskWithLabels[]>();

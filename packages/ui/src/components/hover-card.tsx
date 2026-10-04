@@ -21,7 +21,7 @@ const HoverCardContent = React.forwardRef<
 			alignOffset={alignOffset}
 			side={side}
 			sideOffset={sideOffset}
-			className="isolate z-50"
+			className="isolate z-[10050]"
 		>
 			<HoverCardPrimitive.Popup
 				ref={ref}

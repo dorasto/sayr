@@ -1,5 +1,3 @@
-"use client";
-
 import { Button } from "@repo/ui/components/button";
 import {
   DropdownMenu,
@@ -23,8 +21,6 @@ import {
   IconArrowsSort,
   IconCheck,
   IconEyeOff,
-  IconLayoutKanban,
-  IconLayoutList,
   IconLayoutRows,
   IconSortAscending,
   IconSortDescending,
@@ -37,17 +33,9 @@ import {
 import { TASK_SORT_FIELDS, type TaskSortField } from "../filter/sort-config";
 import { useBoardViewState } from "../filter/use-board-view-state";
 import type { TaskGroupingId } from "../filter/types";
-
-const VIEW_MODE_OPTIONS = [
-  { id: "list", label: "List", icon: <IconLayoutList className="h-4 w-4" /> },
-  {
-    id: "kanban",
-    label: "Kanban",
-    icon: <IconLayoutKanban className="h-4 w-4" />,
-  },
-] as const;
-
-type ViewMode = (typeof VIEW_MODE_OPTIONS)[number]["id"];
+import { isPersistedViewMode } from "../core/view-config";
+import { getViewOptionVisibility } from "../views/view-registry-model";
+import { useActiveBoardView, useBoardViews } from "../views/view-registry";
 
 /**
  * Board's own view-options popover — same structure/behavior as the existing
@@ -61,7 +49,6 @@ export function BoardViewOptions() {
     grouping,
     subGrouping,
     showCompletedTasks,
-    viewMode,
     sortBy,
     sortDirection,
     setGrouping,
@@ -78,7 +65,12 @@ export function BoardViewOptions() {
   const activeSortField =
     sortBy !== "none" ? TASK_SORT_FIELDS.find((f) => f.id === sortBy) : null;
 
-  const activeViewMode: ViewMode = viewMode;
+  // The views the page registered (icon + label come from the registry) and which of the controls
+  // below the active one supports.
+  const views = useBoardViews();
+  const activeView = useActiveBoardView();
+  const { showViewPicker, showGrouping, showSubGrouping, showSort } =
+    getViewOptionVisibility(views, activeView);
 
   const groupingOptions = useMemo(() => TASK_GROUPING_OPTIONS, []);
 
@@ -93,6 +85,11 @@ export function BoardViewOptions() {
     ],
     [grouping],
   );
+
+  // Only persistable view ids can be stored in the view state (a page-local view id never is).
+  const selectView = (id: string) => {
+    if (isPersistedViewMode(id)) setViewMode(id);
+  };
 
   const [isViewOptionsOpen, setIsViewOptionsOpen] = useState(false);
   const [isGroupingMenuOpen, setIsGroupingMenuOpen] = useState(false);
@@ -118,20 +115,23 @@ export function BoardViewOptions() {
         initialFocus={false}
         align="end"
       >
-        <RadioGroup
-          value={activeViewMode}
-          className="flex items-center gap-2"
-          onValueChange={(v) => setViewMode(v as ViewMode)}
-        >
-          {VIEW_MODE_OPTIONS.map((option) => (
-            <Button
-              key={option.id}
-              variant={activeViewMode === option.id ? "secondary" : "ghost"}
-              onClick={() => setViewMode(option.id)}
-              size={"sm"}
-              className={"rounded-xl h-auto py-1 justify-start"}
-            >
-              {/*<Label
+        {showViewPicker && (
+          <RadioGroup
+            value={activeView.id}
+            className="flex items-center gap-2"
+            onValueChange={(value) => {
+              if (typeof value === "string") selectView(value);
+            }}
+          >
+            {views.map((option) => (
+              <Button
+                key={option.id}
+                variant={activeView.id === option.id ? "secondary" : "ghost"}
+                onClick={() => selectView(option.id)}
+                size={"sm"}
+                className={"rounded-xl h-auto py-1 justify-start"}
+              >
+                {/*<Label
                 key={option.id}
                 className={cn(
                   "flex items-start gap-2 rounded-xl border p-3 cursor-pointer hover:bg-accent/50 transition-colors",
@@ -146,139 +146,22 @@ export function BoardViewOptions() {
                   </span>
                 </div>
               </Label>*/}
-              <RadioGroupItem value={option.id} className="sr-only" />
-              {option.icon} {option.label}
-            </Button>
-          ))}
-        </RadioGroup>
-        <OptionField
-          title="Group by"
-          titleClassName="text-xs text-muted-foreground"
-          titleWrapper="gap-1"
-          icon={<IconLayoutRows className="size-3" />}
-          customSide={
-            <DropdownMenu
-              open={isGroupingMenuOpen}
-              onOpenChange={setIsGroupingMenuOpen}
-            >
-              <DropdownMenuTrigger
-                render={
-                  <Button
-                    size={"sm"}
-                    className={
-                      "rounded-xl h-auto p-1 px-2 justify-start border gap-1"
-                    }
-                    variant={isGroupingMenuOpen ? "secondary" : "accent"}
-                  >
-                    {activeGrouping.icon}
-                    <span className="text-xs">{activeGrouping.label}</span>
-                  </Button>
-                }
-              />
-              <DropdownMenuContent className="w-64" side="bottom" align="end">
-                <DropdownMenuRadioGroup
-                  value={grouping}
-                  onValueChange={(value) =>
-                    setGrouping(value as TaskGroupingId)
-                  }
-                >
-                  {groupingOptions.map((option) => (
-                    <DropdownMenuRadioItem
-                      key={option.id}
-                      value={option.id}
-                      className="pl-8"
-                    >
-                      <span className="mr-3 flex h-5 w-5 items-center justify-center text-muted-foreground">
-                        {option.icon}
-                      </span>
-                      <span
-                        className={cn(
-                          "text-sm",
-                          grouping === option.id &&
-                            "font-semibold text-foreground",
-                        )}
-                      >
-                        {option.label}
-                      </span>
-                    </DropdownMenuRadioItem>
-                  ))}
-                </DropdownMenuRadioGroup>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          }
-        />
-        <OptionField
-          title="Sub-grouping"
-          titleClassName="text-xs text-muted-foreground"
-          titleWrapper="gap-1"
-          icon={<IconLayoutRows className="size-3" />}
-          customSide={
-            <DropdownMenu
-              open={isSubGroupingMenuOpen}
-              onOpenChange={setIsSubGroupingMenuOpen}
-            >
-              <DropdownMenuTrigger
-                render={
-                  <Button
-                    size={"sm"}
-                    className={
-                      "rounded-xl h-auto p-1 px-2 justify-start border gap-1"
-                    }
-                    variant={isSubGroupingMenuOpen ? "secondary" : "accent"}
-                  >
-                    {activeSubGrouping ? (
-                      activeSubGrouping.icon
-                    ) : (
-                      <IconEyeOff className="h-4 w-4" />
-                    )}
-                    <span className="text-xs">
-                      {activeSubGrouping ? activeSubGrouping.label : "None"}
-                    </span>
-                  </Button>
-                }
-              />
-              <DropdownMenuContent className="w-64" side="bottom" align="end">
-                <DropdownMenuRadioGroup
-                  value={subGrouping ?? "none"}
-                  onValueChange={(value) =>
-                    setSubGrouping(value as TaskGroupingId | "none")
-                  }
-                >
-                  {subGroupingOptions.map((option) => (
-                    <DropdownMenuRadioItem
-                      key={option.id}
-                      value={option.id}
-                      className="pl-8"
-                    >
-                      <span className="mr-3 flex h-5 w-5 items-center justify-center text-muted-foreground">
-                        {option.icon}
-                      </span>
-                      <span
-                        className={cn(
-                          "text-sm",
-                          option.id === subGrouping &&
-                            "text-foreground font-medium",
-                        )}
-                      >
-                        {option.label}
-                      </span>
-                    </DropdownMenuRadioItem>
-                  ))}
-                </DropdownMenuRadioGroup>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          }
-        />
-        <OptionField
-          title="Sort by"
-          titleClassName="text-xs text-muted-foreground"
-          titleWrapper="gap-1"
-          icon={<IconArrowsSort className="size-3 text-muted-foreground" />}
-          customSide={
-            <div className="flex items-center gap-1">
+                <RadioGroupItem value={option.id} className="sr-only" />
+                {option.icon} {option.label}
+              </Button>
+            ))}
+          </RadioGroup>
+        )}
+        {showGrouping && (
+          <OptionField
+            title="Group by"
+            titleClassName="text-xs text-muted-foreground"
+            titleWrapper="gap-1"
+            icon={<IconLayoutRows className="size-3" />}
+            customSide={
               <DropdownMenu
-                open={isSortMenuOpen}
-                onOpenChange={setIsSortMenuOpen}
+                open={isGroupingMenuOpen}
+                onOpenChange={setIsGroupingMenuOpen}
               >
                 <DropdownMenuTrigger
                   render={
@@ -287,45 +170,33 @@ export function BoardViewOptions() {
                       className={
                         "rounded-xl h-auto p-1 px-2 justify-start border gap-1"
                       }
-                      variant={isSortMenuOpen ? "secondary" : "accent"}
+                      variant={isGroupingMenuOpen ? "secondary" : "accent"}
                     >
-                      <span className="text-xs">
-                        {activeSortField ? activeSortField.label : "None"}
-                      </span>
+                      {activeGrouping.icon}
+                      <span className="text-xs">{activeGrouping.label}</span>
                     </Button>
                   }
                 />
                 <DropdownMenuContent className="w-64" side="bottom" align="end">
                   <DropdownMenuRadioGroup
-                    value={sortBy ?? "none"}
+                    value={grouping}
                     onValueChange={(value) =>
-                      setSortBy(value as TaskSortField | "none")
+                      setGrouping(value as TaskGroupingId)
                     }
                   >
-                    <DropdownMenuRadioItem value="none" className="pl-8">
-                      <span className="mr-3 flex h-5 w-5 items-center justify-center text-muted-foreground">
-                        <IconEyeOff className="h-4 w-4" />
-                      </span>
-                      <span
-                        className={cn(
-                          "text-sm",
-                          (sortBy ?? "none") === "none" &&
-                            "font-semibold text-foreground",
-                        )}
-                      >
-                        None
-                      </span>
-                    </DropdownMenuRadioItem>
-                    {TASK_SORT_FIELDS.map((option) => (
+                    {groupingOptions.map((option) => (
                       <DropdownMenuRadioItem
                         key={option.id}
                         value={option.id}
                         className="pl-8"
                       >
+                        <span className="mr-3 flex h-5 w-5 items-center justify-center text-muted-foreground">
+                          {option.icon}
+                        </span>
                         <span
                           className={cn(
                             "text-sm",
-                            sortBy === option.id &&
+                            grouping === option.id &&
                               "font-semibold text-foreground",
                           )}
                         >
@@ -336,26 +207,168 @@ export function BoardViewOptions() {
                   </DropdownMenuRadioGroup>
                 </DropdownMenuContent>
               </DropdownMenu>
-              {sortBy && sortBy !== "none" && (
-                <Button
-                  type="button"
-                  variant="accent"
-                  size="icon"
-                  className="border-transparent size-7"
-                  onClick={() =>
-                    setSortDirection(sortDirection === "desc" ? "asc" : "desc")
+            }
+          />
+        )}
+        {showSubGrouping && (
+          <OptionField
+            title="Sub-grouping"
+            titleClassName="text-xs text-muted-foreground"
+            titleWrapper="gap-1"
+            icon={<IconLayoutRows className="size-3" />}
+            customSide={
+              <DropdownMenu
+                open={isSubGroupingMenuOpen}
+                onOpenChange={setIsSubGroupingMenuOpen}
+              >
+                <DropdownMenuTrigger
+                  render={
+                    <Button
+                      size={"sm"}
+                      className={
+                        "rounded-xl h-auto p-1 px-2 justify-start border gap-1"
+                      }
+                      variant={isSubGroupingMenuOpen ? "secondary" : "accent"}
+                    >
+                      {activeSubGrouping ? (
+                        activeSubGrouping.icon
+                      ) : (
+                        <IconEyeOff className="h-4 w-4" />
+                      )}
+                      <span className="text-xs">
+                        {activeSubGrouping ? activeSubGrouping.label : "None"}
+                      </span>
+                    </Button>
                   }
+                />
+                <DropdownMenuContent className="w-64" side="bottom" align="end">
+                  <DropdownMenuRadioGroup
+                    value={subGrouping ?? "none"}
+                    onValueChange={(value) =>
+                      setSubGrouping(value as TaskGroupingId | "none")
+                    }
+                  >
+                    {subGroupingOptions.map((option) => (
+                      <DropdownMenuRadioItem
+                        key={option.id}
+                        value={option.id}
+                        className="pl-8"
+                      >
+                        <span className="mr-3 flex h-5 w-5 items-center justify-center text-muted-foreground">
+                          {option.icon}
+                        </span>
+                        <span
+                          className={cn(
+                            "text-sm",
+                            option.id === subGrouping &&
+                              "text-foreground font-medium",
+                          )}
+                        >
+                          {option.label}
+                        </span>
+                      </DropdownMenuRadioItem>
+                    ))}
+                  </DropdownMenuRadioGroup>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            }
+          />
+        )}
+        {showSort && (
+          <OptionField
+            title="Sort by"
+            titleClassName="text-xs text-muted-foreground"
+            titleWrapper="gap-1"
+            icon={<IconArrowsSort className="size-3 text-muted-foreground" />}
+            customSide={
+              <div className="flex items-center gap-1">
+                <DropdownMenu
+                  open={isSortMenuOpen}
+                  onOpenChange={setIsSortMenuOpen}
                 >
-                  {sortDirection === "desc" ? (
-                    <IconSortDescending className="h-4 w-4" />
-                  ) : (
-                    <IconSortAscending className="h-4 w-4" />
-                  )}
-                </Button>
-              )}
-            </div>
-          }
-        />
+                  <DropdownMenuTrigger
+                    render={
+                      <Button
+                        size={"sm"}
+                        className={
+                          "rounded-xl h-auto p-1 px-2 justify-start border gap-1"
+                        }
+                        variant={isSortMenuOpen ? "secondary" : "accent"}
+                      >
+                        <span className="text-xs">
+                          {activeSortField ? activeSortField.label : "None"}
+                        </span>
+                      </Button>
+                    }
+                  />
+                  <DropdownMenuContent
+                    className="w-64"
+                    side="bottom"
+                    align="end"
+                  >
+                    <DropdownMenuRadioGroup
+                      value={sortBy ?? "none"}
+                      onValueChange={(value) =>
+                        setSortBy(value as TaskSortField | "none")
+                      }
+                    >
+                      <DropdownMenuRadioItem value="none" className="pl-8">
+                        <span className="mr-3 flex h-5 w-5 items-center justify-center text-muted-foreground">
+                          <IconEyeOff className="h-4 w-4" />
+                        </span>
+                        <span
+                          className={cn(
+                            "text-sm",
+                            (sortBy ?? "none") === "none" &&
+                              "font-semibold text-foreground",
+                          )}
+                        >
+                          None
+                        </span>
+                      </DropdownMenuRadioItem>
+                      {TASK_SORT_FIELDS.map((option) => (
+                        <DropdownMenuRadioItem
+                          key={option.id}
+                          value={option.id}
+                          className="pl-8"
+                        >
+                          <span
+                            className={cn(
+                              "text-sm",
+                              sortBy === option.id &&
+                                "font-semibold text-foreground",
+                            )}
+                          >
+                            {option.label}
+                          </span>
+                        </DropdownMenuRadioItem>
+                      ))}
+                    </DropdownMenuRadioGroup>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                {sortBy && sortBy !== "none" && (
+                  <Button
+                    type="button"
+                    variant="accent"
+                    size="icon"
+                    className="border-transparent size-7"
+                    onClick={() =>
+                      setSortDirection(
+                        sortDirection === "desc" ? "asc" : "desc",
+                      )
+                    }
+                  >
+                    {sortDirection === "desc" ? (
+                      <IconSortDescending className="h-4 w-4" />
+                    ) : (
+                      <IconSortAscending className="h-4 w-4" />
+                    )}
+                  </Button>
+                )}
+              </div>
+            }
+          />
+        )}
         <OptionField
           title="Show completed tasks"
           titleClassName="text-xs text-muted-foreground"

@@ -11,6 +11,28 @@
 @source '../node_modules/@repo/ui';
 
 /*
+ * Reduced motion (SAY-81): inside the public portal, skeleton pulses, popup enter/exit animations and every transition
+ * (drawer push, tab indicator, hover fades) are switched off, and smooth scrolling is dropped. Spinners keep turning:
+ * they signal that something is loading rather than decorate.
+ */
+@media (prefers-reduced-motion: reduce) {
+    .portal .animate-pulse {
+        animation: none;
+    }
+    .portal .animate-in,
+    .portal .animate-out {
+        animation-duration: 0.01ms !important;
+    }
+    .portal,
+    .portal *,
+    .portal *::before,
+    .portal *::after {
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+/*
  * Template Placeholder Mark Styles
  * Styled via data attributes on the editor mount div so that
  * ProseMirror's native DOM management is not disrupted (no React mark view).

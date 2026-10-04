@@ -8,6 +8,7 @@ import { Label } from "@repo/ui/components/label";
 import { formatDate } from "@repo/util";
 import { IconFingerprint, IconKey, IconTrash } from "@tabler/icons-react";
 import { useCallback, useEffect, useState } from "react";
+import { isSessionNotFresh } from "@/lib/auth/reauth";
 
 type Passkey = {
 	id: string;
@@ -15,7 +16,12 @@ type Passkey = {
 	createdAt: Date | null;
 };
 
-export function PasskeySection() {
+interface PasskeySectionProps {
+	/** Sends the user to "Confirm it's you" when adding a passkey needs a fresh sign-in. */
+	onConfirmIdentity: () => void;
+}
+
+export function PasskeySection({ onConfirmIdentity }: PasskeySectionProps) {
 	const [passkeys, setPasskeys] = useState<Passkey[]>([]);
 	const [loading, setLoading] = useState(true);
 
@@ -23,6 +29,7 @@ export function PasskeySection() {
 	const [newName, setNewName] = useState("");
 	const [adding, setAdding] = useState(false);
 	const [addError, setAddError] = useState("");
+	const [needsReauth, setNeedsReauth] = useState(false);
 
 	const loadPasskeys = useCallback(async () => {
 		try {
@@ -58,6 +65,10 @@ export function PasskeySection() {
 			const result = await authClient.passkey.addPasskey({
 				name: newName.trim(),
 			});
+			if (isSessionNotFresh(result.error)) {
+				setNeedsReauth(true);
+				return;
+			}
 			if (result.error) {
 				setAddError(result.error.message || "Failed to add passkey");
 				return;
@@ -102,6 +113,7 @@ export function PasskeySection() {
 							onClick={() => {
 								setNewName("");
 								setAddError("");
+								setNeedsReauth(false);
 								setShowAddDialog(true);
 							}}
 						>
@@ -161,14 +173,23 @@ export function PasskeySection() {
 							/>
 						</div>
 						{addError && <p className="text-sm text-destructive">{addError}</p>}
+						{needsReauth && (
+							<p className="text-sm text-muted-foreground">
+								For your security, confirm it's you before adding a passkey. You'll come straight back here.
+							</p>
+						)}
 					</div>
 					<DialogFooter>
 						<Button variant="outline" onClick={() => setShowAddDialog(false)} disabled={adding}>
 							Cancel
 						</Button>
-						<Button onClick={handleAdd} disabled={adding}>
-							{adding ? "Registering..." : "Register Passkey"}
-						</Button>
+						{needsReauth ? (
+							<Button onClick={onConfirmIdentity}>Confirm it's you</Button>
+						) : (
+							<Button onClick={handleAdd} disabled={adding}>
+								{adding ? "Registering..." : "Register Passkey"}
+							</Button>
+						)}
 					</DialogFooter>
 				</DialogContent>
 			</Dialog>

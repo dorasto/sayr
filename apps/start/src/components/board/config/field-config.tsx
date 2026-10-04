@@ -30,6 +30,8 @@ interface FieldPresentation {
 	label: string;
 	color: string;
 	icon: (className: string) => ReactNode;
+	/** Text colour class matching the icon (status only). */
+	className?: string;
 }
 
 // StatusIcon (the shared @repo/ui glyph) draws backlog/todo/in-progress with
@@ -69,6 +71,7 @@ export const STATUS_CONFIG: Record<StatusValue, FieldPresentation> = Object.from
 			{
 				label: presentation.label,
 				color: presentation.color,
+				className: presentation.textClassName,
 				icon: (className: string) => (
 					<StatusIcon status={status} className={cn(className, presentation.textClassName)} />
 				),

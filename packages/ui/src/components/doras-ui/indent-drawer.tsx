@@ -56,7 +56,7 @@ export function IndentDrawerIndentBackground({
 // route content below it, so IndentDrawerContent portals this into the
 // same root container as the header (see its `backdropContainer` prop)
 // rather than the popup's own local region. IndentDrawerContent's
-// Viewport is bumped to z-[10010] to stay above this regardless.
+// portal node is bumped to z-[10010] to stay above this regardless.
 export function IndentDrawerBackdrop({
   className,
   ...props
@@ -189,6 +189,7 @@ export function IndentDrawer({
   // a backdrop now blocking the background, a click on it should dismiss
   // like any other modal, unless the caller explicitly overrides it.
   disablePointerDismissal = !modal,
+  onOpenChange,
   children,
   ...props
 }: IndentDrawerProps) {
@@ -198,6 +199,17 @@ export function IndentDrawer({
       modal={modal}
       disablePointerDismissal={disablePointerDismissal}
       swipeDirection={swipeDirection ?? (isMobile ? "down" : side)}
+      onOpenChange={(open, eventDetails) => {
+        // Base UI closes drawers on Escape by default. On desktop a panel sits
+        // beside the page as part of the layout, so Escape must not close it
+        // (it still closes a menu or tooltip open inside it, which is topmost).
+        // On mobile the panel is a bottom sheet, where Escape closing it is right.
+        if (!open && eventDetails.reason === "escape-key" && !isMobile) {
+          eventDetails.cancel();
+          return;
+        }
+        onOpenChange?.(open, eventDetails);
+      }}
       {...props}
     >
       {children}
@@ -325,6 +337,7 @@ export function IndentDrawerContent({
   minWidth = 280,
   maxWidth = 720,
   modal = false,
+  fitContent = false,
 }: {
   container?: HTMLElement | null;
   /**
@@ -350,6 +363,12 @@ export function IndentDrawerContent({
   maxWidth?: number;
   /** Renders the dimming backdrop. Pass the same value given to the paired `IndentDrawer`'s `modal` prop. @default false */
   modal?: boolean;
+  /**
+   * Desktop only: the popup is as tall as its content instead of always
+   * full height, up to the full height, after which the content scrolls as
+   * usual. @default false
+   */
+  fitContent?: boolean;
 } & IndentDrawerSizeProps) {
   const sizeVars = {
     "--indent-drawer-width": width,
@@ -363,7 +382,19 @@ export function IndentDrawerContent({
           <IndentDrawerBackdrop />
         </DrawerPrimitive.Portal>
       )}
-      <DrawerPrimitive.Portal container={container}>
+      {/* The drawer's stacking lives on the portal node, not the Viewport:
+          Base UI renders every popup opened from inside the drawer (tooltips,
+          popovers, menus, selects) as a nested portal INSIDE this node, next
+          to the Viewport. With the z-index here and none on the Viewport,
+          those popups (z-50) paint above the drawer instead of under it, with
+          no z-index at the call site. z-[10010]: above IndentDrawerBackdrop's
+          z-[10000], which sits above the app header's z-9999. The node covers
+          the container, so it is pointer-events-none (non-modal drawers let
+          clicks through); nested popup portals turn pointer events back on. */}
+      <DrawerPrimitive.Portal
+        container={container}
+        className="pointer-events-none absolute inset-0 z-[10010] [&>[data-base-ui-portal]]:pointer-events-auto"
+      >
         {/* pointer-events-none on the viewport + pointer-events-auto only on the
 				    popup below is what makes a non-modal drawer (the default) genuinely
 				    non-modal — clicks outside the popup's own box pass straight through to
@@ -375,12 +406,9 @@ export function IndentDrawerContent({
         <DrawerPrimitive.Viewport
           style={sizeVars}
           className={cn(
-            // z-[10010]: stays above IndentDrawerBackdrop's z-[10000] (which in
-            // turn sits above the app header's z-9999) regardless of whether
-            // this drawer is modal — harmless for non-modal drawers, which
-            // never visually reach the header anyway (clipped by Page's own
-            // overflow-hidden root before they'd get that far).
-            "pointer-events-none absolute inset-0 z-[10010] flex",
+            // No z-index here: the portal node above carries the drawer's
+            // z-[10010], so nested popups can stack over this Viewport.
+            "pointer-events-none absolute inset-0 flex",
             "max-md:items-end max-md:justify-center",
             // p-3 is what makes the desktop drawer "float" — Popup stretches
             // to fill this padded box instead of the full edge-to-edge
@@ -399,7 +427,10 @@ export function IndentDrawerContent({
             // IndentDrawerRegion's push margin lives in that margin's own
             // calc above, not here — don't try to "fix" the gap by making
             // this padding asymmetric.
-            "md:items-stretch md:px-3 md:pb-3",
+            // `fitContent` opts out of the stretch: the Popup sits at the top
+            // and is capped (max-h-full on the Popup) at the same full height.
+            fitContent ? "md:items-start" : "md:items-stretch",
+            "md:px-3 md:pb-3",
             side === "left" ? "md:justify-start" : "md:justify-end",
           )}
         >
@@ -423,6 +454,7 @@ export function IndentDrawerContent({
               // read as visibly heavier than the rest of the UI's flatter,
               // borderless-in-dark-mode look and stood out as "off".
               "md:w-(--indent-drawer-width) md:rounded-xl",
+              fitContent && "md:max-h-full",
               "md:transform-[translateX(var(--drawer-swipe-movement-x))]",
               side === "left"
                 ? "md:data-ending-style:transform-[translateX(-100%)] md:data-starting-style:transform-[translateX(-100%)]"
@@ -459,7 +491,15 @@ export function IndentDrawerContent({
 						    while the inner content div sat well within its own bounds the whole
 						    time. min-h-0 is still required so the child's own flex-1 correctly
 						    computes a bounded (not content-grown) height to scroll within. */}
-            <DrawerPrimitive.Content className="flex h-full min-h-0 flex-1 flex-col overflow-hidden p-0">
+            {/* With `fitContent` there is no h-full: the Popup's height comes from
+                this content (capped by its max-h-full), so the inner scroll region
+                only scrolls once the cap is reached. */}
+            <DrawerPrimitive.Content
+              className={cn(
+                "flex min-h-0 flex-1 flex-col overflow-hidden p-0",
+                fitContent ? "md:flex-initial" : "h-full",
+              )}
+            >
               {children}
             </DrawerPrimitive.Content>
           </DrawerPrimitive.Popup>

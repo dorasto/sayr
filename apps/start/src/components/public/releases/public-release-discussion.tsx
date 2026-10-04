@@ -2,17 +2,21 @@ import { authClient } from "@repo/auth/client";
 import type { schema } from "@repo/database";
 import { Button } from "@repo/ui/components/button";
 import { headlessToast } from "@repo/ui/components/headless-toast";
+import { Skeleton } from "@repo/ui/components/skeleton";
 import {
 	useStateManagement,
 	useStateManagementFetch,
 	useStateManagementInfiniteFetch,
 } from "@repo/ui/hooks/useStateManagement.ts";
 import { onWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
+import { cn } from "@repo/ui/lib/utils";
 import { IconArrowBack, IconLoader2 } from "@tabler/icons-react";
 import { type InfiniteData, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { NodeJSON } from "prosekit/core";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import LoginDialog from "@/components/auth/login";
 import processUploads from "@/components/prosekit/upload";
+import { isMultiline } from "@/components/shared/comments/comment-input";
 import type { ReactionEmoji } from "@/components/tasks/task/timeline/reactions";
 import { usePublicOrganizationLayout } from "@/contexts/publicContextOrg";
 import { useIsOrgMember } from "@/hooks/useIsOrgMember";
@@ -28,18 +32,16 @@ import {
 } from "@/lib/fetches/release";
 import type { ServerEventMessage } from "@/lib/serverEvents";
 import { PublicCommentItem } from "../public-comment-item";
-import { PublicCommentThreadBody, PublicCommentThreadTrigger } from "../public-comment-thread";
+import { PublicCommentThreadBody } from "../public-comment-thread-body";
+import { PublicCommentThreadTrigger } from "../public-comment-thread-trigger";
+import type { CommentData } from "../public-comments-types";
 
 const Editor = lazy(() => import("@/components/prosekit/editor"));
 
 const basePublicApiUrl = import.meta.env.VITE_APP_ENV === "development" ? "/backend-api/public/v1" : "/api/public/v1";
+const baseApiUrl = import.meta.env.VITE_APP_ENV === "development" ? "/backend-api/internal" : "/api/internal";
 
-interface PublicReleaseDiscussionProps {
-	releaseId: string;
-	releaseSlug: string;
-	organizationId: string;
-	orgSlug: string;
-}
+const COMMENT_LIMIT = 20;
 
 interface ReleaseCommentData {
 	id: string;
@@ -71,6 +73,27 @@ interface ReleaseCommentsPage {
 }
 
 /**
+ * Release comments reuse the post comment components, which are typed around `CommentData`. The release id stands in
+ * for `taskId` (these components only read it to scope reactions on replies).
+ */
+function toCommentData(comment: ReleaseCommentData): CommentData {
+	return {
+		id: comment.id,
+		taskId: comment.releaseId,
+		organizationId: comment.organizationId,
+		content: comment.content as NodeJSON,
+		visibility: comment.visibility,
+		createdAt: comment.createdAt,
+		updatedAt: comment.updatedAt,
+		createdBy: comment.createdBy,
+		reactions: comment.reactions,
+		parentId: comment.parentId,
+		replyCount: comment.replyCount,
+		replyAuthors: comment.replyAuthors,
+	};
+}
+
+/**
  * Score a team's permissions to determine hierarchy weight.
  */
 function scorePermissions(permissions: schema.TeamPermissions): number {
@@ -93,6 +116,14 @@ function scorePermissions(permissions: schema.TeamPermissions): number {
 	return score;
 }
 
+interface PublicReleaseDiscussionProps {
+	releaseId: string;
+	releaseSlug: string;
+	organizationId: string;
+	orgSlug: string;
+}
+
+/** Release discussion: top-level comments (paged from both ends), reply threads, reactions and the comment box. */
 export function PublicReleaseDiscussion({
 	releaseId,
 	releaseSlug,
@@ -107,10 +138,10 @@ export function PublicReleaseDiscussion({
 	const [commentContent, setCommentContent] = useState<NodeJSON | undefined>(undefined);
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [editorKey, setEditorKey] = useState(0);
-	const [expandedThreads, setExpandedThreads] = useState<Set<string>>(new Set());
+	// Threads the user opened or hid by hand; any other thread is open when it has replies.
+	const [threadOverrides, setThreadOverrides] = useState<Map<string, boolean>>(new Map());
 
 	// Fetch public tasks for this org if context tasks are empty
-	const baseApiUrl = import.meta.env.VITE_APP_ENV === "development" ? "/backend-api/internal" : "/api/internal";
 	const {
 		value: { data: fetchedTasks },
 	} = useStateManagementFetch<schema.TaskWithLabels[]>({
@@ -129,26 +160,6 @@ export function PublicReleaseDiscussion({
 	});
 
 	const tasks = contextTasks.length > 0 ? contextTasks : (fetchedTasks ?? []);
-
-	const toggleThread = useCallback((commentId: string) => {
-		setExpandedThreads((prev) => {
-			const next = new Set(prev);
-			if (next.has(commentId)) {
-				next.delete(commentId);
-			} else {
-				next.add(commentId);
-			}
-			return next;
-		});
-	}, []);
-
-	useEffect(() => {
-		if (organizationId) {
-			setMentionContext({ orgId: organizationId, orgShortId: organization.shortId, releaseId });
-		}
-	}, [organizationId, organization.shortId, releaseId, setMentionContext]);
-
-	const commentLimit = 20;
 
 	// Build a map of userId -> highest team name (by permission weight)
 	const memberHighestTeam = useMemo(() => {
@@ -203,7 +214,7 @@ export function PublicReleaseDiscussion({
 			custom: async (url, pageParam) => {
 				const { fromStart = 1, fromEnd } = pageParam ?? {};
 
-				const firstUrl = `${url}?page=${fromStart}&limit=${commentLimit / 2}&direction=asc`;
+				const firstUrl = `${url}?page=${fromStart}&limit=${COMMENT_LIMIT / 2}&direction=asc`;
 				const firstRes = await fetch(firstUrl);
 				if (!firstRes.ok) throw new Error(`Failed: ${firstRes.statusText}`);
 				const firstData = await firstRes.json();
@@ -213,7 +224,7 @@ export function PublicReleaseDiscussion({
 
 				let lastData = { data: { comments: [] } };
 				if (endPage !== fromStart) {
-					const lastUrl = `${url}?page=${endPage}&limit=${commentLimit / 2}&direction=asc`;
+					const lastUrl = `${url}?page=${endPage}&limit=${COMMENT_LIMIT / 2}&direction=asc`;
 					const lastRes = await fetch(lastUrl);
 					if (lastRes.ok) lastData = await lastRes.json();
 				}
@@ -265,6 +276,54 @@ export function PublicReleaseDiscussion({
 
 		return result.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 	}, [commentsData]);
+
+	// SSE handlers for real-time updates on this release
+	const handlers: WSMessageHandler<ServerEventMessage> = {
+		UPDATE_RELEASE_COMMENTS: (msg) => {
+			if (msg.scope === "PUBLIC" && msg.meta?.orgId === organization.id && msg.data.releaseId === releaseId) {
+				queryClient.invalidateQueries({
+					queryKey: ["public-release-comments", releaseId, organizationId],
+				});
+				queryClient.invalidateQueries({
+					queryKey: ["comment-replies"],
+				});
+			}
+		},
+	};
+	const handleMessage = useWSMessageHandler<ServerEventMessage>(handlers);
+
+	useEffect(() => {
+		if (organizationId) {
+			setMentionContext({ orgId: organizationId, orgShortId: organization.shortId, releaseId });
+		}
+	}, [organizationId, organization.shortId, releaseId, setMentionContext]);
+
+	useEffect(() => {
+		if (!serverEvents.event) return;
+		serverEvents.event.addEventListener("message", handleMessage);
+		return () => {
+			serverEvents.event?.removeEventListener("message", handleMessage);
+		};
+	}, [serverEvents.event, handleMessage]);
+
+	useEffect(() => {
+		const unsubscribe = onWindowMessage<{ type: string }>("*", (msg) => {
+			if (msg.type === "SSE_RECONNECTED") {
+				console.log("🟢 Global SSE reconnected — refreshing data");
+				queryClient.invalidateQueries({
+					queryKey: ["public-release-comments", releaseId, organizationId],
+				});
+				queryClient.invalidateQueries({
+					queryKey: ["comment-replies"],
+				});
+			}
+		});
+		return unsubscribe;
+	}, [releaseId, queryClient, organizationId]);
+
+	const setThreadExpanded = useCallback((commentId: string, expanded: boolean) => {
+		setThreadOverrides((prev) => new Map(prev).set(commentId, expanded));
+	}, []);
 
 	const halfway = Math.floor(allComments.length / 2);
 	const topComments = allComments.slice(0, halfway);
@@ -516,7 +575,7 @@ export function PublicReleaseDiscussion({
 
 	const renderComment = (comment: ReleaseCommentData) => {
 		const replyCount = comment.replyCount ?? 0;
-		const isExpanded = expandedThreads.has(comment.id);
+		const isExpanded = threadOverrides.get(comment.id) ?? replyCount > 0;
 
 		const threadFooter =
 			replyCount > 0 || isExpanded ? (
@@ -525,11 +584,11 @@ export function PublicReleaseDiscussion({
 						replyCount={replyCount}
 						replyAuthors={comment.replyAuthors}
 						expanded={isExpanded}
-						onToggle={() => toggleThread(comment.id)}
+						onToggle={() => setThreadExpanded(comment.id, !isExpanded)}
 					/>
 					{isExpanded && (
 						<PublicCommentThreadBody
-							parentComment={comment as any}
+							parentComment={toCommentData(comment)}
 							memberHighestTeam={memberHighestTeam}
 							users={orgUsers}
 							currentUserId={session?.user?.id}
@@ -547,84 +606,62 @@ export function PublicReleaseDiscussion({
 				</>
 			) : undefined;
 
+		// One <li> per comment: PublicCommentItem renders the comment and its thread as siblings, so without a wrapper
+		// the list gap would land between a comment and its own replies.
 		return (
-			<PublicCommentItem
-				key={comment.id}
-				comment={comment as any}
-				memberTeamName={comment.createdBy ? (memberHighestTeam.get(comment.createdBy.id) ?? null) : null}
-				onToggleReaction={canAct ? handleToggleReaction : undefined}
-				users={orgUsers}
-				currentUserId={session?.user?.id}
-				onEdit={canAct ? handleEditComment : undefined}
-				onDelete={session?.user ? handleDeleteComment : undefined}
-				categories={categories}
-				tasks={tasks}
-				footer={threadFooter}
-				onReply={
-					canAct
-						? () => {
-								if (!expandedThreads.has(comment.id)) {
-									toggleThread(comment.id);
-								}
-							}
-						: undefined
-				}
-				blockedUserIds={blockedUserIds}
-				isOrgMember={isOrgMember}
-			/>
+			<li key={comment.id}>
+				<PublicCommentItem
+					comment={toCommentData(comment)}
+					memberTeamName={comment.createdBy ? (memberHighestTeam.get(comment.createdBy.id) ?? null) : null}
+					onToggleReaction={canAct ? handleToggleReaction : undefined}
+					users={orgUsers}
+					currentUserId={session?.user?.id}
+					onEdit={canAct ? handleEditComment : undefined}
+					onDelete={session?.user ? handleDeleteComment : undefined}
+					categories={categories}
+					tasks={tasks}
+					footer={threadFooter}
+					onReply={canAct && !isExpanded ? () => setThreadExpanded(comment.id, true) : undefined}
+					blockedUserIds={blockedUserIds}
+					isOrgMember={isOrgMember}
+				/>
+			</li>
 		);
 	};
-	// SSE handlers for real-time updates on this task
-	const handlers: WSMessageHandler<ServerEventMessage> = {
-		UPDATE_RELEASE_COMMENTS: (msg) => {
-			if (msg.scope === "PUBLIC" && msg.meta?.orgId === organization.id && msg.data.releaseId === releaseId) {
-				queryClient.invalidateQueries({
-					queryKey: ["public-release-comments", releaseId, organizationId],
-				});
-				queryClient.invalidateQueries({
-					queryKey: ["comment-replies"],
-				});
-			}
-		},
-	};
-	const handleMessage = useWSMessageHandler<ServerEventMessage>(handlers);
-	useEffect(() => {
-		if (!serverEvents.event) return;
-		serverEvents.event.addEventListener("message", handleMessage);
-		return () => {
-			serverEvents.event?.removeEventListener("message", handleMessage);
-		};
-	}, [serverEvents.event, handleMessage]);
-	useEffect(() => {
-		const unsubscribe = onWindowMessage<{ type: string }>("*", (msg) => {
-			if (msg.type === "SSE_RECONNECTED") {
-				console.log("🟢 Global SSE reconnected — refreshing data");
-				queryClient.invalidateQueries({
-					queryKey: ["public-release-comments", releaseId, organizationId],
-				});
-				queryClient.invalidateQueries({
-					queryKey: ["comment-replies"],
-				});
-			}
-		});
-		return unsubscribe;
-	}, [releaseId, queryClient, organizationId]);
+
+	const multiline = isMultiline(commentContent);
+	const submitButton = (
+		<Button size="sm" onClick={handleSubmitComment} disabled={isSubmitting || !commentContent} className="h-7">
+			{isSubmitting ? <IconLoader2 aria-hidden className="animate-spin" /> : "Post"}
+			{!isSubmitting && <IconArrowBack aria-hidden />}
+		</Button>
+	);
+
+	// Same list, empty state and comment box as a post's Conversation (`public-comments.tsx` + `PostCommentComposer`).
 	return (
-		<div className="flex flex-col gap-4">
+		<div>
 			{isLoading ? (
-				<div className="flex items-center justify-center py-8">
-					<IconLoader2 className="animate-spin text-muted-foreground" />
+				<div aria-busy className="flex flex-col gap-7">
+					{[0, 1].map((key) => (
+						<div key={key} className="flex gap-3">
+							<Skeleton className="size-8 shrink-0 rounded-full" />
+							<div className="flex-1 space-y-2 pt-1">
+								<Skeleton className="h-3.5 w-32" />
+								<Skeleton className="h-3.5 w-4/5" />
+							</div>
+						</div>
+					))}
 				</div>
 			) : allComments.length === 0 ? (
-				<div className="text-muted-foreground text-sm py-4 text-center border rounded-lg bg-card/50 border-dashed">
-					No comments yet. Be the first to comment!
-				</div>
+				<p className="rounded-xl border border-dashed px-4 py-6 text-center text-[13.5px] text-muted-foreground">
+					No comments yet. Start the conversation.
+				</p>
 			) : (
-				<div className="flex flex-col gap-3">
+				<ul className="flex flex-col gap-3">
 					{topComments.map(renderComment)}
 
 					{hasNextPage && (
-						<div className="flex justify-center py-4 my-2 border-t border-b border-dashed">
+						<li className="flex justify-center border-border border-y border-dashed py-3">
 							<Button
 								variant="ghost"
 								className="w-full"
@@ -633,55 +670,55 @@ export function PublicReleaseDiscussion({
 							>
 								{isFetchingNextPage ? (
 									<>
-										<IconLoader2 className="animate-spin size-4 mr-2" />
+										<IconLoader2 aria-hidden className="animate-spin" />
 										Loading...
 									</>
 								) : (
 									"Load more comments"
 								)}
 							</Button>
-						</div>
+						</li>
 					)}
 
 					{bottomComments.map(renderComment)}
-				</div>
+				</ul>
 			)}
 
 			{canAct ? (
-				<div className="border rounded-lg bg-card overflow-hidden">
-					<Suspense fallback={<div className="h-20 animate-pulse bg-muted rounded" />}>
-						<Editor
-							key={editorKey}
-							firstLinePlaceholder="Write a comment..."
-							className="p-3 pb-0 bg-transparent"
-							onChange={setCommentContent}
-							submit={handleSubmitComment}
-							categories={categories}
-							tasks={tasks}
-							hideBlockHandle
-						/>
-					</Suspense>
-					<div className="flex items-center justify-end px-3 pb-3">
-						<Button
-							variant="primary"
-							size="sm"
-							onClick={handleSubmitComment}
-							disabled={isSubmitting || !commentContent}
-						>
-							{isSubmitting ? (
-								<IconLoader2 className="animate-spin size-4" />
-							) : (
-								<IconArrowBack className="size-4" />
-							)}
-						</Button>
+				<div
+					className={cn(
+						"mt-6 rounded-lg border bg-accent/50 px-3 py-2 text-foreground transition-all",
+						!multiline && "flex items-center gap-2"
+					)}
+				>
+					<div className={cn(!multiline && "min-w-0 flex-1")}>
+						<Suspense fallback={<Skeleton className="h-6" />}>
+							<Editor
+								key={editorKey}
+								firstLinePlaceholder="Write a comment..."
+								onChange={setCommentContent}
+								submit={handleSubmitComment}
+								categories={categories}
+								tasks={tasks}
+								hideBlockHandle
+							/>
+						</Suspense>
 					</div>
+					{multiline ? <div className="flex items-center justify-end">{submitButton}</div> : submitButton}
+				</div>
+			) : !session?.user ? (
+				<div className="mt-6 flex items-center gap-2 rounded-lg border bg-accent/50 px-3 py-2 text-muted-foreground text-sm">
+					<span className="min-w-0 flex-1">Log in to comment and react</span>
+					<LoginDialog
+						trigger={
+							<Button size="sm" className="h-7">
+								Log in
+							</Button>
+						}
+					/>
 				</div>
 			) : (
-				<div className="border rounded-lg p-6 bg-card/50 border-dashed text-center">
-					<p className="text-muted-foreground text-sm">
-						{!session?.user ? "Sign in to leave a comment." : "This organization has disabled public actions."}
-					</p>
-				</div>
+				<p className="mt-6 text-muted-foreground text-sm">This organization has turned off public actions.</p>
 			)}
 		</div>
 	);

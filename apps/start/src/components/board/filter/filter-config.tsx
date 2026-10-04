@@ -19,7 +19,7 @@ import type {
 	FilterValue,
 } from "./types";
 
-function buildOrgNameMap(tasks: schema.TaskWithLabels[]): Map<string, string> {
+function buildOrgNameMap(tasks: readonly schema.TaskWithLabels[]): Map<string, string> {
 	const map = new Map<string, string>();
 	for (const task of tasks) {
 		if (task.organization && !map.has(task.organizationId)) {
@@ -235,7 +235,10 @@ export const FIELD_CONFIGS: FilterFieldConfig[] = [
 	},
 ];
 
-export function applyFilters(tasks: schema.TaskWithLabels[], filterState: FilterState): schema.TaskWithLabels[] {
+export function applyFilters(
+	tasks: readonly schema.TaskWithLabels[],
+	filterState: FilterState
+): readonly schema.TaskWithLabels[] {
 	if (filterState.groups.length === 0) {
 		return tasks;
 	}
@@ -365,7 +368,7 @@ function evaluateCondition(task: schema.TaskWithLabels, condition: FilterConditi
  * counts (quick-filter-panel.tsx runs this once per field, then sums per option via
  * mergedValues, since a cross-org merged option's count is the sum of its underlying ids').
  */
-export function buildFieldValueCounts(tasks: schema.TaskWithLabels[], field: string): Map<string, number> {
+export function buildFieldValueCounts(tasks: readonly schema.TaskWithLabels[], field: string): Map<string, number> {
 	const counts = new Map<string, number>();
 	for (const task of tasks) {
 		const raw = extractFieldValue(task, field);

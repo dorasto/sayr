@@ -18,7 +18,6 @@ import {
 } from "@tabler/icons-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useLanderData } from "@/contexts/ContextLander";
 import { useRegisterCommands } from "@/hooks/useRegisterCommands";
 import { useTaskSelection } from "@/hooks/useTaskSelection";
 import { replaceTasks } from "@/lib/board/apply-lander-event";
@@ -34,6 +33,7 @@ import {
 	VISIBILITY_CONFIG,
 	type VisibilityValue,
 } from "../config/field-config";
+import { useBoardData } from "../core/board-data";
 import { LabelBadge } from "../fields/label-badge";
 import { BOARD_TASK_SELECTION_KEY } from "./board-selection-constants";
 
@@ -44,7 +44,7 @@ import { BOARD_TASK_SELECTION_KEY } from "./board-selection-constants";
 const BULK_ACTIONS_VIEW_ID = "board-bulk-actions";
 
 function computeTriState(
-	tasks: schema.TaskWithLabels[],
+	tasks: readonly schema.TaskWithLabels[],
 	predicate: (task: schema.TaskWithLabels) => boolean
 ): TriState {
 	if (tasks.length === 0) return "none";
@@ -56,7 +56,7 @@ function computeTriState(
 
 interface BoardBulkActionBarProps {
 	/** The full, currently-visible (filtered/sorted) task list — used both for select-all scope and to resolve selected tasks. */
-	tasks: schema.TaskWithLabels[];
+	tasks: readonly schema.TaskWithLabels[];
 }
 
 /**
@@ -90,7 +90,7 @@ interface BoardBulkActionBarProps {
  *   unless every selected task shares one organizationId.
  */
 export function BoardBulkActionBar({ tasks }: BoardBulkActionBarProps) {
-	const { updateTasks, categories, releases, labels } = useLanderData();
+	const { updateItems, categories, releases, labels } = useBoardData();
 	const { value: sseClientId } = useStateManagement<string>("sse-clientId", "");
 	const { runWithToast } = useToastAction();
 	const taskIds = useMemo(() => tasks.map((task) => task.id), [tasks]);
@@ -161,7 +161,7 @@ export function BoardBulkActionBar({ tasks }: BoardBulkActionBarProps) {
 	/**
 	 * Optimistic update + one API call per selected task, reconciled from the returned records.
 	 *
-	 * Every store write here is an update of the store's LATEST value (`updateTasks`), never a
+	 * Every store write here is an update of the store's LATEST value (`updateItems`), never a
 	 * list captured from a render: `tasks` above is only the visible (filtered/sorted) subset, so
 	 * writing it back would silently drop every task the current filters/"show completed" hide,
 	 * and would undo any SSE event that landed in between. `replaceTasks` also preserves
@@ -173,7 +173,7 @@ export function BoardBulkActionBar({ tasks }: BoardBulkActionBarProps) {
 			updateData: Parameters<typeof updateTaskAction>[2],
 			toastMessages: Parameters<typeof runWithToast>[1]
 		) => {
-			updateTasks((prev) =>
+			updateItems?.((prev) =>
 				prev.map((task) =>
 					selectedSet.has(task.id) ? ({ ...task, ...updateData } as schema.TaskWithLabels) : task
 				)
@@ -186,13 +186,13 @@ export function BoardBulkActionBar({ tasks }: BoardBulkActionBarProps) {
 				const success = results.every((result) => result.success);
 				if (success) {
 					const updatedById = new Map(results.map((result) => [result.data.id, result.data]));
-					updateTasks((prev) => replaceTasks(prev, updatedById));
+					updateItems?.((prev) => replaceTasks(prev, updatedById));
 				}
 				return { success };
 			});
 			deselectAll();
 		},
-		[selectedTasks, selectedSet, updateTasks, runWithToast, sseClientId, deselectAll]
+		[selectedTasks, selectedSet, updateItems, runWithToast, sseClientId, deselectAll]
 	);
 
 	/**
@@ -223,7 +223,7 @@ export function BoardBulkActionBar({ tasks }: BoardBulkActionBarProps) {
 				})
 			);
 
-			updateTasks((prev) =>
+			updateItems?.((prev) =>
 				prev.map((task) => {
 					const nextIds = nextIdsByTask.get(task.id);
 					if (!nextIds) return task;
@@ -238,13 +238,13 @@ export function BoardBulkActionBar({ tasks }: BoardBulkActionBarProps) {
 				const success = results.every((result) => result.success);
 				if (success) {
 					const updatedById = new Map(results.map((result) => [result.data.id, result.data]));
-					updateTasks((prev) => replaceTasks(prev, updatedById));
+					updateItems?.((prev) => replaceTasks(prev, updatedById));
 				}
 				return { success };
 			});
 			deselectAll();
 		},
-		[selectedTasks, updateTasks, runWithToast, deselectAll]
+		[selectedTasks, updateItems, runWithToast, deselectAll]
 	);
 
 	const openBulkActionsMenu = () => {

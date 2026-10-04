@@ -1,6 +1,6 @@
 ---
 name: board-saved-views
-description: Personal (cross-org) saved views on the board — the global store, the breadcrumb view switcher / panel header / Favourites sidebar and what each owns, dirty-state detection/reset/update, and the shared useActiveView hook — use whenever touching personal-views-store, active-view-switcher, active-view-panel-header, use-active-view, save/edit-view popovers, or favourites-section.tsx
+description: Personal (cross-org) saved views on the board — the global store, the breadcrumb view switcher / panel header / Favourites sidebar and what each owns, dirty-state detection/reset/update, the shared useActiveView hook, and the board's view-state scope/persistence modes (url+personal | url | memory | controlled) and persisted view mode — use whenever touching personal-views-store, active-view-switcher, active-view-panel-header, use-active-view, save/edit-view popovers, favourites-section.tsx, core/scope*.ts, core/view-config.ts, or use-board-view-state.ts
 metadata:
   audience: developers
   workflow: feature-development
@@ -32,11 +32,39 @@ All of them read the same global `personal-views-store.ts` — there's exactly o
 
 `apps/start/src/components/board/saved-views/use-personal-views.ts` is a thin `useStore` + `useCallback` adapter over the actions above — every consumer goes through this, not the store directly.
 
+## View-state scope (who gets saved views)
+
+`useBoardViewState()` takes no scope argument (~15 callers); it reads `useBoardScope()` (`core/scope.tsx`), which `BoardProvider` sets from its optional `scope` prop (`BoardScope {key, persistence, initial?, controlled?}`, types in `core/scope-config.ts`). With no scope the default is the legacy admin one (`LEGACY_BOARD_SCOPE`) — key `"home"` (cache key `"board-view-combined"`, any other key is `board-view-combined:<key>`), persistence `"url+personal"` — so `/home` is unchanged. Only `"url+personal"` loads personal views and reads `?view`:
+
+| persistence | `?filters` URL sync | `?view` / saved views | state lives in |
+|---|---|---|---|
+| `url+personal` | yes | yes | query-cache entry for the scope key |
+| `url` | yes | no (`viewSlug` is always null; `?view` is stripped from writes) | same |
+| `memory` | no | no | same (local) |
+| `controlled` | no | no | host's `scope.controlled.state` / `onChange` (without a `controlled` handle the scope degrades to `memory`) |
+
+The hook also returns `persistence` and `supportsSavedViews`; `useActiveView()` returns no active view and `isDirty: false` when `supportsSavedViews` is false. `scope.initial` seeds non-default scopes and is what `clearView` (and the "view slug left the URL" reset) returns to; without it the shared `DEFAULT_COMBINED_STATE` is used. Pure helpers (cache key, predicates, initial merge) are in `core/scope-config.ts`.
+
+Gotchas:
+
+- **A `BoardProvider` without a `scope` prop does not inherit an outer scope — it overrides it with the legacy admin scope** (the prop defaults to `LEGACY_BOARD_SCOPE` and the provider always mounts its own `BoardScopeProvider`). Any nested/second board must pass its own scope.
+- **Pass a stable scope object** (module-level, or `useMemo` on its real inputs): consumers derive state from its fields (`initial`, `controlled.state`). The public Feedback page keeps one module-level scope (`PUBLIC_BOARD_SCOPE`) and the roadmap memoises `buildScope(view)`.
+- **Distinct boards on one page need distinct `key`s** (they share the query-cache namespace).
+- **`controlled` hosts own the state**: the board reads `controlled.state` and calls `onChange` on every change. A host whose own UI drives what's shown (the public toolbar and the roadmap's segmented control) passes a fixed state and an ignoring `onChange`, and swaps the scope object to change it. Public scopes deliberately don't use `?view` (the saved-view pointer) — Feedback is list-only, so there is no layout param (see `public-portal`).
+- **Page-local grouping ids** (`none`, the roadmap's) can live in `controlled`/`memory` state but are never written into a saved view. `TaskViewState.grouping` is typed as the persistable `TaskGroupingId`, so a host narrows its id with `pageLocalGrouping(id)` from `core/view-config.ts` — the single place that cast is asserted (the registry resolves unknown ids to `status`). Use it instead of `as TaskGroupingId`.
+- `BoardCapabilities.canSavedViews` exists but is not read anywhere: saved-view chrome is gated by persistence (`supportsSavedViews`), not by that flag.
+
+## Persisted view mode
+
+`viewConfig.mode` is `"list" | "kanban" | "card"` (`PersistedViewMode` in `core/view-config.ts`; type-only in `packages/database/schema/saveView.schema.ts`, a jsonb type, no migration). `TaskViewState.viewMode` is typed with it, so a saved view can store `mode: "card"`; admin /home no longer offers Card, so such a view loads as the list. The pure mapping/equality (`mapViewConfigToState`, `mapStateToViewConfig`, `areViewConfigsEqual`, `areStatesEqual`, `getViewCombinedState`) lives in `core/view-config.ts` (unit tested) and is re-exported from `use-board-view-state.ts`; unknown or missing modes resolve to `"list"` (`resolveViewMode`; with a page's available view ids it falls back to `"list"` if offered, else the first). Only ids that pass `isPersistedViewMode` are ever written by `BoardViewOptions`; a page-local view id is never persisted.
+
+**Legacy coercion.** The org-scoped pages never offer Card: `useTaskViewManager.ts` (`viewMode: coerceToLegacyViewMode(config.mode)`) and `settings/orgId/view-detail.tsx` (`toLegacyConfig`) coerce a stored `"card"` (or anything unknown) to `"list"` via `coerceToLegacyViewMode`. Don't widen those pages' view-mode types instead of coercing.
+
 ## Dirty-state detection (`use-board-view-state.ts`)
 
 The URL's `?view=<id>` stays constant even after the user tweaks filters/grouping locally — there was no way to tell "what I'm looking at differs from what's saved" until this session added it. The mechanism, all in `apps/start/src/components/board/filter/use-board-view-state.ts`:
 
-- `getViewCombinedState(view)` — resolves a saved view row (`deserializeFilters(view.filterParams)` + `mapViewConfigToState(view.viewConfig)`) into the same `{ filters, viewConfig }` shape as live state. Exported and reused by both the URL auto-load effect and `selectView` — don't reintroduce a third inline copy of this mapping.
+- `getViewCombinedState(view)` (defined in `core/view-config.ts`, re-exported) — resolves a saved view row (`deserializeFilters(view.filterParams)` + `mapViewConfigToState(view.viewConfig)`) into the same `{ filters, viewConfig }` shape as live state. Exported and reused by both the URL auto-load effect and `selectView` — don't reintroduce a third inline copy of this mapping.
 - `areStatesEqual(a, b)` — exported pure comparison (serializes filters, field-compares viewConfig).
 - `mapStateToViewConfig(viewConfig, iconColor)` — the inverse of `mapViewConfigToState`, needed to persist local `TaskViewState` back into the schema `viewConfig` shape (icon/color have to be threaded in separately since they're not part of `TaskViewState`).
 - `resetToSavedView(view)` — **same body as `selectView`, minus its `viewSlug === targetViewSlug` early-return guard.** `selectView`'s guard exists to skip redundant no-op navigations when picking a view from a list; that guard is exactly wrong for "revert local changes back to what's saved," since the dirty case is *by definition* already on that view's slug. If you need a third "force-apply a view" entry point, don't reuse `selectView` — it will silently no-op.
@@ -55,7 +83,7 @@ The URL's `?view=<id>` stays constant even after the user tweaks filters/groupin
 
 `admin/sidebars/favourites-section.tsx`, mounted in `primary.tsx` between the nav-items group and Organizations — hidden entirely when nothing's pinned. Drag-reorder works from anywhere on the row (no grip handle): `MouseSensor` with an 8px `distance` constraint and `TouchSensor` with a 250ms press-and-hold `delay`, so a plain click/tap still navigates and touch scrolling isn't hijacked. Because the row is a real `<Link>`, `FavouriteRow` also records the pointerdown position in a capture-phase handler and swallows the following click (`onClickCapture`) if the pointer moved past the same 8px — dnd-kit's own click suppression doesn't reliably reach a TanStack `<Link>` nested this deep, and without the guard, letting go of a drag navigated to whichever row you dropped on. The list is wrapped in `SidebarGroupToggle` (`sidebar-group-toggle.tsx`), a collapsible group header styled like a normal sidebar row; Organizations uses the same toggle.
 
-**Same-route navigation bypasses the router.** `FavouriteRow`'s `<Link to="/home" search={{ view }}>` has an `onClick` that, when already on `/home`, calls `event.preventDefault()` and writes the URL directly via `useTasksSearchParams().setSearchParams` instead of letting the click go through TanStack Router. Root cause this fixes: the router's `navigate()` pipeline is async even for a same-route, search-only change (runs `beforeLoad`/loader-dedup regardless), and racing that against rapid clicks between two favourites left the URL and the actually-applied view out of sync until an unrelated re-render happened to catch up — reproduced, and **not reliably reproducible via a fixed-short-wait synthetic click-loop** (a genuine 1-2 render-cascade delay between "URL written" and "state applied" makes automated rapid-click tests noisy even when the app is correct — trust manual testing over that specific class of synthetic test here). The sidebar's "Dashboard" link (`primary.tsx`) mirrors the same bypass pattern for the opposite case — clearing the view — calling `clearSearchParams()` directly; `use-board-view-state.ts`'s URL auto-load effect has a matching `!targetSlug` branch that resets state to `DEFAULT_COMBINED_STATE` when a previously-set view slug disappears from the URL, which is what actually makes the Dashboard link reset the board (the link only changes the URL, the effect is what reacts to it).
+**Same-route navigation bypasses the router.** `FavouriteRow`'s `<Link to="/home" search={{ view }}>` has an `onClick` that, when already on `/home`, calls `event.preventDefault()` and writes the URL directly via `useTasksSearchParams().setSearchParams` instead of letting the click go through TanStack Router. Root cause this fixes: the router's `navigate()` pipeline is async even for a same-route, search-only change (runs `beforeLoad`/loader-dedup regardless), and racing that against rapid clicks between two favourites left the URL and the actually-applied view out of sync until an unrelated re-render happened to catch up — reproduced, and **not reliably reproducible via a fixed-short-wait synthetic click-loop** (a genuine 1-2 render-cascade delay between "URL written" and "state applied" makes automated rapid-click tests noisy even when the app is correct — trust manual testing over that specific class of synthetic test here). The sidebar's "Dashboard" link (`primary.tsx`) mirrors the same bypass pattern for the opposite case — clearing the view — calling `clearSearchParams()` directly; `use-board-view-state.ts`'s URL auto-load effect has a matching `!targetSlug` branch that resets state to the scope's base state (`DEFAULT_COMBINED_STATE` for the legacy scope) when a previously-set view slug disappears from the URL, which is what actually makes the Dashboard link reset the board (the link only changes the URL, the effect is what reacts to it).
 
 ## Rules
 

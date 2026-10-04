@@ -49,8 +49,6 @@ export const Route = createFileRoute("/orgs/$orgSlug/releases/")({
 });
 
 function ReleasesListPage() {
-	const params = Route.useParams();
-	const orgSlug = params.orgSlug;
-
+	const { orgSlug } = Route.useParams();
 	return <ReleasesChangelog orgSlug={orgSlug} />;
 }

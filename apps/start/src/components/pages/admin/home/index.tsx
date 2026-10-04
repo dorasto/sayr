@@ -7,6 +7,7 @@ import {
 } from "@tabler/icons-react";
 import { useEffect } from "react";
 import { Board } from "@/components/board/board";
+import { AdminBoardProvider } from "@/components/board/core/admin-board-provider";
 import { FilterBuilder } from "@/components/board/filter/filter-builder";
 import { useBoardViewState } from "@/components/board/filter/use-board-view-state";
 import { BoardSidePanelContent } from "@/components/board/layout/board-side-panel";
@@ -17,15 +18,34 @@ import {
   ActiveViewPanelPinButton,
 } from "@/components/board/saved-views/active-view-panel-header";
 import { ActiveViewSwitcher } from "@/components/board/saved-views/active-view-switcher";
+import { useActiveBoardView } from "@/components/board/views/view-registry";
 import { PageHeader } from "@/components/generic/PageHeader";
 import { Page } from "@/components/generic/page";
 import { usePage, usePanel } from "@/components/generic/use-page";
-import { useLanderData } from "@/contexts/ContextLander";
 import { sidebarActions } from "@/lib/sidebar/sidebar-store";
 import type { PendingInviteWithOrg } from "@/routes/(admin)/home/index";
 import { PendingInvitesSection } from "./pending-invites";
 
 const LANDER_PANEL_ID = "lander-side-panel";
+
+/**
+ * The board's scroll container. A full-bleed view (kanban) brings its own edge-to-edge chrome, so the
+ * container drops its padding for it; the active view comes from the registry, not a view-id check.
+ * Its own component because the registry lives in the surrounding BoardProvider.
+ */
+function BoardScrollArea() {
+  const { fullBleed } = useActiveBoardView();
+  return (
+    <div
+      className={cn(
+        "flex-1 min-h-0 overflow-auto px-2 pb-4 w-full",
+        fullBleed && "p-0 pl-2 rounded-xl",
+      )}
+    >
+      <Board />
+    </div>
+  );
+}
 
 /**
  * The new unified cross-org lander (SAY-73 Phase 1). Uses the shared Page +
@@ -40,8 +60,7 @@ export default function AdminHomePage({
 }: {
   pendingInvites: PendingInviteWithOrg[];
 }) {
-  const { viewMode, clearView } = useBoardViewState();
-  const { tasks } = useLanderData();
+  const { clearView } = useBoardViewState();
   const { setPanelContent, closePanel } = usePage();
   const panel = usePanel(LANDER_PANEL_ID);
 
@@ -111,34 +130,29 @@ export default function AdminHomePage({
   );
 
   return (
-    <Page
-      header={header}
-      panels={{
-        right: {
-          id: LANDER_PANEL_ID,
-          header: {
-            icon: <ActiveViewPanelHeader />,
-            actions: <ActiveViewPanelPinButton />,
-            showClose: false,
+    <AdminBoardProvider>
+      <Page
+        header={header}
+        panels={{
+          right: {
+            id: LANDER_PANEL_ID,
+            header: {
+              icon: <ActiveViewPanelHeader />,
+              actions: <ActiveViewPanelPinButton />,
+              showClose: false,
+            },
+            defaultOpen: true,
+            persistOpenState: false,
+            width: "320px",
           },
-          defaultOpen: true,
-          persistOpenState: false,
-          width: "320px",
-        },
-      }}
-      className="h-full"
-    >
-      <div className="h-full flex flex-col contain-[paint]">
-        <PendingInvitesSection invites={pendingInvites} />
-        <div
-          className={cn(
-            "flex-1 min-h-0 overflow-auto px-2 pb-4 w-full",
-            viewMode == "kanban" && "p-0 pl-2 rounded-xl",
-          )}
-        >
-          <Board tasks={tasks} />
+        }}
+        className="h-full"
+      >
+        <div className="h-full flex flex-col contain-[paint]">
+          <PendingInvitesSection invites={pendingInvites} />
+          <BoardScrollArea />
         </div>
-      </div>
-    </Page>
+      </Page>
+    </AdminBoardProvider>
   );
 }

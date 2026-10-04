@@ -11,10 +11,10 @@ import {
 	ComboBoxTrigger,
 } from "@repo/ui/components/tomui/combo-box-unified";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
-import { useLanderData } from "@/contexts/ContextLander";
 import { updateLabelToTaskAction } from "@/lib/fetches/task";
+import { useBoardCapabilities, useBoardData, useBoardItemActions } from "../core/board-data";
 import { LabelBadge } from "./label-badge";
-import { useBoardTaskFieldAction } from "./use-board-task-field-action";
+import { StaticField } from "./static-field";
 
 const MAX_VISIBLE_LABELS = 2;
 
@@ -30,9 +30,10 @@ interface FieldLabelProps {
  * clicking any of it opens the multi-select label picker.
  */
 export function FieldLabel({ task }: FieldLabelProps) {
-	const { labels } = useLanderData();
+	const { labels } = useBoardData();
+	const { canEditFields } = useBoardCapabilities();
 	const { value: sseClientId } = useStateManagement<string>("sse-clientId", "");
-	const { execute } = useBoardTaskFieldAction(task);
+	const { execute } = useBoardItemActions(task);
 	const availableLabels = labels.filter((label) => label.organizationId === task.organizationId);
 	const labelIds = task.labels.map((label) => label.id);
 
@@ -40,6 +41,36 @@ export function FieldLabel({ task }: FieldLabelProps) {
 
 	const visibleLabels = task.labels.slice(0, MAX_VISIBLE_LABELS);
 	const overflowCount = task.labels.length - visibleLabels.length;
+
+	const pills = (
+		<>
+			{visibleLabels.map((label) => (
+				<Badge
+					key={label.id}
+					variant="secondary"
+					className="flex h-5 max-w-20 items-center gap-1 px-1.5 text-[11px] font-medium"
+				>
+					<LabelBadge label={label} />
+				</Badge>
+			))}
+			{overflowCount > 0 && (
+				<Badge variant="secondary" className="h-5 px-1.5 text-[11px] font-medium">
+					+{overflowCount}
+				</Badge>
+			)}
+		</>
+	);
+
+	if (!canEditFields) {
+		return (
+			<StaticField
+				className="flex items-center gap-1 shrink-0"
+				title={task.labels.map((label) => label.name).join(", ")}
+			>
+				{pills}
+			</StaticField>
+		);
+	}
 
 	return (
 		<ComboBox
@@ -66,20 +97,7 @@ export function FieldLabel({ task }: FieldLabelProps) {
 					className="flex items-center gap-1 shrink-0 cursor-pointer"
 					title={task.labels.map((label) => label.name).join(", ")}
 				>
-					{visibleLabels.map((label) => (
-						<Badge
-							key={label.id}
-							variant="secondary"
-							className="flex h-5 max-w-20 items-center gap-1 px-1.5 text-[11px] font-medium"
-						>
-							<LabelBadge label={label} />
-						</Badge>
-					))}
-					{overflowCount > 0 && (
-						<Badge variant="secondary" className="h-5 px-1.5 text-[11px] font-medium">
-							+{overflowCount}
-						</Badge>
-					)}
+					{pills}
 				</button>
 			</ComboBoxTrigger>
 			<ComboBoxContent>

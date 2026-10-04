@@ -106,14 +106,19 @@ export function EditUpdateDialog({
 						<AdaptiveDialogTitle asChild>
 							<div className="flex items-center justify-between w-full">
 								<DropdownMenu>
-									<DropdownMenuTrigger asChild>
-										<Badge
-											variant="outline"
-											className={cn("gap-1 text-xs cursor-pointer border", healthConfig[health].className)}
-										>
-											{healthConfig[health].icon} {healthConfig[health].label}
-										</Badge>
-									</DropdownMenuTrigger>
+									<DropdownMenuTrigger
+										render={
+											<Badge
+												variant="outline"
+												className={cn(
+													"gap-1 text-xs cursor-pointer border",
+													healthConfig[health].className
+												)}
+											>
+												{healthConfig[health].icon} {healthConfig[health].label}
+											</Badge>
+										}
+									/>
 									<DropdownMenuContent>
 										{(["on_track", "at_risk", "off_track"] as Health[]).map((h) => (
 											<DropdownMenuItem

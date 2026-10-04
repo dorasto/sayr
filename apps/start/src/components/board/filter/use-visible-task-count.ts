@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { useLanderData } from "@/contexts/ContextLander";
+import { useBoardData } from "../core/board-data";
 import { applyFilters } from "./filter-config";
 import { useBoardViewState } from "./use-board-view-state";
 
@@ -11,7 +11,7 @@ import { useBoardViewState } from "./use-board-view-state";
  * page-level "N tasks" label can never drift from what the board actually shows.
  */
 export function useVisibleTaskCount(): number {
-	const { tasks } = useLanderData();
+	const { items: tasks } = useBoardData();
 	const { filters, showCompletedTasks } = useBoardViewState();
 
 	return useMemo(() => {

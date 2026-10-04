@@ -1,145 +1,185 @@
+import { authClient } from "@repo/auth/client";
 import {
   Avatar,
   AvatarFallback,
   AvatarImage,
 } from "@repo/ui/components/avatar";
-import TasqIcon from "@repo/ui/components/brand-icon";
 import { Button } from "@repo/ui/components/button";
-import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupInput,
-} from "@repo/ui/components/input-group";
-import { IconSearch, IconUser } from "@tabler/icons-react";
-import { Link, useRouterState } from "@tanstack/react-router";
-import { useState } from "react";
-import { authClient } from "@repo/auth/client";
-import { usePublicOrganizationLayout } from "@/contexts/publicContextOrg";
-import LoginDialog from "../auth/login";
-import { PublicSearchDialog } from "./search-dialog";
-import { UserSettingsDialog } from "@/components/settings/user-settings-dialog";
+import { Skeleton } from "@repo/ui/components/skeleton";
 import { cn } from "@repo/ui/lib/utils";
+import { ensureCdnUrl, getInitials } from "@repo/util";
+import { Link, useRouter, useRouterState } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import {
+  isUserSettingsTab,
+  UserSettingsDialog,
+  type UserSettingsTab,
+} from "@/components/settings/user-settings-dialog";
+import { usePublicOrganizationLayout } from "@/contexts/publicContextOrg";
+import { getOrgSlugFromPath, getPortalSection } from "@/lib/portal/nav";
+import LoginDialog from "../auth/login";
+import { ActivityBody } from "./portal/activity/ActivityBody";
+import { PortalSearch } from "./portal/search/PortalSearch";
 
+/**
+ * 64px public top bar: org mark + name, Feedback / Changelog, search palette trigger, Log in or user avatar. The avatar
+ * opens the account settings dialog (with the viewer's activity on this org); `?settings=<tab>` on any portal page
+ * opens it on that tab, which is how links and the Connections OAuth return land back in it.
+ */
 export default function PublicNavigation() {
-  const { data: session } = authClient.useSession();
+  const { data: session, isPending: sessionPending } = authClient.useSession();
   const { organization } = usePublicOrganizationLayout();
-  const [searchOpen, setSearchOpen] = useState(false);
+  const router = useRouter();
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsTab, setSettingsTab] = useState<UserSettingsTab>("general");
+  const settingsParam = useRouterState({
+    select: (s) => (s.location.search as Record<string, unknown>).settings,
+  });
+
+  useEffect(() => {
+    if (!isUserSettingsTab(settingsParam)) return;
+    setSettingsTab(settingsParam);
+    setSettingsOpen(true);
+  }, [settingsParam]);
+
+  const openSettings = () => {
+    setSettingsTab("general");
+    setSettingsOpen(true);
+  };
+
+  const handleSettingsOpenChange = (open: boolean) => {
+    setSettingsOpen(open);
+    if (!open && settingsParam !== undefined) {
+      const url = new URL(window.location.href);
+      url.searchParams.delete("settings");
+      router.history.replace(`${url.pathname}${url.search}${url.hash}`);
+    }
+  };
 
   const rawPathname = useRouterState({ select: (s) => s.location.pathname });
-  const orgSlugMatch = rawPathname.match(/^\/orgs\/([^/]+)/);
-  const orgSlug = orgSlugMatch?.[1] ?? "";
-  const tasksPath = `/orgs/${orgSlug}`;
-  const releasesPath = `/orgs/${orgSlug}/releases`;
+  const orgSlug = getOrgSlugFromPath(rawPathname);
+  const section = getPortalSection(rawPathname, orgSlug);
 
-  const pathname =
-    rawPathname.length > 1 ? rawPathname.replace(/\/$/, "") : rawPathname;
-  const isOnTasks = pathname === tasksPath || pathname === `${tasksPath}/`;
-  const isOnReleases = pathname.startsWith(releasesPath);
+  const feedbackPath: string = `/orgs/${orgSlug}`;
+  const navLinks: { to: string; label: string; active: boolean }[] = [
+    { to: feedbackPath, label: "Feedback", active: section === "feedback" },
+    {
+      to: `/orgs/${orgSlug}/releases`,
+      label: "Changelog",
+      active: section === "changelog",
+    },
+  ];
 
   return (
     <>
-      <header className="bg-sidebar h-(--header-height) z-50 flex w-full shrink-0 items-center">
-        <div className="flex w-full items-center gap-2 px-2">
+      <header className="z-50 h-14 w-full md:h-16 shrink-0 border-b bg-background">
+        <div className="flex h-full items-center gap-1 px-3 md:gap-2">
           {/* Org identity */}
-          <Link to={tasksPath} className="flex items-center gap-2 shrink-0">
-            <Avatar className="h-6 w-6 rounded-md">
-              <AvatarImage
-                src={organization.logo || ""}
-                alt={organization.name}
-              />
-              <AvatarFallback className="rounded-md uppercase text-xs">
-                <TasqIcon className="size-6! transition-all" />
+          <Link
+            to={feedbackPath}
+            className="mr-2 flex min-w-0 items-center gap-2.5 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring max-md:min-h-11 max-md:flex-1 md:mr-5 md:max-w-[220px] md:shrink-0"
+          >
+            <Avatar className="size-[30px] shrink-0 rounded-lg">
+              {organization.logo ? (
+                <AvatarImage
+                  src={ensureCdnUrl(organization.logo)}
+                  alt={organization.name}
+                />
+              ) : null}
+              <AvatarFallback className="rounded-lg bg-primary font-semibold text-primary-foreground text-xs">
+                {getInitials(organization.name)}
               </AvatarFallback>
             </Avatar>
-            <span className="font-bold text-sm hidden sm:block">
+            <span className="min-w-0 truncate font-semibold text-[15px] text-foreground tracking-[-0.01em]">
               {organization.name}
             </span>
           </Link>
 
-          {/* Navigation tabs */}
-          <div className="flex items-center gap-1 shrink-0">
-            <Link to={tasksPath}>
+          <nav aria-label="Primary" className="hidden gap-0.5 md:flex">
+            {navLinks.map((link) => (
               <Button
+                key={link.label}
+                render={
+                  <Link
+                    to={link.to}
+                    aria-current={link.active ? "page" : undefined}
+                  />
+                }
+                nativeButton={false}
                 variant="ghost"
                 size="sm"
                 className={cn(
-                  "text-muted-foreground h-8 rounded-xl",
-                  isOnTasks && "text-foreground bg-accent",
+                  "hover:text-foreground focus-visible:bg-accent focus-visible:text-foreground",
+                  link.active && "bg-muted text-foreground",
                 )}
               >
-                Tasks
+                {link.label}
               </Button>
-            </Link>
-            <Link to={releasesPath}>
-              <Button
-                variant="ghost"
-                size="sm"
-                className={cn(
-                  "text-muted-foreground h-8 rounded-xl",
-                  isOnReleases && "text-foreground bg-accent",
-                )}
-              >
-                Releases
-              </Button>
-            </Link>
-          </div>
+            ))}
+          </nav>
 
-          {/* Fake search input — opens PublicSearchDialog on click */}
-          <div className="flex flex-1 justify-center px-2">
-            <button
-              type="button"
-              className="w-full max-w-sm"
-              onClick={() => setSearchOpen(true)}
-            >
-              <InputGroup className="bg-accent/50 rounded-xl border-transparent hover:bg-accent transition-all text-muted-foreground max-w-sm h-8 cursor-pointer pointer-events-none">
-                <InputGroupAddon>
-                  <IconSearch className="size-3.5" />
-                </InputGroupAddon>
-                <InputGroupInput
-                  readOnly
-                  placeholder="Search tasks & releases..."
-                  className="cursor-pointer"
-                  tabIndex={-1}
-                />
-                <InputGroupAddon className="text-xs text-muted-foreground pr-2 hidden sm:flex">
-                  /
-                </InputGroupAddon>
-              </InputGroup>
-            </button>
-          </div>
+          <span className="hidden grow md:block" />
+
+          <PortalSearch
+            orgSlug={organization.slug}
+            orgId={organization.id}
+            orgShortId={organization.shortId}
+          />
 
           {/* Auth */}
           <div className="shrink-0">
-            {session ? (
+            {/* Same box as the avatar button, so nothing shifts once the session loads. */}
+            {sessionPending && !session ? (
+              <div className="flex items-center justify-center max-md:size-11">
+                <Skeleton className="size-8 rounded-full" />
+              </div>
+            ) : session ? (
               <Button
-                className="h-8 w-8 p-0 bg-transparent rounded-xl hover:bg-transparent"
                 type="button"
-                onClick={() => setSettingsOpen(true)}
+                variant="ghost"
+                size="icon"
+                aria-label="Account settings"
+                onClick={openSettings}
+                className="size-8 rounded-full p-0 focus-visible:ring-2 focus-visible:ring-ring max-md:size-11"
               >
-                <Avatar className="h-8 w-8 rounded-xl cursor-pointer">
-                  <AvatarImage
-                    src={session.user.image || ""}
-                    alt={session.user.name || ""}
-                  />
-                  <AvatarFallback className="rounded-md uppercase text-xs">
-                    <IconUser className="size-4" />
+                <Avatar className="size-8">
+                  {session.user.image ? (
+                    <AvatarImage
+                      src={ensureCdnUrl(session.user.image)}
+                      alt={session.user.name ?? ""}
+                    />
+                  ) : null}
+                  <AvatarFallback className="font-semibold text-xs">
+                    {getInitials(session.user.name)}
                   </AvatarFallback>
                 </Avatar>
               </Button>
             ) : (
-              <LoginDialog trigger={<Button size="sm">Log in</Button>} />
+              <LoginDialog
+                trigger={
+                  <Button variant="outline" size="sm">
+                    Log in
+                  </Button>
+                }
+              />
             )}
           </div>
         </div>
       </header>
 
-      <PublicSearchDialog open={searchOpen} onOpenChange={setSearchOpen} />
       {session && (
         <UserSettingsDialog
+          key={settingsTab}
           isOpen={settingsOpen}
-          onOpenChange={setSettingsOpen}
+          onOpenChange={handleSettingsOpenChange}
           user={session.user}
+          defaultTab={settingsTab}
+          activity={<ActivityBody userId={session.user.id} stacked />}
+          connectionsCallbackURL={
+            typeof window === "undefined"
+              ? undefined
+              : `${window.location.origin}${window.location.pathname}?settings=connections`
+          }
         />
       )}
     </>

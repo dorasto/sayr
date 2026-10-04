@@ -281,15 +281,17 @@ export function StatusUpdateCard({
 						</Button>
 						{(isOwn || canManage) && (
 							<DropdownMenu>
-								<DropdownMenuTrigger asChild>
-									<Button
-										variant="ghost"
-										size="icon"
-										className="p-1 h-auto w-auto aspect-square data-[state=open]:bg-accent"
-									>
-										<IconDots size={16} />
-									</Button>
-								</DropdownMenuTrigger>
+								<DropdownMenuTrigger
+									render={
+										<Button
+											variant="ghost"
+											size="icon"
+											className="p-1 h-auto w-auto aspect-square data-[state=open]:bg-accent"
+										>
+											<IconDots size={16} />
+										</Button>
+									}
+								/>
 								<DropdownMenuContent align="end">
 									<DropdownMenuItem onClick={() => setIsEditing(true)}>
 										<IconPencil size={16} /> Edit

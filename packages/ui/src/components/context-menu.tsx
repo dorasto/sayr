@@ -44,7 +44,7 @@ function ContextMenuSubContent({ className, ...props }: ContextMenuPrimitive.Pop
 	return (
 		<ContextMenuPrimitive.Portal container={overlayPortalContainer}>
 			<ContextMenuPrimitive.Positioner
-				className="isolate z-50 outline-none"
+				className="isolate z-[10050] outline-none"
 				align="start"
 				alignOffset={4}
 				side="right"
@@ -69,7 +69,7 @@ function ContextMenuContent({
 }: ContextMenuPrimitive.Popup.Props & Pick<ContextMenuPrimitive.Positioner.Props, "alignOffset">) {
 	return (
 		<ContextMenuPrimitive.Portal container={overlayPortalContainer}>
-			<ContextMenuPrimitive.Positioner className="isolate z-50 outline-none" alignOffset={alignOffset}>
+			<ContextMenuPrimitive.Positioner className="isolate z-[10050] outline-none" alignOffset={alignOffset}>
 				<ContextMenuPrimitive.Popup
 					className={cn(
 						"z-50 max-h-(--available-height) min-w-32 overflow-y-auto overflow-x-hidden rounded-xl border bg-popover p-1 text-popover-foreground shadow-md animate-in fade-in-80 data-open:animate-in data-closed:animate-out data-closed:fade-out-0 data-open:fade-in-0 data-closed:zoom-out-95 data-open:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 origin-(--transform-origin)",

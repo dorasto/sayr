@@ -1,12 +1,11 @@
 "use client";
 
-import type { schema } from "@repo/database";
 import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
 import { Button } from "@repo/ui/components/button";
 import { cn } from "@repo/ui/lib/utils";
 import { getInitials } from "@repo/util";
 import { useMemo, useState } from "react";
-import { useLanderData } from "@/contexts/ContextLander";
+import { useBoardData, useBoardFilterUsers } from "../core/board-data";
 import { LabelBadge } from "../fields/label-badge";
 import { applyFilters, buildFieldValueCounts, FIELD_CONFIGS } from "../filter/filter-config";
 import { toggleFieldValues } from "../filter/multi-select";
@@ -40,18 +39,11 @@ type CountedOption = FilterOption & { count: number };
  * builder always agree on what's selected.
  */
 export function QuickFilterPanel() {
-	const { tasks, labels, categories, releases } = useLanderData();
+	const { items: tasks, labels, categories, releases } = useBoardData();
 	const { filters, setFilters, showCompletedTasks } = useBoardViewState();
 	const [activeField, setActiveField] = useState<FilterField>(QUICK_FILTER_FIELDS[0] as FilterField);
 
-	const users = useMemo(() => {
-		const map = new Map<string, schema.UserSummary>();
-		for (const task of tasks) {
-			for (const user of task.assignees) map.set(user.id, user);
-			if (task.createdBy) map.set(task.createdBy.id, task.createdBy);
-		}
-		return Array.from(map.values());
-	}, [tasks]);
+	const users = useBoardFilterUsers();
 
 	const config = FIELD_CONFIGS.find((c) => c.field === activeField);
 

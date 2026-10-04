@@ -11,15 +11,44 @@ import {
 } from "@repo/ui/components/tomui/combo-box-unified";
 import { cn } from "@repo/ui/lib/utils";
 import { ROW_LEADING_GUTTER_CLASS, STATUS_CONFIG, type StatusValue } from "../config/field-config";
-import { useBoardTaskFieldAction } from "./use-board-task-field-action";
+import { useBoardCapabilities, useBoardItemActions } from "../core/board-data";
+import { StaticField } from "./static-field";
 
 interface FieldStatusProps {
 	task: schema.TaskWithLabels;
+	/** Read-only boards only: show this text next to the icon (the public portal's wording) instead of the icon alone. */
+	label?: string;
 }
 
-export function FieldStatus({ task }: FieldStatusProps) {
-	const { execute } = useBoardTaskFieldAction(task);
+export function FieldStatus({ task, label }: FieldStatusProps) {
+	const { canEditFields } = useBoardCapabilities();
+	const { execute } = useBoardItemActions(task);
 	const current = STATUS_CONFIG[task.status as StatusValue];
+
+	if (!canEditFields) {
+		if (label) {
+			return (
+				<StaticField
+					className={cn(
+						"inline-flex w-fit shrink-0 items-center gap-1.5 rounded-lg border px-1.5 py-0.5 text-xs font-medium",
+						current.className
+					)}
+					title={current.label}
+				>
+					{current.icon("size-3.5")}
+					{label}
+				</StaticField>
+			);
+		}
+		return (
+			<StaticField
+				className={cn(ROW_LEADING_GUTTER_CLASS, "h-3.5 grid place-items-center shrink-0")}
+				title={current.label}
+			>
+				{current.icon("h-3.5 w-3.5")}
+			</StaticField>
+		);
+	}
 
 	return (
 		<ComboBox

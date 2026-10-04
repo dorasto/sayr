@@ -11,15 +11,28 @@ import {
 } from "@repo/ui/components/tomui/combo-box-unified";
 import { cn } from "@repo/ui/lib/utils";
 import { PRIORITY_CONFIG, type PriorityValue, ROW_LEADING_GUTTER_CLASS } from "../config/field-config";
-import { useBoardTaskFieldAction } from "./use-board-task-field-action";
+import { useBoardCapabilities, useBoardItemActions } from "../core/board-data";
+import { StaticField } from "./static-field";
 
 interface FieldPriorityProps {
 	task: schema.TaskWithLabels;
 }
 
 export function FieldPriority({ task }: FieldPriorityProps) {
-	const { execute } = useBoardTaskFieldAction(task);
+	const { canEditFields } = useBoardCapabilities();
+	const { execute } = useBoardItemActions(task);
 	const current = PRIORITY_CONFIG[task.priority as PriorityValue];
+
+	if (!canEditFields) {
+		return (
+			<StaticField
+				className={cn(ROW_LEADING_GUTTER_CLASS, "h-3.5 grid place-items-center shrink-0")}
+				title={current.label}
+			>
+				{current.icon("h-3.5 w-3.5")}
+			</StaticField>
+		);
+	}
 
 	return (
 		<ComboBox

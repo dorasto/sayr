@@ -72,6 +72,15 @@ export function useTasksSearchParams() {
 		const taskParam = searchParams.get("task");
 		return taskParam ? Number.parseInt(taskParam, 10) : 0;
 	}, [searchParams]);
+	// Public board params (SAY-81): tab, sort and the client-side status/label filters (comma separated).
+	const tab = useMemo(() => searchParams.get("tab") ?? null, [searchParams]);
+	const sort = useMemo(() => searchParams.get("sort") ?? null, [searchParams]);
+	const status = useMemo(() => searchParams.get("status") ?? null, [searchParams]);
+	const labels = useMemo(() => searchParams.get("labels") ?? null, [searchParams]);
+	// Public board layout: unset = the list, `roadmap` = the roadmap kanban.
+	const layout = useMemo(() => searchParams.get("layout") ?? null, [searchParams]);
+	// Public post comment permalink (`?comment=<id>`): the comment to highlight and scroll to.
+	const comment = useMemo(() => searchParams.get("comment") ?? null, [searchParams]);
 
 	// Helper to update URL without triggering navigation
 	const updateUrl = useCallback((updates: Record<string, string | null>) => {
@@ -118,7 +127,8 @@ export function useTasksSearchParams() {
 
 	const setTask = useCallback(
 		(value: number | null) => {
-			updateUrl({ task: value ? String(value) : null });
+			// A comment permalink belongs to the task it was opened with.
+			updateUrl({ task: value ? String(value) : null, comment: null });
 		},
 		[updateUrl]
 	);
@@ -146,6 +156,28 @@ export function useTasksSearchParams() {
 		[updateUrl]
 	);
 
+	// Batch setter for the public board's params (any omitted key is left untouched)
+	const setBoardParams = useCallback(
+		(params: {
+			tab?: string | null;
+			sort?: string | null;
+			status?: string | null;
+			labels?: string | null;
+			category?: string | null;
+			layout?: string | null;
+		}) => {
+			const updates: Record<string, string | null> = {};
+			if (params.layout !== undefined) updates.layout = params.layout;
+			if (params.tab !== undefined) updates.tab = params.tab;
+			if (params.sort !== undefined) updates.sort = params.sort;
+			if (params.status !== undefined) updates.status = params.status;
+			if (params.labels !== undefined) updates.labels = params.labels;
+			if (params.category !== undefined) updates.category = params.category;
+			updateUrl(updates);
+		},
+		[updateUrl]
+	);
+
 	// Clear all task search params
 	const clearSearchParams = useCallback(() => {
 		updateUrl({ filters: null, view: null, task: null, category: null });
@@ -157,6 +189,12 @@ export function useTasksSearchParams() {
 		view,
 		task,
 		category,
+		tab,
+		sort,
+		status,
+		labels,
+		layout,
+		comment,
 
 		// Individual setters
 		setFilters,
@@ -166,6 +204,7 @@ export function useTasksSearchParams() {
 
 		// Batch setter
 		setSearchParams,
+		setBoardParams,
 
 		// Clear all
 		clearSearchParams,

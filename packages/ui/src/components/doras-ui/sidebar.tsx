@@ -191,13 +191,16 @@ function SidebarOverlay({
 				if (!nextOpen) sidebarActions.closeSidebarOverlay(id);
 			}}
 		>
-			<DrawerPrimitive.Portal>
+			{/* z-[10020] sits on the portal node, not the Backdrop/Viewport: popups opened inside the overlay (tooltips,
+			    menus) render as nested portals inside this node, so they must out-stack its children with their own z-50.
+			    `relative` keeps it a stacking context without changing the `fixed` children's containing block. */}
+			<DrawerPrimitive.Portal className="relative z-[10020]">
 				{/*{isMobile && (*/}
-				<DrawerPrimitive.Backdrop className="fixed inset-0 z-[10020] bg-black/50 transition-opacity duration-300 data-starting-style:opacity-0 data-ending-style:opacity-0" />
+				<DrawerPrimitive.Backdrop className="fixed inset-0 bg-black/50 transition-opacity duration-300 data-starting-style:opacity-0 data-ending-style:opacity-0" />
 				{/*)}*/}
 				<DrawerPrimitive.Viewport
 					className={cn(
-						"pointer-events-none fixed inset-0 z-[10030] flex",
+						"pointer-events-none fixed inset-0 flex",
 						side === "left" ? "justify-start" : "justify-end"
 					)}
 				>

@@ -13,7 +13,12 @@ import { usePersonalViews } from "./use-personal-views";
  */
 export function useActiveView() {
 	const { personalViews } = usePersonalViews();
-	const { viewSlug, filters, viewConfig } = useBoardViewState();
+	const { viewSlug, filters, viewConfig, supportsSavedViews } = useBoardViewState();
+
+	// Scopes without saved views (public/memory/controlled): no active view, never dirty.
+	if (!supportsSavedViews) {
+		return { activeView: undefined, isDirtyFromActiveView: false, isDirty: false };
+	}
 
 	const activeView = personalViews.find((view) => (view.slug || view.id) === viewSlug);
 	const current = { filters, viewConfig };

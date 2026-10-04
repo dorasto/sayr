@@ -37,7 +37,7 @@ export function PublicOrganizationProvider({
 	const { value: NewCategories, setValue: setCategories } = useStateManagement("categories", categories);
 	const serverEvents = useServerEventsPublic({
 		organization,
-		setOrganization
+		setOrganization,
 	});
 
 	useEffect(() => setLabels(labels), [labels, setLabels]);
@@ -69,4 +69,9 @@ export function usePublicOrganizationLayout() {
 		throw new Error("usePublicOrganizationLayout must be used within a PublicOrganizationProvider");
 	}
 	return context;
+}
+
+/** The public org context, or `undefined` outside the public portal (for components shared with admin). */
+export function usePublicOrganizationLayoutOptional() {
+	return useContext(RootContext);
 }

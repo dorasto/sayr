@@ -159,7 +159,12 @@ export const auth = betterAuth({
 	emailVerification: {
 		autoSignInAfterVerification: true,
 		sendVerificationEmail: async ({ user, url }) => {
-			url = url.replace("&callbackURL=%2F", `&callbackURL=${encodeURI("/auth/auth-check")}`);
+			// Absolute, like the password reset link: a relative callback resolves against the auth base URL (the bare
+			// root domain in production), not the app.
+			url = url.replace(
+				"&callbackURL=%2F",
+				`&callbackURL=${encodeURIComponent(`${process.env.VITE_URL_ROOT}/auth/auth-check`)}`
+			);
 			void sendEmail({
 				to: user.email,
 				subject: "Verify your email address",

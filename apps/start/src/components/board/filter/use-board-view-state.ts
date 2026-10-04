@@ -4,6 +4,25 @@ import type { schema } from "@repo/database";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useTasksSearchParams } from "@/hooks/useTasksSearchParams";
+import { useBoardScope } from "../core/scope";
+import {
+	deriveViewStateCacheKey,
+	isControlledPersistence,
+	resolveInitialState,
+	resolvePersistence,
+	syncsUrl,
+	usesPersonalViews,
+} from "../core/scope-config";
+import {
+	areFiltersEqual,
+	areStatesEqual,
+	areViewConfigsEqual,
+	DEFAULT_COMBINED_STATE,
+	DEFAULT_FILTER_STATE,
+	getViewCombinedState,
+	mapStateToViewConfig,
+	type PersistedViewMode,
+} from "../core/view-config";
 import { mergeOrAppendCondition, toggleMultiValue as toggleValueHelper, updateConditionOperator } from "./multi-select";
 import { deserializeFilters, serializeFilters } from "./serialization";
 import {
@@ -13,6 +32,7 @@ import {
 	type FilterOperator,
 	type FilterState,
 	type TaskGroupingId,
+	type TaskViewCombinedState,
 	type TaskViewState,
 } from "./types";
 
@@ -25,6 +45,19 @@ export type {
 	TaskGroupingId,
 	TaskViewState,
 } from "./types";
+
+export type { TaskViewCombinedState };
+
+// The pure mapping/equality half lives in core/view-config.ts (unit tested); re-exported here so
+// every existing import of these from this module keeps working.
+export {
+	areStatesEqual,
+	DEFAULT_COMBINED_STATE,
+	DEFAULT_FILTER_STATE,
+	DEFAULT_TASK_VIEW_STATE,
+	getViewCombinedState,
+	mapStateToViewConfig,
+};
 
 /**
  * The board's own combined filter + view-config + URL-sync state hook.
@@ -40,78 +73,42 @@ export type {
  * useTasksSearchParams and useStateManagement are genuinely generic
  * (URL/state-sync infra with no field-vocabulary knowledge) and are reused
  * as-is.
+ *
+ * Where state lives is decided by the enclosing board scope (core/scope.tsx), not by arguments —
+ * ~15 callers invoke this with none. With no scope mounted it is the legacy admin scope:
+ * "url+personal" (global cache key, `?view`/`?filters` URL sync, saved views), unchanged.
+ * Other scopes: "url" (`?filters` only), "memory" (local), "controlled" (host-owned state).
  */
-export interface TaskViewCombinedState {
-	filters: FilterState;
-	viewConfig: TaskViewState;
-}
-
-export const DEFAULT_FILTER_STATE: FilterState = { groups: [], operator: "AND" };
-export { DEFAULT_TASK_VIEW_STATE };
-
-export const DEFAULT_COMBINED_STATE: TaskViewCombinedState = {
-	filters: DEFAULT_FILTER_STATE,
-	viewConfig: DEFAULT_TASK_VIEW_STATE,
-};
-
-const BOARD_VIEW_COMBINED_KEY = "board-view-combined";
-
-function areFiltersEqual(a: FilterState, b: FilterState): boolean {
-	return serializeFilters(a) === serializeFilters(b);
-}
-
-function areViewConfigsEqual(a: TaskViewState, b: TaskViewState): boolean {
-	return (
-		a.grouping === b.grouping &&
-		a.subGrouping === b.subGrouping &&
-		a.viewMode === b.viewMode &&
-		a.showCompletedTasks === b.showCompletedTasks &&
-		(a.sortBy ?? "none") === (b.sortBy ?? "none") &&
-		(a.sortDirection ?? "asc") === (b.sortDirection ?? "asc")
-	);
-}
-
-export function areStatesEqual(a: TaskViewCombinedState, b: TaskViewCombinedState): boolean {
-	return areFiltersEqual(a.filters, b.filters) && areViewConfigsEqual(a.viewConfig, b.viewConfig);
-}
-
-function mapViewConfigToState(config: NonNullable<schema.savedViewType["viewConfig"]>): TaskViewState {
-	return {
-		grouping: config.groupBy,
-		subGrouping: config.subGroupBy ?? "none",
-		showCompletedTasks: config.showCompletedTasks,
-		viewMode: config.mode,
-		sortBy: config.sortBy ?? "none",
-		sortDirection: config.sortDirection ?? "asc",
-	};
-}
-
-/** Inverse of mapViewConfigToState — used to persist local view state back into a saved view's schema shape. */
-export function mapStateToViewConfig(
-	viewConfig: TaskViewState,
-	iconColor: { icon: string; color: string }
-): NonNullable<schema.savedViewType["viewConfig"]> {
-	return {
-		mode: viewConfig.viewMode,
-		groupBy: viewConfig.grouping,
-		subGroupBy: viewConfig.subGrouping,
-		showCompletedTasks: viewConfig.showCompletedTasks,
-		sortBy: viewConfig.sortBy,
-		sortDirection: viewConfig.sortDirection,
-		icon: iconColor.icon,
-		color: iconColor.color,
-	};
-}
-
-/** Resolves a saved view row into the same combined-state shape used everywhere else in this hook. */
-export function getViewCombinedState(view: schema.savedViewType): TaskViewCombinedState {
-	const filters = deserializeFilters(view.filterParams) || DEFAULT_FILTER_STATE;
-	const viewConfig = view.viewConfig ? mapViewConfigToState(view.viewConfig) : DEFAULT_TASK_VIEW_STATE;
-	return { filters, viewConfig };
-}
-
 export function useBoardViewState(availableViews?: schema.savedViewType[]) {
-	const { view: viewSlug, category: categorySlug, filters: filtersParam, setSearchParams } = useTasksSearchParams();
+	const scope = useBoardScope();
+	const persistence = resolvePersistence(scope);
+	const urlSync = syncsUrl(persistence);
+	const personalViews = usesPersonalViews(persistence);
+	const controlled = isControlledPersistence(persistence) ? scope.controlled : undefined;
+	const controlledOnChange = controlled?.onChange;
+	const controlledState = controlled?.state;
+	// What this scope starts from and what "clear view" returns to. The default scope gets the shared
+	// DEFAULT_COMBINED_STATE itself, so /home is untouched.
+	const baseState = useMemo(() => resolveInitialState(scope.initial), [scope.initial]);
+
+	const {
+		view: urlViewSlug,
+		category: urlCategorySlug,
+		filters: urlFiltersParam,
+		setSearchParams: setUrlSearchParams,
+	} = useTasksSearchParams();
+	// ?view is a saved-view pointer: only meaningful (and only read) when personal views are in play.
+	// ?category/?filters belong to the URL-synced scopes. Everything else sees them as absent.
+	const viewSlug = personalViews ? urlViewSlug : null;
+	const categorySlug = urlSync ? urlCategorySlug : null;
+	const filtersParam = urlSync ? urlFiltersParam : "";
+	const setSearchParams = useCallback(
+		(params: Parameters<typeof setUrlSearchParams>[0]) => {
+			if (!urlSync) return;
+			setUrlSearchParams(personalViews ? params : { ...params, view: undefined });
+		},
+		[urlSync, personalViews, setUrlSearchParams]
+	);
 
 	const isHandlingAction = useRef(false);
 	// Tracks the last viewSlug the URL-auto-load effect below has resolved (applied, confirmed
@@ -128,13 +125,21 @@ export function useBoardViewState(availableViews?: schema.savedViewType[]) {
 	const throttleTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const THROTTLE_MS = 100;
 
-	const { value: combinedState, setValue: setCombinedState } = useStateManagement<TaskViewCombinedState>(
-		BOARD_VIEW_COMBINED_KEY,
-		DEFAULT_COMBINED_STATE,
+	const { value: cachedState, setValue: setCachedState } = useStateManagement<TaskViewCombinedState>(
+		deriveViewStateCacheKey(scope.key),
+		baseState,
 		1
 	);
+	// Controlled scopes never read or write their own cache entry (it just sits unused).
+	const setCombinedState = useCallback(
+		(next: TaskViewCombinedState) => {
+			if (controlledOnChange) controlledOnChange(next);
+			else setCachedState(next);
+		},
+		[controlledOnChange, setCachedState]
+	);
 
-	const state = combinedState ?? DEFAULT_COMBINED_STATE;
+	const state = controlledState ?? cachedState ?? baseState;
 
 	const filters = useMemo(() => state.filters, [state.filters]);
 	const viewConfig = useMemo(() => state.viewConfig, [state.viewConfig]);
@@ -232,7 +237,7 @@ export function useBoardViewState(availableViews?: schema.savedViewType[]) {
 		(newFilters?: FilterState) => {
 			const filtersToApply = newFilters || DEFAULT_FILTER_STATE;
 			updateStateAndUrl(
-				{ filters: filtersToApply, viewConfig: DEFAULT_TASK_VIEW_STATE },
+				{ filters: filtersToApply, viewConfig: baseState.viewConfig },
 				{
 					view: null,
 					filters: filtersToApply.groups.length > 0 ? serializeFilters(filtersToApply) : null,
@@ -240,7 +245,7 @@ export function useBoardViewState(availableViews?: schema.savedViewType[]) {
 				}
 			);
 		},
-		[updateStateAndUrl]
+		[updateStateAndUrl, baseState]
 	);
 
 	/** Replace the current filters wholesale, keeping the current view config — for quick-filter chips. */
@@ -326,7 +331,7 @@ export function useBoardViewState(availableViews?: schema.savedViewType[]) {
 		(subGrouping: TaskGroupingId | "none") => setViewConfig({ subGrouping }),
 		[setViewConfig]
 	);
-	const setViewMode = useCallback((viewMode: "list" | "kanban") => setViewConfig({ viewMode }), [setViewConfig]);
+	const setViewMode = useCallback((viewMode: PersistedViewMode) => setViewConfig({ viewMode }), [setViewConfig]);
 	const setShowCompletedTasks = useCallback(
 		(showCompletedTasks: boolean) => setViewConfig({ showCompletedTasks }),
 		[setViewConfig]
@@ -341,6 +346,9 @@ export function useBoardViewState(availableViews?: schema.savedViewType[]) {
 	// so switching between saved views without a remount (e.g. clicking a different Favourites
 	// sidebar link while already on /home) actually reloads that view's filters.
 	useEffect(() => {
+		// Saved views only exist in the "url+personal" scope.
+		if (!personalViews) return;
+
 		const targetSlug = viewSlug ?? null;
 
 		if (isHandlingAction.current) {
@@ -359,9 +367,9 @@ export function useBoardViewState(availableViews?: schema.savedViewType[]) {
 			// filters/grouping stay stuck applied, with nothing left to explain why.
 			const hadPreviousView = lastProcessedViewSlug.current != null;
 			lastProcessedViewSlug.current = null;
-			if (hadPreviousView && !areStatesEqual(state, DEFAULT_COMBINED_STATE)) {
+			if (hadPreviousView && !areStatesEqual(state, baseState)) {
 				isHandlingAction.current = true;
-				setCombinedState(DEFAULT_COMBINED_STATE);
+				setCombinedState(baseState);
 				setTimeout(() => {
 					isHandlingAction.current = false;
 				}, 0);
@@ -387,11 +395,11 @@ export function useBoardViewState(availableViews?: schema.savedViewType[]) {
 				isHandlingAction.current = false;
 			}, 0);
 		}
-	}, [viewSlug, availableViews, state, setCombinedState]);
+	}, [personalViews, viewSlug, availableViews, state, setCombinedState, baseState]);
 
 	// Auto-load filters from URL on mount
 	useEffect(() => {
-		if (viewSlug || isHandlingAction.current || hasInitializedFiltersFromUrl.current) return;
+		if (!urlSync || viewSlug || isHandlingAction.current || hasInitializedFiltersFromUrl.current) return;
 		if (!filtersParam) return;
 
 		const urlFilters = deserializeFilters(filtersParam);
@@ -408,7 +416,7 @@ export function useBoardViewState(availableViews?: schema.savedViewType[]) {
 		} else {
 			hasInitializedFiltersFromUrl.current = true;
 		}
-	}, [viewSlug, filtersParam, state, setCombinedState]);
+	}, [urlSync, viewSlug, filtersParam, state, setCombinedState]);
 
 	return {
 		filters,
@@ -439,5 +447,8 @@ export function useBoardViewState(availableViews?: schema.savedViewType[]) {
 		setSortBy,
 		setSortDirection,
 		isHandlingAction,
+		persistence,
+		/** False outside "url+personal": saved-view UI/derived state (active view, dirty dot) must stay empty. */
+		supportsSavedViews: personalViews,
 	};
 }

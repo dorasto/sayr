@@ -11,8 +11,8 @@ import {
 	ComboBoxTrigger,
 } from "@repo/ui/components/tomui/combo-box-unified";
 import { IconRocket } from "@tabler/icons-react";
-import { useLanderData } from "@/contexts/ContextLander";
-import { useBoardTaskFieldAction } from "./use-board-task-field-action";
+import { useBoardCapabilities, useBoardData, useBoardItemActions } from "../core/board-data";
+import { StaticField } from "./static-field";
 
 interface FieldReleaseProps {
 	task: schema.TaskWithLabels;
@@ -25,12 +25,28 @@ interface FieldReleaseProps {
  * clicking it reassigns/clears the release.
  */
 export function FieldRelease({ task }: FieldReleaseProps) {
-	const { releases } = useLanderData();
-	const { execute } = useBoardTaskFieldAction(task);
+	const { releases } = useBoardData();
+	const { canEditFields } = useBoardCapabilities();
+	const { execute } = useBoardItemActions(task);
 	const availableReleases = releases.filter((release) => release.organizationId === task.organizationId);
 	const current = availableReleases.find((release) => release.id === task.releaseId);
 
 	if (!current) return null;
+
+	const pill = (
+		<Badge variant="secondary" className="flex h-5 max-w-24 items-center gap-1 px-1.5 text-[11px] font-medium">
+			<IconRocket className="size-2.5 shrink-0" style={{ color: current.color ?? undefined }} />
+			<span className="truncate">{current.name}</span>
+		</Badge>
+	);
+
+	if (!canEditFields) {
+		return (
+			<StaticField className="shrink-0" title={current.name}>
+				{pill}
+			</StaticField>
+		);
+	}
 
 	return (
 		<ComboBox
@@ -52,13 +68,7 @@ export function FieldRelease({ task }: FieldReleaseProps) {
 		>
 			<ComboBoxTrigger asChild>
 				<button type="button" data-no-propagate className="shrink-0 cursor-pointer" title={current.name}>
-					<Badge
-						variant="secondary"
-						className="flex h-5 max-w-24 items-center gap-1 px-1.5 text-[11px] font-medium"
-					>
-						<IconRocket className="size-2.5 shrink-0" style={{ color: current.color ?? undefined }} />
-						<span className="truncate">{current.name}</span>
-					</Badge>
+					{pill}
 				</button>
 			</ComboBoxTrigger>
 			<ComboBoxContent>

@@ -1,292 +1,193 @@
-import { useEffect, useRef } from "react";
-import { usePublicOrganizationLayout } from "@/contexts/publicContextOrg";
-import { PublicTaskItem } from "./task-item";
-import {
-  useStateManagement,
-  useStateManagementKey,
-} from "@repo/ui/hooks/useStateManagement.ts";
-import { useQueryClient } from "@tanstack/react-query";
-import { CreateTaskVoteAction } from "@/lib/fetches/task";
-import { headlessToast } from "@repo/ui/components/headless-toast";
+import type { schema } from "@repo/database";
 import { Button } from "@repo/ui/components/button";
+import { Skeleton } from "@repo/ui/components/skeleton";
+import { IconAlertTriangle, IconRefresh } from "@tabler/icons-react";
+import { type ReactNode, useCallback, useMemo, useRef } from "react";
+import { Board } from "@/components/board/board";
 import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuItem,
-} from "@repo/ui/components/dropdown-menu";
-import { IconFilter2, IconLoader2 } from "@tabler/icons-react";
-import { SortOption } from ".";
-import { PublicTaskCreator } from "./public-task-creator";
-import { useTaskViewManager } from "@/hooks/useTaskViewManager";
-import { generateSlug } from "@repo/util";
-import { cn } from "@repo/ui/lib/utils";
-import RenderIcon from "@/components/generic/RenderIcon";
+  type BoardDataSource,
+  BoardProvider,
+} from "@/components/board/core/board-data";
+import { READ_ONLY_CAPABILITIES } from "@/components/board/core/capabilities";
+import type { BoardRenderers } from "@/components/board/core/renderers";
+import type { BoardScope } from "@/components/board/core/scope-config";
+import {
+  DEFAULT_FILTER_STATE,
+  pageLocalGrouping,
+} from "@/components/board/core/view-config";
+import { DEFAULT_TASK_VIEW_STATE } from "@/components/board/filter/types";
+import { BoardFooter } from "@/components/board/views/board-load-more";
+import { FLAT_LIST_VIEW } from "@/components/board/views/view-registry";
+import { usePublicOrganizationLayout } from "@/contexts/publicContextOrg";
+import type { BoardTab } from "@/lib/portal/board-filters";
+import { BoardEmptyState } from "./portal/board/BoardEmptyState";
+import { PublicTaskItem } from "./task-item";
 
-export function PublicTaskView({
-  sortBy,
-  setSortBy,
-  fetchNextPage,
-  hasNextPage,
-  isFetchingNextPage,
-}: {
-  sortBy: SortOption;
-  setSortBy: (value: SortOption) => void;
-  fetchNextPage: () => void;
-  hasNextPage: boolean;
-  isFetchingNextPage: boolean;
-}) {
-  const { tasks, categories, setTasks, organization } =
-    usePublicOrganizationLayout();
+// Everything `BoardProvider` gets besides the data is a module-level constant (the provider wants stable identities).
 
-  const queryClient = useQueryClient();
+/** The Feedback board is list-only, every post a flat row in the server's ranked order. */
+const PUBLIC_BOARD_VIEWS = [FLAT_LIST_VIEW];
 
-  const { categorySlug, setCategoryFilter, clearView } = useTaskViewManager();
+const PUBLIC_BOARD_RENDERERS: BoardRenderers = { row: PublicTaskItem };
 
-  const { value: sseClientId } = useStateManagement<string>("sse-clientId", "");
-  const { value: votes } = useStateManagementKey<
-    {
-      taskId: string;
-      voteCount: number;
-      count: number;
-    }[]
-  >(["votes", organization.id], []);
-  // Sentinel ref for infinite scroll
-  const sentinelRef = useRef<HTMLDivElement>(null);
-
-  // Infinite scroll: trigger fetchNextPage when sentinel enters the scroll container.
-  // The layout uses an inner overflow-y-auto div as the scroll root (not window),
-  // so we walk up the DOM to find it and pass it as the IntersectionObserver root.
-  useEffect(() => {
-    const sentinel = sentinelRef.current;
-    if (!sentinel) return;
-
-    const getScrollParent = (el: HTMLElement): HTMLElement | null => {
-      let parent = el.parentElement;
-      while (parent) {
-        const { overflow, overflowY } = getComputedStyle(parent);
-        if (/auto|scroll/.test(overflow + overflowY)) return parent;
-        parent = parent.parentElement;
-      }
-      return null;
-    };
-
-    const scrollParent = getScrollParent(sentinel);
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0]?.isIntersecting && hasNextPage && !isFetchingNextPage) {
-          fetchNextPage();
-        }
+/** Controlled and read-only: the Feedback card owns tabs, sort and filters, so the board shows posts as given. */
+const PUBLIC_BOARD_SCOPE: BoardScope = {
+  key: "public-board",
+  persistence: "controlled",
+  initial: {
+    ...DEFAULT_TASK_VIEW_STATE,
+    grouping: pageLocalGrouping("none"),
+    showCompletedTasks: true,
+  },
+  controlled: {
+    state: {
+      filters: DEFAULT_FILTER_STATE,
+      viewConfig: {
+        ...DEFAULT_TASK_VIEW_STATE,
+        grouping: pageLocalGrouping("none"),
+        showCompletedTasks: true,
       },
-      {
-        root: scrollParent,
-        rootMargin: "0px 0px 300px 0px",
-        threshold: 0,
-      },
-    );
+    },
+    onChange: () => {},
+  },
+};
 
-    observer.observe(sentinel);
-    return () => observer.disconnect();
-  }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
+const SKELETON_TITLE_WIDTHS = ["62%", "48%", "70%"];
 
-  const handleVote = async (taskId: string) => {
-    const votesKey = ["votes", organization.id];
-    const previousVotes = queryClient.getQueryData<
-      {
-        taskId: string;
-        voteCount: number;
-        count: number;
-      }[]
-    >(votesKey);
-
-    const isVoted = previousVotes?.some((v) => v.taskId === taskId);
-    const previousTasks = [...tasks];
-
-    setTasks(
-      tasks.map((t) =>
-        t.id === taskId
-          ? {
-              ...t,
-              voteCount: isVoted ? t.voteCount - 1 : t.voteCount + 1,
-            }
-          : t,
-      ),
-    );
-
-    queryClient.setQueryData(
-      votesKey,
-      (
-        old: { taskId: string; voteCount: number; count: number }[] | undefined,
-      ) => {
-        if (!old) return old;
-        return isVoted
-          ? old.filter((v) => v.taskId !== taskId)
-          : [...old, { taskId, voteCount: 0, count: 1 }];
-      },
-    );
-
-    try {
-      await CreateTaskVoteAction(organization.id, taskId, sseClientId);
-    } catch (error) {
-      console.error(error);
-      headlessToast.error({
-        title: "Failed to vote",
-        description: "Could not update vote.",
-      });
-      setTasks(previousTasks);
-      queryClient.setQueryData(votesKey, previousVotes);
-    }
-  };
-
-  const getSortLabel = (sort: SortOption) => {
-    switch (sort) {
-      case "mostPopular":
-        return "Most popular";
-      case "newest":
-        return "Newest";
-      case "trending":
-        return "Trending";
-    }
-  };
-
-  const activeCategoryName = categorySlug
-    ? categories.find((c) => generateSlug(c.name) === categorySlug)?.name
-    : null;
-
-  const handleCategorySelect = (categoryId: string | null) => {
-    if (categoryId === null) {
-      clearView();
-    } else {
-      const category = categories.find((c) => c.id === categoryId);
-      if (category) {
-        const slug = generateSlug(category.name);
-        setCategoryFilter(slug);
-      }
-    }
-    setTimeout(() => {
-      queryClient.invalidateQueries({ queryKey: ["org-tasks", organization.id] });
-    }, 100);
-  };
-
-  return (
-    <div className="flex flex-col gap-2">
-      {/* Toolbar: sort + category */}
-      <div className="flex items-center gap-2">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm">
-              <IconFilter2 />
-              <span className="truncate">{getSortLabel(sortBy)}</span>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-56">
-            <DropdownMenuLabel>Sort by</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuRadioGroup
-              value={sortBy}
-              onValueChange={(v) => {
-                setSortBy(v as SortOption);
-                setTimeout(() => {
-                  queryClient.invalidateQueries({
-                    queryKey: ["org-tasks", organization.id],
-                  });
-                }, 100);
-              }}
-            >
-              <DropdownMenuRadioItem value="mostPopular">
-                Most popular
-              </DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value="newest">
-                Newest
-              </DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value="trending">
-                Trending
-              </DropdownMenuRadioItem>
-            </DropdownMenuRadioGroup>
-          </DropdownMenuContent>
-        </DropdownMenu>
-
-        {categories.length > 0 && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant={activeCategoryName ? "secondary" : "outline"}
-                size="sm"
-                className={cn(activeCategoryName && "font-medium")}
-              >
-                <span className="truncate">{activeCategoryName ?? "Category"}</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-48">
-              <DropdownMenuLabel>Filter by category</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={() => handleCategorySelect(null)}
-                className={cn(!categorySlug && "font-medium")}
-              >
-                All categories
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              {categories.map((category) => {
-                const slug = generateSlug(category.name);
-                const isActive = categorySlug === slug;
-                return (
-                  <DropdownMenuItem
-                    key={category.id}
-                    onClick={() => handleCategorySelect(category.id)}
-                    className={cn(isActive && "font-medium")}
-                  >
-                    <RenderIcon
-                      iconName={category.icon || "IconCircleFilled"}
-                      color={category.color || undefined}
-                      button
-                      focus={isActive}
-                      className="size-4! [&_svg]:size-3! border-0 shrink-0"
-                    />
-                    <span className="truncate">{category.name}</span>
-                  </DropdownMenuItem>
-                );
-              })}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )}
-      </div>
-
-      <PublicTaskCreator />
-
-      {tasks.length === 0 ? (
-        <div className="text-muted-foreground p-4 text-center border rounded-lg bg-card/50 border-dashed">
-          No public tasks found matching your criteria.
-        </div>
-      ) : (
-        <div className="flex flex-col gap-2">
-          {tasks.map((task) => {
-            const voted = !!votes?.find((e) => e.taskId === task.id);
-            return (
-              <PublicTaskItem
-                key={task.id}
-                task={task}
-                categories={categories}
-                voted={voted}
-                onVote={() => handleVote(task.id)}
-              />
-            );
-          })}
-        </div>
-      )}
-      {/* Infinite scroll sentinel — always rendered so the observer stays attached */}
-      <div ref={sentinelRef} className="h-px" />
-      {isFetchingNextPage && (
-        <div className="flex justify-center py-4">
-          <IconLoader2 className="animate-spin text-muted-foreground size-5" />
-        </div>
-      )}
-    </div>
-  );
+interface PublicTaskViewProps {
+  /** Shown above the posts (the Feedback card with the tabs, sort and filters). */
+  header?: ReactNode;
+  /** The active tab (the tabs themselves live in the Feedback card); picks the empty state. */
+  tab: BoardTab;
+  /** Posts to show: already tab/filter/sort applied. */
+  tasks: ReadonlyArray<schema.TaskWithLabels>;
+  isLoading: boolean;
+  isError: boolean;
+  /** More posts are being fetched (by "Show more posts" or while filters leave too few visible). */
+  isFetchingMore: boolean;
+  hasMore: boolean;
+  hasActiveFilters: boolean;
+  /** The org has no public posts at all (only known from the All tab; Active's total is open-only). */
+  boardIsEmpty: boolean;
+  onShowMore: () => void;
+  onRetry: () => void;
+  onClearFilters: () => void;
+  /** "Show all" from the no-active-posts state: switch to the All tab. */
+  onShowAll: () => void;
 }
 
+/**
+ * The Feedback board's posts: the shared `<Board />` on a read-only, controlled `BoardProvider`, each post a
+ * `PublicTaskItem` row. The page hands it the visible posts in order (`passthrough`), so the board never re-filters or
+ * re-sorts the server-ranked pages.
+ */
+export function PublicTaskView({
+  header,
+  tab,
+  tasks,
+  isLoading,
+  isError,
+  isFetchingMore,
+  hasMore,
+  hasActiveFilters,
+  boardIsEmpty,
+  onShowMore,
+  onRetry,
+  onClearFilters,
+  onShowAll,
+}: PublicTaskViewProps) {
+  const { categories, labels } = usePublicOrganizationLayout();
+
+  // A stable `loadMore` so the data source only changes when the posts or paging state do.
+  const onShowMoreRef = useRef(onShowMore);
+  onShowMoreRef.current = onShowMore;
+  const loadMore = useCallback(() => onShowMoreRef.current(), []);
+
+  const data = useMemo<BoardDataSource>(
+    () => ({
+      items: tasks,
+      labels,
+      categories,
+      releases: [],
+      passthrough: true,
+      pagination: {
+        hasMore,
+        isFetchingMore,
+        loadMore,
+        loadMoreLabel: "Show more posts",
+      },
+    }),
+    [tasks, labels, categories, hasMore, isFetchingMore, loadMore],
+  );
+
+  const showSkeleton = isLoading || (tasks.length === 0 && isFetchingMore);
+  const showError = isError && tasks.length === 0 && !isLoading;
+
+  return (
+    <BoardProvider
+      data={data}
+      capabilities={READ_ONLY_CAPABILITIES}
+      scope={PUBLIC_BOARD_SCOPE}
+      views={PUBLIC_BOARD_VIEWS}
+      renderers={PUBLIC_BOARD_RENDERERS}
+    >
+      <section className="w-full min-w-0 px-4 pb-16">
+        {header}
+
+        {showError ? (
+          <div
+            role="alert"
+            className="flex items-center gap-3.5 rounded-xl border border-destructive/50 bg-card px-5 py-5"
+          >
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-destructive/15 text-destructive">
+              <IconAlertTriangle aria-hidden className="size-5" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <div className="font-semibold text-[15px]">
+                We could not load the board
+              </div>
+              <div className="text-[13.5px] text-muted-foreground">
+                Check your connection and try again.
+              </div>
+            </div>
+            <Button variant="outline" size="sm" onClick={onRetry}>
+              <IconRefresh aria-hidden />
+              Retry
+            </Button>
+          </div>
+        ) : showSkeleton ? (
+          <>
+            <div aria-busy className="flex flex-col gap-1">
+              {SKELETON_TITLE_WIDTHS.map((width) => (
+                <div
+                  key={width}
+                  aria-hidden
+                  className="flex flex-col gap-2 rounded-xl bg-card px-4 py-3"
+                >
+                  <Skeleton className="h-3 w-20" />
+                  <Skeleton className="h-4" style={{ width }} />
+                  <Skeleton className="h-3 w-3/5" />
+                </div>
+              ))}
+            </div>
+            <BoardFooter />
+          </>
+        ) : tasks.length === 0 ? (
+          <>
+            <BoardEmptyState
+              tab={tab}
+              boardIsEmpty={boardIsEmpty}
+              hasActiveFilters={hasActiveFilters}
+              onShowAll={onShowAll}
+              onClearFilters={onClearFilters}
+            />
+            {/* Filters can leave nothing visible while more pages exist: keep "Show more posts" reachable. */}
+            <BoardFooter />
+          </>
+        ) : (
+          <Board />
+        )}
+      </section>
+    </BoardProvider>
+  );
+}

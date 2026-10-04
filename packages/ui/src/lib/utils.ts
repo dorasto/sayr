@@ -16,6 +16,9 @@ export function cn(...inputs: ClassValue[]) {
 // default and escapes that trap. Without it: a Select/DropdownMenu/etc. used
 // as a side panel's (IndentDrawer) content silently fails to render its
 // popup on top of the panel — it opens, but visually behind it.
+// Because these popups sit at body level, their Positioners use `z-[10050]`: above the app header (z-9999),
+// IndentDrawer (z-10010) and the sidebar overlay drawer (z-10020, the mobile sidebar), so a menu opened from inside
+// any of them still paints on top.
 export const overlayPortalContainer = typeof document !== "undefined" ? document.body : undefined;
 
 export const normalizeUrl = (url: string): string => {

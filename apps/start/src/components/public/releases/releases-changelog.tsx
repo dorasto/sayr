@@ -1,258 +1,173 @@
-import type { schema } from "@repo/database";
-import { useStateManagementInfiniteFetch } from "@repo/ui/hooks/useStateManagement.ts";
-import { Label } from "@repo/ui/components/label";
 import { Button } from "@repo/ui/components/button";
-import { cn } from "@repo/ui/lib/utils";
-import { IconLoader2, IconLayoutSidebarRight, IconLayoutSidebarRightFilled } from "@tabler/icons-react";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { RELEASE_STATUS_ORDER, getReleaseStatusConfig, type ReleaseStatusKey } from "@/components/releases/config";
-import { Page } from "@/components/generic/page";
+import { IconRocket } from "@tabler/icons-react";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { useEffect, useMemo } from "react";
+import { Page, type PanelConfig } from "@/components/generic/page";
 import { usePage, usePanel } from "@/components/generic/use-page";
-import { sidebarActions } from "@/lib/sidebar/sidebar-store";
-import { ReleaseGroup } from "./release-group";
+import { BoardPageBar } from "@/components/public/portal/board/BoardPageBar";
+import { ChangelogRail } from "@/components/public/portal/releases/ChangelogRail";
+import { ReleaseCard } from "@/components/public/portal/releases/ReleaseCard";
+import { fetchPublicReleases } from "@/components/public/portal/releases/types";
+import { usePanelViewportDefaults } from "@/hooks/portal/usePanelViewportDefaults";
+import { groupReleasesByMonth, sortReleasedReleases, sortUpcomingReleases } from "@/lib/portal/changelog";
+import { ChangelogEntrySkeleton } from "./changelog-entry-skeleton";
 
-type FilterTab = "all" | schema.releaseType["status"];
+/** How many upcoming releases are loaded per status; far above what a roadmap realistically holds. */
+const UPCOMING_LIMIT = 50;
+/** Released releases per page ("Show older releases" loads the next one). */
+const RELEASED_PAGE_SIZE = 10;
+const STALE_TIME = 1000 * 30;
 
-const basePublicApiUrl = import.meta.env.VITE_APP_ENV === "development" ? "/backend-api/public/v1" : "/api/public/v1";
+const CHANGELOG_PANEL_ID = "public-changelog-panel";
 
-const CHANGELOG_FILTER_PANEL_ID = "public-changelog-filter-panel";
+/** The "Coming next" panel, sized and behaving like the Feedback board's (`BOARD_PANEL` in `public/index.tsx`). */
+const CHANGELOG_PANEL: PanelConfig = {
+	id: CHANGELOG_PANEL_ID,
+	header: { title: "Overview", showClose: false },
+	defaultOpen: true,
+	persistOpenState: false,
+	width: "30dvw",
+	fitContent: true,
+	resizable: false,
+	height: "70dvh",
+	minWidth: 280,
+	maxWidth: 480,
+	// Same chrome as the board's overview (`OVERVIEW_PANEL_VIEW` in `public/index.tsx`): no panel surface or header on
+	// desktop, the tiles float beside the feed, offset to clear the page bar.
+	classNames: {
+		desktop: {
+			popup: "bg-transparent border-transparent",
+			content: "p-0 pt-11",
+			header: "hidden",
+		},
+	},
+};
 
 interface ReleasesChangelogProps {
 	orgSlug: string;
 }
 
+/**
+ * Public changelog, laid out like the Feedback board: the main column is the released releases, newest first and grouped
+ * by month (`ReleaseCard`s, each a link to its release page), with "Show older releases" paging through the existing
+ * `page`/`hasMore` pagination; the right-hand panel (`ChangelogRail`) holds the upcoming (`planned`, `in-progress`)
+ * releases with their progress. Archived releases are never requested.
+ */
 export function ReleasesChangelog({ orgSlug }: ReleasesChangelogProps) {
-	const [activeFilter, setActiveFilter] = useState<FilterTab>("all");
-	const { setPanelContent, closePanel } = usePage();
-	const panel = usePanel(CHANGELOG_FILTER_PANEL_ID);
-	const panelOpen = panel.isOpen;
-	const sentinelRef = useRef<HTMLDivElement | null>(null);
+	const { setPanelContent } = usePage();
+	const panel = usePanel(CHANGELOG_PANEL_ID);
+	const { modal } = usePanelViewportDefaults(CHANGELOG_PANEL_ID);
 
-	const {
-		value: { data: pages, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage },
-	} = useStateManagementInfiniteFetch<{
-		data: {
-			releases: schema.releaseType[];
-			pagination: {
-				page: number;
-				limit: number;
-				totalItems: number;
-				totalPages: number;
-				hasMore: boolean;
-			};
-		};
-	}>({
-		key: ["public-releases", orgSlug, activeFilter],
-		fetch: {
-			url: `${basePublicApiUrl}/organization/${orgSlug}/releases`,
-			custom: async (url, page) => {
-				const pageParam = page ?? 1;
-				const fullUrl = `${url}?page=${pageParam}&limit=20&status=${activeFilter}`;
-				const res = await fetch(fullUrl);
-				if (!res.ok) throw new Error("Failed to fetch releases");
-				return res.json();
-			},
-			getNextPageParam: (lastPage) =>
-				lastPage.data.pagination.hasMore ? lastPage.data.pagination.page + 1 : undefined,
-		},
-		staleTime: 1000 * 30,
+	const planned = useQuery({
+		queryKey: ["public-releases", orgSlug, "planned"],
+		queryFn: () => fetchPublicReleases(orgSlug, "planned", 1, UPCOMING_LIMIT),
+		staleTime: STALE_TIME,
+	});
+	const inProgress = useQuery({
+		queryKey: ["public-releases", orgSlug, "in-progress"],
+		queryFn: () => fetchPublicReleases(orgSlug, "in-progress", 1, UPCOMING_LIMIT),
+		staleTime: STALE_TIME,
+	});
+	const released = useInfiniteQuery({
+		queryKey: ["public-releases", orgSlug, "released"],
+		queryFn: ({ pageParam }) => fetchPublicReleases(orgSlug, "released", pageParam, RELEASED_PAGE_SIZE),
+		initialPageParam: 1,
+		getNextPageParam: (lastPage) => (lastPage.pagination.hasMore ? lastPage.pagination.page + 1 : undefined),
+		staleTime: STALE_TIME,
 	});
 
-	// Infinite scroll sentinel
-	useEffect(() => {
-		const el = sentinelRef.current;
-		if (!el) return;
-		const observer = new IntersectionObserver(
-			(entries) => {
-				if (entries[0]?.isIntersecting && hasNextPage && !isFetchingNextPage) {
-					fetchNextPage();
-				}
-			},
-			{ threshold: 0.1 }
-		);
-		observer.observe(el);
-		return () => observer.disconnect();
-	}, [hasNextPage, isFetchingNextPage, fetchNextPage]);
-
-	// Memoized on `pages` (not recomputed fresh every render): statusCounts
-	// below feeds a setPanelContent effect, and an unmemoized array there
-	// is a new reference every render — the effect refires, which updates
-	// the store, which re-renders this component (it also subscribes via
-	// usePanel for panelOpen), which recomputes the array again. Confirmed
-	// live as an actual infinite-render-loop crash before this fix.
-	const allFetchedReleases = useMemo(() => pages?.flatMap((p) => p.data.releases) ?? [], [pages]);
-	const filtered =
-		activeFilter === "all" ? allFetchedReleases : allFetchedReleases.filter((r) => r.status === activeFilter);
-	const nonArchived = filtered.filter((r) => r.status !== "archived");
-	const archived = filtered.filter((r) => r.status === "archived");
-
-	const grouped = (RELEASE_STATUS_ORDER as string[])
-		.filter((s) => s !== "archived")
-		.map((s) => s as Exclude<ReleaseStatusKey, "archived">)
-		.map((status) => ({
-			status,
-			releases: nonArchived.filter((r) => r.status === status),
-		}))
-		.filter((g) => g.releases.length > 0);
-
-	// Per-status counts for the filter panel
-	const totalCount = allFetchedReleases.filter((r) => r.status !== "archived").length;
-	const statusCounts = useMemo(
-		() =>
-			RELEASE_STATUS_ORDER.map((status) => ({
-				status,
-				count: allFetchedReleases.filter((r) => r.status === status).length,
-			})).filter(({ count }) => count > 0),
-		[allFetchedReleases]
+	const upcomingReleases = useMemo(
+		() => sortUpcomingReleases([...(planned.data?.releases ?? []), ...(inProgress.data?.releases ?? [])]),
+		[planned.data, inProgress.data]
 	);
-
-	const panelBody = (
-		<div className="flex flex-col gap-0.5">
-			<FilterButton
-				label="All Releases"
-				count={totalCount}
-				active={activeFilter === "all"}
-				onClick={() => setActiveFilter("all")}
-			/>
-			{statusCounts.map(({ status, count }) => {
-				const cfg = getReleaseStatusConfig(status as ReleaseStatusKey);
-				return (
-					<FilterButton
-						key={status}
-						label={cfg?.label ?? status}
-						count={count}
-						active={activeFilter === status}
-						color={cfg?.color}
-						onClick={() => setActiveFilter(status as FilterTab)}
-					/>
-				);
-			})}
-		</div>
+	const months = useMemo(
+		() => groupReleasesByMonth(sortReleasedReleases(released.data?.pages.flatMap((page) => page.releases) ?? [])),
+		[released.data]
 	);
+	const upcomingLoading = planned.isLoading || inProgress.isLoading;
 
-	// Panel body depends on live activeFilter/counts — real deps, not a
-	// set-once-on-mount effect. Still gated on isRegistered: Page defers
-	// registering the panel to its client-only pass, so this would
-	// otherwise race it on first mount.
+	// Memoised so the effect below only re-fires when the panel's data changes (see the page-component skill), and gated
+	// on isRegistered: Page registers panels in its client-only pass.
+	const panelContent = useMemo(
+		() => <ChangelogRail orgSlug={orgSlug} upcoming={upcomingReleases} isLoading={upcomingLoading} />,
+		[orgSlug, upcomingReleases, upcomingLoading]
+	);
 	useEffect(() => {
 		if (!panel.isRegistered) return;
-		setPanelContent(CHANGELOG_FILTER_PANEL_ID, panelBody);
-	}, [panel.isRegistered, setPanelContent, activeFilter, totalCount, statusCounts]);
+		setPanelContent(CHANGELOG_PANEL_ID, panelContent);
+	}, [panel.isRegistered, setPanelContent, panelContent]);
+
+	const panels = useMemo(() => ({ right: { ...CHANGELOG_PANEL, modal } }), [modal]);
 
 	return (
-		<div className="flex flex-col h-full">
-			{/* Top bar — matches release detail page pattern */}
-			<div className="flex items-center justify-between h-11 shrink-0 border-b px-3">
-				<span className="text-sm font-semibold">Releases</span>
-				<Button
-					variant="accent"
-					className={cn("gap-2 h-6 w-fit bg-accent border-transparent p-1", !panelOpen && "bg-transparent")}
-					onClick={() =>
-						panelOpen
-							? closePanel(CHANGELOG_FILTER_PANEL_ID)
-							: sidebarActions.setOpen(CHANGELOG_FILTER_PANEL_ID, true)
-					}
-				>
-					{panelOpen ? (
-						<IconLayoutSidebarRightFilled className="w-3 h-3" />
-					) : (
-						<IconLayoutSidebarRight className="w-3 h-3" />
-					)}
-				</Button>
-			</div>
+		<Page panels={panels}>
+			<BoardPageBar panelId={CHANGELOG_PANEL_ID} />
+			<div className="w-full min-w-0 px-4 pb-16">
+				<header className="mb-4 border-b px-1 pb-4">
+					<h1 className="font-semibold! text-2xl! text-foreground tracking-tight">Changelog</h1>
+					<p className="mt-1 text-muted-foreground text-sm">Everything the team has shipped.</p>
+				</header>
 
-			{/* Split pane */}
-			<div className="flex-1 min-h-0">
-				<Page
-					panels={{
-						right: {
-							id: CHANGELOG_FILTER_PANEL_ID,
-							header: (
-								<div className="flex items-center gap-2">
-									<Label className="text-sm font-semibold">Filter</Label>
-								</div>
-							),
-							defaultOpen: true,
-							width: "280px",
-						},
-					}}
-				>
-					{/* Main changelog content */}
-					<div className="flex-1 overflow-y-auto h-full p-6 pt-0">
-						{isLoading ? (
-							<div className="flex h-48 w-full items-center justify-center">
-								<IconLoader2 className="animate-spin text-muted-foreground" />
+				{released.isLoading ? (
+					<div aria-busy className="flex flex-col gap-2">
+						<ChangelogEntrySkeleton />
+						<ChangelogEntrySkeleton />
+						<ChangelogEntrySkeleton />
+					</div>
+				) : released.isError ? (
+					<div className="mx-auto flex max-w-[340px] flex-col items-center py-16 text-center">
+						<span
+							aria-hidden
+							className="mb-3.5 inline-flex size-12 items-center justify-center rounded-xl bg-muted text-muted-foreground"
+						>
+							<IconRocket className="size-6" />
+						</span>
+						<div className="font-semibold text-base text-foreground">Could not load the changelog</div>
+						<p className="mt-1.5 text-muted-foreground text-sm">Check your connection and try again.</p>
+						<Button variant="outline" size="sm" className="mt-4" onClick={() => void released.refetch()}>
+							Try again
+						</Button>
+					</div>
+				) : months.length === 0 ? (
+					<div className="mx-auto flex max-w-[340px] flex-col items-center py-16 text-center">
+						<span
+							aria-hidden
+							className="mb-3.5 inline-flex size-12 items-center justify-center rounded-xl bg-primary/15 text-primary"
+						>
+							<IconRocket className="size-6" />
+						</span>
+						<div className="font-semibold text-base text-foreground">Nothing has shipped yet</div>
+						<p className="mt-1.5 text-muted-foreground text-sm">
+							Releases will show up here once the team publishes them.
+						</p>
+					</div>
+				) : (
+					<div className="flex flex-col gap-6">
+						{months.map((month) => (
+							<section key={month.key} aria-label={month.label} className="flex flex-col gap-2">
+								<h2 className="px-1 font-medium! text-muted-foreground text-xs! leading-4! tracking-normal!">
+									{month.label}
+								</h2>
+								{month.releases.map((release) => (
+									<ReleaseCard key={release.id} release={release} orgSlug={orgSlug} />
+								))}
+							</section>
+						))}
+						{released.hasNextPage && (
+							<div className="flex justify-center">
+								<Button
+									variant="accent"
+									size="sm"
+									disabled={released.isFetchingNextPage}
+									onClick={() => void released.fetchNextPage()}
+								>
+									{released.isFetchingNextPage ? "Loading..." : "Show older releases"}
+								</Button>
 							</div>
-						) : (
-							<>
-								<div className="flex flex-col gap-3">
-									{grouped.map(({ status, releases: groupReleases }) => (
-										<ReleaseGroup
-											key={status}
-											status={status as ReleaseStatusKey}
-											releases={groupReleases}
-											orgSlug={orgSlug}
-											defaultOpen={true}
-										/>
-									))}
-
-									{archived.length > 0 && (
-										<ReleaseGroup
-											status="archived"
-											releases={archived}
-											orgSlug={orgSlug}
-											defaultOpen={false}
-										/>
-									)}
-								</div>
-
-								{filtered.length === 0 && (
-									<p className="text-sm text-muted-foreground py-8 text-center">
-										No releases match this filter.
-									</p>
-								)}
-
-								<div ref={sentinelRef} className="h-8" />
-
-								{isFetchingNextPage && (
-									<div className="flex justify-center py-4">
-										<IconLoader2 className="animate-spin text-muted-foreground" />
-									</div>
-								)}
-							</>
 						)}
 					</div>
-				</Page>
+				)}
 			</div>
-		</div>
-	);
-}
-
-interface FilterButtonProps {
-	label: string;
-	count: number;
-	active: boolean;
-	color?: string;
-	onClick: () => void;
-}
-
-function FilterButton({ label, count, active, color, onClick }: FilterButtonProps) {
-	return (
-		<button
-			type="button"
-			onClick={onClick}
-			className={cn(
-				"flex items-center gap-2.5 w-full text-left px-2.5 py-1.5 rounded-lg text-sm transition-colors",
-				active
-					? "bg-accent text-foreground font-medium"
-					: "text-muted-foreground hover:text-foreground hover:bg-accent/50"
-			)}
-		>
-			{color && <span className="size-2 rounded-full shrink-0" style={{ backgroundColor: color }} />}
-			<span className="flex-1 truncate">{label}</span>
-			<span className={cn("text-xs tabular-nums", active ? "text-foreground" : "text-muted-foreground/60")}>
-				{count}
-			</span>
-		</button>
+		</Page>
 	);
 }

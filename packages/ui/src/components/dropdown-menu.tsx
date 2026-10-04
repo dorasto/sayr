@@ -52,7 +52,7 @@ function DropdownMenuSubContent({
   return (
     <DropdownMenuPrimitive.Portal container={overlayPortalContainer}>
       <DropdownMenuPrimitive.Positioner
-        className="isolate z-50 outline-none"
+        className="isolate z-[10050] outline-none"
         align="start"
         alignOffset={-3}
         side="right"
@@ -85,7 +85,7 @@ function DropdownMenuContent({
   return (
     <DropdownMenuPrimitive.Portal container={overlayPortalContainer}>
       <DropdownMenuPrimitive.Positioner
-        className="isolate z-50 outline-none"
+        className="isolate z-[10050] outline-none"
         align={align}
         alignOffset={alignOffset}
         side={side}
