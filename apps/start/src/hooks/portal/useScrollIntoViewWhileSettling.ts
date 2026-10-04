@@ -7,7 +7,7 @@ const SETTLE_MS = 4000;
 const USER_SCROLL_EVENTS = ["wheel", "touchstart", "keydown", "pointerdown"] as const;
 
 /** Nearest scrollable ancestor of `el`, or the document when the page itself scrolls. */
-function scrollParentOf(el: HTMLElement): Element {
+export function scrollParentOf(el: HTMLElement): Element {
 	for (let node = el.parentElement; node; node = node.parentElement) {
 		const { overflowY } = getComputedStyle(node);
 		if (overflowY === "auto" || overflowY === "scroll") return node;
