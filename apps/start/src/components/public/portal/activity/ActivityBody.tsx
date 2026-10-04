@@ -28,10 +28,12 @@ const SWATCH = {
 
 interface ActivityBodyProps {
 	userId: string;
+	/** One column at every width (the account dialog is too narrow for the sidebar). */
+	stacked?: boolean;
 }
 
 /** The logged-in viewer's Voted / Posted tabs, plus the "Shipped because you asked" and vote-status sidebar. */
-export function ActivityBody({ userId }: ActivityBodyProps) {
+export function ActivityBody({ userId, stacked = false }: ActivityBodyProps) {
 	const { organization, categories, labels } = usePublicOrganizationLayout();
 	const { canPost } = usePublicPostAbility();
 	const [tab, setTab] = useState<ActivityTab>("voted");
@@ -144,7 +146,7 @@ export function ActivityBody({ userId }: ActivityBodyProps) {
 	const voteSummary = visibleRows.map((row) => `${row.count} ${row.label.toLowerCase()}`).join(", ");
 
 	return (
-		<div className="flex flex-col gap-10 lg:flex-row lg:items-start">
+		<div className={cn("flex flex-col gap-10", !stacked && "lg:flex-row lg:items-start")}>
 			<section className="min-w-0 flex-1">
 				<Tabs
 					className="mb-4"
@@ -174,10 +176,10 @@ export function ActivityBody({ userId }: ActivityBodyProps) {
 			</section>
 
 			{ready && (activity.shipped.length > 0 || activity.votedPosts.length > 0) && (
-				<aside className="flex w-full shrink-0 flex-col gap-4 lg:w-[300px] xl:w-80">
+				<aside className={cn("flex w-full shrink-0 flex-col gap-4", !stacked && "lg:w-[300px] xl:w-80")}>
 					{activity.shipped.length > 0 && (
 						<div className="rounded-xl border bg-card p-5">
-							<h3 className="mb-3 font-semibold text-[13px] text-foreground">Shipped because you asked</h3>
+							<h3 className="mb-3 font-semibold! text-[13px]! text-foreground">Shipped because you asked</h3>
 							<ul className="flex flex-col gap-4">
 								{activity.shipped.map(({ task, release, date }) => {
 									const releasedOn = formatShortDate(date);
@@ -212,7 +214,7 @@ export function ActivityBody({ userId }: ActivityBodyProps) {
 					)}
 					{votedTotal > 0 && (
 						<div className="rounded-xl border bg-card p-5">
-							<h3 className="mb-3 font-semibold text-[13px] text-foreground">Where your votes stand</h3>
+							<h3 className="mb-3 font-semibold! text-[13px]! text-foreground">Where your votes stand</h3>
 							<SegmentedProgress
 								segments={activity.barSegments}
 								label={`Your voted posts: ${voteSummary}`}

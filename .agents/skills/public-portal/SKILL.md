@@ -26,11 +26,11 @@ All under `apps/start/src/routes/orgs/$orgSlug/`. Link with `to="/orgs/$orgSlug/
 | `/{shortId}` | `$shortId/index.tsx` → `components/public/public-task-content.tsx` | Post page: 760px article column | `public-task-panel` (Details) |
 | `/new` | `new/index.tsx` → `portal/new/NewPostPage` | New post (`?title=`) — the **only** way to post (see "New post form") | none |
 | `/roadmap` | `roadmap/index.tsx` | Redirects to `/?layout=roadmap` (the roadmap is a layout of the Feedback board; no nav link of its own) | — |
-| `/activity` | `activity/index.tsx` → `portal/activity/ActivityPage` | Viewer's Voted / Posted (login required, `noindex`) | none |
+| `/activity` | `activity/index.tsx` | Redirects to `/?settings=activity` (the Activity tab of the account dialog) | — |
 | `/releases` | `releases/index.tsx` → `components/public/releases/releases-changelog.tsx` | Changelog; `?tab=upcoming\|released` (All = no param) | none |
 | `/releases/{slug}` | `releases/$releaseSlug/index.tsx` | Release page | `public-release-detail-panel` |
 
-`route.tsx` (layout) wraps everything in `<div className="portal flex h-dvh flex-col overflow-hidden bg-sidebar text-foreground">` (the `portal` class is only a hook for the reduced-motion block, see Styling), renders `PublicNavigation` (64px top bar, `components/public/navigation.tsx`: org mark, Feedback/Roadmap/Changelog, Activity when logged in, search palette, Log in / avatar) and `MobileTabBar` (`portal/nav/MobileTabBar.tsx`, phones only). `isPortalPage` (a regex over the pathname: the org root, or `/{digits|new|roadmap|activity|releases}`) decides the scroll container: for portal pages the `Outlet` is rendered bare inside `#public-scroll-container` because every portal page renders its own `Page` (which owns scrolling and its panel). That container is `isolate` (its own stacking context) — without it the drawer's `z-[10010]` escapes and dev overlays such as the shadcn inspector draw behind panel content. The `else` branch (card chrome with `bg-background`) is only the fallback for unmatched paths — a new top-level public route must be added to the regex or it gets the old card chrome. Active-nav logic is `lib/portal/nav.ts` (`getPortalSection`, `hidesMobileTabBar`) — extend it when adding a section.
+`route.tsx` (layout) wraps everything in `<div className="portal flex h-dvh flex-col overflow-hidden bg-sidebar text-foreground">` (the `portal` class is only a hook for the reduced-motion block, see Styling), renders `PublicNavigation` (64px top bar, `components/public/navigation.tsx`: org mark, Feedback/Changelog, search palette, Log in / avatar; the avatar opens the account settings dialog, see below) and `MobileTabBar` (`portal/nav/MobileTabBar.tsx`, phones only). `isPortalPage` (a regex over the pathname: the org root, or `/{digits|new|roadmap|activity|releases}`) decides the scroll container: for portal pages the `Outlet` is rendered bare inside `#public-scroll-container` because every portal page renders its own `Page` (which owns scrolling and its panel). That container is `isolate` (its own stacking context) — without it the drawer's `z-[10010]` escapes and dev overlays such as the shadcn inspector draw behind panel content. The `else` branch (card chrome with `bg-background`) is only the fallback for unmatched paths — a new top-level public route must be added to the regex or it gets the old card chrome. Active-nav logic is `lib/portal/nav.ts` (`getPortalSection`, `hidesMobileTabBar`) — extend it when adding a section.
 
 ## Styling
 
@@ -57,6 +57,12 @@ Reuse what already exists instead of re-implementing: `@repo/ui` (`Button`, `Tab
 
 Screen-specific pieces sit in sibling folders: `board/`, `post/`, `peek/`, `new/`, `releases/`, `roadmap/`, `activity/`, `search/`, `nav/`.
 
+## Account settings dialog
+
+Most portal users never visit `admin.*`, so personal settings live in `UserSettingsDialog` (`components/settings/user-settings-dialog.tsx`), opened from the nav avatar. Its General (profile and preferences together), Security, Connections and Privacy tabs render **the same self-contained sections as the admin `/settings` pages** (`components/settings/sections/*`: `SecuritySettings`, `ConnectionsSettings`, `DataExport`; General/Preferences come from `pages/admin/settings/user-settings-content`). Each section loads its own data with React Query through session-derived server functions (`lib/serverFunctions/account-settings.ts`, which never take a user id as input), so neither host needs a route loader or the admin shell's `useLayoutData()`. Add a personal setting as a section there and render it in both places; don't build a portal-only copy or link out to admin. Only API keys (a developer tool with its own side panel) and Dashboard link to admin; `TabbedDialog` marks every `href` item with a trailing external-link icon.
+
+`?settings=<tab>` on any portal page opens the dialog on that tab (`USER_SETTINGS_TABS` / `isUserSettingsTab`; closing it strips the param). Connections passes `<current page>?settings=connections` as the OAuth `callbackURL`, so linking an account returns to the dialog on the org subdomain. This works because the session cookie is shared across `*.${VITE_ROOT_DOMAIN}` and passkeys use `rpID = VITE_ROOT_DOMAIN` (`packages/auth/src/index.ts`) — a custom org domain would break both.
+
 ## Feedback, Activity and Roadmap on the shared board
 
 All mount `BoardProvider` with `capabilities={READ_ONLY_CAPABILITIES}` (so `Field*` components render their static read-only form). Feedback and Roadmap also pass a **`controlled`** scope and module-level (stable) `views`/`renderers`. Never edit, select, drag, bulk-edit or save views here. Read the `board` and `board-saved-views` skills for the contracts; this is how the portal uses them.
@@ -74,7 +80,7 @@ All mount `BoardProvider` with `capabilities={READ_ONLY_CAPABILITIES}` (so `Fiel
 
 ### Activity (`portal/activity/`)
 
-`ActivityPage` → `ActivityHeader`, `ActivityBody` (wraps the list in a read-only `BoardProvider` with `{ items: posts, labels, categories, releases: [] }` and renders `PublicTaskItem compact` per post), `ActivityEmpty`, `ActivityRowSkeletons`.
+**Activity is a tab of the account settings dialog**, not a page: `PublicNavigation` passes `<ActivityBody userId stacked />` as the dialog's `activity` prop (`stacked` = one column, the dialog is too narrow for the sidebar). `ActivityBody` (wraps the list in a read-only `BoardProvider` with `{ items: posts, labels, categories, releases: [] }` and renders `PublicTaskItem compact` per post), `ActivityEmpty`, `ActivityRowSkeletons`.
 
 ### Roadmap (`portal/roadmap/`)
 
@@ -150,7 +156,7 @@ The board has no static right column: categories and latest release are the pane
 - `usePublicPostAbility()` (exported from `components/public/public-task-creator.tsx`, which holds only that hook) supplies `settings`, `loggedIn`, `canPost` (else `PostingDisabledCard`) and `needsFullForm`.
 - The `sessionStorage` draft (per org, cleared on success/cancel) keeps title, details, category, priority, labels and template, so a login redirect does not lose them or ask for the template again. A `?title=` that differs from the stored title starts a fresh draft.
 
-**Not panels**: `/activity` renders a bare `<Page>` with no `panels`. Don't convert it into a drawer. (The roadmap is a layout of the board and shares the board panel.)
+**Not panels**: Activity lives in the account dialog, not a page or a drawer. (The roadmap is a layout of the board and shares the board panel.)
 
 ## Decisions
 

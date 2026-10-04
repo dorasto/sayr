@@ -1,10 +1,10 @@
 import { cn } from "@repo/ui/lib/utils";
-import { IconMessage, IconRocket, IconUser } from "@tabler/icons-react";
+import { IconMessage, IconRocket } from "@tabler/icons-react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { getOrgSlugFromPath, getPortalSection, hidesMobileTabBar, type PortalSection } from "@/lib/portal/nav";
 
 /**
- * Phone-only (< 768px) bottom tab bar: Feedback (with the roadmap as one of its layouts), Changelog and You (the viewer's activity). It is a flex
+ * Phone-only (< 768px) bottom tab bar: Feedback (with the roadmap as one of its layouts), and Changelog (the viewer's activity is in the account dialog, from the avatar). It is a flex
  * sibling below the scrolling page, so nothing hides behind it, and it pads for the home-indicator safe area. It steps
  * aside on pages that bring their own bottom action bar (a post, the new post form).
  */
@@ -39,15 +39,6 @@ export function MobileTabBar() {
 			>
 				<IconRocket aria-hidden className="size-[22px]" stroke={1.9} />
 				Changelog
-			</Link>
-			<Link
-				to="/orgs/$orgSlug/activity"
-				params={params}
-				aria-current={current("activity")}
-				className={tabClass("activity")}
-			>
-				<IconUser aria-hidden className="size-[22px]" stroke={1.9} />
-				You
 			</Link>
 		</nav>
 	);

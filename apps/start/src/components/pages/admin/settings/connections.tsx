@@ -1,4 +1,5 @@
 import { authClient } from "@repo/auth/client";
+import type { schema } from "@repo/database";
 import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
 import { Button } from "@repo/ui/components/button";
 import { Tile, TileAction, TileDescription, TileHeader, TileIcon, TileTitle } from "@repo/ui/components/doras-ui/tile";
@@ -9,10 +10,8 @@ import {
 	IconBrandSlack,
 	IconMail,
 } from "@tabler/icons-react";
-import { useLayoutData } from "@/components/admin/shell/context";
-import type { DiscordUserType, DorasUserType, GithubUserType, SlackUserType } from "@/types";
-import { schema } from "@repo/database";
 import { useToastAction } from "@/lib/util";
+import type { DiscordUserType, DorasUserType, GithubUserType, SlackUserType } from "@/types";
 
 interface Props {
 	email: schema.accountType | null | undefined;
@@ -26,13 +25,28 @@ interface Props {
 		discord: boolean;
 		slack: boolean;
 	};
+	/** The signed-in user's email address. */
+	accountEmail: string;
+	/** Where a provider's OAuth flow returns after linking. @default "/settings/connections" */
+	callbackURL?: string;
+	/** Runs after a connection is removed. @default reloads the page */
+	onChanged?: () => void;
 }
 
-export default function UserConnections({ email, githubUser, dorasUser, discordUser, slackUser, providers }: Props) {
+export default function UserConnections({
+	email,
+	githubUser,
+	dorasUser,
+	discordUser,
+	slackUser,
+	providers,
+	accountEmail,
+	callbackURL = "/settings/connections",
+	onChanged = () => window.location.reload(),
+}: Props) {
 	const connectedCount =
 		(email ? 1 : 0) + (githubUser ? 1 : 0) + (dorasUser ? 1 : 0) + (discordUser ? 1 : 0) + (slackUser ? 1 : 0);
 	const canDisconnect = connectedCount >= 2;
-	const { account } = useLayoutData();
 	const { runWithToast } = useToastAction();
 	async function handleRequestPasswordEmail() {
 		await runWithToast(
@@ -66,7 +80,7 @@ export default function UserConnections({ email, githubUser, dorasUser, discordU
 		);
 	}
 	const hasEmail = !!email;
-	const emailAddress = account.email;
+	const emailAddress = accountEmail;
 	return (
 		<div className="flex flex-col gap-2">
 			{/* --- Email connection --- */}
@@ -89,7 +103,7 @@ export default function UserConnections({ email, githubUser, dorasUser, discordU
 					<TileAction>
 						{!hasEmail ? (
 							<Button variant="primary" size="sm" onClick={handleRequestPasswordEmail}>
-								Enable Password for ({account.email})
+								Enable Password for ({accountEmail})
 							</Button>
 						) : (
 							<div className="flex gap-2">
@@ -106,7 +120,7 @@ export default function UserConnections({ email, githubUser, dorasUser, discordU
 										await authClient.unlinkAccount({
 											accountId: email.id,
 										});
-										window.location.reload();
+										onChanged();
 									}}
 								>
 									Disconnect
@@ -162,7 +176,7 @@ export default function UserConnections({ email, githubUser, dorasUser, discordU
 									onClick={async () => {
 										await authClient.linkSocial({
 											provider: "doras",
-											callbackURL: "/settings/connections",
+											callbackURL,
 										});
 									}}
 								>
@@ -179,8 +193,8 @@ export default function UserConnections({ email, githubUser, dorasUser, discordU
 											: "You must have at least one other connection to disconnect Doras"
 									}
 									onClick={async () => {
-										dorasUser && await authClient.unlinkAccount({ accountId: dorasUser.account_id });
-										window.location.reload();
+										dorasUser && (await authClient.unlinkAccount({ accountId: dorasUser.account_id }));
+										onChanged();
 									}}
 								>
 									Disconnect
@@ -225,7 +239,7 @@ export default function UserConnections({ email, githubUser, dorasUser, discordU
 									onClick={async () => {
 										await authClient.linkSocial({
 											provider: "github",
-											callbackURL: "/settings/connections",
+											callbackURL,
 										});
 									}}
 								>
@@ -242,8 +256,8 @@ export default function UserConnections({ email, githubUser, dorasUser, discordU
 											: "You must connect another account first to disconnect GitHub"
 									}
 									onClick={async () => {
-										githubUser && await authClient.unlinkAccount({ accountId: githubUser.account_id });
-										window.location.reload();
+										githubUser && (await authClient.unlinkAccount({ accountId: githubUser.account_id }));
+										onChanged();
 									}}
 								>
 									Disconnect
@@ -297,7 +311,7 @@ export default function UserConnections({ email, githubUser, dorasUser, discordU
 									onClick={async () => {
 										await authClient.linkSocial({
 											provider: "discord",
-											callbackURL: "/settings/connections",
+											callbackURL,
 										});
 									}}
 								>
@@ -314,8 +328,8 @@ export default function UserConnections({ email, githubUser, dorasUser, discordU
 											: "You must have at least one other connection to disconnect Discord"
 									}
 									onClick={async () => {
-										discordUser && await authClient.unlinkAccount({ accountId: discordUser.account_id });
-										window.location.reload();
+										discordUser && (await authClient.unlinkAccount({ accountId: discordUser.account_id }));
+										onChanged();
 									}}
 								>
 									Disconnect
@@ -364,7 +378,7 @@ export default function UserConnections({ email, githubUser, dorasUser, discordU
 									onClick={async () => {
 										await authClient.linkSocial({
 											provider: "slack",
-											callbackURL: "/settings/connections",
+											callbackURL,
 										});
 									}}
 								>
@@ -381,8 +395,8 @@ export default function UserConnections({ email, githubUser, dorasUser, discordU
 											: "You must have at least one other connection to disconnect Slack"
 									}
 									onClick={async () => {
-										slackUser && await authClient.unlinkAccount({ accountId: slackUser.account_id });
-										window.location.reload();
+										slackUser && (await authClient.unlinkAccount({ accountId: slackUser.account_id }));
+										onChanged();
 									}}
 								>
 									Disconnect

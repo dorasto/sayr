@@ -9,6 +9,8 @@ interface BoardSearch {
 	layout?: string;
 	/** Comma-separated label ids. */
 	labels?: string;
+	/** Opens the account settings dialog on this tab (see `PublicNavigation`). */
+	settings?: string;
 }
 
 function asString(value: unknown): string | undefined {
@@ -22,6 +24,7 @@ export const Route = createFileRoute("/orgs/$orgSlug/")({
 		category: asString(search.category),
 		labels: asString(search.labels),
 		layout: asString(search.layout),
+		settings: asString(search.settings),
 	}),
 	component: OrgDashboard,
 });
