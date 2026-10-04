@@ -77,7 +77,7 @@ export default function PublicNavigation() {
           {/* Org identity */}
           <Link
             to={feedbackPath}
-            className="mr-2 flex min-w-0 items-center gap-2.5 rounded-md outline-none max-md:min-h-11 max-md:flex-1 md:mr-5 md:max-w-[220px] md:shrink-0"
+            className="mr-2 flex min-w-0 items-center gap-2.5 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring max-md:min-h-11 max-md:flex-1 md:mr-5 md:max-w-[220px] md:shrink-0"
           >
             <Avatar className="size-[30px] shrink-0 rounded-lg">
               {organization.logo ? (
@@ -97,17 +97,24 @@ export default function PublicNavigation() {
 
           <nav aria-label="Primary" className="hidden gap-0.5 md:flex">
             {navLinks.map((link) => (
-              <Link
+              <Button
                 key={link.label}
-                to={link.to}
-                aria-current={link.active ? "page" : undefined}
+                render={
+                  <Link
+                    to={link.to}
+                    aria-current={link.active ? "page" : undefined}
+                  />
+                }
+                nativeButton={false}
+                variant="ghost"
+                size="sm"
                 className={cn(
-                  "flex h-9 items-center gap-2 rounded-lg px-3 font-medium text-muted-foreground text-sm outline-none transition-colors hover:bg-accent hover:text-foreground focus-visible:bg-accent focus-visible:text-foreground",
+                  "hover:text-foreground focus-visible:bg-accent focus-visible:text-foreground",
                   link.active && "bg-muted text-foreground",
                 )}
               >
                 {link.label}
-              </Link>
+              </Button>
             ))}
           </nav>
 
@@ -127,11 +134,13 @@ export default function PublicNavigation() {
                 <Skeleton className="size-8 rounded-full" />
               </div>
             ) : session ? (
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="icon"
                 aria-label="Account settings"
                 onClick={openSettings}
-                className="flex cursor-pointer items-center justify-center rounded-full outline-none max-md:size-11"
+                className="size-8 rounded-full p-0 focus-visible:ring-2 focus-visible:ring-ring max-md:size-11"
               >
                 <Avatar className="size-8">
                   {session.user.image ? (
@@ -144,7 +153,7 @@ export default function PublicNavigation() {
                     {getInitials(session.user.name)}
                   </AvatarFallback>
                 </Avatar>
-              </button>
+              </Button>
             ) : (
               <LoginDialog
                 trigger={
