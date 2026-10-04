@@ -50,7 +50,7 @@ const PopoverContent = React.forwardRef<
         side={side}
         sideOffset={sideOffset}
         anchor={anchor}
-        className="isolate z-50"
+        className="isolate z-[10050]"
       >
         <PopoverPrimitive.Popup
           ref={ref}

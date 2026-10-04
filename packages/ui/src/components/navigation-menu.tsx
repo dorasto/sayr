@@ -59,7 +59,7 @@ const NavigationMenuLink = NavigationMenuPrimitive.Link;
 function NavigationMenuViewport({ className, ...props }: NavigationMenuPrimitive.Popup.Props) {
 	return (
 		<NavigationMenuPrimitive.Portal container={overlayPortalContainer}>
-			<NavigationMenuPrimitive.Positioner className="isolate z-50" side="bottom" align="center" sideOffset={6}>
+			<NavigationMenuPrimitive.Positioner className="isolate z-[10050]" side="bottom" align="center" sideOffset={6}>
 				<NavigationMenuPrimitive.Popup
 					className={cn(
 						"relative mt-1.5 h-(--popup-height) w-full origin-(--transform-origin) overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-lg data-open:animate-in data-closed:animate-out data-closed:zoom-out-95 data-open:zoom-in-90 md:w-(--popup-width)",

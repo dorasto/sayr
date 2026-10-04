@@ -74,7 +74,7 @@ function MenubarSubContent({ className, ...props }: MenubarPrimitive.Popup.Props
 	return (
 		<MenubarPrimitive.Portal container={overlayPortalContainer}>
 			<MenubarPrimitive.Positioner
-				className="isolate z-50 outline-none"
+				className="isolate z-[10050] outline-none"
 				align="start"
 				alignOffset={-3}
 				side="right"
@@ -104,7 +104,7 @@ function MenubarContent({
 	return (
 		<MenubarPrimitive.Portal container={overlayPortalContainer}>
 			<MenubarPrimitive.Positioner
-				className="isolate z-50 outline-none"
+				className="isolate z-[10050] outline-none"
 				align={align}
 				alignOffset={alignOffset}
 				side={side}

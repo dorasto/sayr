@@ -47,7 +47,7 @@ function SelectContent({
 }: SelectPrimitive.Popup.Props & Pick<SelectPrimitive.Positioner.Props, "align" | "alignItemWithTrigger">) {
 	return (
 		<SelectPrimitive.Portal container={overlayPortalContainer}>
-			<SelectPrimitive.Positioner className="isolate z-50" align={align} alignItemWithTrigger={alignItemWithTrigger}>
+			<SelectPrimitive.Positioner className="isolate z-[10050]" align={align} alignItemWithTrigger={alignItemWithTrigger}>
 				<SelectPrimitive.Popup
 					data-slot="select-content"
 					className={cn(
