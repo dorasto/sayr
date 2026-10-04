@@ -58,3 +58,32 @@ export async function fetchPublicReleaseTasks(orgSlug: string, releaseSlug: stri
 	const json = (await res.json()) as { data: { tasks: PublicReleaseTask[] } };
 	return json.data.tasks;
 }
+
+/** The fields of a public status update the changelog card reads (the endpoint returns them newest first). */
+export interface PublicReleaseStatusUpdateSummary {
+	health: string;
+	createdAt: string;
+	commentCount: number;
+}
+
+export async function fetchPublicReleaseStatusUpdates(
+	orgSlug: string,
+	releaseSlug: string
+): Promise<PublicReleaseStatusUpdateSummary[]> {
+	const res = await fetch(
+		`${PUBLIC_API_URL}/organization/${orgSlug}/releases/${encodeURIComponent(releaseSlug)}/status-updates`
+	);
+	if (!res.ok) throw new Error("Failed to fetch status updates");
+	const json = (await res.json()) as { data: { updates: PublicReleaseStatusUpdateSummary[] } };
+	return json.data.updates;
+}
+
+/** How many public top-level comments a release's discussion has (one-item page, read from its `total`). */
+export async function fetchPublicReleaseCommentTotal(orgSlug: string, releaseSlug: string): Promise<number> {
+	const res = await fetch(
+		`${PUBLIC_API_URL}/organization/${orgSlug}/releases/${encodeURIComponent(releaseSlug)}/comments?limit=1`
+	);
+	if (!res.ok) throw new Error("Failed to fetch release comments");
+	const json = (await res.json()) as { data: { pagination: { total: number } } };
+	return json.data.pagination.total;
+}

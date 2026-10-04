@@ -5,8 +5,10 @@ import { formatDate } from "@repo/util";
 import { IconBulb, IconCalendarEvent } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
 import { SegmentedProgress } from "@/components/public/portal/ui/SegmentedProgress";
+import { useReleaseActivity } from "@/hooks/portal/useReleaseActivity";
 import { useReleaseProgress } from "@/hooks/portal/useReleaseProgress";
 import { getReleaseDisplayDate } from "@/lib/portal/changelog";
+import { ReleaseHealth } from "./ReleaseHealth";
 import { ReleaseStatusChip } from "./ReleaseStatusChip";
 import type { PublicRelease } from "./types";
 
@@ -72,6 +74,7 @@ export function ChangelogRail({ orgSlug, upcoming, isLoading }: ChangelogRailPro
 
 function UpcomingRow({ release, orgSlug }: { release: PublicRelease; orgSlug: string }) {
 	const progress = useReleaseProgress(orgSlug, release.slug);
+	const activity = useReleaseActivity(orgSlug, release.slug);
 	const { date } = getReleaseDisplayDate(release);
 
 	return (
@@ -95,7 +98,8 @@ function UpcomingRow({ release, orgSlug }: { release: PublicRelease; orgSlug: st
 					]}
 				/>
 			)}
-			<span className="text-muted-foreground text-xs">
+			<span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-muted-foreground text-xs">
+				<ReleaseHealth health={activity?.health} />
 				{[
 					date ? `Target ${formatDate(date, "en-GB")}` : "No target date",
 					progress && progress.total > 0 ? `${progress.done} of ${progress.total} posts done` : null,

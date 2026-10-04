@@ -27,6 +27,26 @@ export function getHealthPill(
 	return HEALTH[health as ReleaseHealth] ?? null;
 }
 
+export interface StatusUpdateSummary {
+	/** The newest update's health, or `null` when the release has no public updates. */
+	health: string | null;
+	updateCount: number;
+	/** Comments across all of its updates. */
+	commentCount: number;
+}
+
+/** Latest health and totals for a release's status updates, given newest first (as the public endpoint returns them). */
+export function summarizeStatusUpdates(
+	updates: ReadonlyArray<{ health: string; commentCount: number }> | null | undefined
+): StatusUpdateSummary {
+	const list = updates ?? [];
+	return {
+		health: list[0]?.health ?? null,
+		updateCount: list.length,
+		commentCount: list.reduce((sum, update) => sum + update.commentCount, 0),
+	};
+}
+
 interface OrderableTask {
 	status: string;
 	shortId?: number | null;

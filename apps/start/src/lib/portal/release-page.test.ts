@@ -3,9 +3,10 @@ import {
 	countUserPosts,
 	getFirstParagraphText,
 	getHealthPill,
-	getReleaseTint,
 	getNotesAfterLede,
+	getReleaseTint,
 	orderReleaseTasks,
+	summarizeStatusUpdates,
 } from "./release-page";
 
 describe("getReleaseTint", () => {
@@ -113,5 +114,21 @@ describe("release description helpers", () => {
 	it("returns null when only the lede is there", () => {
 		expect(getNotesAfterLede({ type: "doc", content: [paragraph("Only this.")] })).toBeNull();
 		expect(getNotesAfterLede(null)).toBeNull();
+	});
+});
+
+describe("summarizeStatusUpdates", () => {
+	it("takes the newest update's health and totals the comments", () => {
+		expect(
+			summarizeStatusUpdates([
+				{ health: "at_risk", commentCount: 2 },
+				{ health: "on_track", commentCount: 3 },
+			])
+		).toEqual({ health: "at_risk", updateCount: 2, commentCount: 5 });
+	});
+
+	it("has no health when there are no updates", () => {
+		expect(summarizeStatusUpdates([])).toEqual({ health: null, updateCount: 0, commentCount: 0 });
+		expect(summarizeStatusUpdates(undefined)).toEqual({ health: null, updateCount: 0, commentCount: 0 });
 	});
 });
