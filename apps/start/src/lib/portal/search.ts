@@ -1,15 +1,6 @@
 import { getReleaseDate } from "./status";
 import type { PortalDateInput } from "./time";
 
-/** Which result groups the palette shows. */
-export type SearchFilter = "all" | "posts" | "releases";
-
-export const SEARCH_FILTERS: ReadonlyArray<{ value: SearchFilter; label: string }> = [
-	{ value: "all", label: "All" },
-	{ value: "posts", label: "Posts" },
-	{ value: "releases", label: "Releases" },
-];
-
 /** How long typing settles before the server is asked. */
 export const SEARCH_DEBOUNCE_MS = 150;
 /** Shorter queries are answered from the cache only (a one-letter `q` matches nearly every post). */
@@ -201,17 +192,6 @@ export function filterReleases<T extends SearchReleaseLike>(
 		.sort((a, b) => b.score - a.score || releaseTime(b.release) - releaseTime(a.release))
 		.slice(0, limit)
 		.map((entry) => entry.release);
-}
-
-/** Whether a result group is visible under the chosen filter chip. */
-export function includesGroup(filter: SearchFilter, group: "posts" | "releases"): boolean {
-	return filter === "all" || filter === group;
-}
-
-/** Arrow-key movement through `count` rows, wrapping at both ends. */
-export function wrapIndex(current: number, delta: number, count: number): number {
-	if (count <= 0) return 0;
-	return (((current + delta) % count) + count) % count;
 }
 
 export interface SearchShortcutEvent {

@@ -3,7 +3,6 @@ import {
 	filterReleases,
 	getSearchShortcut,
 	getSearchTerms,
-	includesGroup,
 	mergePostResults,
 	normalizeSearchQuery,
 	rankPopularPosts,
@@ -11,7 +10,6 @@ import {
 	type SearchShortcutEvent,
 	scorePost,
 	splitHighlight,
-	wrapIndex,
 } from "./search";
 
 const keyOf = (post: SearchPostLike) => `SAY-${post.shortId}`;
@@ -181,22 +179,6 @@ describe("filterReleases", () => {
 	it("never returns archived releases", () => {
 		expect(filterReleases(releases, "old", 5)).toEqual([]);
 		expect(filterReleases(releases, "0.1", 5)).toEqual([]);
-	});
-});
-
-describe("includesGroup / wrapIndex", () => {
-	it("maps filters to groups", () => {
-		expect(includesGroup("all", "posts")).toBe(true);
-		expect(includesGroup("all", "releases")).toBe(true);
-		expect(includesGroup("posts", "releases")).toBe(false);
-		expect(includesGroup("releases", "releases")).toBe(true);
-	});
-
-	it("wraps arrow-key movement", () => {
-		expect(wrapIndex(0, -1, 4)).toBe(3);
-		expect(wrapIndex(3, 1, 4)).toBe(0);
-		expect(wrapIndex(1, 1, 4)).toBe(2);
-		expect(wrapIndex(0, 1, 0)).toBe(0);
 	});
 });
 

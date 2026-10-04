@@ -24,10 +24,13 @@ Command.displayName = CommandPrimitive.displayName;
 const CommandDialog = ({
 	children,
 	showOverlay = true,
+	commandProps,
 	...props
 }: Omit<React.ComponentProps<typeof Dialog>, "children"> & {
 	children?: React.ReactNode;
 	showOverlay?: boolean;
+	/** Passed to the inner `Command` (e.g. `shouldFilter={false}` when results come pre-filtered from a server). */
+	commandProps?: Omit<React.ComponentPropsWithoutRef<typeof CommandPrimitive>, "children" | "className">;
 }) => {
 	return (
 		<Dialog {...props}>
@@ -37,7 +40,10 @@ const CommandDialog = ({
 				className="overflow-hidden p-0 shadow-lg bg-popover z-[999999999] top-[15%]! translate-y-0!"
 				overlay={false}
 			>
-				<Command className="[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-muted-foreground [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-group]]:px-2 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-3 [&_[cmdk-item]_svg]:h-5 [&_[cmdk-item]_svg]:w-5">
+				<Command
+					className="[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-muted-foreground [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-group]]:px-2 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-3 [&_[cmdk-item]_svg]:h-5 [&_[cmdk-item]_svg]:w-5"
+					{...commandProps}
+				>
 					{children}
 				</Command>
 			</DialogContent>
