@@ -180,3 +180,32 @@ export function getFirstSentence(markdown: string | null | undefined, maxLength 
 	if (sentence.length <= maxLength) return sentence;
 	return `${sentence.slice(0, maxLength - 1).trimEnd()}…`;
 }
+
+const FIRST_IMAGE = /<img\b[^>]*?\bsrc="([^"]+)"|!\[[^\]]*\]\(([^)\s]+)/i;
+
+/** The first image in the release notes (the serializer writes `<img src>`; plain `![](url)` also counts), or null. */
+export function getFirstImage(markdown: string | null | undefined): string | null {
+	if (!markdown) return null;
+	const match = FIRST_IMAGE.exec(markdown);
+	return match?.[1] ?? match?.[2] ?? null;
+}
+
+/**
+ * Plain text of the release notes for a changelog card: paragraphs and bullet items joined in order (headings left
+ * out), cut at a word boundary with an ellipsis past `maxLength`. Empty when there is no text.
+ */
+export function getReleaseExcerpt(markdown: string | null | undefined, maxLength = 320): string {
+	const parts: string[] = [];
+	for (const block of parseReleaseNotes(markdown, "")) {
+		if (block.type === "paragraph") parts.push(inlineToPlainText(block.inline));
+		else if (block.type === "list") parts.push(...block.items.map(inlineToPlainText));
+	}
+	const text = parts
+		.map((part) => part.trim())
+		.filter(Boolean)
+		.join(" · ");
+	if (text.length <= maxLength) return text;
+	const cut = text.slice(0, maxLength - 1);
+	const lastSpace = cut.lastIndexOf(" ");
+	return `${(lastSpace > maxLength / 2 ? cut.slice(0, lastSpace) : cut).trimEnd()}…`;
+}

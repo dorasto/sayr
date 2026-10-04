@@ -45,3 +45,16 @@ export async function fetchPublicReleases(
 	const json = (await res.json()) as { data: PublicReleasesPage };
 	return json.data;
 }
+
+/** The status and labels of a release's public posts (from the single-release endpoint), for its progress. */
+export interface PublicReleaseTask {
+	status: string;
+	labels: ReadonlyArray<{ id: string; name: string; color: string | null }>;
+}
+
+export async function fetchPublicReleaseTasks(orgSlug: string, releaseSlug: string): Promise<PublicReleaseTask[]> {
+	const res = await fetch(`${PUBLIC_API_URL}/organization/${orgSlug}/releases/${encodeURIComponent(releaseSlug)}`);
+	if (!res.ok) throw new Error("Failed to fetch release");
+	const json = (await res.json()) as { data: { tasks: PublicReleaseTask[] } };
+	return json.data.tasks;
+}

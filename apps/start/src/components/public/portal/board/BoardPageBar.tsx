@@ -10,10 +10,15 @@ import { PUBLIC_BOARD_PANEL_ID } from "./BoardRailContent";
 /**
  * The board's top bar (the Page `header`, h-11 on desktop, h-14 on phones): just the toggle that hides and shows the
  * right-hand panel. The toggle is how a closed panel comes back, and how the panel is opened below 1024px, where it
- * never opens by itself. Tabs, sort and filters live in `BoardFeedbackCard` above the posts.
+ * never opens by itself. Tabs, sort and filters live in `BoardFeedbackCard` above the posts. The changelog reuses it for
+ * its own panel (`panelId`).
  */
-export function BoardPageBar() {
-  const panel = usePanel(PUBLIC_BOARD_PANEL_ID);
+export function BoardPageBar({
+  panelId = PUBLIC_BOARD_PANEL_ID,
+}: {
+  panelId?: string;
+}) {
+  const panel = usePanel(panelId);
   const { closePanel } = usePage();
 
   return (
@@ -27,8 +32,8 @@ export function BoardPageBar() {
         className="h-6 w-6 shrink-0 gap-2 p-1"
         onClick={() =>
           panel.isOpen
-            ? closePanel(PUBLIC_BOARD_PANEL_ID)
-            : sidebarActions.setOpen(PUBLIC_BOARD_PANEL_ID, true)
+            ? closePanel(panelId)
+            : sidebarActions.setOpen(panelId, true)
         }
       >
         {panel.isOpen ? (

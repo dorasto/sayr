@@ -1,16 +1,16 @@
 import { Skeleton } from "@repo/ui/components/skeleton";
 
-/** Loading placeholder shaped like one changelog timeline entry (rail, connector column, card). */
+/** Loading placeholder shaped like one changelog card (`ReleaseCard` without a cover). */
 export function ChangelogEntrySkeleton() {
 	return (
-		<div aria-hidden className="mb-10 grid grid-cols-1 gap-3 md:grid-cols-[150px_40px_1fr] md:gap-0">
-			<div className="flex flex-col items-start gap-2 md:items-end">
-				<Skeleton className="h-7 w-16" />
-				<Skeleton className="h-4 w-24" />
-				<Skeleton className="h-6 w-20 rounded-full" />
+		<div aria-hidden className="flex flex-col gap-2 rounded-xl bg-card px-4 py-3">
+			<div className="flex items-center gap-2">
+				<Skeleton className="h-5 w-20 rounded-full" />
+				<Skeleton className="h-3 w-28" />
 			</div>
-			<div className="hidden md:block" />
-			<Skeleton className="h-44 rounded-xl" />
+			<Skeleton className="h-4 w-2/5" />
+			<Skeleton className="h-3 w-4/5" />
+			<Skeleton className="h-3 w-3/5" />
 		</div>
 	);
 }

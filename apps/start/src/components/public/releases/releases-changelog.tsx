@@ -1,11 +1,15 @@
 import { Button } from "@repo/ui/components/button";
-import { Tabs, TabsList, TabsTab } from "@repo/ui/components/cossui/tabs";
 import { IconRocket } from "@tabler/icons-react";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import { useMemo } from "react";
-import { ChangelogEntry } from "@/components/public/portal/releases/ChangelogEntry";
+import { useEffect, useMemo } from "react";
+import { Page, type PanelConfig } from "@/components/generic/page";
+import { usePage, usePanel } from "@/components/generic/use-page";
+import { BoardPageBar } from "@/components/public/portal/board/BoardPageBar";
+import { ChangelogRail } from "@/components/public/portal/releases/ChangelogRail";
+import { ReleaseCard } from "@/components/public/portal/releases/ReleaseCard";
 import { fetchPublicReleases } from "@/components/public/portal/releases/types";
-import { CHANGELOG_TABS, type ChangelogTab, sortReleasedReleases, sortUpcomingReleases } from "@/lib/portal/changelog";
+import { usePanelViewportDefaults } from "@/hooks/portal/usePanelViewportDefaults";
+import { groupReleasesByMonth, sortReleasedReleases, sortUpcomingReleases } from "@/lib/portal/changelog";
 import { ChangelogEntrySkeleton } from "./changelog-entry-skeleton";
 
 /** How many upcoming releases are loaded per status; far above what a roadmap realistically holds. */
@@ -14,18 +18,46 @@ const UPCOMING_LIMIT = 50;
 const RELEASED_PAGE_SIZE = 10;
 const STALE_TIME = 1000 * 30;
 
+const CHANGELOG_PANEL_ID = "public-changelog-panel";
+
+/** The "Coming next" panel, sized and behaving like the Feedback board's (`BOARD_PANEL` in `public/index.tsx`). */
+const CHANGELOG_PANEL: PanelConfig = {
+	id: CHANGELOG_PANEL_ID,
+	header: { title: "Overview", showClose: false },
+	defaultOpen: true,
+	persistOpenState: false,
+	width: "30dvw",
+	fitContent: true,
+	resizable: false,
+	height: "70dvh",
+	minWidth: 280,
+	maxWidth: 480,
+	// Same chrome as the board's overview (`OVERVIEW_PANEL_VIEW` in `public/index.tsx`): no panel surface or header on
+	// desktop, the tiles float beside the feed, offset to clear the page bar.
+	classNames: {
+		desktop: {
+			popup: "bg-transparent border-transparent",
+			content: "p-0 pt-11",
+			header: "hidden",
+		},
+	},
+};
+
 interface ReleasesChangelogProps {
 	orgSlug: string;
-	tab: ChangelogTab;
-	onTabChange: (tab: ChangelogTab) => void;
 }
 
 /**
- * Public changelog: a vertical timeline of releases with All / Upcoming / Released tabs. Upcoming (`planned`,
- * `in-progress`) releases come first, then released ones newest first with "Show older releases" paging through the
- * existing `page`/`hasMore` pagination. Archived releases are never requested.
+ * Public changelog, laid out like the Feedback board: the main column is the released releases, newest first and grouped
+ * by month (`ReleaseCard`s, each a link to its release page), with "Show older releases" paging through the existing
+ * `page`/`hasMore` pagination; the right-hand panel (`ChangelogRail`) holds the upcoming (`planned`, `in-progress`)
+ * releases with their progress. Archived releases are never requested.
  */
-export function ReleasesChangelog({ orgSlug, tab, onTabChange }: ReleasesChangelogProps) {
+export function ReleasesChangelog({ orgSlug }: ReleasesChangelogProps) {
+	const { setPanelContent } = usePage();
+	const panel = usePanel(CHANGELOG_PANEL_ID);
+	const { modal } = usePanelViewportDefaults(CHANGELOG_PANEL_ID);
+
 	const planned = useQuery({
 		queryKey: ["public-releases", orgSlug, "planned"],
 		queryFn: () => fetchPublicReleases(orgSlug, "planned", 1, UPCOMING_LIMIT),
@@ -48,81 +80,41 @@ export function ReleasesChangelog({ orgSlug, tab, onTabChange }: ReleasesChangel
 		() => sortUpcomingReleases([...(planned.data?.releases ?? []), ...(inProgress.data?.releases ?? [])]),
 		[planned.data, inProgress.data]
 	);
-	const releasedReleases = useMemo(
-		() => sortReleasedReleases(released.data?.pages.flatMap((page) => page.releases) ?? []),
+	const months = useMemo(
+		() => groupReleasesByMonth(sortReleasedReleases(released.data?.pages.flatMap((page) => page.releases) ?? [])),
 		[released.data]
 	);
-
 	const upcomingLoading = planned.isLoading || inProgress.isLoading;
-	const countsReady = !upcomingLoading && !released.isLoading;
-	const upcomingCount = (planned.data?.pagination.totalItems ?? 0) + (inProgress.data?.pagination.totalItems ?? 0);
-	const releasedCount = released.data?.pages[0]?.pagination.totalItems ?? 0;
-	const counts: Record<ChangelogTab, number> = {
-		all: upcomingCount + releasedCount,
-		upcoming: upcomingCount,
-		released: releasedCount,
-	};
 
-	const showUpcoming = tab !== "released";
-	const showReleased = tab !== "upcoming";
-	const entries = [...(showUpcoming ? upcomingReleases : []), ...(showReleased ? releasedReleases : [])];
+	// Memoised so the effect below only re-fires when the panel's data changes (see the page-component skill), and gated
+	// on isRegistered: Page registers panels in its client-only pass.
+	const panelContent = useMemo(
+		() => <ChangelogRail orgSlug={orgSlug} upcoming={upcomingReleases} isLoading={upcomingLoading} />,
+		[orgSlug, upcomingReleases, upcomingLoading]
+	);
+	useEffect(() => {
+		if (!panel.isRegistered) return;
+		setPanelContent(CHANGELOG_PANEL_ID, panelContent);
+	}, [panel.isRegistered, setPanelContent, panelContent]);
 
-	const isLoading = (showUpcoming && upcomingLoading) || (showReleased && released.isLoading);
-	const isError = (showUpcoming && (planned.isError || inProgress.isError)) || (showReleased && released.isError);
-	const hasOlder = showReleased && !!released.hasNextPage;
-
-	const refetchAll = () => {
-		void planned.refetch();
-		void inProgress.refetch();
-		void released.refetch();
-	};
+	const panels = useMemo(() => ({ right: { ...CHANGELOG_PANEL, modal } }), [modal]);
 
 	return (
-		<div className="h-full overflow-y-auto">
-			<main className="mx-auto w-full max-w-[1120px] px-4 pt-8 pb-16 md:px-6 md:pt-12">
-				<div className="mb-8 flex flex-col gap-4 md:mb-10 md:flex-row md:items-end md:justify-between">
-					<div>
-						<h1 className="font-bold text-[28px] text-foreground leading-[34px] tracking-[-0.028em] md:text-[32px] md:leading-[38px]">
-							Changelog
-						</h1>
-						<p className="mt-1 max-w-[560px] text-[15px] text-muted-foreground leading-6">
-							Everything that has shipped, and what is coming next. Each release links to the posts it came from.
-						</p>
-					</div>
-					<Tabs
-						value={tab}
-						onValueChange={(next) => onTabChange(String(next) as ChangelogTab)}
-						className="md:w-auto"
-					>
-						<TabsList
-							variant="underline"
-							className="w-full justify-start gap-1 border-b data-[orientation=horizontal]:py-0 *:data-[slot=tabs-trigger]:hover:bg-transparent"
-						>
-							{CHANGELOG_TABS.map((item) => (
-								<TabsTab
-									key={item.value}
-									value={item.value}
-									className="h-10 grow-0 gap-2 rounded-none px-3 text-muted-foreground text-sm hover:text-foreground focus-visible:ring-0 data-active:text-foreground max-md:h-11 sm:h-10"
-								>
-									{item.label}
-									{countsReady && (
-										<span className="font-medium text-muted-foreground text-xs tabular-nums">
-											{counts[item.value]}
-										</span>
-									)}
-								</TabsTab>
-							))}
-						</TabsList>
-					</Tabs>
-				</div>
+		<Page panels={panels}>
+			<BoardPageBar panelId={CHANGELOG_PANEL_ID} />
+			<div className="w-full min-w-0 px-4 pb-16">
+				<header className="mb-4 border-b px-1 pb-4">
+					<h1 className="font-semibold! text-2xl! text-foreground tracking-tight">Changelog</h1>
+					<p className="mt-1 text-muted-foreground text-sm">Everything the team has shipped.</p>
+				</header>
 
-				{isLoading ? (
-					<div aria-busy>
+				{released.isLoading ? (
+					<div aria-busy className="flex flex-col gap-2">
 						<ChangelogEntrySkeleton />
 						<ChangelogEntrySkeleton />
 						<ChangelogEntrySkeleton />
 					</div>
-				) : isError ? (
+				) : released.isError ? (
 					<div className="mx-auto flex max-w-[340px] flex-col items-center py-16 text-center">
 						<span
 							aria-hidden
@@ -131,16 +123,12 @@ export function ReleasesChangelog({ orgSlug, tab, onTabChange }: ReleasesChangel
 							<IconRocket className="size-6" />
 						</span>
 						<div className="font-semibold text-base text-foreground">Could not load the changelog</div>
-						<p className="mt-1.5 text-muted-foreground text-sm leading-[21px]">
-							Check your connection and try again.
-						</p>
-						<div className="mt-4 flex flex-wrap items-center justify-center gap-2">
-							<Button variant="outline" size="sm" onClick={refetchAll}>
-								Try again
-							</Button>
-						</div>
+						<p className="mt-1.5 text-muted-foreground text-sm">Check your connection and try again.</p>
+						<Button variant="outline" size="sm" className="mt-4" onClick={() => void released.refetch()}>
+							Try again
+						</Button>
 					</div>
-				) : entries.length === 0 ? (
+				) : months.length === 0 ? (
 					<div className="mx-auto flex max-w-[340px] flex-col items-center py-16 text-center">
 						<span
 							aria-hidden
@@ -148,31 +136,27 @@ export function ReleasesChangelog({ orgSlug, tab, onTabChange }: ReleasesChangel
 						>
 							<IconRocket className="size-6" />
 						</span>
-						<div className="font-semibold text-base text-foreground">
-							{tab === "upcoming" ? "Nothing is planned right now" : "No releases yet"}
-						</div>
-						<p className="mt-1.5 text-muted-foreground text-sm leading-[21px]">
-							{tab === "upcoming"
-								? "Upcoming releases will show up here once the team schedules them."
-								: "Releases will show up here once the team publishes them."}
+						<div className="font-semibold text-base text-foreground">Nothing has shipped yet</div>
+						<p className="mt-1.5 text-muted-foreground text-sm">
+							Releases will show up here once the team publishes them.
 						</p>
 					</div>
 				) : (
-					<>
-						<div>
-							{entries.map((release, index) => (
-								<ChangelogEntry
-									key={release.id}
-									release={release}
-									orgSlug={orgSlug}
-									isLast={index === entries.length - 1 && !hasOlder}
-								/>
-							))}
-						</div>
-						{hasOlder && (
+					<div className="flex flex-col gap-6">
+						{months.map((month) => (
+							<section key={month.key} aria-label={month.label} className="flex flex-col gap-2">
+								<h2 className="px-1 font-medium! text-muted-foreground text-xs! leading-4! tracking-normal!">
+									{month.label}
+								</h2>
+								{month.releases.map((release) => (
+									<ReleaseCard key={release.id} release={release} orgSlug={orgSlug} />
+								))}
+							</section>
+						))}
+						{released.hasNextPage && (
 							<div className="flex justify-center">
 								<Button
-									variant="outline"
+									variant="accent"
 									size="sm"
 									disabled={released.isFetchingNextPage}
 									onClick={() => void released.fetchNextPage()}
@@ -181,9 +165,9 @@ export function ReleasesChangelog({ orgSlug, tab, onTabChange }: ReleasesChangel
 								</Button>
 							</div>
 						)}
-					</>
+					</div>
 				)}
-			</main>
-		</div>
+			</div>
+		</Page>
 	);
 }

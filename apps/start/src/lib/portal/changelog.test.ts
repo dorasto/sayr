@@ -1,21 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
 	getReleaseDisplayDate,
+	groupReleasesByMonth,
 	isUpcomingStatus,
-	parseChangelogTab,
 	sortReleasedReleases,
 	sortUpcomingReleases,
 } from "./changelog";
-
-describe("parseChangelogTab", () => {
-	it("accepts the known tabs and falls back to All", () => {
-		expect(parseChangelogTab("upcoming")).toBe("upcoming");
-		expect(parseChangelogTab("released")).toBe("released");
-		expect(parseChangelogTab("all")).toBe("all");
-		expect(parseChangelogTab("archived")).toBe("all");
-		expect(parseChangelogTab(undefined)).toBe("all");
-	});
-});
 
 describe("isUpcomingStatus", () => {
 	it("treats planned and in-progress as upcoming", () => {
@@ -63,5 +53,24 @@ describe("getReleaseDisplayDate", () => {
 		expect(dated.prefix).toBe("Target");
 		expect(dated.date?.toISOString().slice(0, 10)).toBe("2026-10-14");
 		expect(getReleaseDisplayDate({ status: "planned", targetDate: null }).date).toBeNull();
+	});
+});
+
+describe("groupReleasesByMonth", () => {
+	it("groups consecutive releases by display month, keeping order", () => {
+		const releases = [
+			{ id: "a", status: "released", releasedAt: "2026-04-17T10:00:00Z" },
+			{ id: "b", status: "released", releasedAt: "2026-04-02T10:00:00Z" },
+			{ id: "c", status: "released", releasedAt: "2026-03-30T10:00:00Z" },
+		];
+		const groups = groupReleasesByMonth(releases);
+		expect(groups.map((group) => [group.label, group.releases.map((release) => release.id)])).toEqual([
+			["April 2026", ["a", "b"]],
+			["March 2026", ["c"]],
+		]);
+	});
+
+	it("puts releases without any date under Undated", () => {
+		expect(groupReleasesByMonth([{ status: "planned" }])[0]?.label).toBe("Undated");
 	});
 });

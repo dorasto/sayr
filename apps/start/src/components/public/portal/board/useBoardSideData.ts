@@ -2,6 +2,7 @@ import type { schema } from "@repo/database";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { mergeReleaseLists } from "@/lib/portal/merge-releases";
+import { fetchPublicReleaseTasks } from "../releases/types";
 
 const baseApiUrl = import.meta.env.VITE_APP_ENV === "development" ? "/backend-api/internal" : "/api/internal";
 const basePublicApiUrl = import.meta.env.VITE_APP_ENV === "development" ? "/backend-api/public/v1" : "/api/public/v1";
@@ -85,14 +86,11 @@ export function useBoardReleases(orgSlug: string) {
 
 /** Number of public posts attached to a release, from the release detail endpoint; `null` until known or on failure. */
 export function useReleaseTaskCount(orgSlug: string, releaseSlug: string | null) {
-	const query = useQuery<number>({
-		queryKey: ["board-release-task-count", orgSlug, releaseSlug],
-		queryFn: async () => {
-			const res = await fetch(`${basePublicApiUrl}/organization/${orgSlug}/releases/${releaseSlug}`);
-			if (!res.ok) throw new Error("Failed to fetch release");
-			const json: { data: { tasks: unknown[] } } = await res.json();
-			return json.data.tasks.length;
-		},
+	// Shares the release's cached posts with the changelog (`useReleaseProgress`): one request per release.
+	const query = useQuery({
+		queryKey: ["public-release-tasks", orgSlug, releaseSlug],
+		queryFn: () => fetchPublicReleaseTasks(orgSlug, releaseSlug ?? ""),
+		select: (tasks) => tasks.length,
 		enabled: !!releaseSlug,
 		staleTime: 1000 * 60 * 5,
 		refetchOnWindowFocus: false,

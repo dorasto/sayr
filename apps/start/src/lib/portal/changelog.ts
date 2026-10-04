@@ -4,19 +4,6 @@ import { type PortalDateInput, toTime } from "./time";
 /** The public release status enum (`archived` is never shown on the portal). */
 export type ReleaseStatus = "planned" | "in-progress" | "released" | "archived";
 
-export type ChangelogTab = "all" | "upcoming" | "released";
-
-export const CHANGELOG_TABS: ReadonlyArray<{ value: ChangelogTab; label: string }> = [
-	{ value: "all", label: "All" },
-	{ value: "upcoming", label: "Upcoming" },
-	{ value: "released", label: "Released" },
-];
-
-/** Reads the `?tab=` value; anything unknown falls back to All. */
-export function parseChangelogTab(value: unknown): ChangelogTab {
-	return value === "upcoming" || value === "released" ? value : "all";
-}
-
 /** Upcoming = `planned | in-progress`: the "Coming next" releases. */
 export function isUpcomingStatus(status: string): boolean {
 	return status === "planned" || status === "in-progress";
@@ -58,4 +45,34 @@ export function getReleaseDisplayDate(release: ReleaseDates): { prefix: "Release
 	if (release.status === "released") return { prefix: "Released", date: getReleaseDate(release) };
 	const target = toTime(release.targetDate);
 	return { prefix: "Target", date: target === null ? null : new Date(target) };
+}
+
+export interface ReleaseMonthGroup<T> {
+	/** `YYYY-MM` (UTC), or "undated". */
+	key: string;
+	/** e.g. "April 2026"; "Undated" for releases with no date at all. */
+	label: string;
+	releases: T[];
+}
+
+/**
+ * Splits already-ordered releases into consecutive month groups by their display date (`getReleaseDisplayDate`), for the
+ * changelog feed's month headings. Order is kept: a group starts whenever the month changes.
+ */
+export function groupReleasesByMonth<T extends ReleaseDates>(releases: ReadonlyArray<T>): ReleaseMonthGroup<T>[] {
+	const groups: ReleaseMonthGroup<T>[] = [];
+	for (const release of releases) {
+		const { date } = getReleaseDisplayDate(release);
+		const key = date ? `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}` : "undated";
+		const last = groups.at(-1);
+		if (last?.key === key) {
+			last.releases.push(release);
+			continue;
+		}
+		const label = date
+			? date.toLocaleDateString("en-GB", { month: "long", year: "numeric", timeZone: "UTC" })
+			: "Undated";
+		groups.push({ key, label, releases: [release] });
+	}
+	return groups;
 }

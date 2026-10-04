@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { getFirstSentence, inlineToPlainText, parseReleaseInline, parseReleaseNotes } from "./release-notes";
+import {
+	getFirstImage,
+	getFirstSentence,
+	getReleaseExcerpt,
+	inlineToPlainText,
+	parseReleaseInline,
+	parseReleaseNotes,
+} from "./release-notes";
 
 describe("parseReleaseNotes", () => {
 	const markdown = [
@@ -103,5 +110,37 @@ describe("getFirstSentence", () => {
 		expect(getFirstSentence("")).toBe("");
 		expect(getFirstSentence(null)).toBe("");
 		expect(getFirstSentence("## Only a heading")).toBe("");
+	});
+});
+
+describe("getFirstImage", () => {
+	it("finds the serializer's <img> and markdown images, in order", () => {
+		expect(
+			getFirstImage('Intro\n\n<img src="https://cdn.x/a.png" width="10" height="5" />\n\n![b](https://cdn.x/b.png)')
+		).toBe("https://cdn.x/a.png");
+		expect(getFirstImage("Text ![shot](https://cdn.x/b.png)")).toBe("https://cdn.x/b.png");
+	});
+
+	it("is null without an image", () => {
+		expect(getFirstImage("Just words")).toBeNull();
+		expect(getFirstImage(null)).toBeNull();
+	});
+});
+
+describe("getReleaseExcerpt", () => {
+	it("joins paragraphs and bullets, skipping headings and images", () => {
+		const markdown = '## New\n\n- Dark mode\n- Faster search\n\n<img src="x.png" />\n\nThanks **all**.';
+		expect(getReleaseExcerpt(markdown)).toBe("Dark mode · Faster search · Thanks all.");
+	});
+
+	it("cuts long text at a word boundary", () => {
+		const excerpt = getReleaseExcerpt("word ".repeat(100), 40);
+		expect(excerpt.endsWith("…")).toBe(true);
+		expect(excerpt.length).toBeLessThanOrEqual(40);
+		expect(excerpt).not.toMatch(/wor…$/);
+	});
+
+	it("is empty without text", () => {
+		expect(getReleaseExcerpt("")).toBe("");
 	});
 });

@@ -4,7 +4,6 @@ import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 
 import { ReleasesChangelog } from "@/components/public/releases/releases-changelog";
-import { type ChangelogTab, parseChangelogTab } from "@/lib/portal/changelog";
 import { getOgImageUrl, seo } from "@/seo";
 
 const fetchPublicOrgMeta = createServerFn({ method: "GET" })
@@ -29,11 +28,6 @@ const fetchPublicOrgMeta = createServerFn({ method: "GET" })
 	});
 
 export const Route = createFileRoute("/orgs/$orgSlug/releases/")({
-	// `?tab=upcoming|released`; All is the default and stays out of the URL.
-	validateSearch: (search: Record<string, unknown>): { tab?: ChangelogTab } => {
-		const tab = parseChangelogTab(search.tab);
-		return tab === "all" ? {} : { tab };
-	},
 	loader: async ({ params, context }) =>
 		fetchPublicOrgMeta({
 			data: {
@@ -55,16 +49,6 @@ export const Route = createFileRoute("/orgs/$orgSlug/releases/")({
 });
 
 function ReleasesListPage() {
-	const params = Route.useParams();
-	const search = Route.useSearch();
-	const navigate = Route.useNavigate();
-	const orgSlug = params.orgSlug;
-
-	return (
-		<ReleasesChangelog
-			orgSlug={orgSlug}
-			tab={parseChangelogTab(search.tab)}
-			onTabChange={(tab) => navigate({ search: tab === "all" ? {} : { tab }, replace: true })}
-		/>
-	);
+	const { orgSlug } = Route.useParams();
+	return <ReleasesChangelog orgSlug={orgSlug} />;
 }
