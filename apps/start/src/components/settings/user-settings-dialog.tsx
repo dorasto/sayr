@@ -77,6 +77,13 @@ export function UserSettingsDialog({
     authClient.getSession();
   }, []);
 
+  /** This page with the dialog open on `tab` (absolute, or path-only for in-app navigation). */
+  const settingsTabURL = (tab: UserSettingsTab, absolute = true) => {
+    if (typeof window === "undefined") return undefined;
+    const path = `${window.location.pathname}?settings=${tab}`;
+    return absolute ? `${window.location.origin}${path}` : path;
+  };
+
   const handleSignOut = useCallback(async () => {
     await authClient.signOut();
     window.location.reload();
@@ -175,7 +182,10 @@ export function UserSettingsDialog({
         </div>
       </TabPanel>
       <TabPanel tabId="security">
-        <SecuritySettings />
+        <SecuritySettings
+          reauthReturnURL={settingsTabURL("security")}
+          connectionsHref={settingsTabURL("connections", false)}
+        />
       </TabPanel>
       <TabPanel tabId="connections">
         <ConnectionsSettings callbackURL={connectionsCallbackURL} />

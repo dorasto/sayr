@@ -93,3 +93,31 @@ export const getConnectionSettings = createServerFn({ method: "GET" }).handler(a
 		},
 	};
 });
+
+const OAUTH_PROVIDERS = ["doras", "github", "discord", "slack"] as const;
+export type ReauthProvider = (typeof OAUTH_PROVIDERS)[number];
+
+function isProviderConfigured(provider: ReauthProvider) {
+	const key = provider.toUpperCase();
+	return !!(process.env[`${key}_CLIENT_ID`] && process.env[`${key}_CLIENT_SECRET`]);
+}
+
+/**
+ * The re-auth page's options: the ways this user can sign in again (their linked providers that are still configured,
+ * and a password if they have one). `null` when nobody is signed in.
+ */
+export const getReauthOptions = createServerFn({ method: "GET" }).handler(async () => {
+	const headers = new Headers(getRequestHeaders());
+	const session = await auth.api.getSession({ headers });
+	if (!session?.user) return null;
+	const accounts = await db.query.account.findMany({
+		where: eq(authSchema.account.userId, session.user.id),
+		columns: { providerId: true },
+	});
+	const linked = new Set(accounts.map((account) => account.providerId));
+	return {
+		email: session.user.email,
+		hasPassword: linked.has("credential"),
+		providers: OAUTH_PROVIDERS.filter((provider) => linked.has(provider) && isProviderConfigured(provider)),
+	};
+});

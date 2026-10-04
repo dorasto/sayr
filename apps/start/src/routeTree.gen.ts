@@ -16,6 +16,7 @@ import { Route as HealthRouteImport } from './routes/health'
 import { Route as adminRouteRouteImport } from './routes/(admin)/route'
 import { Route as adminIndexRouteImport } from './routes/(admin)/index'
 import { Route as AuthSignupRouteImport } from './routes/auth/signup'
+import { Route as AuthReauthRouteImport } from './routes/auth/reauth'
 import { Route as AuthPasswordResetRouteImport } from './routes/auth/password-reset'
 import { Route as AuthLoginRouteImport } from './routes/auth/login'
 import { Route as AuthAuthCheckRouteImport } from './routes/auth/auth-check'
@@ -106,6 +107,11 @@ const adminIndexRoute = adminIndexRouteImport.update({
 const AuthSignupRoute = AuthSignupRouteImport.update({
   id: '/auth/signup',
   path: '/auth/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthReauthRoute = AuthReauthRouteImport.update({
+  id: '/auth/reauth',
+  path: '/auth/reauth',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthPasswordResetRoute = AuthPasswordResetRouteImport.update({
@@ -439,6 +445,7 @@ export interface FileRoutesByFullPath {
   '/auth/auth-check': typeof AuthAuthCheckRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/password-reset': typeof AuthPasswordResetRoute
+  '/auth/reauth': typeof AuthReauthRoute
   '/auth/signup': typeof AuthSignupRoute
   '/': typeof adminIndexRoute
   '/$orgId/tasks': typeof adminOrgIdTasksRouteRouteWithChildren
@@ -498,6 +505,7 @@ export interface FileRoutesByTo {
   '/auth/auth-check': typeof AuthAuthCheckRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/password-reset': typeof AuthPasswordResetRoute
+  '/auth/reauth': typeof AuthReauthRoute
   '/auth/signup': typeof AuthSignupRoute
   '/': typeof adminIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -561,6 +569,7 @@ export interface FileRoutesById {
   '/auth/auth-check': typeof AuthAuthCheckRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/password-reset': typeof AuthPasswordResetRoute
+  '/auth/reauth': typeof AuthReauthRoute
   '/auth/signup': typeof AuthSignupRoute
   '/(admin)/': typeof adminIndexRoute
   '/(admin)/$orgId/tasks': typeof adminOrgIdTasksRouteRouteWithChildren
@@ -628,6 +637,7 @@ export interface FileRouteTypes {
     | '/auth/auth-check'
     | '/auth/login'
     | '/auth/password-reset'
+    | '/auth/reauth'
     | '/auth/signup'
     | '/'
     | '/$orgId/tasks'
@@ -687,6 +697,7 @@ export interface FileRouteTypes {
     | '/auth/auth-check'
     | '/auth/login'
     | '/auth/password-reset'
+    | '/auth/reauth'
     | '/auth/signup'
     | '/'
     | '/api/auth/$'
@@ -749,6 +760,7 @@ export interface FileRouteTypes {
     | '/auth/auth-check'
     | '/auth/login'
     | '/auth/password-reset'
+    | '/auth/reauth'
     | '/auth/signup'
     | '/(admin)/'
     | '/(admin)/$orgId/tasks'
@@ -811,6 +823,7 @@ export interface RootRouteChildren {
   AuthAuthCheckRoute: typeof AuthAuthCheckRoute
   AuthLoginRoute: typeof AuthLoginRoute
   AuthPasswordResetRoute: typeof AuthPasswordResetRoute
+  AuthReauthRoute: typeof AuthReauthRoute
   AuthSignupRoute: typeof AuthSignupRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   InviteOrgIdIndexRoute: typeof InviteOrgIdIndexRoute
@@ -865,6 +878,13 @@ declare module '@tanstack/react-router' {
       path: '/auth/signup'
       fullPath: '/auth/signup'
       preLoaderRoute: typeof AuthSignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/reauth': {
+      id: '/auth/reauth'
+      path: '/auth/reauth'
+      fullPath: '/auth/reauth'
+      preLoaderRoute: typeof AuthReauthRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth/password-reset': {
@@ -1504,6 +1524,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthAuthCheckRoute: AuthAuthCheckRoute,
   AuthLoginRoute: AuthLoginRoute,
   AuthPasswordResetRoute: AuthPasswordResetRoute,
+  AuthReauthRoute: AuthReauthRoute,
   AuthSignupRoute: AuthSignupRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   InviteOrgIdIndexRoute: InviteOrgIdIndexRoute,

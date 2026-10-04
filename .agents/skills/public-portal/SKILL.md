@@ -63,6 +63,8 @@ Most portal users never visit `admin.*`, so personal settings live in `UserSetti
 
 `?settings=<tab>` on any portal page opens the dialog on that tab (`USER_SETTINGS_TABS` / `isUserSettingsTab`; closing it strips the param). Connections passes `<current page>?settings=connections` as the OAuth `callbackURL`, so linking an account returns to the dialog on the org subdomain. This works because the session cookie is shared across `*.${VITE_ROOT_DOMAIN}` and passkeys use `rpID = VITE_ROOT_DOMAIN` (`packages/auth/src/index.ts`) — a custom org domain would break both.
 
+**"Confirm it's you"**: Better Auth only allows adding a passkey and listing/revoking sessions within a day of signing in (`freshAge`); after that it returns `SESSION_NOT_FRESH`. `SecuritySettings`/`PasskeySection` catch it (`lib/auth/reauth.ts`) and send the user to `/auth/reauth?redirect=<absolute URL>` on the main app host, which offers their own sign-in methods (linked providers, passkey, password) and returns them (only to the root domain or a subdomain, `isSafeReturnUrl`). The dialog passes `<page>?settings=security` so they land back in it. Auth links in emails must be absolute (`VITE_URL_ROOT`): a relative `redirectTo`/`callbackURL` resolves against the auth base URL, the bare root domain in production.
+
 ## Feedback, Activity and Roadmap on the shared board
 
 All mount `BoardProvider` with `capabilities={READ_ONLY_CAPABILITIES}` (so `Field*` components render their static read-only form). Feedback and Roadmap also pass a **`controlled`** scope and module-level (stable) `views`/`renderers`. Never edit, select, drag, bulk-edit or save views here. Read the `board` and `board-saved-views` skills for the contracts; this is how the portal uses them.

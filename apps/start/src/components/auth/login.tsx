@@ -15,10 +15,11 @@ import { headlessToast } from "@repo/ui/components/headless-toast";
 import { Input } from "@repo/ui/components/input";
 import { Separator } from "@repo/ui/components/separator";
 import { cn } from "@repo/ui/lib/utils";
-import { IconBrandDiscordFilled, IconBrandGithubFilled, IconBrandSlack } from "@tabler/icons-react";
+import { IconBrandDiscordFilled, IconBrandGithubFilled, IconBrandSlack, IconFingerprint } from "@tabler/icons-react";
 import { createServerFn } from "@tanstack/react-start";
 import { ArrowRight } from "lucide-react";
 import { useEffect, useState } from "react";
+import { authErrorCode } from "@/lib/auth/reauth";
 
 interface OAuthProviders {
 	github: boolean;
@@ -67,6 +68,9 @@ export function LoginComponent({ isDialog = false, providers }: { isDialog?: boo
 	useEffect(() => {
 		setLastMethod(authClient.getLastUsedLoginMethod());
 	}, []);
+	// Passkey autofill: a saved passkey shows up as a suggestion in the email field's autofill list (the input's
+	// `webauthn` autocomplete token). `autoFill: true` keeps this passive; without it the browser opens its passkey
+	// prompt on every visit, for everyone.
 	useEffect(() => {
 		void (async () => {
 			if (
@@ -76,12 +80,32 @@ export function LoginComponent({ isDialog = false, providers }: { isDialog?: boo
 			) {
 				return;
 			}
-			const result = await authClient.signIn.passkey();
+			const result = await authClient.signIn.passkey({ autoFill: true });
 			if (result.data?.session) {
 				await signInEmail();
 			}
 		})();
 	}, []);
+
+	// Signing in with a passkey only finds an existing account; it can't create one (registering a passkey needs a
+	// signed-in session), so a passkey with no account behind it just gets an explanation.
+	const handlePasskeySignIn = async () => {
+		const result = await authClient.signIn.passkey();
+		if (result.data?.session) {
+			await signInEmail();
+			return;
+		}
+		const code = authErrorCode(result.error);
+		// Closing the browser's passkey prompt is not an error worth a toast.
+		if (!code || code === "AUTH_CANCELLED" || code.startsWith("ERROR_")) return;
+		headlessToast.error({
+			title: "Couldn't sign in with a passkey",
+			description:
+				code === "PASSKEY_NOT_FOUND"
+					? "No account uses that passkey. Sign in another way, then add a passkey under Settings → Security."
+					: result.error?.message || "Please try again or sign in another way.",
+		});
+	};
 	const handleEmailSubmit = () => {
 		if (email) {
 			if (isSignUp) {
@@ -124,6 +148,28 @@ export function LoginComponent({ isDialog = false, providers }: { isDialog?: boo
 			});
 	};
 
+	const [sendingReset, setSendingReset] = useState(false);
+
+	// The same message whether or not the email has an account, so the form doesn't reveal who's signed up.
+	const handleForgotPassword = async () => {
+		setSendingReset(true);
+		const result = await authClient.requestPasswordReset({
+			email,
+			// Absolute: a relative path resolves against the auth server's base URL (the bare root domain in
+			// production), where this page doesn't exist.
+			redirectTo: `${import.meta.env.VITE_URL_ROOT}/auth/password-reset`,
+		});
+		setSendingReset(false);
+		if (result.error && result.error.status >= 500) {
+			headlessToast.error({ title: "Couldn't send the reset email", description: "Please try again in a moment." });
+			return;
+		}
+		headlessToast.success({
+			title: "Check your inbox",
+			description: `If ${email} has a password on Sayr, we've sent it a link to reset it.`,
+		});
+	};
+
 	const handleSignUpSubmit = async () => {
 		const result = await authClient.signUp.email({
 			email,
@@ -151,8 +197,6 @@ export function LoginComponent({ isDialog = false, providers }: { isDialog?: boo
 			description: "We've sent you a verification link. Please check your inbox.",
 		});
 	};
-
-	const hasAnyProvider = providers?.doras || providers?.github || providers?.discord || providers?.slack;
 
 	const providerButtons = [
 		providers?.doras && {
@@ -196,12 +240,20 @@ export function LoginComponent({ isDialog = false, providers }: { isDialog?: boo
 			onClick: signInSlack,
 			icon: <IconBrandSlack className="size-[18px]" />,
 		},
+		// Not offered on sign up (the grid is hidden there): a passkey can only sign in to an existing account.
+		{
+			id: "passkey",
+			label: "Passkey",
+			onClick: handlePasskeySignIn,
+			icon: <IconFingerprint className="size-[18px]" />,
+		},
 	].filter(Boolean) as Array<{
 		id: string;
 		label: string;
 		onClick: () => void;
 		icon: React.ReactNode;
 	}>;
+	const hasAnyProvider = providerButtons.length > 0;
 
 	return (
 		<div
@@ -223,13 +275,15 @@ export function LoginComponent({ isDialog = false, providers }: { isDialog?: boo
 				{/* SSO Buttons */}
 				{hasAnyProvider && !isSignUp && (
 					<div className="grid grid-cols-1 md:grid-cols-2 gap-2 w-full">
-						{providerButtons.map((provider) => {
+						{providerButtons.map((provider, index) => {
 							const isLastUsed = lastMethod === provider.id;
+							// An odd last button (usually Passkey) spans the row instead of sitting alone in half of it.
+							const spansRow = index === providerButtons.length - 1 && providerButtons.length % 2 === 1;
 							return (
 								<Button
 									key={provider.id}
 									variant="primary"
-									className={cn("w-full justify-start gap-3 h-10 relative", provider.id === "doras" && "")}
+									className={cn("w-full justify-start gap-3 h-10 relative", spansRow && "md:col-span-2")}
 									onClick={provider.onClick}
 								>
 									<span className="size-[18px] shrink-0 flex items-center justify-center">
@@ -352,18 +406,31 @@ export function LoginComponent({ isDialog = false, providers }: { isDialog?: boo
 						</Button>
 					</div>
 					{step !== "email" && (
-						<Button
-							variant="link"
-							size="sm"
-							className="h-auto p-0 text-muted-foreground self-start"
-							onClick={() => {
-								setStep("email");
-								setPassword("");
-								setName("");
-							}}
-						>
-							Back to email
-						</Button>
+						<div className="flex items-center justify-between gap-2">
+							<Button
+								variant="link"
+								size="sm"
+								className="h-auto p-0 text-muted-foreground"
+								onClick={() => {
+									setStep("email");
+									setPassword("");
+									setName("");
+								}}
+							>
+								Back to email
+							</Button>
+							{step === "password" && !isSignUp && (
+								<Button
+									variant="link"
+									size="sm"
+									className="h-auto p-0 text-muted-foreground"
+									disabled={sendingReset}
+									onClick={handleForgotPassword}
+								>
+									{sendingReset ? "Sending..." : "Forgot password?"}
+								</Button>
+							)}
+						</div>
 					)}
 					{step === "email" && (
 						<Button

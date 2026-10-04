@@ -5,7 +5,6 @@ import { Tile, TileAction, TileDescription, TileHeader, TileIcon, TileTitle } fr
 import { Skeleton } from "@repo/ui/components/skeleton";
 import { Switch } from "@repo/ui/components/switch";
 import {
-	IconAlertCircle,
 	IconDeviceDesktop,
 	IconDeviceMobile,
 	IconRefresh,
@@ -14,7 +13,9 @@ import {
 	IconTrash,
 } from "@tabler/icons-react";
 import { useQuery } from "@tanstack/react-query";
+import { useRouter } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { isSessionNotFresh, reauthUrl } from "@/lib/auth/reauth";
 import { getSecuritySettings } from "@/lib/serverFunctions/account-settings";
 import { BackupCodesDialog } from "../security/backup-codes-dialog";
 import { GenerateBackupCodesDialog } from "../security/generate-backup-codes-dialog";
@@ -34,11 +35,21 @@ interface SessionRow {
 	token: string;
 }
 
+interface SecuritySettingsProps {
+	/** Where "Confirm it's you" returns to. @default the current page */
+	reauthReturnURL?: string;
+	/** The Connections settings, where a user without a password can add one. @default "/settings/connections" */
+	connectionsHref?: string;
+}
+
 /**
  * The Security settings section (two-factor, passkeys, active sessions). Self-contained: it loads its own data, so it
  * renders the same on the admin `/settings/security` page and in the portal's account dialog.
  */
-export function SecuritySettings() {
+export function SecuritySettings({
+	reauthReturnURL,
+	connectionsHref = "/settings/connections",
+}: SecuritySettingsProps) {
 	const security = useQuery({ queryKey: SECURITY_SETTINGS_QUERY_KEY, queryFn: () => getSecuritySettings() });
 
 	if (security.isError) {
@@ -60,10 +71,14 @@ export function SecuritySettings() {
 			</div>
 		);
 	}
-	return <SecuritySettingsContent {...security.data} />;
+	return (
+		<SecuritySettingsContent {...security.data} reauthReturnURL={reauthReturnURL} connectionsHref={connectionsHref} />
+	);
 }
 
 interface SecuritySettingsContentProps {
+	reauthReturnURL?: string;
+	connectionsHref: string;
 	hasPassword: boolean;
 	twoFactorEnabled: boolean;
 	backupCodes: string[];
@@ -73,8 +88,14 @@ function SecuritySettingsContent({
 	hasPassword,
 	twoFactorEnabled: initialTwoFactorEnabled,
 	backupCodes,
+	reauthReturnURL,
+	connectionsHref,
 }: SecuritySettingsContentProps) {
 	const { data: session } = authClient.useSession();
+	const router = useRouter();
+	const confirmIdentity = () => {
+		window.location.href = reauthUrl(reauthReturnURL ?? window.location.href);
+	};
 	const [twoFactorEnabled, setTwoFactorEnabled] = useState(initialTwoFactorEnabled);
 
 	// --- Password dialog (step 1) ---
@@ -97,11 +118,16 @@ function SecuritySettingsContent({
 	// --- Sessions ---
 	const [sessions, setSessions] = useState<SessionRow[]>([]);
 	const [loadingSessions, setLoadingSessions] = useState(true);
+	const [sessionsNeedReauth, setSessionsNeedReauth] = useState(false);
 
 	useEffect(() => {
 		async function loadSessions() {
 			try {
 				const sessionsList = await authClient.listSessions();
+				if (isSessionNotFresh(sessionsList.error)) {
+					setSessionsNeedReauth(true);
+					return;
+				}
 				if (sessionsList.data) {
 					setSessions(
 						sessionsList.data.map((s) => ({
@@ -126,7 +152,11 @@ function SecuritySettingsContent({
 
 	const handleRevokeSession = async (sessionId: string) => {
 		try {
-			await authClient.revokeSession({ token: sessionId });
+			const result = await authClient.revokeSession({ token: sessionId });
+			if (isSessionNotFresh(result.error)) {
+				confirmIdentity();
+				return;
+			}
 			setSessions(sessions.filter((s) => s.id !== sessionId));
 		} catch (error) {
 			console.error("Failed to revoke session:", error);
@@ -231,27 +261,23 @@ function SecuritySettingsContent({
 							<TileTitle>Two-Factor Authentication</TileTitle>
 							<TileDescription className="text-xs">
 								{isTwoFactorDisabled
-									? "Set up a password to enable two-factor authentication"
+									? "Two-factor protects signing in with a password. You sign in with a connected account, so its own security (and two-factor, if you've turned it on there) protects you. Add a password to sign in with email too, then protect it here."
 									: "Add an extra layer of security to your account"}
 							</TileDescription>
 						</TileHeader>
 						<TileAction>
-							<div className="flex items-center gap-2">
-								{!hasPassword && (
-									<div className="flex items-center gap-1 text-xs text-muted-foreground">
-										<IconAlertCircle className="size-3" />
-										<span>No password</span>
-									</div>
-								)}
-								<Switch
-									checked={twoFactorEnabled}
-									onCheckedChange={handleTwoFactorToggle}
-									disabled={isTwoFactorDisabled}
-								/>
-								<span className="text-sm text-muted-foreground">
-									{twoFactorEnabled ? "Enabled" : "Disabled"}
-								</span>
-							</div>
+							{isTwoFactorDisabled ? (
+								<Button variant="outline" size="sm" onClick={() => router.history.push(connectionsHref)}>
+									Add a password
+								</Button>
+							) : (
+								<div className="flex items-center gap-2">
+									<Switch checked={twoFactorEnabled} onCheckedChange={handleTwoFactorToggle} />
+									<span className="text-sm text-muted-foreground">
+										{twoFactorEnabled ? "Enabled" : "Disabled"}
+									</span>
+								</div>
+							)}
 						</TileAction>
 					</Tile>
 					{twoFactorEnabled && (
@@ -270,7 +296,7 @@ function SecuritySettingsContent({
 				</div>
 
 				{/* Passkeys */}
-				<PasskeySection />
+				<PasskeySection onConfirmIdentity={confirmIdentity} />
 
 				{/* Active Sessions */}
 				<div className="bg-card rounded-lg flex flex-col">
@@ -288,6 +314,15 @@ function SecuritySettingsContent({
 
 					{loadingSessions ? (
 						<div className="px-4 pb-4 pt-2 text-sm text-muted-foreground">Loading sessions...</div>
+					) : sessionsNeedReauth ? (
+						<div className="flex items-center justify-between gap-3 px-4 pb-4 pt-2">
+							<span className="text-sm text-muted-foreground">
+								For your security, confirm it's you to see where you're signed in.
+							</span>
+							<Button variant="outline" size="sm" className="shrink-0" onClick={confirmIdentity}>
+								Confirm it's you
+							</Button>
+						</div>
 					) : (
 						<div className="px-4 pb-4 pt-2 flex flex-col gap-2">
 							{sessions.map((_session) => (

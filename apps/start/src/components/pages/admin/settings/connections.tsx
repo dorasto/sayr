@@ -69,7 +69,9 @@ export default function UserConnections({
 			async () => {
 				await authClient.requestPasswordReset({
 					email: emailAddress,
-					redirectTo: "/auth/password-reset",
+					// Absolute: a relative path resolves against the auth server's base URL (the bare root domain in
+					// production), where this page doesn't exist.
+					redirectTo: `${import.meta.env.VITE_URL_ROOT}/auth/password-reset`,
 				});
 				// Return something compatible with what runWithToast expects.
 				// You don't actually use it, so a dummy object is fine.
