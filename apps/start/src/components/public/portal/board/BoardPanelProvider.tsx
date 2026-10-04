@@ -7,8 +7,8 @@ import { useTasksSearchParams } from "@/hooks/useTasksSearchParams";
 import { type AppliedPanelView, getRowClickAction, getUrlSyncAction } from "@/lib/portal/board-panel";
 import { normalizeShortId, PEEK_DESKTOP_QUERY, shouldInterceptRowClick } from "@/lib/portal/peek";
 import { sidebarActions } from "@/lib/sidebar/sidebar-store";
-import { PeekContext, type PeekContextValue } from "../peek/peek-context";
 import { PEEK_CONTENT, PEEK_HEADER } from "../peek/PeekPanel";
+import { PeekContext, type PeekContextValue } from "../peek/peek-context";
 import { usePeekEnabled } from "../peek/usePeekEnabled";
 import { usePeekPost } from "../peek/usePeekPost";
 import { PUBLIC_BOARD_PANEL_ID, RAIL_CONTENT, RAIL_HEADER } from "./BoardRailContent";
@@ -49,7 +49,7 @@ interface BoardPanelProviderProps {
  * `?task` is the source of truth for the selection, and the two stay in sync both ways:
  * - a plain row click on desktop sets the param and shows the post, opening the panel if it was closed (clicking the
  *   selected row again returns to the overview);
- * - a deep link or history navigation that changes the param swaps the view (desktop only; below 1024px a `?task`
+ * - a deep link or history navigation that changes the param swaps the view (desktop only; below 1280px a `?task`
  *   deep link is redirected to the full post page and rows just navigate);
  * - the post header's X (`closePost`) and a click on the selected row go back to the overview when the panel was
  *   already open on it before the post was opened, and otherwise close the whole panel (the next open starts on the
@@ -148,7 +148,7 @@ export function BoardPanelProvider({ tasks, children }: BoardPanelProviderProps)
 
 	// URL -> panel. Reacts to the `?task` param (and the viewport) changing, not to the panel's open state, so a close
 	// made through the panel cannot be undone here before the isOpen effect below has cleared the param.
-	// biome-ignore lint/correctness/useExhaustiveDependencies: `desktop` only re-runs the effect when the viewport crosses 1024px; the decision itself reads the media query directly (see `isDesktopNow`).
+	// biome-ignore lint/correctness/useExhaustiveDependencies: `desktop` only re-runs the effect when the viewport crosses the Peek width (1280px); the decision itself reads the media query directly (see `isDesktopNow`).
 	useEffect(() => {
 		if (!panel.isRegistered) return;
 
@@ -167,7 +167,7 @@ export function BoardPanelProvider({ tasks, children }: BoardPanelProviderProps)
 				sidebarActions.setOpen(PUBLIC_BOARD_PANEL_ID, true);
 				return;
 			case "redirect-to-post":
-				// Never show a post in the panel below 1024px: a shared `?task=` link lands on the full post instead.
+				// Never show a post in the panel below the Peek width (1280px): a shared `?task=` link lands on the full post instead.
 				if (urlShortId === null) return;
 				void navigate({
 					to: "/orgs/$orgSlug/$shortId",

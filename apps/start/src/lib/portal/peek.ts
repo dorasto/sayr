@@ -2,10 +2,16 @@ import type { schema } from "@repo/database";
 import type { NodeJSON } from "prosekit/core";
 
 /**
- * Peek (the board's row-click side panel) only opens at or above this width; narrower viewports navigate to the
- * full post instead.
+ * At or above this width (`lg`) the portal's side panels dock beside the page and open by default; below it they are a
+ * modal sheet opened from the page's toggle (`usePanelViewportDefaults`).
  */
-export const PEEK_DESKTOP_QUERY = "(min-width: 1024px)";
+export const PANEL_DESKTOP_QUERY = "(min-width: 1024px)";
+
+/**
+ * Peek (opening a post inside the board's panel) needs more room than the panel itself, so it only runs at or above
+ * this width (`xl`); narrower viewports navigate to the full post page instead, while the overview panel still docks.
+ */
+export const PEEK_DESKTOP_QUERY = "(min-width: 1280px)";
 
 /** The post fields Peek renders. A board list task satisfies this directly; a fetched post is mapped onto it. */
 export type PeekPost = Pick<

@@ -92,7 +92,7 @@ const POST_PANEL_VIEW: Pick<PanelConfig, "classNames"> = {
   classNames: {
     desktop: {
       popup: "bg-transparent border-transparent",
-      content: "p-0 pt-3",
+      content: "p-0 pt-3 pr-3",
       header: "border-transparent px-0",
     },
   },

@@ -4,7 +4,7 @@ import { usePublicOrganizationLayout } from "@/contexts/publicContextOrg";
 import { pickLatestRelease } from "@/lib/portal/board-row";
 import type { PanelHeaderConfig } from "@/lib/sidebar/sidebar-store";
 import { sidebarActions } from "@/lib/sidebar/sidebar-store";
-import { usePeekEnabled } from "../peek/usePeekEnabled";
+import { usePanelDocked } from "../peek/usePeekEnabled";
 import { useBoardRail } from "./BoardRailProvider";
 import { CategoriesCard } from "./CategoriesCard";
 import { LatestReleaseCard } from "./LatestReleaseCard";
@@ -25,7 +25,7 @@ export function BoardRailContent() {
   const { organization, categories } = usePublicOrganizationLayout();
   const { counts, releases, activeCategorySlug, onCategoryChange } =
     useBoardRail();
-  const desktop = usePeekEnabled();
+  const desktop = usePanelDocked();
   const hasLatestRelease = useMemo(
     () => pickLatestRelease(releases) !== null,
     [releases],

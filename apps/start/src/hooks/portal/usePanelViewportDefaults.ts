@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { usePanel } from "@/components/generic/use-page";
-import { usePeekEnabled } from "@/components/public/portal/peek/usePeekEnabled";
-import { PEEK_DESKTOP_QUERY } from "@/lib/portal/peek";
+import { usePanelDocked } from "@/components/public/portal/peek/usePeekEnabled";
+import { PANEL_DESKTOP_QUERY } from "@/lib/portal/peek";
 import { sidebarActions } from "@/lib/sidebar/sidebar-store";
 
 /**
@@ -14,7 +14,7 @@ import { sidebarActions } from "@/lib/sidebar/sidebar-store";
  * Returns the `modal` value for the panel config: `undefined` (let `Page` decide) on wide screens, `true` below.
  */
 export function usePanelViewportDefaults(panelId: string): { modal: boolean | undefined } {
-	const wide = usePeekEnabled();
+	const wide = usePanelDocked();
 	const panel = usePanel(panelId);
 	const settled = useRef(false);
 
@@ -22,7 +22,7 @@ export function usePanelViewportDefaults(panelId: string): { modal: boolean | un
 		if (!panel.isRegistered || settled.current) return;
 		settled.current = true;
 		// Read the media query directly: the hook value can still be its server snapshot on the first client pass.
-		if (!window.matchMedia(PEEK_DESKTOP_QUERY).matches && panel.isOpen) sidebarActions.setOpen(panelId, false);
+		if (!window.matchMedia(PANEL_DESKTOP_QUERY).matches && panel.isOpen) sidebarActions.setOpen(panelId, false);
 	}, [panel.isRegistered, panel.isOpen, panelId]);
 
 	return { modal: wide ? undefined : true };
