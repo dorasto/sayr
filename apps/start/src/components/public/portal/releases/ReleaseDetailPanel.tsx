@@ -1,13 +1,14 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
-import { Card } from "@repo/ui/components/card";
+import { Label } from "@repo/ui/components/label";
 import { ensureCdnUrl, formatDate, getDisplayName, getInitials } from "@repo/util";
 import type { ReactNode } from "react";
+import { DetailSection } from "@/components/public/panels/detail-section";
 import { BarRow } from "@/components/public/portal/ui/BarRow";
 import { SegmentedProgress } from "@/components/public/portal/ui/SegmentedProgress";
 import { getReleaseDisplayDate } from "@/lib/portal/changelog";
 import type { ReleaseProgress } from "@/lib/portal/release-progress";
-import { DetailRow } from "@/components/public/panels/detail-row";
 import { LegendRow } from "./LegendRow";
+import { ReleaseHealth } from "./ReleaseHealth";
 import { ReleaseStatusChip } from "./ReleaseStatusChip";
 
 interface Lead {
@@ -18,71 +19,99 @@ interface Lead {
 
 interface ReleaseDetailPanelContentProps {
 	release: {
+		slug: string;
 		status: string;
 		releasedAt?: Date | string | null;
 		targetDate?: Date | string | null;
-		createdAt?: Date | string | null;
 	};
 	progress: ReleaseProgress;
+	/** The newest public status update's health, or `null` (the row is hidden). */
+	health: string | null;
 	/** The release lead when they are on the org's team, else `null` (the row is hidden). */
 	lead: Lead | null;
-	/** Posts from people outside the team, or `null` when the team cannot be resolved (the row is hidden). */
-	userPostCount: number | null;
-	/** Linked GitHub pull request section, rendered last when present. */
-	pullRequests?: ReactNode;
+	/** The linked GitHub pull request, shown last under its own heading when set. */
+	pullRequest?: ReactNode;
 }
 
 /**
- * Release drawer (`public-release-detail-panel`): Progress, What it touches, Details and — when there is one — the
- * linked pull request. Pure props, so the page memoises it once and hands it to the panel.
+ * The release page's Details drawer (`public-release-detail-panel`), laid out like a post's: label/value rows
+ * (`DetailSection`), then Progress, Labels and the linked pull request as bordered sections with small
+ * headings, like the post drawer's Related posts.
  */
 export function ReleaseDetailPanelContent({
 	release,
 	progress,
+	health,
 	lead,
-	userPostCount,
-	pullRequests,
+	pullRequest,
 }: ReleaseDetailPanelContentProps) {
 	const touches = progress.labelCounts.slice(0, 5);
-	const { date } = getReleaseDisplayDate(release);
-	const showTarget = release.status !== "released" && !!date;
+	const { prefix, date } = getReleaseDisplayDate(release);
 
 	return (
-		<div className="flex flex-col gap-3 p-1">
-			<Card className="rounded-xl p-5">
-				<h3 className="mb-3 font-semibold text-[13px] text-foreground">Progress</h3>
+		<div className="flex flex-col gap-4">
+			<div className="flex flex-col gap-1.5">
+				<DetailSection label="Status">
+					<ReleaseStatusChip status={release.status} variant="plain" />
+				</DetailSection>
+				{health && (
+					<DetailSection label="Health">
+						<ReleaseHealth health={health} className="text-sm" />
+					</DetailSection>
+				)}
+				{lead && (
+					<DetailSection label="Lead">
+						<Avatar className="size-5">
+							<AvatarImage src={lead.image ? ensureCdnUrl(lead.image) : undefined} alt={getDisplayName(lead)} />
+							<AvatarFallback className="text-[10px]">{getInitials(getDisplayName(lead))}</AvatarFallback>
+						</Avatar>
+						<span className="font-medium">{getDisplayName(lead)}</span>
+					</DetailSection>
+				)}
+				{date && (
+					<DetailSection label={prefix === "Released" ? "Released" : "Target date"}>
+						<time dateTime={date.toISOString()}>{formatDate(date, "en-GB")}</time>
+					</DetailSection>
+				)}
+			</div>
+
+			<section aria-labelledby="release-progress-heading" className="flex flex-col gap-2.5 border-t pt-4">
+				<div className="flex items-baseline justify-between">
+					<Label id="release-progress-heading" variant="description">
+						Progress
+					</Label>
+					{progress.total > 0 && (
+						<span className="font-semibold text-foreground text-sm tabular-nums">{progress.percent}%</span>
+					)}
+				</div>
 				{progress.total > 0 ? (
 					<>
-						<div className="flex items-baseline gap-2">
-							<span className="font-bold text-4xl text-foreground leading-10 tracking-[-0.03em] tabular-nums">
-								{progress.percent}%
-							</span>
-							<span className="text-muted-foreground text-sm">done</span>
-						</div>
 						<SegmentedProgress
-							className="my-3.5 h-2.5"
-							label={`${progress.done} of ${progress.total} tasks done`}
+							className="h-2"
+							label={`${progress.done} of ${progress.total} posts done`}
 							segments={[
 								{ value: progress.done, tone: "ok" },
 								{ value: progress.inProgress, tone: "accent" },
 								{ value: progress.planned, tone: "muted" },
 							]}
 						/>
-						<div className="flex flex-col gap-2 text-[13.5px]">
+						<div className="flex flex-col gap-1.5 text-sm">
 							<LegendRow label="Done" count={progress.done} dotClass="bg-success" />
 							<LegendRow label="In progress" count={progress.inProgress} dotClass="bg-primary" />
 							<LegendRow label="Planned" count={progress.planned} dotClass="bg-border" />
 						</div>
 					</>
 				) : (
-					<p className="text-[13.5px] text-muted-foreground">No public posts are linked to this release yet.</p>
+					<p className="text-muted-foreground text-sm">No public posts are linked to this release yet.</p>
 				)}
-			</Card>
+			</section>
 
 			{touches.length > 0 && (
-				<Card className="rounded-xl p-5">
-					<h3 className="mb-3 font-semibold text-[13px] text-foreground">What it touches</h3>
-					<div className="flex flex-col gap-3.5">
+				<section aria-labelledby="release-labels-heading" className="flex flex-col gap-2.5 border-t pt-4">
+					<Label id="release-labels-heading" variant="description">
+						Labels
+					</Label>
+					<div className="flex flex-col gap-3">
 						{touches.map((label) => (
 							<BarRow
 								key={label.id}
@@ -93,42 +122,17 @@ export function ReleaseDetailPanelContent({
 							/>
 						))}
 					</div>
-				</Card>
+				</section>
 			)}
 
-			<Card className="rounded-xl p-5">
-				<h3 className="mb-3 font-semibold text-[13px] text-foreground">Details</h3>
-				<dl className="flex flex-col">
-					{lead && (
-						<DetailRow label="Release lead">
-							<span className="inline-flex items-center gap-2">
-								<Avatar className="size-[22px] shadow-[0_0_0_2px_var(--card),0_0_0_3.5px_var(--primary)]">
-									<AvatarImage
-										src={lead.image ? ensureCdnUrl(lead.image) : undefined}
-										alt={getDisplayName(lead)}
-									/>
-									<AvatarFallback className="text-xs">{getInitials(getDisplayName(lead))}</AvatarFallback>
-								</Avatar>
-								{getDisplayName(lead)}
-							</span>
-						</DetailRow>
-					)}
-					{showTarget && date && <DetailRow label="Target date">{formatDate(date, "en-GB")}</DetailRow>}
-					{release.createdAt && (
-						<DetailRow label="Created">{formatDate(new Date(release.createdAt), "en-GB")}</DetailRow>
-					)}
-					<DetailRow label="Status">
-						<ReleaseStatusChip status={release.status} />
-					</DetailRow>
-					{userPostCount !== null && progress.total > 0 && (
-						<DetailRow label="Posts from users">
-							{userPostCount} of {progress.total}
-						</DetailRow>
-					)}
-				</dl>
-			</Card>
-
-			{pullRequests}
+			{pullRequest && (
+				<section aria-labelledby="release-pr-heading" className="flex flex-col gap-2.5 border-t pt-4">
+					<Label id="release-pr-heading" variant="description">
+						Pull request
+					</Label>
+					{pullRequest}
+				</section>
+			)}
 		</div>
 	);
 }

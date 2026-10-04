@@ -1028,7 +1028,8 @@ apiPublicRouteV1.get(
 			parentId: task.parentId,
 			descriptionHtml: task.description && prosekitJSONToHTML(task.description),
 			descriptionMarkdown: task.description && prosekitJSONToMarkdown(task.description),
-			labels: task.labels.map((l) => l.label),
+			// Private labels are internal: only public ones go out.
+			labels: task.labels.map((l) => l.label).filter((label) => label.visible === "public"),
 			assignees: task.assignees.map((a) => a.user),
 		}));
 

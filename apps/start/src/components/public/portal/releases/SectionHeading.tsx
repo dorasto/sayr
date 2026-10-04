@@ -1,17 +1,19 @@
+import { Label } from "@repo/ui/components/label";
+
 interface SectionHeadingProps {
 	children: string;
-	/** Shown as a muted number after the heading when set. */
+	/** Shown as a muted number after the heading when set (and above zero). */
 	count?: number;
 }
 
-/** Release page section title ("Release notes", "What is in it", "Discussion") with an optional count. */
+/** Release page section title ("What's in it", "Discussion"): the same `Label` heading as the post page's Conversation. */
 export function SectionHeading({ children, count }: SectionHeadingProps) {
 	return (
-		<h2 className="mb-4 font-semibold text-foreground text-xl leading-7 tracking-[-0.018em]">
+		<Label variant="heading" className="mb-4 flex items-center gap-2">
 			{children}
-			{count !== undefined && (
-				<span className="ml-2 font-medium text-muted-foreground text-sm tracking-normal">{count}</span>
+			{count !== undefined && count > 0 && (
+				<span className="font-medium text-muted-foreground text-sm">{count}</span>
 			)}
-		</h2>
+		</Label>
 	);
 }

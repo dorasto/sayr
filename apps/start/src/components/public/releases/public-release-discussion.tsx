@@ -1,8 +1,8 @@
 import { authClient } from "@repo/auth/client";
 import type { schema } from "@repo/database";
 import { Button } from "@repo/ui/components/button";
-import { Card } from "@repo/ui/components/card";
 import { headlessToast } from "@repo/ui/components/headless-toast";
+import { Skeleton } from "@repo/ui/components/skeleton";
 import {
 	useStateManagement,
 	useStateManagementFetch,
@@ -10,12 +10,13 @@ import {
 } from "@repo/ui/hooks/useStateManagement.ts";
 import { onWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
 import { cn } from "@repo/ui/lib/utils";
-import { IconArrowBack, IconLoader2, IconMessageCircle } from "@tabler/icons-react";
+import { IconArrowBack, IconLoader2 } from "@tabler/icons-react";
 import { type InfiniteData, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { NodeJSON } from "prosekit/core";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import LoginDialog from "@/components/auth/login";
 import processUploads from "@/components/prosekit/upload";
+import { isMultiline } from "@/components/shared/comments/comment-input";
 import type { ReactionEmoji } from "@/components/tasks/task/timeline/reactions";
 import { usePublicOrganizationLayout } from "@/contexts/publicContextOrg";
 import { useIsOrgMember } from "@/hooks/useIsOrgMember";
@@ -605,45 +606,64 @@ export function PublicReleaseDiscussion({
 				</>
 			) : undefined;
 
+		// One <li> per comment: PublicCommentItem renders the comment and its thread as siblings, so without a wrapper
+		// the list gap would land between a comment and its own replies.
 		return (
-			<PublicCommentItem
-				key={comment.id}
-				comment={toCommentData(comment)}
-				memberTeamName={comment.createdBy ? (memberHighestTeam.get(comment.createdBy.id) ?? null) : null}
-				onToggleReaction={canAct ? handleToggleReaction : undefined}
-				users={orgUsers}
-				currentUserId={session?.user?.id}
-				onEdit={canAct ? handleEditComment : undefined}
-				onDelete={session?.user ? handleDeleteComment : undefined}
-				categories={categories}
-				tasks={tasks}
-				footer={threadFooter}
-				onReply={canAct && !isExpanded ? () => setThreadExpanded(comment.id, true) : undefined}
-				blockedUserIds={blockedUserIds}
-				isOrgMember={isOrgMember}
-			/>
+			<li key={comment.id}>
+				<PublicCommentItem
+					comment={toCommentData(comment)}
+					memberTeamName={comment.createdBy ? (memberHighestTeam.get(comment.createdBy.id) ?? null) : null}
+					onToggleReaction={canAct ? handleToggleReaction : undefined}
+					users={orgUsers}
+					currentUserId={session?.user?.id}
+					onEdit={canAct ? handleEditComment : undefined}
+					onDelete={session?.user ? handleDeleteComment : undefined}
+					categories={categories}
+					tasks={tasks}
+					footer={threadFooter}
+					onReply={canAct && !isExpanded ? () => setThreadExpanded(comment.id, true) : undefined}
+					blockedUserIds={blockedUserIds}
+					isOrgMember={isOrgMember}
+				/>
+			</li>
 		);
 	};
 
+	const multiline = isMultiline(commentContent);
+	const submitButton = (
+		<Button size="sm" onClick={handleSubmitComment} disabled={isSubmitting || !commentContent} className="h-7">
+			{isSubmitting ? <IconLoader2 aria-hidden className="animate-spin" /> : "Post"}
+			{!isSubmitting && <IconArrowBack aria-hidden />}
+		</Button>
+	);
+
+	// Same list, empty state and comment box as a post's Conversation (`public-comments.tsx` + `PostCommentComposer`).
 	return (
-		<div className="flex flex-col gap-6">
+		<div>
 			{isLoading ? (
-				<div className="flex items-center justify-center py-8">
-					<IconLoader2 aria-hidden className="animate-spin text-muted-foreground" />
+				<div aria-busy className="flex flex-col gap-7">
+					{[0, 1].map((key) => (
+						<div key={key} className="flex gap-3">
+							<Skeleton className="size-8 shrink-0 rounded-full" />
+							<div className="flex-1 space-y-2 pt-1">
+								<Skeleton className="h-3.5 w-32" />
+								<Skeleton className="h-3.5 w-4/5" />
+							</div>
+						</div>
+					))}
 				</div>
 			) : allComments.length === 0 ? (
-				<div className="rounded-xl border border-dashed px-5 py-6 text-center text-[13.5px] text-muted-foreground">
+				<p className="rounded-xl border border-dashed px-4 py-6 text-center text-[13.5px] text-muted-foreground">
 					No comments yet. Start the conversation.
-				</div>
+				</p>
 			) : (
-				<div className="flex flex-col gap-[26px]">
+				<ul className="flex flex-col gap-3">
 					{topComments.map(renderComment)}
 
 					{hasNextPage && (
-						<div className="flex justify-center border-y border-dashed py-3">
+						<li className="flex justify-center border-border border-y border-dashed py-3">
 							<Button
 								variant="ghost"
-								size="sm"
 								className="w-full"
 								onClick={() => fetchNextPage()}
 								disabled={isFetchingNextPage}
@@ -657,62 +677,48 @@ export function PublicReleaseDiscussion({
 									"Load more comments"
 								)}
 							</Button>
-						</div>
+						</li>
 					)}
 
 					{bottomComments.map(renderComment)}
-				</div>
+				</ul>
 			)}
 
 			{canAct ? (
-				<div className={cn("overflow-hidden rounded-xl border bg-background", "focus-within:border-primary")}>
-					<Suspense fallback={<div className="h-20 animate-pulse bg-muted" />}>
-						<Editor
-							key={editorKey}
-							firstLinePlaceholder="Write a comment..."
-							className="bg-transparent p-3 pb-0"
-							onChange={setCommentContent}
-							submit={handleSubmitComment}
-							categories={categories}
-							tasks={tasks}
-							hideBlockHandle
-						/>
-					</Suspense>
-					<div className="flex items-center justify-end px-3 pb-3">
-						<Button size="sm" onClick={handleSubmitComment} disabled={isSubmitting || !commentContent}>
-							{isSubmitting ? (
-								<IconLoader2 aria-hidden className="animate-spin" />
-							) : (
-								<IconArrowBack aria-hidden />
-							)}
-							Comment
-						</Button>
+				<div
+					className={cn(
+						"mt-6 rounded-lg border bg-accent/50 px-3 py-2 text-foreground transition-all",
+						!multiline && "flex items-center gap-2"
+					)}
+				>
+					<div className={cn(!multiline && "min-w-0 flex-1")}>
+						<Suspense fallback={<Skeleton className="h-6" />}>
+							<Editor
+								key={editorKey}
+								firstLinePlaceholder="Write a comment..."
+								onChange={setCommentContent}
+								submit={handleSubmitComment}
+								categories={categories}
+								tasks={tasks}
+								hideBlockHandle
+							/>
+						</Suspense>
 					</div>
+					{multiline ? <div className="flex items-center justify-end">{submitButton}</div> : submitButton}
 				</div>
 			) : !session?.user ? (
-				<Card className="rounded-xl p-5">
-					<div className="flex items-center gap-4">
-						<span
-							aria-hidden
-							className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground"
-						>
-							<IconMessageCircle className="size-5" />
-						</span>
-						<div className="min-w-0 flex-1">
-							<div className="font-semibold text-[15px] text-foreground">Log in to join the discussion</div>
-							<div className="mt-0.5 text-[13.5px] text-muted-foreground">
-								Use your Sayr account. It takes a few seconds.
-							</div>
-						</div>
-						<LoginDialog trigger={<Button size="sm">Log in</Button>} />
-					</div>
-				</Card>
+				<div className="mt-6 flex items-center gap-2 rounded-lg border bg-accent/50 px-3 py-2 text-muted-foreground text-sm">
+					<span className="min-w-0 flex-1">Log in to comment and react</span>
+					<LoginDialog
+						trigger={
+							<Button size="sm" className="h-7">
+								Log in
+							</Button>
+						}
+					/>
+				</div>
 			) : (
-				<Card className="rounded-xl p-5">
-					<p className="text-center text-[13.5px] text-muted-foreground">
-						This organization has turned off public actions, so comments are read only.
-					</p>
-				</Card>
+				<p className="mt-6 text-muted-foreground text-sm">This organization has turned off public actions.</p>
 			)}
 		</div>
 	);

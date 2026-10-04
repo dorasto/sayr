@@ -17,7 +17,7 @@ export function ReleasePageBar({ orgSlug, panelId }: ReleasePageBarProps) {
 	const { closePanel } = usePage();
 
 	return (
-		<div className="flex h-14 shrink-0 items-center justify-between border-b bg-sidebar px-2 md:h-11 md:px-3">
+		<div className="flex h-14 shrink-0 items-center justify-between bg-background px-2 md:h-11 md:px-3">
 			<Link
 				to="/orgs/$orgSlug/releases"
 				params={{ orgSlug }}
@@ -30,7 +30,7 @@ export function ReleasePageBar({ orgSlug, panelId }: ReleasePageBarProps) {
 				type="button"
 				variant={panel.isOpen ? "secondary" : "ghost"}
 				size="sm"
-				aria-label={panel.isOpen ? "Hide progress and details" : "Show progress and details"}
+				aria-label={panel.isOpen ? "Hide details" : "Show details"}
 				aria-pressed={panel.isOpen}
 				className="h-6 w-6 gap-2 p-1"
 				onClick={() => (panel.isOpen ? closePanel(panelId) : sidebarActions.setOpen(panelId, true))}

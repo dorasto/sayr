@@ -3,6 +3,7 @@ import { onWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
 import { IconChevronDown, IconChevronUp } from "@tabler/icons-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { SectionHeading } from "@/components/public/portal/releases/SectionHeading";
 import { usePublicOrganizationLayout } from "@/contexts/publicContextOrg";
 import { useWSMessageHandler, type WSMessageHandler } from "@/hooks/useWSMessageHandler";
 import type { ServerEventMessage } from "@/lib/serverEvents";
@@ -141,10 +142,7 @@ export function PublicReleaseStatusUpdates({
 
 	return (
 		<section>
-			<h2 className="mb-6 font-semibold text-xl text-foreground leading-7 tracking-[-0.018em]">
-				Updates from the team
-				<span className="ml-2 font-medium text-muted-foreground text-sm tracking-normal">{updates.length}</span>
-			</h2>
+			<SectionHeading count={updates.length}>Updates from the team</SectionHeading>
 
 			<div>
 				{visibleUpdates.map((update, index) => (

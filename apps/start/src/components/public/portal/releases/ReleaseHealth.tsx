@@ -20,7 +20,7 @@ export function ReleaseHealth({ health, className }: ReleaseHealthProps) {
 
 	return (
 		<span className={cn("inline-flex items-center gap-1.5 font-medium text-xs", TONE_TEXT[pill.tone], className)}>
-			<i aria-hidden className="block size-1.5 shrink-0 rounded-full bg-current" />
+			<i aria-hidden className="block size-2 shrink-0 rounded-full bg-current" />
 			{pill.label}
 		</span>
 	);

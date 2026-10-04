@@ -52,7 +52,8 @@ const fetchPublicRelease = createServerFn({ method: "GET" })
 
 		const tasks = rawTasks.map((task) => ({
 			...task,
-			labels: task.labels.map((l) => l.label),
+			// Private labels are internal: never send them to the public page.
+		labels: task.labels.map((l) => l.label).filter((label) => label.visible === "public"),
 			assignees: task.assignees.map((a) => a.user),
 		}));
 
