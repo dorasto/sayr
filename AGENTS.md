@@ -306,6 +306,7 @@ Before adding a new type, function, component, or utility anywhere in this repo:
 
 | Skill | Purpose |
 |---|---|
+| `ui-design-system/` | Designing/restyling any UI with Sayr's own components and tokens — component inventory, Button/Label/Tile variants, tokens and type scale, global heading CSS trap, Base UI `render` vs `asChild`, "copy the nearest sibling screen" workflow |
 | `page-header/` | `PageHeader` component (identity + toolbar zones), `UnifiedTaskView` integration, single-org vs cross-org patterns |
 | `page-component/` | `Page` layout + panel system (`IndentDrawer`, `sidebar-store`) — adding/toggling/resizing a side panel |
 | `public-portal/` | Public org portal (SAY-81): routes, styling rules (admin tokens and `@repo/ui`, no portal design system), `portal/ui` pieces, `lib/portal` logic, shared hooks/query keys, Peek and which pages use which panel, and how Feedback, Activity and Roadmap run on the shared board |
