@@ -16,6 +16,11 @@ export function usePrefersReducedMotion() {
 	);
 }
 
+/** Props for a recreation driven by `useReplay`: `at` runs from 0 to its step count. */
+export interface ReplayProps {
+	at: number;
+}
+
 /**
  * A short scripted animation that plays once, then rests on its finished state.
  * `at` runs from 0 to `steps` (2.5 = halfway through the third step), so a

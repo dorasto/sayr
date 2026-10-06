@@ -1,13 +1,4 @@
-import {
-	IconArrowRight,
-	IconBrandDiscord,
-	IconBrandGithub,
-	IconCode,
-	IconRobot,
-	IconTerminal2,
-} from "@tabler/icons-react";
-import type { ComponentType } from "react";
-import { cn } from "@/lib/utils";
+import { IconBrandDiscord, IconBrandGithub, IconCode, IconRobot, IconTerminal2 } from "@tabler/icons-react";
 import {
 	AGENT_STEPS,
 	AgentPanel,
@@ -17,26 +8,12 @@ import {
 	DiscordPanel,
 	GITHUB_STEPS,
 	GithubPanel,
-	type ReplayProps,
 	SDK_STEPS,
 	SdkPanel,
 } from "../app-ui/integration-panels";
-import { useReplay } from "../app-ui/replay";
+import { ReplayCard, type ReplayCardItem } from "./replay-card";
 
-interface Integration {
-	name: string;
-	icon: typeof IconBrandGithub;
-	title: string;
-	text: string;
-	link: { href: string; label: string };
-	/** The live recreation, and how many steps its replay has. */
-	Visual: ComponentType<ReplayProps>;
-	steps: number;
-	/** Wide cards span two columns on large screens. */
-	wide?: boolean;
-}
-
-const INTEGRATIONS: Integration[] = [
+const INTEGRATIONS: ReplayCardItem[] = [
 	{
 		name: "GitHub",
 		icon: IconBrandGithub,
@@ -86,41 +63,6 @@ const INTEGRATIONS: Integration[] = [
 ];
 
 /**
- * One integration: label, heading, sentence, link, and its recreation. The
- * recreation plays its script when the card first scrolls into view, and again
- * whenever it's hovered or focused.
- */
-function IntegrationCard({ integration }: { integration: Integration }) {
-	const { at, ref, triggers } = useReplay(integration.steps);
-	return (
-		<article
-			ref={ref}
-			{...triggers}
-			className={cn(
-				"group flex flex-col gap-5 rounded-2xl border bg-card/40 p-5 transition-colors duration-300 hover:border-primary/40 hover:bg-card/70",
-				integration.wide && "lg:col-span-2"
-			)}
-		>
-			<div className="flex flex-col gap-2">
-				<p className="flex items-center gap-1.5 font-medium text-muted-foreground text-xs uppercase tracking-wider transition-colors group-hover:text-primary">
-					<integration.icon className="size-4" />
-					{integration.name}
-				</p>
-				<h3 className="font-semibold text-lg! tracking-tight">{integration.title}</h3>
-				<p className="text-muted-foreground text-sm">{integration.text}</p>
-			</div>
-			{/* Wide cards are shorter than their row partner, so centre the visual rather than leave a gap. */}
-			<div className={cn("min-w-0", integration.wide ? "flex flex-1 flex-col justify-center" : "mt-auto")}>
-				<integration.Visual at={at} />
-			</div>
-			<a href={integration.link.href} className="flex w-fit items-center gap-1 text-primary text-sm hover:underline">
-				{integration.link.label} <IconArrowRight className="size-4" />
-			</a>
-		</article>
-	);
-}
-
-/**
  * Homepage section: where Sayr connects. Feedback tools sell a sync to your
  * tracker; Sayr is the tracker, so each card shows work flowing into (or out
  * of) the one backlog, with a live recreation rather than a logo wall.
@@ -142,7 +84,7 @@ export function IntegrationsSection() {
 
 				<div className="mt-14 grid gap-4 lg:grid-cols-3">
 					{INTEGRATIONS.map((integration) => (
-						<IntegrationCard key={integration.name} integration={integration} />
+						<ReplayCard key={integration.name} item={integration} />
 					))}
 				</div>
 

@@ -10,6 +10,7 @@ import { IntegrationsSection } from "./sections/integrations-section";
 import { OpenSourceHighlight } from "./sections/open-source-highlight";
 import { PricingCards } from "./sections/pricing-cards";
 import { ProblemSolution } from "./sections/problem-solution";
+import { TeamsSection } from "./sections/teams-section";
 import { VisibilityDemo } from "./sections/visibility-demo";
 
 export default function LandingPage() {
@@ -19,6 +20,7 @@ export default function LandingPage() {
 			<ProblemSolution />
 			<ProductTabs />
 			<IntegrationsSection />
+			<TeamsSection />
 			<VisibilityDemo />
 			<HowItWorks />
 			<ComparisonSection />

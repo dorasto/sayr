@@ -12,7 +12,7 @@ import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { OrgMark, Person, Status } from "./atoms";
 import { DEMO_TASKS, FEATURED_TASK, ORG, PEOPLE, PUBLIC_STATUS_LABEL } from "./demo-data";
-import { fade, Reveal, stepProgress, Swap, Typed } from "./replay";
+import { fade, type ReplayProps, Reveal, stepProgress, Swap, Typed } from "./replay";
 import { Dim, Terminal } from "./terminal";
 
 // Small recreations for the homepage integrations section. Each one shows what
@@ -20,10 +20,6 @@ import { Dim, Terminal } from "./terminal";
 // the same Doras demo workspace as the rest of the page. Each is a short script
 // driven by `at` (see `useReplay`): it runs from 0 to the panel's step count
 // and rests on the finished state.
-
-export interface ReplayProps {
-	at: number;
-}
 
 const BRANCH = `${FEATURED_TASK.key.toLowerCase()}-custom-domains`;
 
