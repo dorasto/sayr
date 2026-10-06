@@ -3,58 +3,18 @@ import { Badge } from "@/components/ui/badge";
 
 export function ComparisonSection() {
 	const rows = [
-		{
-			feature: "Public task portal for users",
-			sayr: true,
-			linear: false,
-			canny: true,
-		},
-		{
-			feature: "Task, label, and comment visibility control",
-			sayr: true,
-			linear: false,
-			canny: false,
-		},
-		{
-			feature: "Internal + public comments",
-			sayr: true,
-			linear: false,
-			canny: "partial",
-		},
-		{
-			feature: "Full project management (board, sprints, priorities)",
-			sayr: true,
-			linear: true,
-			canny: false,
-		},
-		{
-			feature: "GitHub integration (issues, PRs, branches)",
-			sayr: true,
-			linear: true,
-			canny: false,
-		},
+		// Only rows we can stand behind. Canny's GitHub integration links posts to
+		// issues, but not branches or pull requests, hence "partial".
+		{ feature: "Public portal for your users", sayr: true, linear: false, canny: true },
+		{ feature: "Public roadmap and changelog", sayr: true, linear: false, canny: true },
 		{ feature: "User voting on tasks", sayr: true, linear: false, canny: true },
+		{ feature: "Public or private per task, label and comment", sayr: true, linear: false, canny: false },
+		{ feature: "Internal and public comments in one thread", sayr: true, linear: false, canny: "partial" },
+		{ feature: "Full project management (board, releases, priorities)", sayr: true, linear: true, canny: false },
+		{ feature: "GitHub integration (issues, PRs, branches)", sayr: true, linear: true, canny: "partial" },
+		{ feature: "Role-based access control", sayr: true, linear: true, canny: "partial" },
 		{ feature: "Self-hostable", sayr: true, linear: false, canny: false },
-		{ feature: "Source available", sayr: true, linear: false, canny: false },
-		{
-			feature: "Real-time collaboration Server‑Sent Events (SSE)",
-			sayr: true,
-			linear: true,
-			canny: false,
-		},
-		{
-			feature: "Role-based access control",
-			sayr: true,
-			linear: true,
-			canny: "partial",
-		},
-		{
-			feature: "Categories and labels",
-			sayr: true,
-			linear: "partial",
-			canny: "partial",
-		},
-		{ feature: "Task templates", sayr: true, linear: true, canny: true },
+		{ feature: "Source-available", sayr: true, linear: false, canny: false },
 	];
 
 	const renderCell = (val: boolean | string) => {
@@ -72,8 +32,8 @@ export function ComparisonSection() {
 					</Badge>
 					<h2 className="text-3xl md:text-4xl font-semibold tracking-tight">The best of both worlds</h2>
 					<p className="mt-3 text-muted-foreground max-w-lg mx-auto">
-						Linear is powerful but closed. Canny collects feedback but doesn't manage work. Sayr does both — and
-						it's source available.
+						Linear is powerful but closed. Canny collects feedback but doesn't manage work. Sayr does both, and
+						it's source-available.
 					</p>
 				</div>
 				<div className="rounded-2xl border bg-card overflow-hidden">
