@@ -3,8 +3,9 @@ import { cn } from "@/lib/utils";
 import { Status } from "./atoms";
 import { CommentFeed, type FeedItem } from "./comment";
 import { DEMO_TASKS, FEATURED_TASK, ORG } from "./demo-data";
+import { RELEASE_KEYS } from "./release-panel";
 
-const SHIPPED = [FEATURED_TASK, ...DEMO_TASKS.filter((task) => ["DOR-209", "DOR-187"].includes(task.key))];
+const SHIPPED = DEMO_TASKS.filter((task) => RELEASE_KEYS.includes(task.key));
 
 interface ReleasePublicProps {
 	/** Live vote count for the featured post, so it matches the post card. */

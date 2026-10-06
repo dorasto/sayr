@@ -16,6 +16,17 @@ export interface DemoPerson {
 	color: string;
 }
 
+export interface DemoCategory {
+	name: string;
+	color: string;
+}
+
+export const CATEGORIES = {
+	feature: { name: "Feature request", color: "#e8a048" },
+	bug: { name: "Bug report", color: "#ef4444" },
+	improvement: { name: "Improvement", color: "#3b82f6" },
+} satisfies Record<string, DemoCategory>;
+
 export interface DemoTask {
 	key: string;
 	title: string;
@@ -23,6 +34,9 @@ export interface DemoTask {
 	priority: DemoPriority;
 	labels: DemoLabel[];
 	assignee?: DemoPerson;
+	category: DemoCategory;
+	/** The release it's planned for or shipped in. */
+	release?: string;
 	visible: "public" | "private";
 	votes?: number;
 	comments?: number;
@@ -53,6 +67,8 @@ export const FEATURED_TASK: DemoTask = {
 	priority: "high",
 	labels: [LABELS.links, LABELS.domains],
 	assignee: PEOPLE.tom,
+	category: CATEGORIES.feature,
+	release: "v2.4",
 	visible: "public",
 	votes: 142,
 	comments: 18,
@@ -67,6 +83,7 @@ export const DEMO_TASKS: DemoTask[] = [
 		priority: "urgent",
 		labels: [LABELS.links],
 		assignee: PEOPLE.trent,
+		category: CATEGORIES.improvement,
 		visible: "private",
 	},
 	{
@@ -76,6 +93,8 @@ export const DEMO_TASKS: DemoTask[] = [
 		priority: "medium",
 		labels: [LABELS.links],
 		assignee: PEOPLE.will,
+		category: CATEGORIES.feature,
+		release: "v2.4",
 		visible: "public",
 		votes: 87,
 		comments: 9,
@@ -87,6 +106,7 @@ export const DEMO_TASKS: DemoTask[] = [
 		priority: "high",
 		labels: [LABELS.analytics],
 		assignee: PEOPLE.will,
+		category: CATEGORIES.improvement,
 		visible: "private",
 	},
 	{
@@ -95,6 +115,7 @@ export const DEMO_TASKS: DemoTask[] = [
 		status: "backlog",
 		priority: "low",
 		labels: [LABELS.bio],
+		category: CATEGORIES.feature,
 		visible: "public",
 		votes: 64,
 		comments: 12,
@@ -105,6 +126,7 @@ export const DEMO_TASKS: DemoTask[] = [
 		status: "backlog",
 		priority: "none",
 		labels: [LABELS.bio, LABELS.mobile],
+		category: CATEGORIES.improvement,
 		visible: "public",
 		votes: 23,
 		comments: 3,
@@ -116,6 +138,8 @@ export const DEMO_TASKS: DemoTask[] = [
 		priority: "high",
 		labels: [LABELS.links, LABELS.analytics],
 		assignee: PEOPLE.trent,
+		category: CATEGORIES.feature,
+		release: "v2.3",
 		visible: "public",
 		votes: 119,
 		comments: 21,
@@ -127,9 +151,54 @@ export const DEMO_TASKS: DemoTask[] = [
 		priority: "medium",
 		labels: [LABELS.bio, LABELS.bug],
 		assignee: PEOPLE.will,
+		category: CATEGORIES.bug,
+		release: "v2.3",
 		visible: "private",
 	},
+	{
+		key: "DOR-205",
+		title: "Password-protected short links",
+		status: "todo",
+		priority: "medium",
+		labels: [LABELS.links],
+		category: CATEGORIES.feature,
+		release: "v2.4",
+		visible: "public",
+		votes: 41,
+		comments: 6,
+	},
+	{
+		key: "DOR-176",
+		title: "Themes for bio pages",
+		status: "done",
+		priority: "medium",
+		labels: [LABELS.bio],
+		assignee: PEOPLE.trent,
+		category: CATEGORIES.feature,
+		release: "v2.3",
+		visible: "public",
+		votes: 96,
+		comments: 14,
+	},
+	{
+		key: "DOR-181",
+		title: "Custom slugs for short links",
+		status: "done",
+		priority: "high",
+		labels: [LABELS.links],
+		assignee: PEOPLE.tom,
+		category: CATEGORIES.feature,
+		release: "v2.3",
+		visible: "public",
+		votes: 77,
+		comments: 8,
+	},
 ];
+
+/** Public posts sorted by votes, as the portal's feedback board shows them. */
+export const PUBLIC_POSTS = DEMO_TASKS.filter((task) => task.visible === "public").sort(
+	(a, b) => (b.votes ?? 0) - (a.votes ?? 0)
+);
 
 export const STATUS_ORDER: DemoStatus[] = ["in-progress", "todo", "backlog", "done"];
 

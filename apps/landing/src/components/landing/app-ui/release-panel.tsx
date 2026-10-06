@@ -3,15 +3,18 @@ import { cn } from "@/lib/utils";
 import { Person, Status } from "./atoms";
 import { DEMO_TASKS, FEATURED_TASK, ORG, PEOPLE } from "./demo-data";
 
-const RELEASE_KEYS = [FEATURED_TASK.key, "DOR-209", "DOR-187", "DOR-190"];
+/** What v2.4 contains; the public changelog's "Coming next" lists the same tasks. */
+export const RELEASE_KEYS = [FEATURED_TASK.key, "DOR-209", "DOR-205"];
 
 interface ReleasePanelProps {
 	/** True once the release is published: every task done, badge reads "Released". */
 	released: boolean;
+	/** Show the lead's latest status update above the task list. */
+	showUpdate?: boolean;
 }
 
 /** A release in the admin app: progress from its tasks, the latest update, the tasks, and the linked PR. */
-export function ReleasePanel({ released }: ReleasePanelProps) {
+export function ReleasePanel({ released, showUpdate = false }: ReleasePanelProps) {
 	const tasks = DEMO_TASKS.filter((task) => RELEASE_KEYS.includes(task.key)).map((task) =>
 		released ? { ...task, status: "done" as const } : task
 	);
@@ -53,6 +56,22 @@ export function ReleasePanel({ released }: ReleasePanelProps) {
 					{done} of {tasks.length} done{inProgress > 0 && ` · ${inProgress} in progress`}
 				</p>
 			</div>
+
+			{showUpdate && (
+				<div className="flex flex-col gap-1.5 rounded-lg border bg-card p-3">
+					<p className="flex items-center gap-2 text-xs">
+						<Person person={PEOPLE.will} size={16} />
+						<span className="font-medium">Will</span>
+						<span className="text-muted-foreground">posted an update · 2h</span>
+						<span className="ml-auto rounded-full bg-success/10 px-2 py-0.5 text-[11px] text-success">
+							On track
+						</span>
+					</p>
+					<p className="text-muted-foreground leading-relaxed">
+						Custom domains are in testing. QR codes start this week, password links next.
+					</p>
+				</div>
+			)}
 
 			<div className="flex flex-col divide-y rounded-lg border">
 				{tasks.map((task) => (

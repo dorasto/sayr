@@ -1,10 +1,10 @@
 import { IconPlayerPauseFilled, IconPlayerPlayFilled } from "@tabler/icons-react";
-import { type ReactNode, useEffect, useState, useSyncExternalStore } from "react";
-import { cn } from "@/lib/utils";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { AppWindow } from "../app-ui/app-window";
 import { BoardList } from "../app-ui/board-views";
 import type { DemoComment } from "../app-ui/comment";
 import { DEMO_TASKS, type DemoStatus, FEATURED_TASK, PEOPLE, VISITORS } from "../app-ui/demo-data";
+import { Layer } from "../app-ui/layer";
 import { PortalPost, type PostComment } from "../app-ui/portal-post";
 import { ReleasePanel } from "../app-ui/release-panel";
 import { ReleasePublic } from "../app-ui/release-public";
@@ -114,7 +114,7 @@ const BOARD_GROUPS: DemoStatus[] = ["in-progress", "todo", "backlog"];
 const FEATURED_STATUS: DemoStatus[] = ["backlog", "in-progress", "in-progress", "in-progress", "done"];
 const POST_DETAIL = [null, "Tom is on it", "Tom is on it", "Coming in v2.4", "Shipped in v2.4"];
 /** The chip on the followed task's board row at each beat. */
-const ROW_NOTE = [null, null, "#512", "v2.4", null];
+const ROW_NOTE = [null, null, "#512", "#512", null];
 /** Vote count at the start of each beat (and the end of the loop). */
 const VOTE_MARKS = [128, 142, 146, 149, 153, 153];
 
@@ -162,25 +162,6 @@ function usePrefersReducedMotion() {
 }
 
 /**
- * Fades a layer in and out in place, so switching views never remounts anything.
- * Layers share one grid cell (the parent is a grid), so the stack is always as
- * tall as its tallest layer and swapping views never changes the page height.
- */
-function Layer({ active, children }: { active: boolean; children: ReactNode }) {
-	return (
-		<div
-			aria-hidden={!active}
-			className={cn(
-				"col-start-1 row-start-1 transition-[opacity,transform] duration-500 motion-reduce:transition-none",
-				active ? "opacity-100" : "pointer-events-none translate-y-1 opacity-0"
-			)}
-		>
-			{children}
-		</div>
-	);
-}
-
-/**
  * The hero's product demo: one feature request followed from a public idea to
  * a shipped release, with the team's app and the public portal together. A
  * single clock drives it all (rows slide between groups, votes and reactions
@@ -209,7 +190,13 @@ export function LoopDemo() {
 
 	const tasks = DEMO_TASKS.filter((task) => HERO_KEYS.includes(task.key)).map((task) =>
 		task.key === FEATURED_TASK.key
-			? { ...task, status: forBeat(FEATURED_STATUS, beat), assignee: beat >= 1 ? PEOPLE.tom : undefined }
+			? {
+					...task,
+					status: forBeat(FEATURED_STATUS, beat),
+					assignee: beat >= 1 ? PEOPLE.tom : undefined,
+					// Planned into v2.4 once the team replies (the release badge appears on the row).
+					release: beat >= 3 ? "v2.4" : undefined,
+				}
 			: task
 	);
 
@@ -219,6 +206,7 @@ export function LoopDemo() {
 				<AppWindow
 					active={beat < 4 ? "tasks" : "releases"}
 					crumbs={beat < 4 ? ["Tasks"] : ["Releases", "v2.4"]}
+					toolbar={beat < 4 ? `${tasks.length} tasks` : undefined}
 					className="h-[28rem]"
 				>
 					<div className="grid">
@@ -227,6 +215,7 @@ export function LoopDemo() {
 								tasks={tasks}
 								groups={BOARD_GROUPS}
 								highlightKey={FEATURED_TASK.key}
+								showBadges={false}
 								highlightNote={
 									<span className="shrink-0 rounded bg-primary/15 px-1.5 py-0.5 text-[11px] text-primary tabular-nums">
 										▲ {votes}
