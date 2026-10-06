@@ -1,5 +1,5 @@
 import { IconPlayerPauseFilled, IconPlayerPlayFilled } from "@tabler/icons-react";
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useState } from "react";
 import { AppWindow } from "../app-ui/app-window";
 import { BoardList } from "../app-ui/board-views";
 import type { DemoComment } from "../app-ui/comment";
@@ -8,6 +8,7 @@ import { Layer } from "../app-ui/layer";
 import { PortalPost, type PostComment } from "../app-ui/portal-post";
 import { ReleasePanel } from "../app-ui/release-panel";
 import { ReleasePublic } from "../app-ui/release-public";
+import { usePrefersReducedMotion } from "../app-ui/replay";
 
 /** How long each beat lasts; the whole loop is BEAT_MS × BEATS.length. */
 const BEAT_MS = 4000;
@@ -144,21 +145,6 @@ function reveal(thread: Scripted[], position: number): PostComment[] {
 			})),
 		},
 	}));
-}
-
-function subscribeReducedMotion(onChange: () => void) {
-	const query = window.matchMedia("(prefers-reduced-motion: reduce)");
-	query.addEventListener("change", onChange);
-	return () => query.removeEventListener("change", onChange);
-}
-
-/** Respects the visitor's reduced-motion setting (false on the server). */
-function usePrefersReducedMotion() {
-	return useSyncExternalStore(
-		subscribeReducedMotion,
-		() => window.matchMedia("(prefers-reduced-motion: reduce)").matches,
-		() => false
-	);
 }
 
 /**

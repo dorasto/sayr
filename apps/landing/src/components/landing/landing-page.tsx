@@ -6,6 +6,7 @@ import { EUHighlight } from "./sections/eu-highlight";
 import { FAQAccordion } from "./sections/faq-accordion";
 import { FeatureLinks } from "./sections/feature-links";
 import { HowItWorks } from "./sections/how-it-works";
+import { IntegrationsSection } from "./sections/integrations-section";
 import { OpenSourceHighlight } from "./sections/open-source-highlight";
 import { PricingCards } from "./sections/pricing-cards";
 import { ProblemSolution } from "./sections/problem-solution";
@@ -17,6 +18,7 @@ export default function LandingPage() {
 			<Hero />
 			<ProblemSolution />
 			<ProductTabs />
+			<IntegrationsSection />
 			<VisibilityDemo />
 			<HowItWorks />
 			<ComparisonSection />

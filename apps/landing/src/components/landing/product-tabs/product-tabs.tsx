@@ -7,9 +7,11 @@ import {
 	IconNews,
 	IconRocket,
 	IconServer,
+	IconSparkles,
 } from "@tabler/icons-react";
 import { type ReactNode, useState } from "react";
 import { cn } from "@/lib/utils";
+import { AiPanel } from "../app-ui/ai-panel";
 import { AppWindow } from "../app-ui/app-window";
 import { BoardList } from "../app-ui/board-views";
 import { DEMO_TASKS } from "../app-ui/demo-data";
@@ -28,11 +30,14 @@ interface Tab {
 	icon: typeof IconLayoutKanban;
 	/** Who sees it: the team's app or the public portal. */
 	side: "Your team" | "Your users" | "Your servers";
+	/** A plan badge shown next to `side`. */
+	plan?: string;
 	title: string;
 	text: string;
 	points: string[];
 	link: { href: string; label: string };
-	visual: ReactNode;
+	/** The recreation; a function when it needs to know its tab is open (to replay its animation). */
+	visual: ReactNode | ((active: boolean) => ReactNode);
 }
 
 const TABS: Tab[] = [
@@ -112,6 +117,22 @@ const TABS: Tab[] = [
 		),
 	},
 	{
+		id: "ai",
+		label: "AI",
+		icon: IconSparkles,
+		side: "Your team",
+		plan: "Pro",
+		title: "AI that does the busywork",
+		text: "Every task gets a summary of where it stands. Sayr suggests who should take it, its priority, its release and related tasks, and drafts your release notes.",
+		points: [
+			"Task summaries that stay current",
+			"Suggestions you accept in one click",
+			"Release notes drafted from what shipped",
+		],
+		link: { href: "/docs/ai/task-summary", label: "AI features" },
+		visual: (active) => <AiPanel active={active} />,
+	},
+	{
 		id: "self-host",
 		label: "Self-host",
 		icon: IconServer,
@@ -184,8 +205,13 @@ export function ProductTabs() {
 								className="grid items-center gap-10 lg:grid-cols-[19rem_minmax(0,1fr)]"
 							>
 								<div className="flex flex-col gap-4">
-									<p className="font-medium text-muted-foreground text-xs uppercase tracking-wider">
+									<p className="flex items-center gap-2 font-medium text-muted-foreground text-xs uppercase tracking-wider">
 										{tab.side}
+										{tab.plan && (
+											<span className="rounded-full bg-primary/15 px-2 py-0.5 text-[10px] text-primary normal-case tracking-normal">
+												{tab.plan}
+											</span>
+										)}
 									</p>
 									<h3 className="font-semibold text-2xl! tracking-tight">{tab.title}</h3>
 									<p className="text-muted-foreground">{tab.text}</p>
@@ -205,7 +231,9 @@ export function ProductTabs() {
 										{tab.link.label} <IconArrowRight className="size-4" />
 									</a>
 								</div>
-								<div className="min-w-0">{tab.visual}</div>
+								<div className="min-w-0">
+									{typeof tab.visual === "function" ? tab.visual(tab.id === activeId) : tab.visual}
+								</div>
 							</div>
 						</Layer>
 					))}
