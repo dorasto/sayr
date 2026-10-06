@@ -8,6 +8,12 @@ import { getFeature } from "@/data/features";
 import { seoMeta } from "@/lib/seo";
 
 export const Route = createFileRoute("/_marketing/features/$slug")({
+	// Split the loader together with the component. Router only code-splits
+	// `component` by default, so the loader (and the module-level docs
+	// `clientLoader`, MDX components and OpenAPI UI it pulls in) would
+	// otherwise land in the main entry and be preloaded on every page,
+	// including the homepage.
+	codeSplitGroupings: [["loader", "component"]],
 	component: Page,
 	loader: async ({ params }) => {
 		const data = await serverLoader({ data: params.slug });

@@ -1,5 +1,4 @@
-import { IconCircleCheck, IconCircleCheckFilled, IconCircleX, IconCircleXFilled, IconX } from "@tabler/icons-react";
-import { CircleCheck, CircleX } from "lucide-react";
+import { IconCircleCheck, IconCircleX } from "@tabler/icons-react";
 
 interface StatusIconProps {
 	status: "backlog" | "todo" | "in-progress" | "done" | "canceled" | null;

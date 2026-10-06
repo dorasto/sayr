@@ -45,18 +45,21 @@ export const PEOPLE = {
 	will: { name: "Will", initials: "WI", color: "#a855f7" },
 } satisfies Record<string, DemoPerson>;
 
+/** The task the homepage demo follows from public idea to shipped release. */
+export const FEATURED_TASK: DemoTask = {
+	key: "DOR-214",
+	title: "Custom domains for short links",
+	status: "in-progress",
+	priority: "high",
+	labels: [LABELS.links, LABELS.domains],
+	assignee: PEOPLE.tom,
+	visible: "public",
+	votes: 142,
+	comments: 18,
+};
+
 export const DEMO_TASKS: DemoTask[] = [
-	{
-		key: "DOR-214",
-		title: "Custom domains for short links",
-		status: "in-progress",
-		priority: "high",
-		labels: [LABELS.links, LABELS.domains],
-		assignee: PEOPLE.tom,
-		visible: "public",
-		votes: 142,
-		comments: 18,
-	},
+	FEATURED_TASK,
 	{
 		key: "DOR-221",
 		title: "Rate-limit link creation on the API",
@@ -144,8 +147,6 @@ export const PUBLIC_STATUS_LABEL: Record<DemoStatus, string> = {
 	"in-progress": "In progress",
 	done: "Shipped",
 };
-
-export const FEATURED_TASK = DEMO_TASKS[0];
 
 /** Portal visitors who comment in the demo. */
 export const VISITORS = {

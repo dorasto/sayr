@@ -112,16 +112,24 @@ const RELEASE_THREAD: Scripted[] = [
 const HERO_KEYS = [FEATURED_TASK.key, "DOR-221", "DOR-209", "DOR-198", "DOR-230"];
 const BOARD_GROUPS: DemoStatus[] = ["in-progress", "todo", "backlog"];
 const FEATURED_STATUS: DemoStatus[] = ["backlog", "in-progress", "in-progress", "in-progress", "done"];
-const POST_DETAIL = [undefined, "Tom is on it", "Tom is on it", "Coming in v2.4", "Shipped in v2.4"];
+const POST_DETAIL = [null, "Tom is on it", "Tom is on it", "Coming in v2.4", "Shipped in v2.4"];
 /** The chip on the followed task's board row at each beat. */
 const ROW_NOTE = [null, null, "#512", "v2.4", null];
 /** Vote count at the start of each beat (and the end of the loop). */
 const VOTE_MARKS = [128, 142, 146, 149, 153, 153];
 
+/** Reads a per-beat value. Beats are always in range; the check only satisfies noUncheckedIndexedAccess. */
+function forBeat<T>(values: readonly T[], beat: number): T {
+	const value = values[beat];
+	if (value === undefined) throw new Error(`No value for beat ${beat}`);
+	return value;
+}
+
 function votesAt(position: number) {
 	const beat = Math.min(Math.floor(position), BEATS.length - 1);
 	const t = Math.min(position - beat, 1);
-	return Math.round(VOTE_MARKS[beat] + (VOTE_MARKS[beat + 1] - VOTE_MARKS[beat]) * t);
+	const from = forBeat(VOTE_MARKS, beat);
+	return Math.round(from + (forBeat(VOTE_MARKS, beat + 1) - from) * t);
 }
 
 /** Reveals scripted comments up to `position`; reactions count up after their comment appears. */
@@ -196,10 +204,12 @@ export function LoopDemo() {
 	const progress = reducedMotion ? 0.999 : (elapsed % BEAT_MS) / BEAT_MS;
 	const position = beat + progress;
 	const votes = votesAt(position) + (voted ? 1 : 0);
+	const current = forBeat(BEATS, beat);
+	const rowNote = forBeat(ROW_NOTE, beat);
 
 	const tasks = DEMO_TASKS.filter((task) => HERO_KEYS.includes(task.key)).map((task) =>
 		task.key === FEATURED_TASK.key
-			? { ...task, status: FEATURED_STATUS[beat], assignee: beat >= 1 ? PEOPLE.tom : undefined }
+			? { ...task, status: forBeat(FEATURED_STATUS, beat), assignee: beat >= 1 ? PEOPLE.tom : undefined }
 			: task
 	);
 
@@ -220,7 +230,7 @@ export function LoopDemo() {
 								highlightNote={
 									<span className="shrink-0 rounded bg-primary/15 px-1.5 py-0.5 text-[11px] text-primary tabular-nums">
 										▲ {votes}
-										{ROW_NOTE[beat] && ` · ${ROW_NOTE[beat]}`}
+										{rowNote && ` · ${rowNote}`}
 									</span>
 								}
 							/>
@@ -233,11 +243,11 @@ export function LoopDemo() {
 				<div className="relative z-10 grid lg:mt-8 lg:-ml-28">
 					<Layer active={beat < 4}>
 						<PortalPost
-							status={FEATURED_STATUS[beat]}
+							status={forBeat(FEATURED_STATUS, beat)}
 							votes={votes - (voted ? 1 : 0)}
 							voted={voted}
 							onVote={() => setVoted((value) => !value)}
-							detail={POST_DETAIL[beat]}
+							detail={forBeat(POST_DETAIL, beat) ?? undefined}
 							comments={reveal(POST_THREAD, position)}
 						/>
 					</Layer>
@@ -275,7 +285,7 @@ export function LoopDemo() {
 				</button>
 			</div>
 			<p aria-live="polite" className="-mt-2 text-muted-foreground text-sm">
-				<span className="font-medium text-foreground">{BEATS[beat].label}.</span> {BEATS[beat].caption}
+				<span className="font-medium text-foreground">{current.label}.</span> {current.caption}
 			</p>
 		</section>
 	);
