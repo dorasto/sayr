@@ -20,10 +20,12 @@ import { Route as ApiSearchRouteImport } from './routes/api/search'
 import { Route as ApiOpenapiProxyRouteImport } from './routes/api/openapi-proxy'
 import { Route as ApiOgRouteImport } from './routes/api/og'
 import { Route as MarketingPricingRouteImport } from './routes/_marketing/pricing'
+import { Route as MarketingSectionIndexRouteImport } from './routes/_marketing/$section/index'
 import { Route as MarketingLegalTermsRouteImport } from './routes/_marketing/legal/terms'
 import { Route as MarketingLegalSubprocessorsRouteImport } from './routes/_marketing/legal/subprocessors'
 import { Route as MarketingLegalPrivacyRouteImport } from './routes/_marketing/legal/privacy'
 import { Route as MarketingFeaturesSlugRouteImport } from './routes/_marketing/features/$slug'
+import { Route as MarketingSectionSlugRouteImport } from './routes/_marketing/$section/$slug'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
@@ -79,6 +81,11 @@ const MarketingPricingRoute = MarketingPricingRouteImport.update({
   path: '/pricing',
   getParentRoute: () => MarketingRoute,
 } as any)
+const MarketingSectionIndexRoute = MarketingSectionIndexRouteImport.update({
+  id: '/$section/',
+  path: '/$section/',
+  getParentRoute: () => MarketingRoute,
+} as any)
 const MarketingLegalTermsRoute = MarketingLegalTermsRouteImport.update({
   id: '/legal/terms',
   path: '/legal/terms',
@@ -100,6 +107,11 @@ const MarketingFeaturesSlugRoute = MarketingFeaturesSlugRouteImport.update({
   path: '/features/$slug',
   getParentRoute: () => MarketingRoute,
 } as any)
+const MarketingSectionSlugRoute = MarketingSectionSlugRouteImport.update({
+  id: '/$section/$slug',
+  path: '/$section/$slug',
+  getParentRoute: () => MarketingRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof MarketingIndexRoute
@@ -112,10 +124,12 @@ export interface FileRoutesByFullPath {
   '/docs/llms-full.txt': typeof DocsLlmsFullDottxtRoute
   '/docs/llms.txt': typeof DocsLlmsDottxtRoute
   '/docs/{$}.md': typeof DocsChar123Char125DotmdRoute
+  '/$section/$slug': typeof MarketingSectionSlugRoute
   '/features/$slug': typeof MarketingFeaturesSlugRoute
   '/legal/privacy': typeof MarketingLegalPrivacyRoute
   '/legal/subprocessors': typeof MarketingLegalSubprocessorsRoute
   '/legal/terms': typeof MarketingLegalTermsRoute
+  '/$section/': typeof MarketingSectionIndexRoute
 }
 export interface FileRoutesByTo {
   '/sitemap.xml': typeof SitemapDotxmlRoute
@@ -128,10 +142,12 @@ export interface FileRoutesByTo {
   '/docs/llms.txt': typeof DocsLlmsDottxtRoute
   '/docs/{$}.md': typeof DocsChar123Char125DotmdRoute
   '/': typeof MarketingIndexRoute
+  '/$section/$slug': typeof MarketingSectionSlugRoute
   '/features/$slug': typeof MarketingFeaturesSlugRoute
   '/legal/privacy': typeof MarketingLegalPrivacyRoute
   '/legal/subprocessors': typeof MarketingLegalSubprocessorsRoute
   '/legal/terms': typeof MarketingLegalTermsRoute
+  '/$section': typeof MarketingSectionIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -146,10 +162,12 @@ export interface FileRoutesById {
   '/docs/llms.txt': typeof DocsLlmsDottxtRoute
   '/docs/{$}.md': typeof DocsChar123Char125DotmdRoute
   '/_marketing/': typeof MarketingIndexRoute
+  '/_marketing/$section/$slug': typeof MarketingSectionSlugRoute
   '/_marketing/features/$slug': typeof MarketingFeaturesSlugRoute
   '/_marketing/legal/privacy': typeof MarketingLegalPrivacyRoute
   '/_marketing/legal/subprocessors': typeof MarketingLegalSubprocessorsRoute
   '/_marketing/legal/terms': typeof MarketingLegalTermsRoute
+  '/_marketing/$section/': typeof MarketingSectionIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -164,10 +182,12 @@ export interface FileRouteTypes {
     | '/docs/llms-full.txt'
     | '/docs/llms.txt'
     | '/docs/{$}.md'
+    | '/$section/$slug'
     | '/features/$slug'
     | '/legal/privacy'
     | '/legal/subprocessors'
     | '/legal/terms'
+    | '/$section/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/sitemap.xml'
@@ -180,10 +200,12 @@ export interface FileRouteTypes {
     | '/docs/llms.txt'
     | '/docs/{$}.md'
     | '/'
+    | '/$section/$slug'
     | '/features/$slug'
     | '/legal/privacy'
     | '/legal/subprocessors'
     | '/legal/terms'
+    | '/$section'
   id:
     | '__root__'
     | '/_marketing'
@@ -197,10 +219,12 @@ export interface FileRouteTypes {
     | '/docs/llms.txt'
     | '/docs/{$}.md'
     | '/_marketing/'
+    | '/_marketing/$section/$slug'
     | '/_marketing/features/$slug'
     | '/_marketing/legal/privacy'
     | '/_marketing/legal/subprocessors'
     | '/_marketing/legal/terms'
+    | '/_marketing/$section/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -294,6 +318,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MarketingPricingRouteImport
       parentRoute: typeof MarketingRoute
     }
+    '/_marketing/$section/': {
+      id: '/_marketing/$section/'
+      path: '/$section'
+      fullPath: '/$section/'
+      preLoaderRoute: typeof MarketingSectionIndexRouteImport
+      parentRoute: typeof MarketingRoute
+    }
     '/_marketing/legal/terms': {
       id: '/_marketing/legal/terms'
       path: '/legal/terms'
@@ -322,25 +353,36 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MarketingFeaturesSlugRouteImport
       parentRoute: typeof MarketingRoute
     }
+    '/_marketing/$section/$slug': {
+      id: '/_marketing/$section/$slug'
+      path: '/$section/$slug'
+      fullPath: '/$section/$slug'
+      preLoaderRoute: typeof MarketingSectionSlugRouteImport
+      parentRoute: typeof MarketingRoute
+    }
   }
 }
 
 interface MarketingRouteChildren {
   MarketingPricingRoute: typeof MarketingPricingRoute
   MarketingIndexRoute: typeof MarketingIndexRoute
+  MarketingSectionSlugRoute: typeof MarketingSectionSlugRoute
   MarketingFeaturesSlugRoute: typeof MarketingFeaturesSlugRoute
   MarketingLegalPrivacyRoute: typeof MarketingLegalPrivacyRoute
   MarketingLegalSubprocessorsRoute: typeof MarketingLegalSubprocessorsRoute
   MarketingLegalTermsRoute: typeof MarketingLegalTermsRoute
+  MarketingSectionIndexRoute: typeof MarketingSectionIndexRoute
 }
 
 const MarketingRouteChildren: MarketingRouteChildren = {
   MarketingPricingRoute: MarketingPricingRoute,
   MarketingIndexRoute: MarketingIndexRoute,
+  MarketingSectionSlugRoute: MarketingSectionSlugRoute,
   MarketingFeaturesSlugRoute: MarketingFeaturesSlugRoute,
   MarketingLegalPrivacyRoute: MarketingLegalPrivacyRoute,
   MarketingLegalSubprocessorsRoute: MarketingLegalSubprocessorsRoute,
   MarketingLegalTermsRoute: MarketingLegalTermsRoute,
+  MarketingSectionIndexRoute: MarketingSectionIndexRoute,
 }
 
 const MarketingRouteWithChildren = MarketingRoute._addFileChildren(
