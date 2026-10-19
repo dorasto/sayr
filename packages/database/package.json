@@ -21,7 +21,8 @@
     "pg": "^8.11.3",
     "postgres": "3.4.3",
     "@repo/storage": "workspace:*",
-    "@repo/util": "workspace:*"
+    "@repo/util": "workspace:*",
+    "@repo/notification": "workspace:*"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.1.1",

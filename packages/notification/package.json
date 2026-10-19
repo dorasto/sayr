@@ -1,0 +1,31 @@
+{
+	"name": "@repo/notification",
+	"version": "0.0.1",
+	"publishConfig": {
+		"access": "public"
+	},
+	"exports": {
+		".": "./src/index.ts",
+		"./types": "./src/types.ts",
+		"./processor": "./src/processor.ts"
+	},
+	"scripts": {
+		"lint": "biome check .",
+		"lint:fix": "biome check . --write",
+		"format": "biome format --write ."
+	},
+	"peerDependencies": {
+		"drizzle-orm": ">=0.45.0"
+	},
+	"peerDependenciesMeta": {
+		"drizzle-orm": {
+			"optional": true
+		}
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^2.1.1",
+		"@repo/typescript-config": "workspace:*",
+		"@types/node": "^24.0.14",
+		"drizzle-orm": "^0.44.0"
+	}
+}

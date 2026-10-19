@@ -917,6 +917,9 @@ importers:
 
   packages/database:
     dependencies:
+      '@repo/notification':
+        specifier: workspace:*
+        version: link:../notification
       '@repo/storage':
         specifier: workspace:*
         version: link:../storage
@@ -976,6 +979,18 @@ importers:
       '@types/react':
         specifier: ^19.0.0
         version: 19.2.8
+
+  packages/notification:
+    devDependencies:
+      '@biomejs/biome':
+        specifier: ^2.1.1
+        version: 2.1.1
+      '@repo/typescript-config':
+        specifier: workspace:*
+        version: link:../typescript-config
+      '@types/node':
+        specifier: ^24.0.14
+        version: 24.12.2
 
   packages/opentelemetry:
     dependencies:

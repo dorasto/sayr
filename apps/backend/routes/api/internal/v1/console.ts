@@ -9,6 +9,7 @@ import { createTraceAsync } from "@repo/opentelemetry/trace";
 import { paginatedSuccessResponse, errorResponse, successResponse } from "../../../../responses";
 import { queryAiUsageByOrg, queryAiUsageSummaryAllOrgs } from "@/clickhouse";
 import { createPolar } from "@polar-sh/sdk/2026-10";
+import { sseBroadcastByUserId } from "@/routes/events";
 const polarClient = createPolar({
 	accessToken: process.env.POLAR_ACCESS_TOKEN!,
 });
@@ -1217,3 +1218,65 @@ apiRouteConsole.patch("/organizations/:orgId/ai-settings", async (c) => {
 		return c.json(errorResponse("Failed to update AI settings"), 500);
 	}
 });
+
+apiRouteConsole.post(
+	"/create-notification",
+	async (c) => {
+		const recordWideError = c.get("recordWideError");
+		const session = c.get("session");
+		const user = c.get("user");
+
+		if (!session?.userId) {
+			return c.json(errorResponse("UNAUTHORIZED"), 401);
+		}
+
+		if (user?.role !== "system") {
+			return c.json(errorResponse("FORBIDDEN"), 403);
+		}
+
+		try {
+			const body = await c.req.json<{
+				id: string;
+				type: string;
+				recipientId: string;
+				actorId?: string | null;
+				scopeType?: string | null;
+				scopeId?: string | null;
+				resourceType?: string | null;
+				resourceId?: string | null;
+				data: Record<string, unknown>;
+			}>();
+			if (body.recipientId !== body.actorId) {
+				sseBroadcastByUserId(
+					body.recipientId,
+					"",
+					body.resourceId || "",
+					{
+						type: "NEW_NOTIFICATION",
+						data: body,
+						meta: {
+							ts: Date.now(),
+						},
+					},
+				);
+			}
+			return c.json({
+				success: true,
+			});
+		} catch (error) {
+			await recordWideError({
+				name: "console.notification_create.failed",
+				error,
+				code: "CONSOLE_NOTIFICATION_CREATE_FAILED",
+				message: "Failed to publish notification",
+				contextData: {
+					adminId: session.userId,
+				},
+			});
+			return c.json(
+				errorResponse("Failed to publish notification"),
+				500,
+			);
+		}
+	},
+);

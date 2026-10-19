@@ -1,6 +1,5 @@
 import {
 	addLogEventTask,
-	createNotification,
 	db,
 	getOrganizationMembers,
 	getTaskById,
@@ -13,12 +12,12 @@ import { emitEvent } from "@/clickhouse";
 import {
 	findClientBysseId,
 	findSSEClientsByUserId,
-	sseBroadcastByUserId,
 	sseBroadcastIndividual,
 	sseBroadcastPublic,
 	sseBroadcastToRoom,
 } from "@/routes/events";
 import type { ServerEventBaseMessage } from "@/routes/events/types";
+import { createNotification } from "@/index";
 
 /**
  * Shared assignee-sync mutation service, extracted verbatim from the
@@ -89,23 +88,15 @@ export async function updateTaskAssigneesService(params: UpdateTaskAssigneesServ
 					const event = await addLogEventTask(taskId, orgId, "assignee_added", null, userId, actorUserId);
 					// Notify the newly assigned user
 					createNotification({
-						organizationId: orgId,
-						userId,
-						actorId: actorUserId,
-						taskId,
-						timelineEventId: event?.id,
-						type: "assignee_added",
+						"type": "assignee_added",
+						"resourceId": orgId,
+						"recipientId": userId,
+						"actorId": actorUserId,
+						data: {
+							taskId,
+							timelineEventId: event?.id,
+						}
 					})
-						.then((notif) => {
-							if (notif && notif.userId !== actorUserId) {
-								sseBroadcastByUserId(notif.userId, "", orgId, {
-									type: "NEW_NOTIFICATION" as ServerEventBaseMessage["type"],
-									data: notif,
-									meta: { ts: Date.now() },
-								});
-							}
-						})
-						.catch(() => {});
 				}
 			}
 
@@ -123,23 +114,15 @@ export async function updateTaskAssigneesService(params: UpdateTaskAssigneesServ
 					const event = await addLogEventTask(taskId, orgId, "assignee_removed", null, userId, actorUserId);
 					// Notify the removed user
 					createNotification({
-						organizationId: orgId,
-						userId,
-						actorId: actorUserId,
-						taskId,
-						timelineEventId: event?.id,
 						type: "assignee_removed",
+						resourceId: orgId,
+						recipientId: userId,
+						actorId: actorUserId,
+						data: {
+							taskId,
+							timelineEventId: event?.id,
+						}
 					})
-						.then((notif) => {
-							if (notif && notif.userId !== actorUserId) {
-								sseBroadcastByUserId(notif.userId, "", orgId, {
-									type: "NEW_NOTIFICATION" as ServerEventBaseMessage["type"],
-									data: notif,
-									meta: { ts: Date.now() },
-								});
-							}
-						})
-						.catch(() => {});
 				}
 			}
 		},

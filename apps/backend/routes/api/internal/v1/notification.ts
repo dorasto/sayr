@@ -1,19 +1,16 @@
 import {
-	archiveNotification,
-	deleteNotification,
-	getNotificationsForUser,
-	getUnreadNotificationCount,
-	markAllNotificationsRead,
-	markNotificationRead,
-	markNotificationUnread,
-	markNotificationsReadByTask,
+	NotificationHelper,
+	db,
+	schema,
+	userSummaryColumns
 } from "@repo/database";
-import { ensureCdnUrl } from "@repo/util";
 import { Hono } from "hono";
 import type { AppEnv } from "@/index";
 import { createTraceAsync } from "@repo/opentelemetry/trace";
 import type { WSBaseMessage } from "@/routes/ws/types";
 import { sseBroadcastByUserId } from "@/routes/events";
+import { eq, inArray, sql } from "drizzle-orm";
+import { ensureCdnUrl } from "@repo/util";
 
 export const apiRouteAdminNotification = new Hono<AppEnv>();
 
@@ -25,56 +22,109 @@ apiRouteAdminNotification.get("/", async (c) => {
 	if (!session?.userId) {
 		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
 	}
-
 	const limit = Math.min(Number.parseInt(c.req.query("limit") || "50", 10) || 50, 100);
-	const offset = Math.max(Number.parseInt(c.req.query("offset") || "0", 10) || 0, 0);
-	const unreadOnly = c.req.query("unread") === "true";
-	const organizationId = c.req.query("org_id") || undefined;
+	const page = Math.max(Number.parseInt(c.req.query("page") || "0") || 0, 1);
+	// const unreadOnly = c.req.query("unread") === "true";
+	// const organizationId = c.req.query("org_id") || undefined;
 
-	const notifications = await traceAsync(
+	const notificationsData = await traceAsync(
 		"notifications.list",
-		() => getNotificationsForUser(session.userId, { limit, offset, unreadOnly, organizationId }),
+		async () => {
+			const memberships = await db.query.member.findMany({
+				where: (member) => eq(member.userId, session.userId),
+				with: {
+					organization: {
+						columns: {
+							id: true,
+							plan: true,
+						},
+					},
+				},
+			});
+			const allowedOrgIds = new Set(
+				memberships
+					.filter((m) => {
+						if (m.organization.plan !== "pro") return true;
+						return m.seatAssigned === true;
+					})
+					.map((m) => m.organizationId)
+			);
+			// if (organizationId && !allowedOrgIds.has(organizationId)) {
+			// 	return {
+			// 		notifications: [],
+			// 		unreadCount: 0,
+			// 		paginated: {
+			// 			page: page,
+			// 			limit: limit,
+			// 			totalPages: 1,
+			// 			totalItems: 1,
+			// 			hasMore: page < 1,
+			// 		},
+			// 	};
+			// }
+			const conditions = [
+				eq(schema.notifications.recipientId, session.userId),
+				inArray(schema.notifications.resourceId, Array.from(allowedOrgIds)),
+			];
+
+			// if (options?.unreadOnly) {
+			// 	conditions.push(isNull(notifications.readAt));
+			// }
+
+			// if (options?.organizationId) {
+			// 	conditions.push(eq(notifications.resourceId, options.organizationId));
+			// }
+			const results = await NotificationHelper.listNotifications({
+				conditions,
+				columns: {
+					id: true,
+					type: true,
+					data: true,
+					delivered: true,
+					readAt: true,
+					createdAt: true,
+					updatedAt: true,
+				},
+				with: {
+					actor: {
+						columns: userSummaryColumns,
+					},
+					recipient: {
+						columns: userSummaryColumns,
+					},
+					resourceId: {
+						columns: {
+							id: true,
+							name: true,
+							slug: true,
+							logo: true,
+							shortId: true,
+						},
+					},
+				},
+				limit,
+				page
+			})
+			const notificationsData = results.notifications.map(({ resourceId, ...notification }: { resourceId: any }) => ({
+				...notification,
+				organization: resourceId ? {
+					...resourceId,
+					logo: resourceId.logo ? ensureCdnUrl(resourceId.logo) : null
+				} : undefined
+			})) as any
+			return {
+				notifications: notificationsData,
+				unreadCount: results.unreadCount,
+				paginated: results.paginated,
+			}
+		},
 		{
 			description: "Fetching user notifications",
-			data: { userId: session.userId, limit, offset, unreadOnly },
+			data: { userId: session.userId, limit, page },
 		},
 	);
 
-	// Transform organization logos to use CDN URLs
-	const transformedNotifications = notifications.map((n) => ({
-		...n,
-		organization: n.organization
-			? {
-				...n.organization,
-				logo: n.organization.logo ? ensureCdnUrl(n.organization.logo) : null,
-			}
-			: undefined,
-	}));
-
-	return c.json({ success: true, data: transformedNotifications });
-});
-
-// Get unread notification count
-apiRouteAdminNotification.get("/unread-count", async (c) => {
-	const traceAsync = createTraceAsync();
-	const session = c.get("session");
-
-	if (!session?.userId) {
-		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
-	}
-
-	const organizationId = c.req.query("org_id") || undefined;
-
-	const count = await traceAsync(
-		"notifications.unread_count",
-		() => getUnreadNotificationCount(session.userId, organizationId),
-		{
-			description: "Fetching unread notification count",
-			data: { userId: session.userId },
-		},
-	);
-
-	return c.json({ success: true, data: { count } });
+	return c.json({ success: true, data: notificationsData.notifications, unreadCount: notificationsData.unreadCount, paginated: notificationsData.paginated });
 });
 
 // Mark a single notification as read
@@ -90,7 +140,7 @@ apiRouteAdminNotification.patch("/:id/read", async (c) => {
 
 	const updated = await traceAsync(
 		"notifications.mark_read",
-		() => markNotificationRead(notificationId, session.userId),
+		() => NotificationHelper.markRead({ id: notificationId, recipientId: session.userId }),
 		{
 			description: "Marking notification as read",
 			data: { notificationId, userId: session.userId },
@@ -125,7 +175,7 @@ apiRouteAdminNotification.patch("/read-all", async (c) => {
 
 	await traceAsync(
 		"notifications.mark_all_read",
-		() => markAllNotificationsRead(session.userId, organizationId),
+		() => NotificationHelper.markAllRead({ recipientId: session.userId }),
 		{
 			description: "Marking all notifications as read",
 			data: { userId: session.userId, organizationId },
@@ -143,7 +193,7 @@ apiRouteAdminNotification.patch("/read-all", async (c) => {
 });
 
 // Mark all notifications for a specific task as read
-apiRouteAdminNotification.patch("/read-by-task/:taskId", async (c) => {
+apiRouteAdminNotification.get("/read-by-task/:taskId", async (c) => {
 	const traceAsync = createTraceAsync();
 	const session = c.get("session");
 
@@ -155,109 +205,24 @@ apiRouteAdminNotification.patch("/read-by-task/:taskId", async (c) => {
 
 	const markedCount = await traceAsync(
 		"notifications.mark_read_by_task",
-		() => markNotificationsReadByTask(session.userId, taskId),
+		async () => {
+			const conditions = [
+				sql`${schema.notifications.data}->>'taskId' = ${taskId}`,
+			];
+			return await NotificationHelper.markReadByData({ recipientId: session.userId, conditions })
+
+		},
 		{
 			description: "Marking notifications read by task",
 			data: { userId: session.userId, taskId },
 		},
 	);
 
-	if (markedCount > 0) {
-		// Broadcast to user's other tabs/sessions
-		sseBroadcastByUserId(session.userId, "", "", {
-			type: "NOTIFICATION_READ" as WSBaseMessage["type"],
-			data: { taskId, count: markedCount },
-			meta: { ts: Date.now() },
-		});
-	}
-
-	return c.json({ success: true, data: { markedCount } });
-});
-
-// Archive a notification
-apiRouteAdminNotification.patch("/:id/archive", async (c) => {
-	const traceAsync = createTraceAsync();
-	const session = c.get("session");
-
-	if (!session?.userId) {
-		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
-	}
-
-	const notificationId = c.req.param("id");
-
-	const updated = await traceAsync(
-		"notifications.archive",
-		() => archiveNotification(notificationId, session.userId),
-		{
-			description: "Archiving notification",
-			data: { notificationId, userId: session.userId },
-		},
-	);
-
-	if (!updated) {
-		return c.json({ success: false, error: "Notification not found" }, 404);
-	}
-
-	return c.json({ success: true, data: updated });
-});
-
-// Mark a single notification as unread
-apiRouteAdminNotification.patch("/:id/unread", async (c) => {
-	const traceAsync = createTraceAsync();
-	const session = c.get("session");
-
-	if (!session?.userId) {
-		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
-	}
-
-	const notificationId = c.req.param("id");
-
-	const updated = await traceAsync(
-		"notifications.mark_unread",
-		() => markNotificationUnread(notificationId, session.userId),
-		{
-			description: "Marking notification as unread",
-			data: { notificationId, userId: session.userId },
-		},
-	);
-
-	if (!updated) {
-		return c.json({ success: false, error: "Notification not found" }, 404);
-	}
-
-	// Broadcast to user's other tabs/sessions
 	sseBroadcastByUserId(session.userId, "", "", {
-		type: "NOTIFICATION_UNREAD" as WSBaseMessage["type"],
-		data: { id: notificationId },
+		type: "NOTIFICATION_READ" as WSBaseMessage["type"],
+		data: {},
 		meta: { ts: Date.now() },
 	});
 
-	return c.json({ success: true, data: updated });
-});
-
-// Delete a notification permanently
-apiRouteAdminNotification.delete("/:id", async (c) => {
-	const traceAsync = createTraceAsync();
-	const session = c.get("session");
-
-	if (!session?.userId) {
-		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
-	}
-
-	const notificationId = c.req.param("id");
-
-	const deleted = await traceAsync(
-		"notifications.delete",
-		() => deleteNotification(notificationId, session.userId),
-		{
-			description: "Deleting notification",
-			data: { notificationId, userId: session.userId },
-		},
-	);
-
-	if (!deleted) {
-		return c.json({ success: false, error: "Notification not found" }, 404);
-	}
-
-	return c.json({ success: true, data: deleted });
+	return c.json({ success: true, data: { markedCount } });
 });

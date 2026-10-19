@@ -1,5 +1,5 @@
 import { Octokit } from "@octokit/rest";
-import { auth, db, schema } from "@repo/database";
+import { auth, db, processNotificationCreate, schema } from "@repo/database";
 import { isCloud } from "@repo/edition";
 import { initTracing } from "@repo/opentelemetry";
 import { withTraceContext } from "@repo/opentelemetry/trace";
@@ -287,6 +287,9 @@ async function processMainJob(job: JobGroups["main"]) {
 
 		case "embed_task":
 			return embedTaskWorker(job);
+
+		case "notification_create":
+			return processNotificationCreate(job);
 
 		default:
 			// Now that MainJob has more than one member, this branch is

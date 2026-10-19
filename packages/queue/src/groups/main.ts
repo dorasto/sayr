@@ -27,12 +27,26 @@ export type EmbedTaskPayload = {
 
 export type MainJob =
 	| {
-			type: "gdpr_export";
-			traceContext?: MainExportTraceContext;
-			payload: GdprExportPayload;
-	  }
+		type: "gdpr_export";
+		traceContext?: MainExportTraceContext;
+		payload: GdprExportPayload;
+	}
 	| {
-			type: "embed_task";
-			traceContext?: MainExportTraceContext;
-			payload: EmbedTaskPayload;
-	  };
+		type: "embed_task";
+		traceContext?: MainExportTraceContext;
+		payload: EmbedTaskPayload;
+	}
+	| {
+		type: "notification_create";
+		traceContext?: MainExportTraceContext;
+		payload: {
+			recipientId: string;
+			actorId?: string | null;
+			scopeType?: string | null;
+			scopeId?: string | null;
+			type: string;
+			resourceType?: string | null;
+			resourceId?: string | null;
+			data: Record<string, unknown>;
+		};
+	};
