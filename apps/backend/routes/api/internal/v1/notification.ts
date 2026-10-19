@@ -105,14 +105,56 @@ apiRouteAdminNotification.get("/", async (c) => {
 				limit,
 				page
 			})
-			const notificationsData = results.notifications.map(({ resourceId, ...notification }: any) => ({
-				...notification,
-				organization: resourceId ? {
-					...resourceId,
-					logo: resourceId.logo ? ensureCdnUrl(resourceId.logo) : null
-				} : undefined,
-				unread: notification.delivered && notification.readAt === null,
-			})) as any
+			const uniqueTaskIds = [
+				...new Set(
+					results.notifications
+						.map(
+							(notification: any) =>
+								(notification.data as { taskId?: string } | null | undefined)
+									?.taskId
+						)
+				),
+			] as string[];
+
+			const tasks =
+				uniqueTaskIds.length > 0
+					? await db.query.task.findMany({
+						where: () =>
+							inArray(schema.task.id, uniqueTaskIds),
+						columns: {
+							id: true,
+							shortId: true,
+							status: true,
+							priority: true
+						}
+					})
+					: [];
+			const tasksById = new Map(tasks.map((task) => [task.id, task]));
+			const notificationsData = results.notifications.map(
+				({ resourceId, ...notification }: any) => {
+					const data = notification.data as
+						| { taskId?: string }
+						| null
+						| undefined;
+
+					const task = data?.taskId ? tasksById.get(data.taskId) : undefined;
+
+					return {
+						...notification,
+						task,
+						organization: resourceId
+							? {
+								...resourceId,
+								logo: resourceId.logo
+									? ensureCdnUrl(resourceId.logo)
+									: null,
+							}
+							: undefined,
+						unread:
+							notification.delivered && notification.readAt === null,
+					};
+				},
+			);
 			return {
 				notifications: notificationsData,
 				unreadCount: results.unreadCount,
@@ -219,7 +261,7 @@ apiRouteAdminNotification.patch("/read-all", async (c) => {
 });
 
 // Mark all notifications for a specific task as read
-apiRouteAdminNotification.get("/read-by-task/:taskId", async (c) => {
+apiRouteAdminNotification.patch("/read-by-task/:taskId", async (c) => {
 	const traceAsync = createTraceAsync();
 	const session = c.get("session");
 

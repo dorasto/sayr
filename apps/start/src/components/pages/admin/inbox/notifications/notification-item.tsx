@@ -56,6 +56,12 @@ export interface NotificationItemProps {
 			logo: string
 			shortId: string
 		}
+		task: {
+			id: string
+			shortId: number
+			status: string
+			priority: string
+		}
 		unread: boolean
 	};
 	isSelected: boolean;
@@ -76,8 +82,8 @@ export function NotificationItem({
 		icon: (cls: string) => <IconBellRinging className={cls} />,
 	};
 	const actorName = notification.actor?.displayName || notification.actor?.name || "Someone";
-	// const status = statusConfig[notification.task.status as keyof typeof statusConfig];
-	// const priority = priorityConfig[notification.task.priority as keyof typeof priorityConfig];
+	const status = statusConfig[notification.task.status as keyof typeof statusConfig];
+	const priority = priorityConfig[notification.task.priority as keyof typeof priorityConfig];
 
 	return (
 		<ContextMenu>
@@ -118,24 +124,24 @@ export function NotificationItem({
 							text={notification.organization.name}
 						/>
 					)}
-					{/* 
+
 					{notification.data.taskId && (
 						<span className="text-xs text-muted-foreground">
 							{notification.organization
-								? formatTaskKey(notification.organization.shortId, notification.data.taskId)
+								? formatTaskKey(notification.organization.shortId, notification.task.shortId)
 								: notification.data.taskId}
 						</span>
-					)} */}
+					)}
 
 					{/* Meta icons pushed right */}
 					<div className="flex items-center gap-2 text-xs ml-auto shrink-0">
 						{config.icon("size-3.5 text-muted-foreground/60")}
-						{/* {status && (
+						{status && (
 							<div className="flex items-center gap-1">{status.icon(cn(status.className, "size-4"))}</div>
 						)}
 						{priority && notification.task.priority === "urgent" && (
 							<div className="flex items-center gap-1">{priority.icon(cn(priority.className, "size-4"))}</div>
-						)} */}
+						)}
 						{notification.unread && <IconBellFilled className="size-4 text-primary" />}
 					</div>
 				</div>

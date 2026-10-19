@@ -1,4 +1,3 @@
-import type { schema } from "@repo/database";
 import { ScrollArea } from "@repo/ui/components/scroll-area";
 import { Skeleton } from "@repo/ui/components/skeleton";
 import { useCallback, useEffect, useRef } from "react";

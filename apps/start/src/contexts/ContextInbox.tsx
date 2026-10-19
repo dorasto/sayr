@@ -43,6 +43,12 @@ interface InboxContextType {
 			logo: string
 			shortId: string
 		}
+		task: {
+			id: string
+			shortId: number
+			status: string
+			priority: string
+		}
 		unread: boolean
 	}[];
 	unreadCount: number;
