@@ -1754,6 +1754,7 @@ apiRouteAdminProjectTask.post("/create-comment", async (c) => {
 					actorId: actorId ?? null,
 					data: {
 						taskId,
+						commentId: newComment?.id
 					}
 				});
 			} catch {

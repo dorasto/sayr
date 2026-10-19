@@ -52,17 +52,12 @@ export default function InboxPage() {
 		categories,
 		setCategories,
 		releases,
-		notifications,
-		setNotifications,
 		unreadCount,
-		setUnreadCount,
 		refreshNotifications,
 		permissionsByOrg,
 	} = useInbox();
 
 	const handleMarkAllRead = async () => {
-		setNotifications(notifications.map((n) => ({ ...n, read: true })));
-		setUnreadCount(0);
 		const result = await markAllNotificationsReadAction();
 		if (!result.success) {
 			refreshNotifications();
@@ -206,9 +201,9 @@ export default function InboxPage() {
 				const updatedTasks = tasks.map((task) =>
 					task.id === id && task.organizationId === msg.meta?.orgId
 						? {
-								...task,
-								voteCount,
-							}
+							...task,
+							voteCount,
+						}
 						: task
 				);
 				setTasks(updatedTasks);
@@ -232,31 +227,8 @@ export default function InboxPage() {
 			// Refresh from server to get full notification details (actor, task, org relations)
 			refreshNotifications();
 		},
-		NOTIFICATION_READ: (msg) => {
-			if (msg.data.all) {
-				// Mark all as read
-				setNotifications(notifications.map((n) => ({ ...n, read: true })));
-				setUnreadCount(0);
-			} else if (msg.data.taskId) {
-				// Mark all notifications for a specific task as read
-				let markedCount = 0;
-				setNotifications(
-					notifications.map((n) => {
-						if (n.task.id === msg.data.taskId && !n.read) {
-							markedCount++;
-							return { ...n, read: true };
-						}
-						return n;
-					})
-				);
-				if (markedCount > 0) {
-					setUnreadCount(Math.max(0, unreadCount - markedCount));
-				}
-			} else if (msg.data.id) {
-				// Mark single as read
-				setNotifications(notifications.map((n) => (n.id === msg.data.id ? { ...n, read: true } : n)));
-				setUnreadCount(Math.max(0, unreadCount - 1));
-			}
+		NOTIFICATION_READ: (_msg) => {
+			refreshNotifications();
 		},
 	};
 

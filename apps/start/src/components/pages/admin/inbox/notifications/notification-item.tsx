@@ -26,13 +26,41 @@ import { InlineLabel } from "@/components/tasks/shared/inlinelabel";
 import { notificationTypeConfig } from "./notification-type-config";
 
 export interface NotificationItemProps {
-	notification: schema.NotificationWithDetails;
+	notification: {
+		id: string
+		type: string
+		data: {
+			taskId: string
+			timelineEventId: string
+		}
+		delivered: boolean
+		readAt: string
+		createdAt: string
+		updatedAt: string
+		actor: {
+			id: string
+			name: string
+			image: string
+			displayName: string
+		}
+		recipient: {
+			id: string
+			name: string
+			image: string
+			displayName: string
+		}
+		organization: {
+			id: string
+			name: string
+			slug: string
+			logo: string
+			shortId: string
+		}
+		unread: boolean
+	};
 	isSelected: boolean;
 	onClick: () => void;
 	onMarkRead: () => void;
-	onMarkUnread: () => void;
-	onArchive: () => void;
-	onDelete: () => void;
 	onOpenInNewTab?: () => void;
 }
 
@@ -41,9 +69,6 @@ export function NotificationItem({
 	isSelected,
 	onClick,
 	onMarkRead,
-	onMarkUnread,
-	onArchive,
-	onDelete,
 	onOpenInNewTab,
 }: NotificationItemProps) {
 	const config = notificationTypeConfig[notification.type] ?? {
@@ -51,8 +76,8 @@ export function NotificationItem({
 		icon: (cls: string) => <IconBellRinging className={cls} />,
 	};
 	const actorName = notification.actor?.displayName || notification.actor?.name || "Someone";
-	const status = statusConfig[notification.task.status as keyof typeof statusConfig];
-	const priority = priorityConfig[notification.task.priority as keyof typeof priorityConfig];
+	// const status = statusConfig[notification.task.status as keyof typeof statusConfig];
+	// const priority = priorityConfig[notification.task.priority as keyof typeof priorityConfig];
 
 	return (
 		<ContextMenu>
@@ -64,7 +89,7 @@ export function NotificationItem({
 						className={cn(
 							"flex flex-col gap-1.5 p-3 text-left hover:bg-accent transition-colors rounded-lg text-muted-foreground group relative",
 							isSelected && "bg-secondary hover:bg-secondary text-foreground",
-							!isSelected && !notification.read && "bg-primary/5 hover:bg-primary/10 text-foreground"
+							!isSelected && notification.unread && "bg-primary/5 hover:bg-primary/10 text-foreground"
 						)}
 					/>
 				}
@@ -93,25 +118,25 @@ export function NotificationItem({
 							text={notification.organization.name}
 						/>
 					)}
-
-					{notification.task.shortId && (
+					{/* 
+					{notification.data.taskId && (
 						<span className="text-xs text-muted-foreground">
 							{notification.organization
-								? formatTaskKey(notification.organization.shortId, notification.task.shortId)
-								: notification.task.shortId}
+								? formatTaskKey(notification.organization.shortId, notification.data.taskId)
+								: notification.data.taskId}
 						</span>
-					)}
+					)} */}
 
 					{/* Meta icons pushed right */}
 					<div className="flex items-center gap-2 text-xs ml-auto shrink-0">
 						{config.icon("size-3.5 text-muted-foreground/60")}
-						{status && (
+						{/* {status && (
 							<div className="flex items-center gap-1">{status.icon(cn(status.className, "size-4"))}</div>
 						)}
 						{priority && notification.task.priority === "urgent" && (
 							<div className="flex items-center gap-1">{priority.icon(cn(priority.className, "size-4"))}</div>
-						)}
-						{!notification.read && <IconBellFilled className="size-4 text-primary" />}
+						)} */}
+						{notification.unread && <IconBellFilled className="size-4 text-primary" />}
 					</div>
 				</div>
 
@@ -124,38 +149,27 @@ export function NotificationItem({
 					</p>
 					<p className="text-xs font-medium line-clamp-1">
 						<span className="text-inherit font-normal ml-auto">
-							{formatDateTimeFromNow(notification.createdAt as Date)}
+							{formatDateTimeFromNow(notification.createdAt)}
 						</span>
 					</p>
 				</div>
 
 				{/* Action buttons (visible on hover) */}
-				{/*<div className="absolute right-2 top-1/2 -translate-y-1/2 hidden group-hover:flex items-center gap-0.5 bg-accent rounded-md p-0.5">
-            {!notification.read && (
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onMarkRead();
-                }}
-                className="p-1 hover:bg-secondary rounded text-muted-foreground hover:text-foreground transition-colors"
-                title="Mark as read"
-              >
-                <IconCheck className="size-3.5" />
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                onArchive();
-              }}
-              className="p-1 hover:bg-secondary rounded text-muted-foreground hover:text-foreground transition-colors"
-              title="Archive"
-            >
-              <IconArchive className="size-3.5" />
-            </button>
-          </div>*/}
+				<div className="absolute right-2 top-1/2 -translate-y-1/2 hidden group-hover:flex items-center gap-0.5 bg-accent rounded-md p-0.5">
+					{notification.unread && (
+						<button
+							type="button"
+							onClick={(e) => {
+								e.stopPropagation();
+								onMarkRead();
+							}}
+							className="p-1 hover:bg-secondary rounded text-muted-foreground hover:text-foreground transition-colors"
+							title="Mark as read"
+						>
+							<IconCheck className="size-3.5" />
+						</button>
+					)}
+				</div>
 			</ContextMenuTrigger>
 			<ContextMenuContent>
 				{onOpenInNewTab && (
@@ -165,26 +179,12 @@ export function NotificationItem({
 					</ContextMenuItem>
 				)}
 				{onOpenInNewTab && <ContextMenuSeparator />}
-				{notification.read ? (
-					<ContextMenuItem onClick={onMarkUnread}>
-						<IconCircle className="size-4 mr-2" />
-						Mark as unread
-					</ContextMenuItem>
-				) : (
+				{notification.unread && (
 					<ContextMenuItem onClick={onMarkRead}>
 						<IconCheck className="size-4 mr-2" />
 						Mark as read
 					</ContextMenuItem>
 				)}
-				<ContextMenuItem onClick={onArchive}>
-					<IconArchive className="size-4 mr-2" />
-					Archive
-				</ContextMenuItem>
-				<ContextMenuSeparator />
-				<ContextMenuItem onClick={onDelete} className="text-destructive focus:text-destructive">
-					<IconTrash className="size-4 mr-2" />
-					Delete
-				</ContextMenuItem>
 			</ContextMenuContent>
 		</ContextMenu>
 	);

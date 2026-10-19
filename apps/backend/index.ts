@@ -24,6 +24,7 @@ export type AppNotificationMap = {
 	mention: {
 		taskId: string;
 		timelineEventId?: string | undefined;
+		commentId?: string;
 	};
 	comment: {
 		taskId: string;

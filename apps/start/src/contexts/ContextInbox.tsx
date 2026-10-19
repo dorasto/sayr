@@ -1,10 +1,8 @@
-import type { schema, TeamPermissions } from "@repo/database";
-import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
-import { createContext, type ReactNode, useCallback, useContext, useEffect, useRef, useState } from "react";
-import { getNotifications, getUnreadNotificationCount } from "@/lib/fetches/notification";
 import { notificationActions } from "@/lib/stores/notification-store";
-
-const NOTIFICATION_PAGE_SIZE = 20;
+import type { schema, TeamPermissions } from "@repo/database";
+import { useStateManagement, useStateManagementInfiniteFetch } from "@repo/ui/hooks/useStateManagement.ts";
+import { createContext, type ReactNode, useContext, useEffect, useRef } from "react";
+const API_URL = import.meta.env.VITE_APP_ENV === "development" ? "/backend-api/internal" : "/api/internal";
 
 interface InboxContextType {
 	tasks: schema.TaskWithLabels[];
@@ -15,19 +13,95 @@ interface InboxContextType {
 	setCategories: (newValue: InboxContextType["categories"]) => void;
 	releases: schema.releaseType[];
 	setReleases: (newValue: InboxContextType["releases"]) => void;
-	notifications: schema.NotificationWithDetails[];
-	setNotifications: (newValue: schema.NotificationWithDetails[]) => void;
+	notifications: {
+		id: string
+		type: string
+		data: {
+			taskId: string
+			timelineEventId: string
+		}
+		delivered: boolean
+		readAt: string
+		createdAt: string
+		updatedAt: string
+		actor: {
+			id: string
+			name: string
+			image: string
+			displayName: string
+		}
+		recipient: {
+			id: string
+			name: string
+			image: string
+			displayName: string
+		}
+		organization: {
+			id: string
+			name: string
+			slug: string
+			logo: string
+			shortId: string
+		}
+		unread: boolean
+	}[];
 	unreadCount: number;
-	setUnreadCount: (count: number) => void;
-	refreshNotifications: () => Promise<void>;
+	refreshNotifications: () => void;
 	hasMoreNotifications: boolean;
 	isLoadingMoreNotifications: boolean;
-	loadMoreNotifications: () => Promise<void>;
+	loadMoreNotifications: () => void;
 	permissionsByOrg: Record<string, TeamPermissions>;
+	pagination: {
+		page: number;
+		limit: number;
+		totalPages: number;
+		totalItems: number;
+		hasMore: boolean;
+	}
 }
 
 const InboxContext = createContext<InboxContextType | undefined>(undefined);
 
+
+export type Notification = {
+	id: string;
+	profileId: string;
+	data: Record<string, unknown>;
+	type: string;
+	delivered: boolean;
+	unread: boolean;
+	readAt: string | Date | null;
+	createdAt: string | Date;
+	updatedAt: string | Date;
+};
+
+type NotificationPage = {
+	items: Notification[];
+	unreadCount: number;
+	pagination: {
+		page: number;
+		limit: number;
+		totalPages: number;
+		totalItems: number;
+		hasMore: boolean;
+	};
+};
+
+
+function getPageData(response: NotificationPage): NotificationPage {
+	return {
+		items: response.items ?? [],
+		unreadCount: response.unreadCount ?? 0,
+		pagination: response.pagination ??
+			response.pagination ?? {
+			page: 1,
+			limit: 20,
+			totalPages: 1,
+			totalItems: 0,
+			hasMore: false,
+		},
+	};
+}
 export function RootProviderInbox({
 	children,
 	tasks,
@@ -43,76 +117,77 @@ export function RootProviderInbox({
 	releases: InboxContextType["releases"];
 	permissionsByOrg: InboxContextType["permissionsByOrg"];
 }) {
+	const originalTitle = useRef<string | null>(null);
 	const { value: newTasks, setValue: setTasks } = useStateManagement("inbox-tasks", tasks, 30000);
 	const { value: newLabels, setValue: setLabels } = useStateManagement("inbox-labels", labels, 30000);
 	const { value: newCategories, setValue: setCategories } = useStateManagement("inbox-categories", categories, 30000);
 	const { value: newReleases, setValue: setReleases } = useStateManagement("inbox-releases", releases, 30000);
+	const notificationsQuery = useStateManagementInfiniteFetch<
+		NotificationPage,
+		Record<string, never>
+	>({
+		key: ["inbox-notifications"],
+		fetch: {
+			url: "/v1/admin/notification",
+			custom: async (_url, page) => {
+				const pageNumber = page ? Number(page) : 1;
+				const params = new URLSearchParams();
+				params.set("page", String(pageNumber));
+				params.set("limit", String(20))
+				const qs = params.toString();
+				const url = `${API_URL}/v1/admin/notification${qs ? `?${qs}` : ""}`;
+				const res = await fetch(url, {
+					method: "GET",
+					credentials: "include",
+				});
+				return res.json();
+			},
+			getNextPageParam: (lastPage) => {
+				const pageData = getPageData(lastPage);
+				return pageData.pagination.hasMore
+					? String(pageData.pagination.page + 1)
+					: undefined;
+			},
+		},
+		staleTime: 30_000,
+	});
 
-	// Notification state
-	const [notifications, setNotifications] = useState<schema.NotificationWithDetails[]>([]);
-	const [unreadCount, _setUnreadCount] = useState(0);
-	const [hasMoreNotifications, setHasMoreNotifications] = useState(true);
-	const [isLoadingMoreNotifications, setIsLoadingMoreNotifications] = useState(false);
-	const isLoadingMoreRef = useRef(false);
-
-	// Wrap setUnreadCount to sync with the global notification store
-	const setUnreadCount = useCallback((count: number) => {
-		_setUnreadCount(count);
-		notificationActions.setCount(count);
-	}, []);
-
-	const refreshNotifications = useCallback(async () => {
-		try {
-			const [notifResult, countResult] = await Promise.all([
-				getNotifications({ limit: NOTIFICATION_PAGE_SIZE }),
-				getUnreadNotificationCount(),
-			]);
-			if (notifResult.success) {
-				setNotifications(notifResult.data);
-				setHasMoreNotifications(notifResult.data.length === NOTIFICATION_PAGE_SIZE);
-			}
-			if (countResult.success) {
-				_setUnreadCount(countResult.data.count);
-				notificationActions.setCount(countResult.data.count);
-			}
-		} catch {
-			// Notification fetch failures are non-critical
+	const pages = notificationsQuery.value.data ?? [];
+	const pageData = pages.map(getPageData);
+	const notifications: any = pageData.flatMap((page) => page.items);
+	const pagination = pageData.at(-1)?.pagination ?? {
+		page: 1,
+		limit: 20,
+		totalPages: 1,
+		totalItems: 0,
+		hasMore: false,
+	};
+	const firstPage = pageData[0];
+	const unreadCount = firstPage?.unreadCount ?? 0;
+	useEffect(() => {
+		if (typeof document === "undefined") {
+			return;
 		}
-	}, []);
 
-	const loadMoreNotifications = useCallback(async () => {
-		if (isLoadingMoreRef.current || !hasMoreNotifications) return;
-		isLoadingMoreRef.current = true;
-		setIsLoadingMoreNotifications(true);
-
-		try {
-			const result = await getNotifications({
-				limit: NOTIFICATION_PAGE_SIZE,
-				offset: notifications.length,
-			});
-			if (result.success) {
-				setNotifications((prev) => [...prev, ...result.data]);
-				setHasMoreNotifications(result.data.length === NOTIFICATION_PAGE_SIZE);
-			}
-		} catch {
-			// Load-more failures are non-critical
-		} finally {
-			isLoadingMoreRef.current = false;
-			setIsLoadingMoreNotifications(false);
+		if (originalTitle.current === null) {
+			originalTitle.current = document.title;
 		}
-	}, [hasMoreNotifications, notifications.length]);
 
+		const title = originalTitle.current;
+
+		document.title = unreadCount > 0
+			? `(${unreadCount}) ${title}`
+			: title;
+		notificationActions.setCount(unreadCount)
+		return () => {
+			document.title = title;
+		};
+	}, [unreadCount]);
 	// Sync props -> state
 	useEffect(() => setTasks(tasks), [tasks, setTasks]);
 	useEffect(() => setLabels(labels), [labels, setLabels]);
 	useEffect(() => setCategories(categories), [categories, setCategories]);
 	useEffect(() => setReleases(releases), [releases, setReleases]);
-
-	// Fetch notifications on mount
-	useEffect(() => {
-		refreshNotifications();
-	}, [refreshNotifications]);
-
 	return (
 		<InboxContext.Provider
 			value={{
@@ -125,14 +200,13 @@ export function RootProviderInbox({
 				releases: newReleases,
 				setReleases,
 				notifications,
-				setNotifications,
 				unreadCount,
-				setUnreadCount,
-				refreshNotifications,
-				hasMoreNotifications,
-				isLoadingMoreNotifications,
-				loadMoreNotifications,
+				refreshNotifications: notificationsQuery.value.refetch,
+				hasMoreNotifications: notificationsQuery.value.hasNextPage,
+				isLoadingMoreNotifications: notificationsQuery.value.isFetchingNextPage,
+				loadMoreNotifications: notificationsQuery.value.fetchNextPage,
 				permissionsByOrg,
+				pagination,
 			}}
 		>
 			{children}

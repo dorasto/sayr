@@ -4,10 +4,7 @@ import { Skeleton } from "@repo/ui/components/skeleton";
 import { useCallback, useEffect, useRef } from "react";
 import { useInbox } from "@/contexts/ContextInbox";
 import {
-	archiveNotificationAction,
-	deleteNotificationAction,
 	markNotificationReadAction,
-	markNotificationUnreadAction,
 } from "@/lib/fetches/notification";
 import { NotificationEmptyState } from "./notifications/notification-empty-state";
 import { NotificationItem } from "./notifications/notification-item";
@@ -33,9 +30,6 @@ interface NotificationListProps {
 export function NotificationList({ onSelectTask, selectedNotificationId }: NotificationListProps) {
 	const {
 		notifications,
-		setNotifications,
-		unreadCount,
-		setUnreadCount,
 		refreshNotifications,
 		hasMoreNotifications,
 		isLoadingMoreNotifications,
@@ -68,57 +62,18 @@ export function NotificationList({ onSelectTask, selectedNotificationId }: Notif
 	}, [handleLoadMore]);
 
 	const handleMarkRead = async (notificationId: string) => {
-		setNotifications(notifications.map((n) => (n.id === notificationId ? { ...n, read: true } : n)));
-		setUnreadCount(Math.max(0, unreadCount - 1));
-
 		const result = await markNotificationReadAction(notificationId);
 		if (!result.success) {
 			refreshNotifications();
 		}
 	};
 
-	const handleArchive = async (notificationId: string) => {
-		const prev = notifications;
-		setNotifications(notifications.filter((n) => n.id !== notificationId));
-		const wasUnread = prev.find((n) => n.id === notificationId && !n.read);
-		if (wasUnread) setUnreadCount(Math.max(0, unreadCount - 1));
 
-		const result = await archiveNotificationAction(notificationId);
-		if (!result.success) {
-			refreshNotifications();
-		}
-	};
-
-	const handleMarkUnread = async (notificationId: string) => {
-		const notification = notifications.find((n) => n.id === notificationId);
-		if (notification?.read) {
-			setNotifications(notifications.map((n) => (n.id === notificationId ? { ...n, read: false } : n)));
-			setUnreadCount(unreadCount + 1);
-		}
-
-		const result = await markNotificationUnreadAction(notificationId);
-		if (!result.success) {
-			refreshNotifications();
-		}
-	};
-
-	const handleDelete = async (notificationId: string) => {
-		const prev = notifications;
-		setNotifications(notifications.filter((n) => n.id !== notificationId));
-		const wasUnread = prev.find((n) => n.id === notificationId && !n.read);
-		if (wasUnread) setUnreadCount(Math.max(0, unreadCount - 1));
-
-		const result = await deleteNotificationAction(notificationId);
-		if (!result.success) {
-			refreshNotifications();
-		}
-	};
-
-	const handleClick = async (notification: schema.NotificationWithDetails) => {
-		if (!notification.read) {
+	const handleClick = async (notification: any) => {
+		if (notification.unread) {
 			handleMarkRead(notification.id);
 		}
-		onSelectTask(notification.task.id, notification.organizationId, notification.id);
+		onSelectTask(notification.data.taskId, notification.organization.id, notification.id);
 	};
 
 	return (
@@ -136,9 +91,6 @@ export function NotificationList({ onSelectTask, selectedNotificationId }: Notif
 									isSelected={selectedNotificationId === notification.id}
 									onClick={() => handleClick(notification)}
 									onMarkRead={() => handleMarkRead(notification.id)}
-									onMarkUnread={() => handleMarkUnread(notification.id)}
-									onArchive={() => handleArchive(notification.id)}
-									onDelete={() => handleDelete(notification.id)}
 								/>
 							))}
 							{isLoadingMoreNotifications && (

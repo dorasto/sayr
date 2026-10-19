@@ -9,7 +9,7 @@ import type { AppEnv } from "@/index";
 import { createTraceAsync } from "@repo/opentelemetry/trace";
 import type { WSBaseMessage } from "@/routes/ws/types";
 import { sseBroadcastByUserId } from "@/routes/events";
-import { eq, inArray, sql } from "drizzle-orm";
+import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 import { ensureCdnUrl } from "@repo/util";
 
 export const apiRouteAdminNotification = new Hono<AppEnv>();
@@ -105,12 +105,13 @@ apiRouteAdminNotification.get("/", async (c) => {
 				limit,
 				page
 			})
-			const notificationsData = results.notifications.map(({ resourceId, ...notification }: { resourceId: any }) => ({
+			const notificationsData = results.notifications.map(({ resourceId, ...notification }: any) => ({
 				...notification,
 				organization: resourceId ? {
 					...resourceId,
 					logo: resourceId.logo ? ensureCdnUrl(resourceId.logo) : null
-				} : undefined
+				} : undefined,
+				unread: notification.delivered && notification.readAt === null,
 			})) as any
 			return {
 				notifications: notificationsData,
@@ -124,7 +125,32 @@ apiRouteAdminNotification.get("/", async (c) => {
 		},
 	);
 
-	return c.json({ success: true, data: notificationsData.notifications, unreadCount: notificationsData.unreadCount, paginated: notificationsData.paginated });
+	return c.json({ success: true, items: notificationsData.notifications, unreadCount: notificationsData.unreadCount, pagination: notificationsData.paginated });
+});
+
+apiRouteAdminNotification.get("/unread-count", async (c) => {
+	const traceAsync = createTraceAsync();
+	const session = c.get("session");
+
+	if (!session?.userId) {
+		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
+	}
+
+	const organizationId = c.req.query("org_id") || undefined;
+
+	const count = await traceAsync(
+		"notifications.unread_count",
+		() => db.$count(schema.notifications, and(
+			eq(schema.notifications.recipientId, session.userId),
+			eq(schema.notifications.delivered, true),
+			isNull(schema.notifications.readAt),)),
+		{
+			description: "Fetching unread notification count",
+			data: { userId: session.userId },
+		},
+	);
+
+	return c.json({ success: true, data: { count } });
 });
 
 // Mark a single notification as read
