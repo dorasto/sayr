@@ -39,7 +39,7 @@
     "dev": "tsup --watch"
   },
   "devDependencies": {
-    "@types/react": "^18.2.0",
+    "@types/react": "^19.0.0",
     "tsup": "^8.0.0",
     "typescript": "^5.3.3"
   }
