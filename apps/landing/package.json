@@ -61,7 +61,7 @@
 		"@tanstack/react-query-devtools": "^5.91.3",
 		"@tanstack/react-router-devtools": "^1.157.17",
 		"@types/mdx": "^2.0.14",
-		"@types/node": "^22.19.1",
+		"@types/node": "^24.0.0",
 		"@types/react": "^19.2.7",
 		"@types/react-dom": "^19.2.3",
 		"@vitejs/plugin-react": "^6.0.1",
