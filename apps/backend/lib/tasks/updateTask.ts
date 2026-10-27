@@ -5,7 +5,9 @@ import {
 	getGithubIssueRepository,
 	getOrganizationMembers,
 	getTaskById,
+	isTaskEmbeddingAllowedForOrg,
 	schema,
+	toPublicTask,
 } from "@repo/database";
 import { getEditionCapabilities } from "@repo/edition";
 import { createTraceAsync } from "@repo/opentelemetry/trace";
@@ -57,7 +59,9 @@ export interface UpdateTaskServiceParams {
 }
 
 export async function updateTaskService(params: UpdateTaskServiceParams) {
-	const { orgId, taskId, existingTask, updates, actorUserId, sseClientId, skipGithubSync } = params;
+	const { orgId, taskId, existingTask, actorUserId, sseClientId, skipGithubSync } = params;
+	// Local copy so foreign-org release/category ids dropped below also vanish from every later side effect.
+	const updates = { ...params.updates };
 	const traceAsync = createTraceAsync();
 	const userId = actorUserId;
 
@@ -68,6 +72,29 @@ export async function updateTaskService(params: UpdateTaskServiceParams) {
 			allowed[field] = updates[field];
 		}
 	});
+
+	// Release and category are foreign keys chosen by the caller — drop them unless they belong to
+	// this org, otherwise a task could be attached to (and expose) another tenant's release/category.
+	if (allowed.releaseId) {
+		const release = await db.query.release.findFirst({
+			where: (r) => and(eq(r.id, allowed.releaseId as string), eq(r.organizationId, orgId)),
+			columns: { id: true },
+		});
+		if (!release) {
+			delete allowed.releaseId;
+			delete updates.releaseId;
+		}
+	}
+	if (allowed.category) {
+		const category = await db.query.category.findFirst({
+			where: (cat) => and(eq(cat.id, allowed.category as string), eq(cat.organizationId, orgId)),
+			columns: { id: true },
+		});
+		if (!category) {
+			delete allowed.category;
+			delete updates.category;
+		}
+	}
 
 	await traceAsync(
 		"task.update.save",
@@ -300,10 +327,13 @@ export async function updateTaskService(params: UpdateTaskServiceParams) {
 	const descriptionChanged =
 		updates.description !== undefined &&
 		JSON.stringify(updates.description) !== JSON.stringify(existingTask.description);
+	// Skipped when the org has AI turned off — the embedding sends task text to the AI provider.
 	if ((titleChanged || descriptionChanged) && getEditionCapabilities().semanticSearchEnabled) {
-		enqueue("main", { type: "embed_task", payload: { orgId, taskId } }).catch((err) => {
-			console.error("[task.update] Failed to enqueue embed_task job:", err);
-		});
+		isTaskEmbeddingAllowedForOrg(orgId)
+			.then((allowed) => (allowed ? enqueue("main", { type: "embed_task", payload: { orgId, taskId } }) : undefined))
+			.catch((err) => {
+				console.error("[task.update] Failed to enqueue embed_task job:", err);
+			});
 	}
 
 	const taskWithData = await traceAsync("task.update.refetch", () => getTaskById(orgId, taskId), {
@@ -321,7 +351,7 @@ export async function updateTaskService(params: UpdateTaskServiceParams) {
 
 			sseBroadcastToRoom(orgId, `tasks;task:${taskId}`, data, found?.id, true);
 			if (taskWithData?.visible === "public") {
-				sseBroadcastPublic(orgId, { ...data }, found?.id);
+				sseBroadcastPublic(orgId, { ...data, data: toPublicTask(taskWithData) }, found?.id);
 			}
 
 			// If releaseId changed, broadcast release update as well

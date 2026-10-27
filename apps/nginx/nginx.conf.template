@@ -203,8 +203,16 @@ http {
     
             # /foo/bar.png -> /${STORAGE_BUCKET}/foo/bar.png
             proxy_pass http://rustfs_upstream/${STORAGE_BUCKET}/;
-    
+
             include /etc/nginx/proxy.conf;
+
+            # User-uploaded content: never let the browser sniff a type or run
+            # script/markup from this origin, even for legacy objects stored
+            # with an unsafe Content-Type (text/html, image/svg+xml, ...).
+            proxy_hide_header Content-Security-Policy;
+            proxy_hide_header X-Content-Type-Options;
+            add_header X-Content-Type-Options "nosniff" always;
+            add_header Content-Security-Policy "default-src 'none'; img-src 'self' data:; media-src 'self'; style-src 'unsafe-inline'; sandbox" always;
         }
     }
 

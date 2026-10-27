@@ -26,7 +26,7 @@ export function RevealKeyDialog({ open, onOpenChange, apiKey, mode }: RevealKeyD
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent
-				className="max-w-lg"
+				className="ph-no-capture max-w-lg"
 				showClose={false}
 				onEscapeKeyDown={(event) => event.preventDefault()}
 				onPointerDownOutside={(event) => event.preventDefault()}

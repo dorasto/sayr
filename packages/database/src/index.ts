@@ -41,7 +41,7 @@ export * from "./database";
 export * from "./functions";
 
 import type { API_KEY_SCOPES, OrgAiSettings } from "@repo/util";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import {
 	defaultOrganizationSettings,
 	defaultTeamPermissions as defaultPerms,
@@ -170,20 +170,21 @@ export async function hasOrgPermission(userId: string, orgId: string, permPath: 
 		return true;
 	}
 
-	// 2️⃣ Get connected teams
-	const joins = await db.select({ teamId: memberTeam.teamId }).from(memberTeam).where(eq(memberTeam.memberId, m.id));
+	// 2️⃣ + 3️⃣ Pull the permission JSONs of this member's teams — only teams
+	// that belong to this org, so a stray cross-org member_team row can never
+	// grant permissions here.
+	const teamsPerms = await db
+		.select({ permissions: team.permissions })
+		.from(memberTeam)
+		.innerJoin(team, eq(team.id, memberTeam.teamId))
+		.where(and(eq(memberTeam.memberId, m.id), eq(team.organizationId, orgId)));
 
-	if (!joins.length) {
+	if (!teamsPerms.length) {
 		// Member exists but has no teams — fall back to default permissions
 		// so they can still perform basic actions (create tasks, change status/priority)
 		const [category, key] = permPath.split(".") as [keyof TeamPermissions, string];
 		return (defaultPerms[category] as Record<string, boolean>)?.[key] === true;
 	}
-
-	const teamIds = joins.map((j) => j.teamId);
-
-	// 3️⃣ Pull all team permission JSONs
-	const teamsPerms = await db.select({ permissions: team.permissions }).from(team).where(inArray(team.id, teamIds));
 
 	// 4️⃣ Administrator = full access override
 	const isAdmin = teamsPerms.some((t) => t.permissions?.admin?.administrator);
@@ -259,15 +260,13 @@ export async function getOrgPermissions(userId: string, orgId: string): Promise<
 
 	if (!m) return { ...defaultPerms };
 
-	// 2️⃣ Get linked teams
-	const joins = await db.select({ teamId: memberTeam.teamId }).from(memberTeam).where(eq(memberTeam.memberId, m.id));
-
-	if (!joins.length) return { ...defaultPerms };
-
-	const teamIds = joins.map((j) => j.teamId);
-
-	// 3️⃣ Fetch all permissions for those teams
-	const teamsPerms = await db.select({ permissions: team.permissions }).from(team).where(inArray(team.id, teamIds));
+	// 2️⃣ Fetch permissions of this member's teams — only teams belonging to this org, so a
+	// cross-org memberTeam row can never grant permissions here (mirrors hasOrgPermission).
+	const teamsPerms = await db
+		.select({ permissions: team.permissions })
+		.from(memberTeam)
+		.innerJoin(team, eq(team.id, memberTeam.teamId))
+		.where(and(eq(memberTeam.memberId, m.id), eq(team.organizationId, orgId)));
 
 	if (!teamsPerms.length) return { ...defaultPerms };
 

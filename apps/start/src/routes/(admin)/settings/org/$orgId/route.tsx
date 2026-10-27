@@ -13,12 +13,15 @@ import {
 import { createServerFn } from "@tanstack/react-start";
 import { eq } from "drizzle-orm";
 import { PermissionError } from "@repo/util";
+import { requireAccount } from "@/getAccess";
 import { seo } from "@/seo";
 
 export const getAdminOrganizationSettings = createServerFn({ method: "GET" })
-	.inputValidator((data: { account: schema.userType; orgId: string; permissions: schema.TeamPermissions }) => data)
+	.inputValidator((data: { orgId: string }) => data)
 	.handler(async ({ data }) => {
-		const { account, orgId, permissions } = data;
+		const { orgId } = data;
+		// Identity comes from the session, never from client input (server fns are publicly callable).
+		const account = await requireAccount();
 		try {
 			if (!orgId) {
 				throw redirect({ to: "/" });
@@ -38,6 +41,7 @@ export const getAdminOrganizationSettings = createServerFn({ method: "GET" })
 			});
 			const issueTemplates = await getIssueTemplates(organization.id);
 			const releases = await getReleases(organization.id);
+			const permissions = await getOrgPermissions(account.id, organization.id);
 			return { organization, labels, views, categories, tasks, issueTemplates, releases, permissions };
 		} catch (error) {
 			console.log("🚀 ~ error:", error);
@@ -49,12 +53,13 @@ export const getAdminOrganizationSettings = createServerFn({ method: "GET" })
 		}
 	});
 export const getUserOrgPermissions = createServerFn({ method: "GET" })
-	.inputValidator((data: { account: schema.userType; orgId: string }) => data)
+	.inputValidator((data: { orgId: string }) => data)
 	.handler(async ({ data }) => {
 		try {
-			const permissions = await getOrgPermissions(data.account.id, data.orgId);
+			const account = await requireAccount();
+			const permissions = await getOrgPermissions(account.id, data.orgId);
 			return {
-				account: data.account,
+				account,
 				orgId: data.orgId,
 				permissions,
 			};
@@ -71,33 +76,24 @@ export const Route = createFileRoute("/(admin)/settings/org/$orgId")({
 		const { account } = context;
 
 		// ❌ Skip non-app / internal routes
-		if (
-			location.external ||
-			location.pathname.startsWith("/.well-known")
-		) {
+		if (location.external || location.pathname.startsWith("/.well-known")) {
 			return;
 		}
 
 		const searchParams = new URLSearchParams(location.search);
-		const currentUrl = `${location.pathname}${searchParams.toString()
-			? `?${searchParams.toString()}`
-			: ""
-			}`;
+		const currentUrl = `${location.pathname}${searchParams.toString() ? `?${searchParams.toString()}` : ""}`;
 
 		if (!account) {
 			throw redirect({
 				to: "/auth/login",
 				headers: {
-					"Set-Cookie": `post_login_redirect=${encodeURIComponent(
-						currentUrl
-					)}; Path=/; HttpOnly; SameSite=Lax`,
+					"Set-Cookie": `post_login_redirect=${encodeURIComponent(currentUrl)}; Path=/; HttpOnly; SameSite=Lax`,
 				},
 			});
 		}
 
 		const { permissions } = await getUserOrgPermissions({
 			data: {
-				account,
 				orgId: params.orgId,
 			},
 		});
@@ -110,15 +106,13 @@ export const Route = createFileRoute("/(admin)/settings/org/$orgId")({
 		}
 		const org = await getAdminOrganizationSettings({
 			data: {
-				account: context.account,
 				orgId: params.orgId,
-				permissions: context.permissions as any,
 			},
 		});
-		if (!org.organization.members.find(e => e.userId === context?.account?.id)?.seatAssigned) {
+		if (!org.organization.members.find((e) => e.userId === context?.account?.id)?.seatAssigned) {
 			throw new PermissionError();
 		}
-		return org
+		return org;
 	},
 	head: ({ loaderData }) => ({
 		meta: seo({
@@ -129,7 +123,8 @@ export const Route = createFileRoute("/(admin)/settings/org/$orgId")({
 });
 
 function RouteComponent() {
-	const { organization, labels, views, categories, tasks, issueTemplates, releases, permissions } = Route.useLoaderData();
+	const { organization, labels, views, categories, tasks, issueTemplates, releases, permissions } =
+		Route.useLoaderData();
 	return (
 		<SettingsProviderOrganization
 			organization={organization}

@@ -2,6 +2,7 @@ import {
 	createNotification,
 	createNotifications,
 	extractUserMentions,
+	getOrganizationMembers,
 	getTaskAssigneeIds,
 	type schema,
 } from "@repo/database";
@@ -24,7 +25,11 @@ export async function notifyAssignees(params: {
 	timelineEventId?: string;
 }) {
 	try {
-		const assigneeIds = await getTaskAssigneeIds(params.taskId);
+		const taskAssigneeIds = await getTaskAssigneeIds(params.taskId);
+		if (taskAssigneeIds.length === 0) return;
+		// A removed member can keep a stale assignee row — only notify current members of the org.
+		const memberIds = new Set((await getOrganizationMembers(params.orgId)).map((m) => m.userId));
+		const assigneeIds = taskAssigneeIds.filter((id) => memberIds.has(id));
 		if (assigneeIds.length === 0) return;
 
 		const notifications = await createNotifications({

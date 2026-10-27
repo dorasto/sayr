@@ -21,17 +21,19 @@ import RenderIcon from "@/components/generic/RenderIcon";
 import { SubWrapper } from "@/components/generic/wrapper";
 import { useToastAction } from "@/lib/util";
 import { cn } from "@/lib/utils";
+import { requireAccount } from "@/getAccess";
 import { seo } from "@/seo";
 
 const getIntegrationMeta = createServerFn({ method: "GET" })
 	.inputValidator((data: { integrationId: string }) => data)
 	.handler(async ({ data }) => {
+		await requireAccount();
 		const API_URL =
 			process.env.APP_ENV === "development"
 				? "http://localhost:5468/api/internal"
 				: "http://localhost:5468/api/internal";
 		try {
-			const res = await fetch(`${API_URL}/v1/admin/integrations/ui/${data.integrationId}/pages`);
+			const res = await fetch(`${API_URL}/v1/admin/integrations/ui/${encodeURIComponent(data.integrationId)}/pages`);
 			if (!res.ok) return { name: null };
 			const json = await res.json();
 			return { name: (json?.data?.name as string) || null };

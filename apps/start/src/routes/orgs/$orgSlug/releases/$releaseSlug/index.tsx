@@ -1,4 +1,4 @@
-import { db, getOrganizationPublic, getReleaseBySlug, schema } from "@repo/database";
+import { db, getOrganizationPublic, getReleaseBySlug, schema, toPublicRelease } from "@repo/database";
 import { getEditionCapabilities } from "@repo/edition";
 import { onWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
 import { createFileRoute, useRouter } from "@tanstack/react-router";
@@ -53,12 +53,13 @@ const fetchPublicRelease = createServerFn({ method: "GET" })
 		const tasks = rawTasks.map((task) => ({
 			...task,
 			// Private labels are internal: never send them to the public page.
-		labels: task.labels.map((l) => l.label).filter((label) => label.visible === "public"),
+			labels: task.labels.map((l) => l.label).filter((label) => label.visible === "public"),
 			assignees: task.assignees.map((a) => a.user),
 		}));
 
 		return {
-			release,
+			// Linked PR bodies can carry private-repo detail — public projection only.
+			release: toPublicRelease(release),
 			tasks,
 			org: { id: org.id, name: org.name, logo: org.logo },
 		};

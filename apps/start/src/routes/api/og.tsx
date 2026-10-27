@@ -3,6 +3,7 @@ import satori from "satori";
 import React from "react";
 import sharp from "sharp";
 import { statusConfig } from "@/components/tasks/shared/config";
+import { readCappedBody, safeFetch } from "@/lib/safe-fetch";
 
 // Module-level font cache — only fetched once per process lifetime
 let fontCache: ArrayBuffer | null = null;
@@ -17,12 +18,37 @@ async function getFont(): Promise<ArrayBuffer> {
 
 // Convert a remote image URL to a base64 PNG data URI for satori.
 // Satori only supports PNG and JPEG — WebP/AVIF/GIF are converted via sharp.
+// The `logo` param is user-controlled, so the fetch goes through the SSRF guard. Our own files
+// CDN is trusted even if it resolves to an internal address (self-hosted setups).
+const MAX_LOGO_BYTES = 5 * 1024 * 1024;
+
+function trustedLogoOrigins(): string[] {
+	try {
+		return process.env.FILE_CDN ? [new URL(process.env.FILE_CDN).origin] : [];
+	} catch {
+		return [];
+	}
+}
+
 async function toDataUri(url: string): Promise<string | null> {
 	try {
-		const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
-		if (!res.ok) return null;
-		const buf = Buffer.from(await res.arrayBuffer());
+		const res = await safeFetch(url, {
+			signal: AbortSignal.timeout(5000),
+			trustedOrigins: trustedLogoOrigins(),
+		});
+		if (!res) return null;
+		if (!res.ok) {
+			await res.body?.cancel();
+			return null;
+		}
 		const mime = res.headers.get("content-type") || "image/png";
+		if (!mime.startsWith("image/")) {
+			await res.body?.cancel();
+			return null;
+		}
+		const body = await readCappedBody(res, MAX_LOGO_BYTES + 1);
+		if (body.byteLength > MAX_LOGO_BYTES) return null;
+		const buf = Buffer.from(body);
 
 		// Convert non-PNG/JPEG formats to PNG so satori can render them
 		if (!mime.includes("png") && !mime.includes("jpeg") && !mime.includes("jpg")) {

@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { db, getOrganization, schema } from "@repo/database";
 import { eq } from "drizzle-orm";
-import { AppEnv } from "@/index";
+import { type AppEnv, isFirstPartyBrowserRequest } from "@/index";
 import { traceOrgPermissionCheck } from "@/util";
 import { createPolar } from "@polar-sh/sdk/2026-10";
 const polarClient = createPolar({
@@ -36,6 +36,11 @@ app.get("/checkout", async (c) => {
 	}
 	if (!session?.userId) {
 		return c.json({ success: false, error: "UNAUTHORIZED" }, 401);
+	}
+
+	// This GET creates a Polar customer, so it must not be triggerable by a cross-site link.
+	if (!isFirstPartyBrowserRequest(c)) {
+		return c.json({ success: false, error: "Cross-site request rejected" }, 403);
 	}
 
 	if (!orgId) {
@@ -80,8 +85,12 @@ app.get("/checkout", async (c) => {
 		customer_email: orgEmail,
 		customer_name: `${org.name} (${email})`,
 		seats: org.members.length || org.seatCount || 1,
-		success_url: isProd ? `https://admin.sayr.io/settings/org/${org.id}/billing?checkout_id={CHECKOUT_ID}` : `http://admin.app.localhost:3000/settings/org/${org.id}/billing?checkout_id={CHECKOUT_ID}`,
-		return_url: isProd ? `https://admin.sayr.io/settings/org/${org.id}/billing` : `http://admin.app.localhost:3000/settings/org/${org.id}/billing`,
+		success_url: isProd
+			? `https://admin.sayr.io/settings/org/${org.id}/billing?checkout_id={CHECKOUT_ID}`
+			: `http://admin.app.localhost:3000/settings/org/${org.id}/billing?checkout_id={CHECKOUT_ID}`,
+		return_url: isProd
+			? `https://admin.sayr.io/settings/org/${org.id}/billing`
+			: `http://admin.app.localhost:3000/settings/org/${org.id}/billing`,
 		metadata: {
 			firstUserEmail: email || "",
 			firstUserId: userId || "",
@@ -123,7 +132,9 @@ app.get("/customer-portal", async (c) => {
 	}
 	const portal = await polarClient?.customerSessions.create({
 		customer_id: customerId,
-		return_url: isProd ? `https://admin.sayr.io/settings/org/${org.id}/billing` : `http://admin.app.localhost:3000/settings/org/${org.id}/billing`,
+		return_url: isProd
+			? `https://admin.sayr.io/settings/org/${org.id}/billing`
+			: `http://admin.app.localhost:3000/settings/org/${org.id}/billing`,
 	});
 	// 4️⃣ Redirect user
 	return c.redirect(portal?.customer_portal_url || "");
@@ -167,10 +178,9 @@ app.get("/subscription", async (c) => {
 
 	try {
 		const token = await getCustomerSessionToken(org.polarCustomerId, org.id);
-		const subscription = await polarClient?.customerPortal.subscriptions.get(
-			org.polarSubscriptionId,
-			{ accessToken: token },
-		);
+		const subscription = await polarClient?.customerPortal.subscriptions.get(org.polarSubscriptionId, {
+			accessToken: token,
+		});
 		if (!subscription) {
 			return c.json({ success: false, error: "No active subscription" }, 400);
 		}
@@ -246,7 +256,7 @@ app.get("/orders", async (c) => {
 				limit: Math.min(limit, 100),
 				sorting: ["-created_at"],
 			},
-			{ accessToken: token },
+			{ accessToken: token }
 		);
 		const items = ordersPage?.items.map((order) => ({
 			id: order.id,
@@ -265,9 +275,9 @@ app.get("/orders", async (c) => {
 			seats: order.seats ?? null,
 			product: order.product
 				? {
-					id: order.product.id,
-					name: order.product.name,
-				}
+						id: order.product.id,
+						name: order.product.name,
+					}
 				: null,
 			description: order.description,
 			items: order.items.map((item) => ({
@@ -326,10 +336,7 @@ app.get("/orders/:orderId/invoice", async (c) => {
 
 	try {
 		const token = await getCustomerSessionToken(org.polarCustomerId, org.id);
-		const invoice = await polarClient?.customerPortal.orders.invoice(
-			orderId,
-			{ accessToken: token }
-		);
+		const invoice = await polarClient?.customerPortal.orders.invoice(orderId, { accessToken: token });
 
 		return c.json({
 			success: true,

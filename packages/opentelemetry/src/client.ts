@@ -48,7 +48,8 @@ function createPageSession() {
     pageSessionSpan = globalTracer.startSpan("page.session", {
         startTime,
         attributes: {
-            "page.url": window.location.href,
+            // Origin + path only: query strings/fragments can carry auth tokens (OAuth `code`/`state`, invite tokens).
+            "page.url": window.location.origin + path,
             "page.path": path,
         },
     });

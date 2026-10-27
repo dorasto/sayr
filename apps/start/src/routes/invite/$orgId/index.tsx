@@ -1,4 +1,4 @@
-import { db, getOrganizationPublicById, type schema } from "@repo/database";
+import { db, getOrganizationPublicById } from "@repo/database";
 import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
 import { getInitials } from "@repo/util";
 import { createFileRoute, redirect } from "@tanstack/react-router";
@@ -6,7 +6,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { and, gt, or } from "drizzle-orm";
 import { SubWrapper } from "@/components/generic/wrapper";
 import { InvitationActions } from "@/components/invitation";
-import { getAccess } from "@/getAccess";
+import { getAccess, requireAccount } from "@/getAccess";
 import { getOgImageUrl, seo } from "@/seo";
 
 const fetchAuth = createServerFn({ method: "GET" }).handler(async () => {
@@ -17,8 +17,10 @@ const fetchAuth = createServerFn({ method: "GET" }).handler(async () => {
 });
 
 const fetchInvite = createServerFn({ method: "GET" })
-	.inputValidator((data: { account: schema.userType; orgId: string; code: string }) => data)
+	.inputValidator((data: { orgId: string; code: string }) => data)
 	.handler(async ({ data }) => {
+		// Identity comes from the session, never from client input (server fns are publicly callable).
+		const account = await requireAccount();
 		const invite = await db.query.invite.findFirst({
 			where: (invites, { eq }) =>
 				and(
@@ -26,7 +28,7 @@ const fetchInvite = createServerFn({ method: "GET" })
 					eq(invites.inviteCode, data.code),
 					eq(invites.status, "pending"),
 					gt(invites.expiresAt, new Date()),
-					or(eq(invites.userId, data.account.id), eq(invites.email, data.account.email))
+					or(eq(invites.userId, account.id), eq(invites.email, account.email))
 				),
 		});
 		const organization = await getOrganizationPublicById(data.orgId);
@@ -57,7 +59,6 @@ export const Route = createFileRoute("/invite/$orgId/")({
 		}
 		return await fetchInvite({
 			data: {
-				account: context.account,
 				orgId: params.orgId,
 				code,
 			},

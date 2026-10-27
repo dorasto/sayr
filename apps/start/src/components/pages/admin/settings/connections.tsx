@@ -14,7 +14,8 @@ import { useToastAction } from "@/lib/util";
 import type { DiscordUserType, DorasUserType, GithubUserType, SlackUserType } from "@/types";
 
 interface Props {
-	email: schema.accountType | null | undefined;
+	/** The email/password login, if any — only its account id is sent to the client. */
+	email: Pick<schema.accountType, "id"> | null | undefined;
 	githubUser: GithubUserType | null | undefined;
 	dorasUser: DorasUserType | null | undefined;
 	discordUser: DiscordUserType | null | undefined;

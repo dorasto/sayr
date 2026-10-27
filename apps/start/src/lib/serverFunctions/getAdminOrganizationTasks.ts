@@ -1,12 +1,14 @@
-import { db, getOrganization, getTasksByOrganizationId, type schema } from "@repo/database";
+import { db, getOrganization, getTasksByOrganizationId } from "@repo/database";
 import { isRedirect, redirect } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { eq } from "drizzle-orm";
+import { requireAccount } from "@/getAccess";
 
 export const getAdminOrganizationTasks = createServerFn({ method: "GET" })
-	.inputValidator((data: { account: schema.userType; orgId: string }) => data)
+	.inputValidator((data: { orgId: string }) => data)
 	.handler(async ({ data }) => {
-		const { account, orgId } = data;
+		const { orgId } = data;
+		const account = await requireAccount();
 		try {
 			if (!orgId) {
 				throw redirect({ to: "/" });

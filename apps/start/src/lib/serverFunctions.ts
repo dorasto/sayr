@@ -58,14 +58,14 @@ export const getAccess = createServerFn({ method: "GET" }).handler(async () => {
 });
 
 /**
- * Retrieves all organizations for a user - wrapped as a server function
- * for use in TanStack Start loaders.
+ * Retrieves all organizations for the session user - wrapped as a server function
+ * for use in TanStack Start loaders. The user is taken from the session, never from
+ * client input (server functions are publicly callable over HTTP).
  */
-export const getOrganizations = createServerFn({ method: "GET" })
-	.inputValidator((data: { userId: string }) => data)
-	.handler(async ({ data }) => {
-		return dbGetOrganizations(data.userId);
-	});
+export const getOrganizations = createServerFn({ method: "GET" }).handler(async () => {
+	const { account } = await getAccess();
+	return dbGetOrganizations(account.id);
+});
 
 /**
  * Fetches a paginated list of users from the authentication API.

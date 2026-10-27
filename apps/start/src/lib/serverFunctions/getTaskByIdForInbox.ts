@@ -1,14 +1,16 @@
 import { getOrganization, getTaskById, type schema } from "@repo/database";
 import { createServerFn } from "@tanstack/react-start";
+import { getAccess } from "@/getAccess";
 
 export const getTaskByIdForInbox = createServerFn({ method: "GET" })
-	.inputValidator((data: { accountId: string; orgId: string; taskId: string }) => data)
+	.inputValidator((data: { orgId: string; taskId: string }) => data)
 	.handler(async ({ data }) => {
-		const { accountId, orgId, taskId } = data;
-		if (!orgId || !taskId) {
+		const { orgId, taskId } = data;
+		const { account } = await getAccess();
+		if (!account || !orgId || !taskId) {
 			return { task: null };
 		}
-		const organization = await getOrganization(orgId, accountId, { blockOrgUnseated: true });
+		const organization = await getOrganization(orgId, account.id, { blockOrgUnseated: true });
 		if (!organization) {
 			return { task: null };
 		}

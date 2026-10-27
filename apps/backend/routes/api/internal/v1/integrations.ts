@@ -17,10 +17,7 @@ async function requireAdmin(c: any, orgId: string) {
 
 	return null;
 }
-const API_URL =
-	process.env.APP_ENV === "development"
-		? "http://localhost:8080"
-		: "http://integrations:8080";
+const API_URL = process.env.APP_ENV === "development" ? "http://localhost:8080" : "http://integrations:8080";
 export const apiRouteAdminIntegrations = new Hono<AppEnv>();
 
 apiRouteAdminIntegrations.get("/all", async (c) => {
@@ -163,7 +160,13 @@ apiRouteAdminIntegrations.get("/ui/:id/pages", async (c) => {
 	const recordWideError = c.get("recordWideError");
 	const id = c.req.param("id");
 
-	const INTERNAL_URL = `${API_URL}/ui/${id}/pages`;
+	// The param arrives decoded, so `..%2F<orgId>%2F...` would otherwise walk the internal
+	// URL onto the integrations service's unauthenticated `/:orgId/*` routes.
+	if (!/^[a-z0-9-]+$/.test(id)) {
+		return c.json({ success: false, error: "Integration not found" }, 404);
+	}
+
+	const INTERNAL_URL = `${API_URL}/ui/${encodeURIComponent(id)}/pages`;
 
 	try {
 		const res = await traceAsync(

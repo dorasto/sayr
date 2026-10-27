@@ -9,6 +9,7 @@ import { ReplaceStep } from "prosekit/pm/transform";
 import { ProseKit } from "prosekit/react";
 import { useMemo } from "react";
 import { defineExtension } from "./extensions/index";
+import { sanitizeDocJSON } from "./sanitize-doc";
 
 interface DiffViewerProps {
 	parentDoc: NodeJSON;
@@ -20,8 +21,13 @@ interface DiffViewerProps {
  * A read-only editor that displays the diff between two document versions.
  * Uses ProseKit's commit extension to highlight additions (green) and deletions (red).
  */
-export function DiffViewer({ parentDoc, currentDoc, className }: DiffViewerProps) {
+export function DiffViewer({ parentDoc: rawParentDoc, currentDoc: rawCurrentDoc, className }: DiffViewerProps) {
 	const editor = useMemo(() => {
+		// This read-only view renders marks via the schema's raw toDOM (not the React link view), so stored
+		// script-capable hrefs/srcs must be stripped before they reach the DOM.
+		const parentDoc = sanitizeDocJSON(rawParentDoc);
+		const currentDoc = sanitizeDocJSON(rawCurrentDoc);
+
 		// First create a temporary editor to get the schema and convert JSON to nodes
 		const baseExtension = defineExtension({ readonly: true });
 		const tempEditor = createEditor({ extension: baseExtension });
@@ -33,11 +39,7 @@ export function DiffViewer({ parentDoc, currentDoc, className }: DiffViewerProps
 
 		// Create a ReplaceStep that transforms the entire parent doc into the current doc
 		// This is a simple approach that replaces the whole content
-		const step = new ReplaceStep(
-			0,
-			parentNode.content.size,
-			currentNode.slice(0, currentNode.content.size),
-		);
+		const step = new ReplaceStep(0, parentNode.content.size, currentNode.slice(0, currentNode.content.size));
 
 		// Create the commit object with the computed step
 		const commit: Commit = {
@@ -47,14 +49,10 @@ export function DiffViewer({ parentDoc, currentDoc, className }: DiffViewerProps
 		};
 
 		// Create the final editor with the commit viewer
-		const extension = union(
-			baseExtension,
-			defineReadonly(),
-			defineCommitViewer(commit),
-		);
+		const extension = union(baseExtension, defineReadonly(), defineCommitViewer(commit));
 
 		return createEditor({ extension, defaultContent: currentDoc });
-	}, [parentDoc, currentDoc]);
+	}, [rawParentDoc, rawCurrentDoc]);
 
 	return (
 		<ProseKit editor={editor}>

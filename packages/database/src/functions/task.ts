@@ -1,3 +1,4 @@
+import { resolveOrgAiStatus } from "@repo/util";
 import { and, asc, count, desc, eq, inArray, isNull, or, sql } from "drizzle-orm";
 import type { NodeJSON } from "../../schema";
 import { taskComment } from "../../schema/taskComment.schema";
@@ -5,6 +6,7 @@ import { taskRelation } from "../../schema/taskRelation.schema";
 import { taskTimeline } from "../../schema/taskTimeline.schema";
 import { db, schema } from "..";
 import { userSummaryColumns } from "./index";
+import { toPublicPullRequest } from "./release";
 
 /**
  * Retrieves all tasks for a given project including their full label information.
@@ -95,6 +97,53 @@ export async function getTasksByOrganizationId(orgId: string): Promise<schema.Ta
  * ```
  */
 
+/** The other end of a task relation, as selected by getTaskById / getTaskByShortId. */
+type RelatedTaskSummary = {
+	id: string;
+	shortId: number | null;
+	title: string | null;
+	status: string;
+	visible: schema.taskType["visible"];
+};
+
+/** Minimal shape `toPublicTask` needs — satisfied by both getTaskById and getTaskByShortId results. */
+type PublicTaskInput = {
+	labels: ({ visible: string } | null)[];
+	parent?: { visible: string } | null;
+	subtasks?: { visible: string }[];
+	subtaskCount?: number;
+	relations?: { task: { visible: string } }[];
+	githubPullRequest?: schema.githubPullRequestType | null;
+	relationsAsSource?: unknown;
+	relationsAsTarget?: unknown;
+};
+
+/**
+ * Projects an internal task (getTaskById / getTaskByShortId shape) down to
+ * what anonymous callers may see — used for every public SSE broadcast and
+ * the public portal loader:
+ * - labels: public ones only
+ * - parent: kept only when the parent task is itself public
+ * - subtasks / subtaskCount / relations: only entries whose other task is public
+ * - raw relationsAsSource / relationsAsTarget join rows: dropped
+ * - linked PR: body blanked (see `toPublicPullRequest`)
+ *
+ * Does NOT check the task's own visibility — callers must only pass public tasks.
+ */
+export function toPublicTask<T extends PublicTaskInput>(task: T): Omit<T, "relationsAsSource" | "relationsAsTarget"> {
+	const { relationsAsSource: _source, relationsAsTarget: _target, ...rest } = task;
+	const isPublic = (entry: { visible: string } | null | undefined) => entry?.visible === "public";
+	const subtasks = rest.subtasks?.filter(isPublic);
+	return {
+		...rest,
+		labels: rest.labels.filter(isPublic),
+		parent: isPublic(rest.parent) ? rest.parent : null,
+		...(subtasks && { subtasks, subtaskCount: subtasks.length }),
+		...(rest.relations && { relations: rest.relations.filter((relation) => isPublic(relation.task)) }),
+		...(rest.githubPullRequest && { githubPullRequest: toPublicPullRequest(rest.githubPullRequest) }),
+	} as Omit<T, "relationsAsSource" | "relationsAsTarget">;
+}
+
 /**
  * Normalizes eagerly-loaded relationsAsSource / relationsAsTarget into the
  * unified TaskRelationWithTarget[] format used by the frontend.
@@ -103,16 +152,16 @@ function normalizeTaskRelations(
 	asSource: {
 		id: string;
 		type: string;
-		targetTask: { id: string; shortId: number | null; title: string | null; status: string };
+		targetTask: RelatedTaskSummary;
 		createdBy?: schema.UserSummary | null;
 	}[],
 	asTarget: {
 		id: string;
 		type: string;
-		sourceTask: { id: string; shortId: number | null; title: string | null; status: string };
+		sourceTask: RelatedTaskSummary;
 		createdBy?: schema.UserSummary | null;
 	}[]
-): schema.TaskRelationWithTarget[] {
+): (schema.TaskRelationWithTarget & { task: RelatedTaskSummary })[] {
 	return [
 		...asSource.map((r) => ({
 			id: r.id,
@@ -154,20 +203,20 @@ export async function getTaskByShortId(
 			githubIssue: {},
 			githubPullRequest: {},
 			parent: {
-				columns: { id: true, shortId: true, title: true, status: true },
+				columns: { id: true, shortId: true, title: true, status: true, visible: true },
 			},
 			subtasks: {
-				columns: { id: true },
+				columns: { id: true, visible: true },
 			},
 			relationsAsSource: {
 				with: {
-					targetTask: { columns: { id: true, shortId: true, title: true, status: true } },
+					targetTask: { columns: { id: true, shortId: true, title: true, status: true, visible: true } },
 					createdBy: { columns: userSummaryColumns },
 				},
 			},
 			relationsAsTarget: {
 				with: {
-					sourceTask: { columns: { id: true, shortId: true, title: true, status: true } },
+					sourceTask: { columns: { id: true, shortId: true, title: true, status: true, visible: true } },
 					createdBy: { columns: userSummaryColumns },
 				},
 			},
@@ -176,14 +225,16 @@ export async function getTaskByShortId(
 
 	if (!task) return null;
 
-	return {
+	const normalized = {
 		...task,
 		labels: task.labels.map((assignment) => assignment.label).filter(Boolean),
 		assignees: task.assignees.map((assignment) => assignment.user),
 		parent: task.parent ?? null,
 		subtaskCount: task.subtasks?.length ?? 0,
 		relations: normalizeTaskRelations(task.relationsAsSource, task.relationsAsTarget),
-	} as schema.TaskWithLabels;
+	};
+	// "public" mode serves anonymous callers: strip private parent/relations/subtasks too, not just labels.
+	return (visible === "public" ? toPublicTask(normalized) : normalized) as schema.TaskWithLabels;
 }
 
 /**
@@ -225,20 +276,20 @@ export async function getTaskById(orgId: string, Id: string) {
 			githubIssue: {},
 			githubPullRequest: {},
 			parent: {
-				columns: { id: true, shortId: true, title: true, status: true },
+				columns: { id: true, shortId: true, title: true, status: true, visible: true },
 			},
 			subtasks: {
-				columns: { id: true },
+				columns: { id: true, visible: true },
 			},
 			relationsAsSource: {
 				with: {
-					targetTask: { columns: { id: true, shortId: true, title: true, status: true } },
+					targetTask: { columns: { id: true, shortId: true, title: true, status: true, visible: true } },
 					createdBy: { columns: userSummaryColumns },
 				},
 			},
 			relationsAsTarget: {
 				with: {
-					sourceTask: { columns: { id: true, shortId: true, title: true, status: true } },
+					sourceTask: { columns: { id: true, shortId: true, title: true, status: true, visible: true } },
 					createdBy: { columns: userSummaryColumns },
 				},
 			},
@@ -675,10 +726,16 @@ export async function getMergedTaskActivity(orgId: string, taskId: string, isPub
 export async function getTasksByUserId(userId: string): Promise<schema.TaskWithLabels[]> {
 	const tasks = await db.query.task.findMany({
 		where: (t) =>
+			// Assignment alone isn't access: a removed member can still have stale
+			// assignee rows, so also require a current membership in the task's org.
 			sql`EXISTS (
 				SELECT 1 FROM task_assignee
 				WHERE task_assignee.task_id = ${t.id}
 				AND task_assignee.user_id = ${userId}
+			) AND EXISTS (
+				SELECT 1 FROM member
+				WHERE member.organization_id = ${t.organizationId}
+				AND member.user_id = ${userId}
 			)`,
 		with: {
 			labels: {
@@ -1155,6 +1212,15 @@ export async function createTaskRelation(
 		throw new Error("A task cannot be related to itself");
 	}
 
+	// Both tasks must belong to this organization — never link across tenants.
+	const ownedTasks = await db.query.task.findMany({
+		where: (t) => and(eq(t.organizationId, orgId), inArray(t.id, [sourceTaskId, targetTaskId])),
+		columns: { id: true },
+	});
+	if (ownedTasks.length !== 2) {
+		throw new Error("Task not found");
+	}
+
 	// For "related" type, also check the reverse direction to prevent duplicates
 	if (type === "related") {
 		const existingReverse = await db.query.taskRelation.findFirst({
@@ -1310,6 +1376,22 @@ export async function updateTaskEmbedding(orgId: string, taskId: string, embeddi
 		.update(schema.task)
 		.set({ embedding })
 		.where(and(eq(schema.task.organizationId, orgId), eq(schema.task.id, taskId)));
+}
+
+/**
+ * Whether an org's task text may be sent to the embedding provider. Embedding
+ * is an AI feature, so an org that switched AI off (`settings.ai.disabled`,
+ * resolved the same way as the AI route gate) must not have its task content
+ * leave the instance. Checked at the `embed_task` enqueue sites and again in
+ * the worker. Edition gating (`semanticSearchEnabled`) is separate.
+ */
+export async function isTaskEmbeddingAllowedForOrg(orgId: string): Promise<boolean> {
+	const org = await db.query.organization.findFirst({
+		where: (o) => eq(o.id, orgId),
+		columns: { settings: true },
+	});
+	if (!org) return false;
+	return !resolveOrgAiStatus(org.settings).aiDisabled;
 }
 
 export interface SimilarTask {

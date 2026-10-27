@@ -70,7 +70,9 @@ const config = defineConfig({
     external: ["shiki", "sharp"],
   },
   plugins: [
-    devtools(),
+    // The devtools server event bus (WS/SSE on :4206) accepts unauthenticated, CORS-open messages — including
+    // "install-devtools", which runs a package install — so any website open in the browser could drive it.
+    devtools({ eventBusConfig: { enabled: false }, consolePiping: { enabled: false } }),
     !isDev &&
       nitro({
         exportConditions: ["import", "module", "default"],

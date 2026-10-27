@@ -63,7 +63,18 @@ export const updatePersonalViewAction = createServerFn({ method: "POST" })
 	)
 	.handler(async ({ data }) => {
 		const { account } = await getAccess();
-		return updatePersonalView(account.id, data.viewId, data.updates);
+		// The input type isn't enforced at runtime and updatePersonalView spreads its argument into
+		// the UPDATE, so copy only the allowed columns — otherwise a caller could rewrite
+		// createdById/organizationId/position and move the row out of their personal scope.
+		const { name, filterParams, viewConfig, slug, logo, pinned } = data.updates ?? {};
+		const updates: Parameters<typeof updatePersonalView>[2] = {};
+		if (typeof name === "string") updates.name = name;
+		if (typeof filterParams === "string") updates.filterParams = filterParams;
+		if (viewConfig !== undefined) updates.viewConfig = viewConfig;
+		if (typeof slug === "string") updates.slug = slug;
+		if (typeof logo === "string") updates.logo = logo;
+		if (typeof pinned === "boolean") updates.pinned = pinned;
+		return updatePersonalView(account.id, data.viewId, updates);
 	});
 
 export const deletePersonalViewAction = createServerFn({ method: "POST" })
