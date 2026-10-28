@@ -15,9 +15,12 @@
 		"format": "biome format --write ."
 	},
 	"dependencies": {
+		"@better-auth/mcp": "1.7.14",
 		"@clickhouse/client": "^1.18.2",
 		"@hono/standard-validator": "^0.2.0",
+		"@modelcontextprotocol/server": "2.4.0",
 		"@opentelemetry/api": "^1.9.0",
+		"@polar-sh/sdk": "^1.0.0",
 		"@repo/ai": "workspace:*",
 		"@repo/ai-prompts": "workspace:*",
 		"@repo/auth": "workspace:*",
@@ -27,7 +30,6 @@
 		"@repo/queue": "workspace:*",
 		"@repo/storage": "workspace:*",
 		"@repo/util": "workspace:*",
-		"@polar-sh/sdk": "^1.0.0",
 		"@scalar/hono-api-reference": "^0.9.25",
 		"drizzle-zod": "^0.8.3",
 		"hono": "^4.13.14",

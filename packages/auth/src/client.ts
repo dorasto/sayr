@@ -40,8 +40,8 @@ export const signInEmailTwoFactor = async () => {
 		return;
 	}
 	setLoginOriginCookie();
-	window.location.href = "/auth/2fa"
-}
+	window.location.href = "/auth/2fa";
+};
 
 export const signInEmail = async () => {
 	const found = await authClient.getSession();
@@ -50,8 +50,8 @@ export const signInEmail = async () => {
 		return;
 	}
 	setLoginOriginCookie();
-	window.location.href = "/auth/auth-check"
-}
+	window.location.href = "/auth/auth-check";
+};
 
 export const signInDoras = async () => {
 	const found = await authClient.getSession();
