@@ -6,6 +6,7 @@ import { resolveReleaseId, resolveTaskId } from "../../../lib/apiRefs";
 import { assertMcpAccess } from "../../../lib/mcp/auth";
 import {
 	TaskNotFoundError as AssigneesTaskNotFoundError,
+	NonMemberAssigneeError,
 	updateTaskAssigneesService,
 } from "../../../lib/tasks/updateTaskAssignees";
 import {
@@ -363,14 +364,6 @@ export function registerTaskTools(server: McpServer, claims: McpUserClaims | nul
 			const taskId = await resolveTaskId(orgId, taskRef);
 			if (!taskId) return toolError(`No task found for "${taskRef}" in this organization.`);
 
-			const memberIds = new Set((await getOrganizationMembers(orgId)).map((m) => m.userId));
-			const nonMembers = assigneeIds.filter((id) => !memberIds.has(id));
-			if (nonMembers.length) {
-				return toolError(
-					`Not members of this organization: ${nonMembers.join(", ")}. Use list_members to find valid ids.`
-				);
-			}
-
 			try {
 				const taskWithData = await updateTaskAssigneesService({
 					orgId,
@@ -383,6 +376,8 @@ export function registerTaskTools(server: McpServer, claims: McpUserClaims | nul
 			} catch (err) {
 				if (err instanceof AssigneesTaskNotFoundError)
 					return toolError(`No task found for "${taskRef}" in this organization.`);
+				if (err instanceof NonMemberAssigneeError)
+					return toolError(`${err.message}. Use list_members to find valid ids.`);
 				return toolError(`Failed to update task assignees: ${err instanceof Error ? err.message : String(err)}`);
 			}
 		}
