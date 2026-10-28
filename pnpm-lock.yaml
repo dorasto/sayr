@@ -1084,8 +1084,8 @@ importers:
         version: 19.2.3
     devDependencies:
       '@types/react':
-        specifier: ^18.2.0
-        version: 18.3.27
+        specifier: ^19.0.0
+        version: 19.2.8
       tsup:
         specifier: ^8.0.0
         version: 8.5.1(jiti@2.7.0)(postcss@8.5.28)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.9.0)
@@ -3844,6 +3844,7 @@ packages:
   '@opentelemetry/sdk-trace-node@2.7.1':
     resolution: {integrity: sha512-pCpQxU68lV+I9s9svqMyVu5iHdDDUnqUpSxqwyCU8A9ejEsSnMPCbearwsUO4yk08ZJzAIUCFuReMdVQvHrdvg==}
     engines: {node: ^18.19.0 || >=20.6.0}
+    deprecated: Use @opentelemetry/sdk-trace package
     peerDependencies:
       '@opentelemetry/api': '>=1.0.0 <1.10.0'
 
@@ -6789,9 +6790,6 @@ packages:
   '@types/node@25.0.10':
     resolution: {integrity: sha512-zWW5KPngR/yvakJgGOmZ5vTBemDoSqF3AcV/LrO5u5wTWyEAVVh+IT39G4gtyAkh3CtTZs8aX/yRM82OfzHJRg==}
 
-  '@types/prop-types@15.7.15':
-    resolution: {integrity: sha512-F6bEyamV9jKGAFBEmlQnesRPGOQqS2+Uwi0Em15xenOxHaf2hv6L8YCVn3rPdPJOiJfPiCnLIRyvwVaqMY3MIw==}
-
   '@types/qrcode@1.5.6':
     resolution: {integrity: sha512-te7NQcV2BOvdj2b1hCAHzAoMNuj65kNBMz0KBaxM6c3VGBOhU0dURQKOtH8CFNI/dsKkwlv32p26qYQTWoB5bw==}
 
@@ -6799,9 +6797,6 @@ packages:
     resolution: {integrity: sha512-jp2L/eY6fn+KgVVQAOqYItbF0VY/YApe5Mz2F0aykSO8gx31bYCZyvSeYxCHKvzHG5eZjc+zyaS5BrBWya2+kQ==}
     peerDependencies:
       '@types/react': ^19.2.0
-
-  '@types/react@18.3.27':
-    resolution: {integrity: sha512-cisd7gxkzjBKU2GgdYrTdtQx1SORymWyaAFhaxQPK9bYO9ot3Y5OikQRvY0VYQtvwjeQnizCINJAenh/V7MK2w==}
 
   '@types/react@19.2.8':
     resolution: {integrity: sha512-3MbSL37jEchWZz2p2mjntRZtPt837ij10ApxKfgmXCTuHWagYg7iA5bqPw6C8BMPfwidlvfPI/fxOc42HLhcyg==}
@@ -7111,61 +7106,73 @@ packages:
     resolution: {integrity: sha512-pzJ++UMCZEV4s6SP3Ryvj+snWP8s7aTXFkSXRyeBF4RSALftPzfqYssHdGOmOH2QnRAtyOhhg64tdjeSGJvYRg==}
     cpu: [arm64]
     os: [android]
+    deprecated: yuku-analyzer runs on yuku-core since 0.14
 
   '@yuku-analyzer/binding-darwin-arm64@0.8.7':
     resolution: {integrity: sha512-vymR7Us3i/HJvUxA1N5sKCrrn2mXw/Xvzbt66zlRyGPDmkUzFCrn34OqodR/zctmD1JhaFlv+Ur6xNNPRIid/w==}
     cpu: [arm64]
     os: [darwin]
+    deprecated: yuku-analyzer runs on yuku-core since 0.14
 
   '@yuku-analyzer/binding-darwin-x64@0.8.7':
     resolution: {integrity: sha512-aX1xy6wJeI2QN/ipu9B6/dzz6RmHQ5+Ty6uyf9csqYZDnY4/U2GsDskYQIRysc2Cuh+GNnvuO5xCXxiqkmVEcw==}
     cpu: [x64]
     os: [darwin]
+    deprecated: yuku-analyzer runs on yuku-core since 0.14
 
   '@yuku-analyzer/binding-freebsd-x64@0.8.7':
     resolution: {integrity: sha512-5LT2KkjK0zBI2s3VoSyGPSs9Ey7rWPxWkCyFgZXoszQOkAk2z0biP+DLzb9zw6flmwwCCiyeZRqM65srfo8l1Q==}
     cpu: [x64]
     os: [freebsd]
+    deprecated: yuku-analyzer runs on yuku-core since 0.14
 
   '@yuku-analyzer/binding-linux-arm-gnu@0.8.7':
     resolution: {integrity: sha512-4haNlVk624QoNSKIneoH9JKu5SvfD+Hkxg490HUS5pfFuWwoXT3zOmAdfwPMsSH0bNIkFO7GqtwDZ9EVpyzepw==}
     cpu: [arm]
     os: [linux]
+    deprecated: yuku-analyzer runs on yuku-core since 0.14
 
   '@yuku-analyzer/binding-linux-arm-musl@0.8.7':
     resolution: {integrity: sha512-7HwJHVFtrufB5qHHL1PSDPr/j6uoNLwbwxa04QzsbpcbbzfDUbT37loHPu5u0NuetRUlV+TqXDlX6OpXcM8hKQ==}
     cpu: [arm]
     os: [linux]
+    deprecated: yuku-analyzer runs on yuku-core since 0.14
 
   '@yuku-analyzer/binding-linux-arm64-gnu@0.8.7':
     resolution: {integrity: sha512-yUEgxEPuDVBO+nkDw8qbssYA8oHu82Q0da+C7rGyVplmjlKa5DhBnMMagTEjFZx4jNDVWnGHJreUCSeGL0x/gQ==}
     cpu: [arm64]
     os: [linux]
+    deprecated: yuku-analyzer runs on yuku-core since 0.14
 
   '@yuku-analyzer/binding-linux-arm64-musl@0.8.7':
     resolution: {integrity: sha512-2X7EwxPbgdNRqgMwtxOnNOGEmdm1RS8PD2Q5cOxj8cEZD4fy7yHHeSDoEdBOyrJtHzbG6jQB6CeReO1okb/S7Q==}
     cpu: [arm64]
     os: [linux]
+    deprecated: yuku-analyzer runs on yuku-core since 0.14
 
   '@yuku-analyzer/binding-linux-x64-gnu@0.8.7':
     resolution: {integrity: sha512-k/iQFK1gAvaHLzXXZ3/+g48wT5YB6MfikPb+juGCd9HzyPMUSBCy44rz6nT+xoWnnxmBoeBUywA4CvWCWZFTtg==}
     cpu: [x64]
     os: [linux]
+    deprecated: yuku-analyzer runs on yuku-core since 0.14
 
   '@yuku-analyzer/binding-linux-x64-musl@0.8.7':
     resolution: {integrity: sha512-gTfYHx3cg8FERTYsg1dQrQFTutcWJ7wTp8YToyAJnZMbUCkcyuwUiWNYaEHyF0xIb+PsG7HfD+BLWhRRom5qKg==}
     cpu: [x64]
     os: [linux]
+    deprecated: yuku-analyzer runs on yuku-core since 0.14
 
   '@yuku-analyzer/binding-win32-arm64@0.8.7':
     resolution: {integrity: sha512-XDCWZZztOvdTtPNaU5EzrrV0dmMugdZ+Qdq5INeiGhGW5hD0TuCBIIXK7wTmRM6NcKarGlyBP5SYkiAuw6+slg==}
     cpu: [arm64]
     os: [win32]
+    deprecated: yuku-analyzer runs on yuku-core since 0.14
 
   '@yuku-analyzer/binding-win32-x64@0.8.7':
     resolution: {integrity: sha512-VtSH1pWuk3bo+BiUAtzYa4Ku1r/10CO14QvkGpRhDcFck8sIf7ox+wiucyKNKcf+srWCYxR1hO+wn5N3BdtFdw==}
     cpu: [x64]
     os: [win32]
+    deprecated: yuku-analyzer runs on yuku-core since 0.14
 
   '@yuku-toolchain/types@0.8.7':
     resolution: {integrity: sha512-2Z53dNxAJL6UvFoIrDZvYf3zlO8s4VJK4O2hhaB4mXVwwpX/7ajtss3cmfqKvamlNLWyt9FSWs4eoYdlbxpnHA==}
@@ -18867,8 +18874,6 @@ snapshots:
     dependencies:
       undici-types: 7.16.0
 
-  '@types/prop-types@15.7.15': {}
-
   '@types/qrcode@1.5.6':
     dependencies:
       '@types/node': 25.0.10
@@ -18876,11 +18881,6 @@ snapshots:
   '@types/react-dom@19.2.3(@types/react@19.2.8)':
     dependencies:
       '@types/react': 19.2.8
-
-  '@types/react@18.3.27':
-    dependencies:
-      '@types/prop-types': 15.7.15
-      csstype: 3.2.3
 
   '@types/react@19.2.8':
     dependencies:
