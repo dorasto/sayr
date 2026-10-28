@@ -143,6 +143,9 @@ const plugins = [
 					// Reuse the personal-API-key scope vocabulary (tasks.read, tasks.create, ...)
 					// rather than inventing a parallel one for MCP tokens.
 					scopes: [...DEFAULT_OAUTH_SCOPES, ...ALL_API_KEY_SCOPES],
+					// No client_credentials: every MCP token must belong to a signed-in user, so
+					// it can be held to that user's own team permissions in each org.
+					grantTypes: ["authorization_code", "refresh_token"],
 				}),
 				cimd({
 					fetchClientMetadataResource,

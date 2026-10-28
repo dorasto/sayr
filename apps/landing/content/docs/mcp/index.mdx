@@ -113,19 +113,62 @@ Whichever client you use, the first connection opens a browser for you to sign i
 
 ## What it can do today
 
-| Tool                  | What it does                                            | Scope needed                  |
-| --------------------- | -------------------------------------------------------- | ------------------------------ |
-| `whoami`               | The authenticated user this connection is acting as     | none (just a valid connection) |
-| `list_organizations`   | Organizations the user is a member of                    | none (just a valid connection) |
-| `list_tasks`           | Search and list tasks in an organization                 | `tasks.read`                   |
-| `create_task`          | Create a new task                                         | `tasks.create`                 |
-| `create_comment`       | Post a comment on a task                                  | `tasks.comment`                |
+### Account
 
-`list_tasks` and `create_task` both take an `org` argument (an organization's slug or id), so one connection can act across every organization you belong to — the agent names which org each call targets.
+| Tool                 | What it does                                        | Scope needed                   |
+| -------------------- | --------------------------------------------------- | ------------------------------ |
+| `whoami`             | The authenticated user this connection is acting as | none (just a valid connection) |
+| `list_organizations` | Organizations the user is a member of               | none (just a valid connection) |
+
+### Tasks
+
+| Tool                 | What it does                                                         | Scope needed                                                       |
+| -------------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| `list_tasks`         | Search and list tasks in an organization                             | `tasks.read`                                                       |
+| `get_task`           | Full detail for one task, by its number (e.g. `123`) or id           | `tasks.read`                                                       |
+| `create_task`        | Create a new task with a title, markdown description, status, priority | `tasks.create`                                                   |
+| `update_task`        | Change status, priority, title, description, category, release or visibility | `tasks.changeStatus` / `tasks.changePriority` / `tasks.editAny`, depending on the field |
+| `set_task_labels`    | Replace the labels on a task                                         | `content.manageLabels`                                             |
+| `set_task_assignees` | Replace the assignees on a task (organization members only)          | `tasks.assign`                                                     |
+
+### Comments
+
+| Tool             | What it does                                    | Scope needed                                                         |
+| ---------------- | ----------------------------------------------- | -------------------------------------------------------------------- |
+| `list_comments`  | List a task's comments, with reply counts       | `tasks.read`                                                         |
+| `create_comment` | Post a public or internal comment on a task     | `tasks.comment`                                                      |
+| `update_comment` | Edit a comment's content or visibility          | `tasks.comment` for your own; `moderation.manageComments` for others' |
+| `delete_comment` | Delete a comment                                | `tasks.comment` for your own; `moderation.manageComments` for others' |
+
+### Releases
+
+| Tool              | What it does                                                                                   | Scope needed             |
+| ----------------- | ---------------------------------------------------------------------------------------------- | ------------------------ |
+| `list_releases`   | List releases, optionally filtered by status                                                   | `tasks.read`             |
+| `get_release`     | One release by slug or id: description, lead, labels, linked pull requests, tasks and counts   | `tasks.read`             |
+| `create_release`  | Create a release with a name, slug, Markdown description, status and target date               | `content.manageReleases` |
+| `update_release`  | Change a release's name, slug, description, status, dates, color, icon or lead                 | `content.manageReleases` |
+| `publish_release` | Mark a release as released and close every open task in it                                    | `content.manageReleases` |
+| `delete_release`  | Delete a release (its tasks are unlinked, not deleted)                                         | `content.manageReleases` |
+
+To add a task to a release, use `update_task` with the release's slug or id as `releaseId`.
+
+### Organization reference
+
+| Tool              | What it does                                                    | Scope needed           |
+| ----------------- | --------------------------------------------------------------- | ---------------------- |
+| `list_labels`     | Labels in an organization (for `set_task_labels`)               | `tasks.read`           |
+| `create_label`    | Create a label, or return the existing one with that name       | `content.manageLabels` |
+| `list_categories` | Categories in an organization (for `update_task`)               | `tasks.read`           |
+| `list_members`    | Members of an organization (for `set_task_assignees`)           | `tasks.read`           |
+
+Every tool except `whoami` and `list_organizations` takes an `org` argument (an organization's slug or id), so one connection can act across every organization you belong to — the agent names which org each call targets. Descriptions and comments are written and returned as Markdown.
 
 ## Permissions
 
-MCP access reuses the exact same scope vocabulary and permission model as [personal access tokens](/docs/cli/authentication#scopes): during consent, you approve a specific set of scopes (`tasks.read`, `tasks.create`, `tasks.comment`, and so on), and from then on every call is checked twice — does the connection hold the scope, **and** does your own role in that organization currently allow it. A connection can never do more than you can yourself, and member, team, and billing management are never reachable this way, whatever scopes were granted.
+MCP access reuses the exact same scope vocabulary and permission model as [personal access tokens](/docs/cli/authentication#scopes): during consent, you approve a specific set of scopes (`tasks.read`, `tasks.create`, `tasks.comment`, and so on), and from then on every call is checked twice — does the connection hold the scope, **and** do your teams in that organization currently allow it. A connection can never do more than you can yourself: if your team can't edit other people's tasks or manage labels, neither can your agent, even with every scope approved. Member, team, and billing management are never reachable this way, whatever scopes were granted.
+
+Like the CLI, the MCP server applies these checks to every task — including ones you created or are assigned to. If your team doesn't grant `tasks.editAny`, an agent can still change status and priority (where allowed) but not a task's title or description.
 
 If you revoke consent or your role changes, that takes effect immediately on the next call — nothing is cached against the old permissions.
 
@@ -135,10 +178,10 @@ Usage is rate-limited per organization, not capped by a monthly quota — there'
 
 | Plan | Limit                          |
 | ---- | ------------------------------- |
-| Free | 20 requests/minute per organization |
-| Pro  | 120 requests/minute per organization |
+| Free | 20 requests/minute per person, per organization  |
+| Pro  | 120 requests/minute per person, per organization |
 
-Each organization you connect to is metered independently: hitting the limit against one organization doesn't affect calls against another.
+The limit follows the plan of the organization each call targets, and every person and organization is metered independently: hitting the limit against one organization doesn't affect calls against another, and a teammate's agent doesn't use up yours.
 
 ## Related
 
