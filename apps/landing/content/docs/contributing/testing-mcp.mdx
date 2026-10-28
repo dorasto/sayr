@@ -1,0 +1,181 @@
+---
+title: Testing the MCP Server Locally
+description: Connect to the MCP server on your local setup with curl and a browser — no AI client needed — and check what to test
+---
+
+The [MCP server](/docs/mcp) is normally used through an AI client, but you don't need one to build or test it. This guide gets you an access token through the real OAuth consent flow using a browser and `curl`, then calls tools directly.
+
+You'll need `curl` and `openssl` (both ship with macOS and most Linux distributions).
+
+## 1. Run the cloud edition
+
+MCP is cloud-only, so it doesn't exist under the community edition:
+
+```bash
+pnpm dev:cloud
+```
+
+Before the first run, check:
+
+- **Migrations are applied** (`pnpm -F @repo/database migrate`) — MCP adds the `oauth_*` and `jwks` tables.
+- **`BETTER_AUTH_SECRET` is set to the same value** in `apps/start/.env.local` and `apps/backend/.env.local`. The frontend signs tokens and the backend checks sessions with it.
+
+The MCP endpoint is `http://localhost:5468/mcp` — use literal `localhost`, not `api.app.localhost`. The OAuth plugin only treats `localhost` as a local address.
+
+## 2. Sign in
+
+Open `http://admin.app.localhost:3000` and sign in with an account that belongs to at least one organization. Use the same browser for the rest of this guide.
+
+## 3. Create a test client
+
+Self-registration is turned off (real clients identify themselves with a client metadata document instead), so create a client for yourself. While signed in, open the browser's developer console on `admin.app.localhost:3000` and run:
+
+```js
+await fetch("/api/auth/oauth2/create-client", {
+	method: "POST",
+	headers: { "content-type": "application/json" },
+	body: JSON.stringify({
+		client_name: "Local MCP test",
+		redirect_uris: ["http://localhost:9999/callback"],
+		application_type: "native",
+		token_endpoint_auth_method: "none",
+		grant_types: ["authorization_code", "refresh_token"],
+		response_types: ["code"],
+	}),
+}).then((r) => r.json());
+```
+
+Copy the `client_id` from the result. You only need to do this once — reuse the client every time you need a new token.
+
+## 4. Get an access token
+
+In a terminal, set your client id and generate a PKCE pair:
+
+```bash
+export CLIENT_ID=paste-your-client-id
+export VERIFIER=$(openssl rand -base64 48 | tr -d '=+/\n' | cut -c1-64)
+export CHALLENGE=$(printf %s "$VERIFIER" | openssl dgst -sha256 -binary | openssl base64 -A | tr '+/' '-_' | tr -d '=')
+```
+
+Print the authorization URL and open it in the browser you signed in with:
+
+```bash
+echo "http://admin.app.localhost:3000/api/auth/oauth2/authorize?response_type=code&client_id=$CLIENT_ID&redirect_uri=http%3A%2F%2Flocalhost%3A9999%2Fcallback&scope=openid+offline_access+tasks.read+tasks.create+tasks.comment+tasks.editAny+tasks.assign+tasks.changeStatus+tasks.changePriority+content.manageLabels+content.manageCategories+content.manageReleases+moderation.manageComments&state=local&code_challenge=$CHALLENGE&code_challenge_method=S256&resource=http%3A%2F%2Flocalhost%3A5468%2Fmcp"
+```
+
+You'll land on the consent screen. Click **Allow**. The browser then tries to load `http://localhost:9999/callback?code=...` and shows a "can't connect" page — that's expected, nothing is listening there. Copy the `code` value from the address bar and exchange it within a few minutes:
+
+```bash
+curl -s -X POST http://admin.app.localhost:3000/api/auth/oauth2/token \
+  -d grant_type=authorization_code \
+  -d code=paste-the-code \
+  -d redirect_uri=http://localhost:9999/callback \
+  -d client_id=$CLIENT_ID \
+  -d code_verifier=$VERIFIER \
+  -d resource=http://localhost:5468/mcp
+```
+
+From the JSON response, copy `access_token` (valid for an hour) and `refresh_token`:
+
+```bash
+export TOKEN=paste-the-access-token
+export REFRESH=paste-the-refresh-token
+```
+
+To test with fewer permissions, remove scopes from the `scope=` list in the URL above and repeat this step.
+
+## 5. Call tools
+
+MCP requests need a few protocol headers and an envelope on every call, so paste this helper into your terminal (it works in zsh and bash):
+
+```bash
+mcp() {
+  local tool="$1" args="${2:-}"
+  [ -z "$args" ] && args='{}'
+  local meta='"_meta":{"io.modelcontextprotocol/protocolVersion":"2026-07-28","io.modelcontextprotocol/clientCapabilities":{},"io.modelcontextprotocol/clientInfo":{"name":"curl","version":"1.0.0"}}'
+  if [ "$tool" = "list" ]; then
+    curl -s http://localhost:5468/mcp -X POST \
+      -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+      -H "Accept: application/json, text/event-stream" -H "MCP-Protocol-Version: 2026-07-28" \
+      -H "Mcp-Method: tools/list" \
+      -d "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/list\",\"params\":{$meta}}"
+  else
+    curl -s http://localhost:5468/mcp -X POST \
+      -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+      -H "Accept: application/json, text/event-stream" -H "MCP-Protocol-Version: 2026-07-28" \
+      -H "Mcp-Method: tools/call" -H "Mcp-Name: $tool" \
+      -d "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"$tool\",\"arguments\":$args,$meta}}"
+  fi
+  echo
+}
+```
+
+Then:
+
+```bash
+mcp list                                                    # every tool and its input schema
+mcp whoami
+mcp list_organizations
+mcp list_tasks '{"org":"your-org-slug","limit":5}'
+mcp create_task '{"org":"your-org-slug","title":"Made over MCP"}'
+mcp update_task '{"org":"your-org-slug","task":"12","status":"in-progress"}'
+```
+
+Arguments are the tool's input as JSON — `mcp list` shows each tool's schema. A tool that refuses (missing permission, unknown task, and so on) still returns a normal response, with `"isError": true` and a message explaining why.
+
+## 6. What to test
+
+### Your own organization
+
+In an organization where you're an admin, every tool should work. Check that changes made over MCP show up live in the web app without a refresh, and appear in the task's timeline under your name.
+
+### Team permissions
+
+Sign in as a second account that's a member of the same organization but isn't in any team, get a token for it the same way, and repeat the calls. With the default member permissions you should see:
+
+| Allowed | Refused |
+| --- | --- |
+| Reading tasks, comments, labels, categories, members and releases | Editing a task's title, description, category, release or visibility |
+| Creating tasks | Setting labels or assignees |
+| Changing status and priority | Creating labels |
+| Commenting, and editing or deleting your own comments | Editing or deleting someone else's comment |
+| | Creating, updating, publishing or deleting releases |
+
+Then put that account in a team that grants some of these permissions and confirm the refusals turn into successes on the next call, without a new token.
+
+Also try passing ids from an organization the account isn't in — a task, comment or release id from elsewhere should come back as "not found".
+
+### Scopes
+
+Get a token with a reduced `scope=` list (for example just `openid tasks.read`) using your admin account. Reads work; every write is refused, even though your role allows it.
+
+### Revoking
+
+Go to **Settings → Connections → Connected apps**, find "Local MCP test" and click **Revoke**. The next `mcp whoami` should fail with `401` and `invalid_token`, and refreshing should fail too:
+
+```bash
+curl -s -X POST http://admin.app.localhost:3000/api/auth/oauth2/token \
+  -d grant_type=refresh_token -d refresh_token=$REFRESH \
+  -d client_id=$CLIENT_ID -d resource=http://localhost:5468/mcp
+```
+
+Before revoking, the same command returns a fresh access token. After revoking, repeat step 4 — you'll be asked to approve again.
+
+### Rate limits
+
+A Free organization allows 20 calls per minute per person; a Pro one allows 120. Run a quick loop against a Free organization and the 21st call should be refused with a "Rate limit exceeded" message, while calls against a different organization keep working. The count resets on each minute, so if a loop straddles the change and doesn't trip, run it again:
+
+```bash
+for i in $(seq 1 21); do mcp list_labels '{"org":"a-free-org"}' | head -c 120; echo; done
+```
+
+## Troubleshooting
+
+| Problem | Cause |
+| --- | --- |
+| `invalid_signature` on the consent or sign-in page | The signed URL was changed on the way. Start again from the `echo` URL rather than editing it by hand. |
+| `Failed to decrypt private key` in the frontend or backend logs | The signing key in the `jwks` table was created with a different `BETTER_AUTH_SECRET`. Fix the secret, or delete the rows in `jwks` locally — a new key is created on the next token request. |
+| `401` from `/mcp` | The access token expired (after an hour), or the app was revoked. Refresh it or repeat step 4. |
+| `Invalid params ... per-request envelope` | The request is missing the `_meta` block. Use the `mcp` helper. |
+| `Client registration is disabled` | You called `/oauth2/register`. Use `create-client` from step 3 instead. |
+| `web clients require https redirect URIs` | The client was created without `"application_type": "native"`. |
