@@ -48,7 +48,7 @@ export const fetchSystemOrgSlug = createServerFn({ method: "GET" }).handler(asyn
 });
 
 const fetchPublicOrganizationAndTasks = createServerFn({ method: "GET" })
-	.inputValidator((data: { slug: string }) => data)
+	.validator((data: { slug: string }) => data)
 	.handler(async ({ data }) => {
 		const organization = await getOrganizationPublic(data.slug);
 

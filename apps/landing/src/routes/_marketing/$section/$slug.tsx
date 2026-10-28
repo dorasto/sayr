@@ -65,7 +65,7 @@ export const Route = createFileRoute("/_marketing/$section/$slug")({
 });
 
 const serverLoader = createServerFn({ method: "GET" })
-	.inputValidator((params: { section: string; slug: string }) => params)
+	.validator((params: { section: string; slug: string }) => params)
 	.handler(async ({ data: { section, slug } }) => {
 		if (!getPage(section, slug)) throw notFound();
 		if (section === "compare" && getComparison(slug)) return { path: null, section, slug };

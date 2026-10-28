@@ -3,7 +3,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { getAccess } from "@/getAccess";
 
 export const getTaskByIdForInbox = createServerFn({ method: "GET" })
-	.inputValidator((data: { orgId: string; taskId: string }) => data)
+	.validator((data: { orgId: string; taskId: string }) => data)
 	.handler(async ({ data }) => {
 		const { orgId, taskId } = data;
 		const { account } = await getAccess();

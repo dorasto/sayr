@@ -94,7 +94,7 @@ export const getUsers = createServerFn({ method: "GET" }).handler(async () => {
  * Sets the role for a user.
  */
 export const setUserRole = createServerFn({ method: "POST" })
-	.inputValidator((data: { userId: string; role: "admin" | "user" }) => data)
+	.validator((data: { userId: string; role: "admin" | "user" }) => data)
 	.handler(async ({ data }) => {
 		const headers = getRequestHeaders();
 		const result = await auth.api.setRole({

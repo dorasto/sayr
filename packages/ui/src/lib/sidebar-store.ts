@@ -206,7 +206,7 @@ export const sidebarActions = {
 		if (typeof window === "undefined") return;
 		try {
 			localStorage.removeItem(STORAGE_KEY);
-			sidebarStore.setState({ sidebars: {}, keyboardShortcuts: {} });
+			sidebarStore.setState(() => ({ sidebars: {}, keyboardShortcuts: {} }));
 		} catch (error) {
 			console.error("Failed to clear sidebar state:", error);
 		}

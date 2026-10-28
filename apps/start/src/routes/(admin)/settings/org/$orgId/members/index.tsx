@@ -7,7 +7,7 @@ import { requireOrgMember } from "@/getAccess";
 import { seo } from "@/seo";
 
 const fetchMembersData = createServerFn({ method: "GET" })
-	.inputValidator((data: { orgId: string }) => data)
+	.validator((data: { orgId: string }) => data)
 	.handler(async ({ data }) => {
 		await requireOrgMember(data.orgId);
 		const [invites, teams] = await Promise.all([

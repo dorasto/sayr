@@ -10,7 +10,7 @@ import { seo } from "@/seo";
  * Fetch a single team and its members for the given org/team IDs.
  */
 const fetchteam = createServerFn({ method: "GET" })
-	.inputValidator((data: { orgid: string; teamid: string }) => data)
+	.validator((data: { orgid: string; teamid: string }) => data)
 	.handler(async ({ data }) => {
 		await requireOrgMember(data.orgid);
 		// Find the team within this organization

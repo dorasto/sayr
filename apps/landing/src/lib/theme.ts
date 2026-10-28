@@ -11,7 +11,7 @@ const isBarelocalhost = rootDomain === "localhost";
 export const getThemeServerFn = createServerFn().handler(async () => (getCookie(storageKey) || "dark") as Theme);
 
 export const setThemeServerFn = createServerFn({ method: "POST" })
-	.inputValidator((data: Theme) => data)
+	.validator((data: Theme) => data)
 	.handler(async ({ data }) =>
 		setCookie(storageKey, data, {
 			domain: isBarelocalhost ? undefined : `.${rootDomain}`,

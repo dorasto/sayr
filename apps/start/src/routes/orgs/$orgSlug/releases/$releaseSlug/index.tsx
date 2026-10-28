@@ -14,7 +14,7 @@ import type { ServerEventMessage } from "@/lib/serverEvents";
 import { getOgImageUrl, seo } from "@/seo";
 
 const fetchPublicRelease = createServerFn({ method: "GET" })
-	.inputValidator((data: { orgSlug: string; releaseSlug: string }) => data)
+	.validator((data: { orgSlug: string; releaseSlug: string }) => data)
 	.handler(async ({ data }) => {
 		// Resolve system org for single-tenant installs
 		const { multiTenantEnabled } = getEditionCapabilities();

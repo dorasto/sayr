@@ -11,7 +11,7 @@ import { seo } from "@/seo";
  * for a specific organization.
  */
 const fetchTeams = createServerFn({ method: "GET" })
-	.inputValidator((data: { orgId: string }) => data)
+	.validator((data: { orgId: string }) => data)
 	.handler(async ({ data }) => {
 		await requireOrgMember(data.orgId);
 		// Load all teams for this organization with members attached

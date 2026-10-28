@@ -17,7 +17,7 @@ const fetchAuth = createServerFn({ method: "GET" }).handler(async () => {
 });
 
 const fetchInvite = createServerFn({ method: "GET" })
-	.inputValidator((data: { orgId: string; code: string }) => data)
+	.validator((data: { orgId: string; code: string }) => data)
 	.handler(async ({ data }) => {
 		// Identity comes from the session, never from client input (server fns are publicly callable).
 		const account = await requireAccount();

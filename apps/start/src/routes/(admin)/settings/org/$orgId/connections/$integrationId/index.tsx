@@ -25,7 +25,7 @@ import { requireAccount } from "@/getAccess";
 import { seo } from "@/seo";
 
 const getIntegrationMeta = createServerFn({ method: "GET" })
-	.inputValidator((data: { integrationId: string }) => data)
+	.validator((data: { integrationId: string }) => data)
 	.handler(async ({ data }) => {
 		await requireAccount();
 		const API_URL =

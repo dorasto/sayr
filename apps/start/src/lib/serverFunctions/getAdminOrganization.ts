@@ -13,7 +13,7 @@ import { eq } from "drizzle-orm";
 import { requireAccount } from "@/getAccess";
 
 export const getAdminOrganization = createServerFn({ method: "GET" })
-	.inputValidator((data: { orgId: string }) => data)
+	.validator((data: { orgId: string }) => data)
 	.handler(async ({ data }) => {
 		const { orgId } = data;
 		// Identity comes from the session, never from client input (server fns are publicly callable).

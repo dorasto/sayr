@@ -6,7 +6,7 @@ import { seo, getOgImageUrl } from "@/seo";
 import ReleaseDetailPage from "@/components/pages/admin/orgid/releases/release-slug";
 
 export const getAdminOrganizationRelease = createServerFn({ method: "GET" })
-	.inputValidator((data: { orgId: string; releaseSlug: string }) => data)
+	.validator((data: { orgId: string; releaseSlug: string }) => data)
 	.handler(async ({ data }) => {
 		const { orgId, releaseSlug } = data;
 		// Identity comes from the session, never from client input (server fns are publicly callable).

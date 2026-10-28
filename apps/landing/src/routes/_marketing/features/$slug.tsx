@@ -35,7 +35,7 @@ export const Route = createFileRoute("/_marketing/features/$slug")({
 });
 
 const serverLoader = createServerFn({ method: "GET" })
-	.inputValidator((slug: string) => slug)
+	.validator((slug: string) => slug)
 	.handler(async ({ data: slug }) => {
 		if (!getFeature(slug)) throw notFound();
 

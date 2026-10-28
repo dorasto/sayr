@@ -5,7 +5,7 @@ import { eq } from "drizzle-orm";
 import { requireAccount } from "@/getAccess";
 
 export const getAdminOrganizationTask = createServerFn({ method: "GET" })
-	.inputValidator((data: { orgId: string; taskShortId: number }) => data)
+	.validator((data: { orgId: string; taskShortId: number }) => data)
 	.handler(async ({ data }) => {
 		const { orgId, taskShortId } = data;
 		const account = await requireAccount();

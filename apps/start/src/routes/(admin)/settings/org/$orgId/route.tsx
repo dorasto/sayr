@@ -17,7 +17,7 @@ import { requireAccount } from "@/getAccess";
 import { seo } from "@/seo";
 
 export const getAdminOrganizationSettings = createServerFn({ method: "GET" })
-	.inputValidator((data: { orgId: string }) => data)
+	.validator((data: { orgId: string }) => data)
 	.handler(async ({ data }) => {
 		const { orgId } = data;
 		// Identity comes from the session, never from client input (server fns are publicly callable).
@@ -53,7 +53,7 @@ export const getAdminOrganizationSettings = createServerFn({ method: "GET" })
 		}
 	});
 export const getUserOrgPermissions = createServerFn({ method: "GET" })
-	.inputValidator((data: { orgId: string }) => data)
+	.validator((data: { orgId: string }) => data)
 	.handler(async ({ data }) => {
 		try {
 			const account = await requireAccount();

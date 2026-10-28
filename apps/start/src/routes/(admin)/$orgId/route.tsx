@@ -15,7 +15,7 @@ import { PermissionError } from "@repo/util";
  * Output: { permissions }
  */
 export const getUserOrgPermissions = createServerFn({ method: "GET" })
-	.inputValidator((data: { orgId: string }) => data)
+	.validator((data: { orgId: string }) => data)
 	.handler(async ({ data }) => {
 		try {
 			// Identity comes from the session, never from client input (server fns are publicly callable).

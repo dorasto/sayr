@@ -33,7 +33,7 @@ export const getPersonalViewsAction = createServerFn({ method: "GET" }).handler(
 });
 
 export const createPersonalViewAction = createServerFn({ method: "POST" })
-	.inputValidator(
+	.validator(
 		(data: {
 			name: string;
 			filterParams: string;
@@ -48,7 +48,7 @@ export const createPersonalViewAction = createServerFn({ method: "POST" })
 	});
 
 export const updatePersonalViewAction = createServerFn({ method: "POST" })
-	.inputValidator(
+	.validator(
 		(data: {
 			viewId: string;
 			updates: Partial<{
@@ -78,7 +78,7 @@ export const updatePersonalViewAction = createServerFn({ method: "POST" })
 	});
 
 export const deletePersonalViewAction = createServerFn({ method: "POST" })
-	.inputValidator((data: { viewId: string }) => data)
+	.validator((data: { viewId: string }) => data)
 	.handler(async ({ data }) => {
 		const { account } = await getAccess();
 		await deletePersonalView(account.id, data.viewId);
@@ -86,14 +86,14 @@ export const deletePersonalViewAction = createServerFn({ method: "POST" })
 	});
 
 export const togglePersonalViewPinAction = createServerFn({ method: "POST" })
-	.inputValidator((data: { viewId: string; pinned: boolean }) => data)
+	.validator((data: { viewId: string; pinned: boolean }) => data)
 	.handler(async ({ data }) => {
 		const { account } = await getAccess();
 		return togglePersonalViewPin(account.id, data.viewId, data.pinned);
 	});
 
 export const reorderPersonalViewsAction = createServerFn({ method: "POST" })
-	.inputValidator((data: { orderedIds: string[] }) => data)
+	.validator((data: { orderedIds: string[] }) => data)
 	.handler(async ({ data }) => {
 		const { account } = await getAccess();
 		await reorderPersonalViews(account.id, data.orderedIds);

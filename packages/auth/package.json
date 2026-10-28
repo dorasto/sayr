@@ -29,6 +29,6 @@
     "@biomejs/biome": "^2.1.1",
     "@repo/typescript-config": "workspace:*",
     "@types/node": "^24.0.14",
-    "zod": "^4.0.5"
+    "zod": "^4.6.7"
   }
 }
