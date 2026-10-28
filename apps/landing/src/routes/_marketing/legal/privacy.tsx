@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { seoMeta } from "@/lib/seo";
 
-const lastUpdated = "2026-02-16";
+const lastUpdated = "2026-10-28";
 // Construct as a local calendar date, not `new Date(lastUpdated)` — that parses
 // as UTC midnight, which renders a day early for anyone west of UTC once this
 // hydrates client-side.
@@ -138,6 +138,30 @@ function PrivacyPage() {
 						address, user agent, and a salt to prevent duplicate votes. The raw IP address is{" "}
 						<strong className="text-foreground">not</strong> stored for anonymous votes.
 					</p>
+
+					<h3 className="text-base font-medium text-foreground mt-6 mb-2">2.7 Connected Apps</h3>
+					<p>
+						You can authorise third-party apps, such as AI assistants, to act on your behalf through Sayr's MCP
+						server. When you do, we store:
+					</p>
+					<ul className="list-disc pl-6 mt-2 space-y-1">
+						<li>
+							<strong className="text-foreground">App details</strong> — the app's name, website, and redirect
+							addresses, which some apps publish at a web address we fetch when they connect
+						</li>
+						<li>
+							<strong className="text-foreground">Your approval</strong> — which app you approved, the
+							permissions you granted, and when
+						</li>
+						<li>
+							<strong className="text-foreground">Access tokens</strong> — the refresh tokens that let the app
+							stay connected
+						</li>
+						<li>
+							<strong className="text-foreground">Rate-limit counters</strong> — a per-minute count of the app's
+							requests, keyed by your user ID and the organisation it's acting in
+						</li>
+					</ul>
 				</section>
 
 				{/* 3. How We Use Your Data */}
@@ -280,6 +304,12 @@ function PrivacyPage() {
 						.
 					</p>
 					<p className="mt-2">
+						When you connect a third-party app (see 2.7), it can read and change the data its permissions allow,
+						within the organisations you belong to. That app receives this data at your direction — it is not one
+						of our subprocessors, and its handling of your data is governed by its own terms and privacy policy.
+						You can revoke an app's access at any time under Settings → Connections.
+					</p>
+					<p className="mt-2">
 						We may also disclose your data if required to do so by law, or if we believe in good faith that such
 						action is necessary to comply with legal process, protect our rights, or ensure the safety of our
 						users.
@@ -328,6 +358,10 @@ function PrivacyPage() {
 						<li>
 							<strong className="text-foreground">User-generated content</strong> — retained while your account
 							exists; deleted upon account deletion
+						</li>
+						<li>
+							<strong className="text-foreground">Connected app approvals and tokens</strong> — retained until
+							you revoke the app or delete your account; rate-limit counters expire after about a minute
 						</li>
 					</ul>
 					<p className="mt-2">
