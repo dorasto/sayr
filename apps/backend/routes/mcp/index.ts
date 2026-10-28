@@ -5,6 +5,7 @@ import { claimsFromAuthInfo, type McpUserClaims } from "./context";
 import { registerCommentTools } from "./tools/comments";
 import { registerIdentityTools } from "./tools/identity";
 import { registerReferenceTools } from "./tools/reference";
+import { registerReleaseActivityTools } from "./tools/release-activity";
 import { registerReleaseTools } from "./tools/releases";
 import { registerTaskTools } from "./tools/tasks";
 
@@ -28,6 +29,7 @@ function buildMcpServer(claims: McpUserClaims | null): McpServer {
 	registerCommentTools(server, claims);
 	registerReferenceTools(server, claims);
 	registerReleaseTools(server, claims);
+	registerReleaseActivityTools(server, claims);
 	return server;
 }
 

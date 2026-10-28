@@ -1,6 +1,7 @@
 ---
 title: MCP Server
 description: Connect an AI agent (Claude, ChatGPT, or any MCP-compatible client) to Sayr using the Model Context Protocol
+icon: IconPlugConnected
 ---
 
 Sayr runs a remote [Model Context Protocol](https://modelcontextprotocol.io) (MCP) server, so an AI agent can read and write tasks, comments, and more in your organization on your behalf, the same way the [CLI](/docs/cli) or a [personal access token](/docs/cli/authentication) does.
@@ -152,6 +153,24 @@ Whichever client you use, the first connection opens a browser for you to sign i
 | `delete_release`  | Delete a release (its tasks are unlinked, not deleted)                                         | `content.manageReleases` |
 
 To add a task to a release, use `update_task` with the release's slug or id as `releaseId`.
+
+### Release activity
+
+| Tool                           | What it does                                                                 | Scope needed                                                          |
+| ------------------------------ | ---------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| `list_release_status_updates`  | A release's status updates, newest first, with health and comment counts     | `tasks.read`                                                          |
+| `create_release_status_update` | Post a status update with a health rating (on track, at risk, off track)     | `content.manageReleases`                                              |
+| `update_release_status_update` | Edit a status update's content, health or visibility                         | `content.manageReleases`                                              |
+| `delete_release_status_update` | Delete a status update and its comments                                      | `content.manageReleases`                                              |
+| `list_release_comments`        | A release's top-level comments, optionally just those on one status update   | `tasks.read`                                                          |
+| `list_release_comment_replies` | The replies in one comment thread                                            | `tasks.read`                                                          |
+| `create_release_comment`       | Comment on a release or status update, or reply to a comment                 | `tasks.comment`                                                       |
+| `update_release_comment`       | Edit a release comment's content or visibility                               | `tasks.comment` for your own; `moderation.manageComments` for others' |
+| `delete_release_comment`       | Delete a release comment and its replies                                     | `tasks.comment` for your own; `moderation.manageComments` for others' |
+| `add_release_label`            | Add a label to a release                                                     | `content.manageReleases`                                              |
+| `remove_release_label`         | Remove a label from a release                                                | `content.manageReleases`                                              |
+| `link_release_pull_request`    | Link a GitHub pull request by URL (the repository must be connected)         | `content.manageReleases`                                              |
+| `unlink_release_pull_request`  | Unlink a pull request from a release                                         | `content.manageReleases`                                              |
 
 ### Organization reference
 

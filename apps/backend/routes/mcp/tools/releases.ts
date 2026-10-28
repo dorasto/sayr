@@ -15,8 +15,8 @@ import {
 } from "../../../lib/releases/lifecycle";
 import { type McpUserClaims, resolveAndRateLimitOrg, toolError, toolJson } from "../context";
 
-const orgArg = z.string().describe('Organization slug (e.g. "platform") or id.');
-const releaseArg = z.string().describe('Release slug (e.g. "v1.2.0") or id.');
+export const orgArg = z.string().describe('Organization slug (e.g. "platform") or id.');
+export const releaseArg = z.string().describe('Release slug (e.g. "v1.2.0") or id.');
 
 function releaseSummary(release: schema.releaseType) {
 	return {
@@ -32,13 +32,13 @@ function releaseSummary(release: schema.releaseType) {
 	};
 }
 
-function releaseFailure(err: unknown, fallback: string) {
+export function releaseFailure(err: unknown, fallback: string) {
 	if (err instanceof ReleaseServiceError) return toolError(`${err.title}: ${err.message}`);
 	return toolError(fallback);
 }
 
 /** Org lookup, rate limit, scope + team permission, then the release — so a caller who isn't allowed never learns whether a release exists. */
-async function guard(
+export async function guard(
 	claims: McpUserClaims,
 	org: string,
 	scope: ApiKeyScope,
@@ -58,7 +58,7 @@ async function guard(
 	return { orgId: resolved.orgId };
 }
 
-async function findRelease(orgId: string, ref: string) {
+export async function findRelease(orgId: string, ref: string) {
 	const releaseId = await resolveReleaseId(orgId, ref);
 	const release = releaseId ? await getRelease(releaseId) : null;
 	return release && release.organizationId === orgId ? release : null;
