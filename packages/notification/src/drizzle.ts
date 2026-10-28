@@ -407,16 +407,17 @@ export function createDrizzleNotificationRepository<
 
             const now = new Date();
 
-            await db
+            const updated = await db
                 .update(notifications)
                 .set({
                     readAt: now,
                     updatedAt: now,
                 })
                 .where(and(...conditions,
+                    isNull(notifications.readAt),
                     ...(options.conditions ?? [])
-                ))
-            return true;
+                )).returning({ id: notifications.id });
+            return updated.length;
         },
 
         async markAllRead(options: MarkAllNotificationOptions) {

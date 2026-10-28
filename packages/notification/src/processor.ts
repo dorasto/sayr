@@ -39,7 +39,7 @@ export function createNotificationProcessor<
             delivered: !disabled && !muted,
         });
 
-        if (onCreated) {
+        if (onCreated && notification.delivered) {
             await onCreated(notification, job);
         }
 
