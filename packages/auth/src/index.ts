@@ -28,6 +28,13 @@ const isBarelocalhost = rootUrl === "localhost";
 const { polarBillingEnabled } = getEditionCapabilities();
 // MCP server access is cloud-only (SAY-31). The canonical protected-resource identifier
 // must be HTTPS except on loopback hosts, so dev falls back to the bare backend origin.
+// @better-auth/mcp's own resource validator is stricter than the general
+// loopback check elsewhere in this file: HTTP is only accepted for the literal
+// hostname "localhost" (confirmed by reading its source), not any *.localhost
+// subdomain. So dev can't go through the api.<root> virtual host the way prod
+// does — apps/backend registers this route at both its bare root (for this,
+// dev's unrewritten localhost:5468 traffic) and under /api/public (for prod's
+// api.<root> traffic, which always gets rewritten there). See routes/mcp.
 const mcpResource = isProd ? `https://api.${rootUrl}/mcp` : "http://localhost:5468/mcp";
 // Matches the `iss` claim the jwt() plugin actually signs: better-auth's own
 // baseURL (unset in dev, inferred from the request origin) appended with its

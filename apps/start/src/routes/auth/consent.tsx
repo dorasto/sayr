@@ -3,7 +3,7 @@ import { Button } from "@repo/ui/components/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@repo/ui/components/card";
 import { isApiKeyScope, scopeDefinition } from "@repo/util";
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export const Route = createFileRoute("/auth/consent")({
 	component: RouteComponent,
@@ -24,16 +24,21 @@ function scopeLabel(scope: string): string {
 function RouteComponent() {
 	const [status, setStatus] = useState<"idle" | "submitting" | "error">("idle");
 	const [error, setError] = useState<string | null>(null);
+	// Read only after mount — this route is server-rendered, and the provider
+	// signs this exact raw query string server-side, so it must come from the
+	// browser's own location rather than anything TanStack Router re-encodes.
+	const [rawQuery, setRawQuery] = useState<string | null>(null);
 
-	// Read the raw query string rather than router-parsed search params — the
-	// provider signs this exact string server-side, and any re-encoding on the
-	// way back would fail that check.
-	const rawQuery = typeof window !== "undefined" ? window.location.search.slice(1) : "";
-	const params = new URLSearchParams(rawQuery);
+	useEffect(() => {
+		setRawQuery(window.location.search.slice(1));
+	}, []);
+
+	const params = new URLSearchParams(rawQuery ?? "");
 	const clientId = params.get("client_id") ?? "";
 	const scopes = (params.get("scope") ?? "").split(" ").filter(Boolean);
 
 	const respond = async (accept: boolean) => {
+		if (rawQuery === null) return;
 		setStatus("submitting");
 		setError(null);
 		const { data, error: consentError } = await authClient.oauth2.consent({ accept, oauth_query: rawQuery });
@@ -66,10 +71,14 @@ function RouteComponent() {
 					{error ? <p className="text-sm text-destructive mt-4">{error}</p> : null}
 				</CardContent>
 				<CardFooter className="flex gap-2 justify-end">
-					<Button variant="outline" disabled={status === "submitting"} onClick={() => respond(false)}>
+					<Button
+						variant="outline"
+						disabled={rawQuery === null || status === "submitting"}
+						onClick={() => respond(false)}
+					>
 						Deny
 					</Button>
-					<Button disabled={status === "submitting"} onClick={() => respond(true)}>
+					<Button disabled={rawQuery === null || status === "submitting"} onClick={() => respond(true)}>
 						Allow
 					</Button>
 				</CardFooter>

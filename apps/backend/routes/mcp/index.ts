@@ -323,3 +323,21 @@ export const mcpFetchHandler = createMcpProtectedRequestHandler(
 		return mcpHandler.fetch(request, { authInfo });
 	}
 );
+
+/**
+ * RFC 9728 protected-resource metadata for `mcpOAuthConfig.resource`. Not
+ * served automatically the way it would be if the resource and authorization
+ * server were the same process (the mcp() plugin's own doc) — apps/backend is
+ * a separate resource server that only verifies tokens via JWKS, so it has to
+ * publish this itself. The WWW-Authenticate challenge on an unauthenticated
+ * /mcp request points here.
+ */
+export function mcpProtectedResourceMetadata(): Response {
+	return Response.json({
+		resource: mcpOAuthConfig.resource,
+		authorization_servers: [mcpOAuthConfig.issuer],
+		jwks_uri: mcpOAuthConfig.jwksUrl,
+		bearer_methods_supported: ["header"],
+		resource_name: "Sayr",
+	});
+}
