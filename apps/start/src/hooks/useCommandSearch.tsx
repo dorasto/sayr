@@ -29,6 +29,12 @@ export function useCommandSearch(query: string, isOpen: boolean) {
 	const transformResult = useCallback(
 		(result: TaskSearchResult): CommandItem => {
 			const statusConf = statusConfig[result.status as keyof typeof statusConfig];
+			// Include the formatted key (e.g. "SAY-93") so cmdk's client-side filter keeps results the
+			// server matched by key rather than by title.
+			const taskKey =
+				result.organizationShortId && result.shortId != null
+					? formatTaskKey(result.organizationShortId, result.shortId)
+					: "";
 			return {
 				id: `search-task-${result.id}`,
 				label: result.title || "Untitled task",
@@ -37,8 +43,8 @@ export function useCommandSearch(query: string, isOpen: boolean) {
 				) : (
 					<IconCircleFilled className="h-4 w-4 shrink-0 opacity-40" />
 				),
-				value: `${result.title || ""} ${result.organizationName || ""} ${result.shortId || ""}`,
-				keywords: `task issue ${result.shortId || ""} ${result.organizationName || ""}`,
+				value: `${result.title || ""} ${result.organizationName || ""} ${taskKey} ${result.shortId || ""}`,
+				keywords: `task issue ${taskKey} ${result.shortId || ""} ${result.organizationName || ""}`,
 				metadata: (
 					<span className="flex items-center gap-1.5">
 						{result.organizationName && (

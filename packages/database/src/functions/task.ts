@@ -777,11 +777,23 @@ export async function getTasksByUserId(userId: string): Promise<schema.TaskWithL
 }
 
 /**
- * Searches tasks across all organizations a user belongs to by title.
- * Returns a limited set of results for use in the command palette.
+ * Parses a search query that looks like a task identifier: a full key (`SAY-93`, `say93`, `SAY 93`),
+ * or a bare / `#`-prefixed number (`93`, `#93`). Returns null for anything else, so callers fall
+ * back to title-only matching.
+ */
+function parseTaskKeyQuery(query: string): { orgShortId: string | null; shortId: number } | null {
+	const match = query.trim().match(/^#?(?:([a-z]{1,4})[-\s]?)?(\d{1,9})$/i);
+	if (!match?.[2]) return null;
+	return { orgShortId: match[1] ? match[1].toUpperCase() : null, shortId: Number.parseInt(match[2], 10) };
+}
+
+/**
+ * Searches tasks across all organizations a user belongs to, by title or by task key
+ * (`SAY-93` / `93` — see {@link parseTaskKeyQuery}). Returns a limited set of results for use in
+ * the command palette, exact key matches first.
  *
  * @param userId - The ID of the user performing the search
- * @param query - The search query string to match against task titles
+ * @param query - The search query: part of a task title, or a task key / number
  * @param limit - Maximum number of results to return (default: 10)
  * @returns An array of matching tasks with org metadata
  */
@@ -804,7 +816,14 @@ export async function searchTasksForUser(
 > {
 	if (!query || query.trim().length < 2) return [];
 
-	const searchPattern = `%${query.trim()}%`;
+	const trimmed = query.trim();
+	const titleMatch = sql`${schema.task.title} ILIKE ${`%${trimmed}%`}`;
+	const key = parseTaskKeyQuery(trimmed);
+	// Org short IDs are stored uppercase, but compare case-insensitively in case older rows aren't.
+	const keyMatch = key?.orgShortId
+		? and(sql`UPPER(${schema.organization.shortId}) = ${key.orgShortId}`, eq(schema.task.shortId, key.shortId))
+		: undefined;
+	const shortIdMatch = key ? eq(schema.task.shortId, key.shortId) : undefined;
 
 	const results = await db
 		.select({
@@ -824,9 +843,12 @@ export async function searchTasksForUser(
 			and(eq(schema.member.organizationId, schema.task.organizationId), eq(schema.member.userId, userId))
 		)
 		.innerJoin(schema.organization, eq(schema.organization.id, schema.task.organizationId))
-		.where(sql`${schema.task.title} ILIKE ${searchPattern}`)
+		// A full key matches that exact task; a bare number matches that task number in every org.
+		.where(keyMatch ? or(titleMatch, keyMatch) : shortIdMatch ? or(titleMatch, shortIdMatch) : titleMatch)
 		.orderBy(
-			sql`CASE WHEN LOWER(${schema.task.title}) LIKE ${`${query.trim().toLowerCase()}%`} THEN 0 ELSE 1 END`,
+			...(keyMatch ? [sql`CASE WHEN ${keyMatch} THEN 0 ELSE 1 END`] : []),
+			...(shortIdMatch ? [sql`CASE WHEN ${shortIdMatch} THEN 0 ELSE 1 END`] : []),
+			sql`CASE WHEN LOWER(${schema.task.title}) LIKE ${`${trimmed.toLowerCase()}%`} THEN 0 ELSE 1 END`,
 			sql`${schema.task.updatedAt} DESC`
 		)
 		.limit(limit);
@@ -867,10 +889,11 @@ export async function searchTasksByOrganization(
 	if (query && query.trim().length >= 2) {
 		const trimmed = query.trim();
 
-		// Support "#123" syntax to search by shortId
-		const shortIdMatch = trimmed.match(/^#?(\d+)$/);
-		if (shortIdMatch) {
-			const shortIdDigits = shortIdMatch[1];
+		// Support "123", "#123" and full keys like "SAY-123" to search by shortId. The search is
+		// already scoped to one org, so a key's prefix is ignored.
+		const key = parseTaskKeyQuery(trimmed);
+		if (key) {
+			const shortIdDigits = String(key.shortId);
 			conditions.push(
 				or(
 					sql`${schema.task.title} ILIKE ${`%${trimmed}%`}`,
@@ -892,7 +915,8 @@ export async function searchTasksByOrganization(
 	}
 
 	const trimmedQuery = query?.trim() || "";
-	const isShortIdQuery = /^#?\d+$/.test(trimmedQuery);
+	const queryKey = trimmedQuery ? parseTaskKeyQuery(trimmedQuery) : null;
+	const isShortIdQuery = queryKey !== null;
 
 	const results = await db
 		.select({
@@ -916,7 +940,7 @@ export async function searchTasksByOrganization(
 			sql`CASE WHEN ${schema.task.releaseId} IS NOT NULL THEN 1 ELSE 0 END`,
 			...(isShortIdQuery
 				? [
-						sql`CASE WHEN ${schema.task.shortId} = ${Number.parseInt(trimmedQuery.replace("#", ""), 10)} THEN 0 ELSE 1 END`,
+						sql`CASE WHEN ${schema.task.shortId} = ${queryKey?.shortId ?? -1} THEN 0 ELSE 1 END`,
 						asc(schema.task.shortId),
 					]
 				: trimmedQuery.length >= 2
