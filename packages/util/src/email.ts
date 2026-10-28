@@ -1,6 +1,8 @@
 const USESEND_API_URL = "https://app.usesend.com/api/v1/emails";
 const SENDGRID_API_URL = "https://api.sendgrid.com/v3/mail/send";
 const RESEND_API_URL = "https://api.resend.com/emails";
+const RESEND_BATCH_API_URL = "https://api.resend.com/emails/batch";
+const RESEND_BATCH_LIMIT = 100;
 
 export interface SendEmailOptions {
 	to: string | string[];
@@ -25,8 +27,7 @@ interface EmailBatchOptions {
 
 interface EmailProvider {
 	sendEmail(
-		options: Required<Pick<SendEmailOptions, "from">> &
-			Omit<SendEmailOptions, "from">
+		options: Required<Pick<SendEmailOptions, "from">> & Omit<SendEmailOptions, "from">
 	): Promise<EmailProviderResponse>;
 
 	sendEmailBatch?(options: EmailBatchOptions): Promise<EmailProviderResponse[]>;
@@ -43,8 +44,7 @@ const normalizeList = (value: string | string[] | undefined): string[] => {
 
 class UseSendProvider implements EmailProvider {
 	async sendEmail(
-		options: Required<Pick<SendEmailOptions, "from">> &
-			Omit<SendEmailOptions, "from">
+		options: Required<Pick<SendEmailOptions, "from">> & Omit<SendEmailOptions, "from">
 	): Promise<EmailProviderResponse> {
 		if (!process.env.SAYR_EMAIL) {
 			console.warn("SAYR_EMAIL not set, skipping email send");
@@ -55,9 +55,9 @@ class UseSendProvider implements EmailProvider {
 			method: "POST",
 			headers: {
 				"Content-Type": "application/json",
-				Authorization: `Bearer ${process.env.SAYR_EMAIL}`
+				Authorization: `Bearer ${process.env.SAYR_EMAIL}`,
 			},
-			body: JSON.stringify(options)
+			body: JSON.stringify(options),
 		});
 
 		if (!response.ok) {
@@ -76,9 +76,9 @@ class UseSendProvider implements EmailProvider {
 			method: "POST",
 			headers: {
 				"Content-Type": "application/json",
-				Authorization: `Bearer ${process.env.SAYR_EMAIL}`
+				Authorization: `Bearer ${process.env.SAYR_EMAIL}`,
 			},
-			body: JSON.stringify(options.messages) // MUST be raw array
+			body: JSON.stringify(options.messages), // MUST be raw array
 		});
 
 		if (!response.ok) {
@@ -89,7 +89,7 @@ class UseSendProvider implements EmailProvider {
 		const data = await response.json();
 
 		return data.data.map((item: any) => ({
-			emailId: item.emailId
+			emailId: item.emailId,
 		}));
 	}
 }
@@ -100,8 +100,7 @@ class UseSendProvider implements EmailProvider {
 
 class SendGridProvider implements EmailProvider {
 	async sendEmail(
-		options: Required<Pick<SendEmailOptions, "from">> &
-			Omit<SendEmailOptions, "from">
+		options: Required<Pick<SendEmailOptions, "from">> & Omit<SendEmailOptions, "from">
 	): Promise<EmailProviderResponse> {
 		if (!process.env.SAYR_EMAIL) {
 			console.warn("SAYR_EMAIL not set, skipping email send");
@@ -123,22 +122,22 @@ class SendGridProvider implements EmailProvider {
 				{
 					to: toList,
 					cc: ccList.length ? ccList : undefined,
-					bcc: bccList.length ? bccList : undefined
-				}
+					bcc: bccList.length ? bccList : undefined,
+				},
 			],
 			from: { email: from },
 			reply_to: replyTo ? { email: replyTo } : undefined,
 			subject,
-			content
+			content,
 		};
 
 		const response = await fetch(SENDGRID_API_URL, {
 			method: "POST",
 			headers: {
 				"Content-Type": "application/json",
-				Authorization: `Bearer ${process.env.SAYR_EMAIL}`
+				Authorization: `Bearer ${process.env.SAYR_EMAIL}`,
 			},
-			body: JSON.stringify(payload)
+			body: JSON.stringify(payload),
 		});
 
 		if (!response.ok) {
@@ -150,9 +149,7 @@ class SendGridProvider implements EmailProvider {
 		return { emailId };
 	}
 
-	async sendEmailBatch(
-		options: EmailBatchOptions
-	): Promise<EmailProviderResponse[]> {
+	async sendEmailBatch(options: EmailBatchOptions): Promise<EmailProviderResponse[]> {
 		if (!process.env.SAYR_EMAIL) return [];
 
 		// No messages → nothing to send
@@ -166,12 +163,12 @@ class SendGridProvider implements EmailProvider {
 			cc: normalizeList(msg.cc).map((email) => ({ email })),
 			bcc: normalizeList(msg.bcc).map((email) => ({ email })),
 			subject: msg.subject,
-			dynamic_template_data: msg.variables
+			dynamic_template_data: msg.variables,
 		}));
 
 		const payload: any = {
 			personalizations,
-			from: { email: first.from }
+			from: { email: first.from },
 		};
 
 		if (first.templateId) {
@@ -191,15 +188,13 @@ class SendGridProvider implements EmailProvider {
 			method: "POST",
 			headers: {
 				"Content-Type": "application/json",
-				Authorization: `Bearer ${process.env.SAYR_EMAIL}`
+				Authorization: `Bearer ${process.env.SAYR_EMAIL}`,
 			},
-			body: JSON.stringify(payload)
+			body: JSON.stringify(payload),
 		});
 
 		if (!response.ok) {
-			throw new Error(
-				`SendGrid batch failed: ${response.status} ${await response.text()}`
-			);
+			throw new Error(`SendGrid batch failed: ${response.status} ${await response.text()}`);
 		}
 
 		return options.messages.map(() => ({ emailId: "" }));
@@ -212,8 +207,7 @@ class SendGridProvider implements EmailProvider {
 
 class ResendProvider implements EmailProvider {
 	async sendEmail(
-		options: Required<Pick<SendEmailOptions, "from">> &
-			Omit<SendEmailOptions, "from">
+		options: Required<Pick<SendEmailOptions, "from">> & Omit<SendEmailOptions, "from">
 	): Promise<EmailProviderResponse> {
 		if (!process.env.SAYR_EMAIL) {
 			console.warn("SAYR_EMAIL not set, skipping email send");
@@ -225,7 +219,7 @@ class ResendProvider implements EmailProvider {
 		const payload: Record<string, unknown> = {
 			from,
 			to: normalizeList(to),
-			subject
+			subject,
 		};
 
 		if (html) payload.html = html;
@@ -238,9 +232,9 @@ class ResendProvider implements EmailProvider {
 			method: "POST",
 			headers: {
 				"Content-Type": "application/json",
-				Authorization: `Bearer ${process.env.SAYR_EMAIL}`
+				Authorization: `Bearer ${process.env.SAYR_EMAIL}`,
 			},
-			body: JSON.stringify(payload)
+			body: JSON.stringify(payload),
 		});
 
 		if (!response.ok) {
@@ -252,57 +246,52 @@ class ResendProvider implements EmailProvider {
 		return { emailId: data.id };
 	}
 
-	async sendEmailBatch(
-		options: EmailBatchOptions
-	): Promise<EmailProviderResponse[]> {
+	async sendEmailBatch(options: EmailBatchOptions): Promise<EmailProviderResponse[]> {
 		if (!process.env.SAYR_EMAIL) return [];
 
-		const groups = new Map<string, SendEmailOptions[]>();
-
-		for (const msg of options.messages) {
-			const key = JSON.stringify({
+		// One entry per message so recipients never see each other and each keeps its own
+		// template variables (e.g. a personal invite URL). Resend accepts up to 100 per call.
+		const toPayload = (msg: SendEmailOptions): Record<string, unknown> => {
+			const payload: Record<string, unknown> = {
+				from: msg.from ?? process.env.SAYR_FROM_EMAIL,
+				to: normalizeList(msg.to),
 				subject: msg.subject,
-				html: msg.html,
-				text: msg.text,
-				from: msg.from
-			});
-			if (!groups.has(key)) groups.set(key, []);
-			groups.get(key)!.push(msg);
-		}
+			};
+			if (msg.templateId) {
+				// Resend rejects html/text alongside a template.
+				payload.template = { id: msg.templateId, variables: msg.variables ?? {} };
+			} else {
+				if (msg.html) payload.html = msg.html;
+				if (msg.text) payload.text = msg.text;
+			}
+			if (msg.replyTo) payload.reply_to = msg.replyTo;
+			if (msg.cc) payload.cc = normalizeList(msg.cc);
+			if (msg.bcc) payload.bcc = normalizeList(msg.bcc);
+			return payload;
+		};
 
 		const results: EmailProviderResponse[] = [];
 
-		for (const [, group] of groups) {
-			// Skip empty groups (TypeScript proof)
-			if (group.length === 0) continue;
+		for (let i = 0; i < options.messages.length; i += RESEND_BATCH_LIMIT) {
+			const chunk = options.messages.slice(i, i + RESEND_BATCH_LIMIT);
 
-			// Safe: group has at least 1 element
-			const template = group[0]!;
-
-			const response = await fetch(RESEND_API_URL, {
+			const response = await fetch(RESEND_BATCH_API_URL, {
 				method: "POST",
 				headers: {
 					"Content-Type": "application/json",
-					Authorization: `Bearer ${process.env.SAYR_EMAIL}`
+					Authorization: `Bearer ${process.env.SAYR_EMAIL}`,
 				},
-				body: JSON.stringify({
-					from: template.from,
-					to: group.flatMap((m) => normalizeList(m.to)),
-					subject: template.subject,
-					html: template.html,
-					text: template.text
-				})
+				body: JSON.stringify(chunk.map(toPayload)),
 			});
 
 			if (!response.ok) {
-				throw new Error(
-					`Resend batch failed: ${response.status} ${await response.text()}`
-				);
+				throw new Error(`Resend batch failed: ${response.status} ${await response.text()}`);
 			}
 
-			const data = await response.json();
+			const data: { data?: { id: string }[] } = await response.json();
+			const ids = data.data ?? [];
 
-			results.push(...group.map(() => ({ emailId: data.id })));
+			results.push(...chunk.map((_, index) => ({ emailId: ids[index]?.id ?? "" })));
 		}
 
 		return results;
@@ -328,9 +317,7 @@ function getProvider(): EmailProvider {
 }
 
 /* Public single email API */
-export async function sendEmail(
-	options: SendEmailOptions
-): Promise<string> {
+export async function sendEmail(options: SendEmailOptions): Promise<string> {
 	const from = options.from ?? process.env.SAYR_FROM_EMAIL;
 
 	if (!from) {
@@ -341,16 +328,14 @@ export async function sendEmail(
 
 	const result = await provider.sendEmail({
 		...options,
-		from
+		from,
 	});
 
 	return result.emailId;
 }
 
 /* Public batch API */
-export async function sendEmailBatch(
-	messages: SendEmailOptions[]
-): Promise<string[]> {
+export async function sendEmailBatch(messages: SendEmailOptions[]): Promise<string[]> {
 	const provider = getProvider();
 
 	if (provider.sendEmailBatch) {
@@ -376,9 +361,7 @@ const headers = {
 
 export async function deleteContactByEmail(email: string) {
 	if (!contactBookId) {
-		throw new Error(
-			"Missing USESEND_SIGNUP_CONTACT_BOOK_ID environment variable",
-		);
+		throw new Error("Missing USESEND_SIGNUP_CONTACT_BOOK_ID environment variable");
 	}
 
 	if (!apiKey) {
@@ -389,21 +372,16 @@ export async function deleteContactByEmail(email: string) {
 		{
 			method: "GET",
 			headers,
-		},
+		}
 	);
 
 	if (!listResponse.ok) {
-		throw new Error(
-			`Failed to find contact: ${listResponse.status} ` +
-			(await listResponse.text()),
-		);
+		throw new Error(`Failed to find contact: ${listResponse.status} ` + (await listResponse.text()));
 	}
 
 	const result = await listResponse.json();
 	// Adjust this depending on the exact response shape.
-	const contact = Array.isArray(result)
-		? result[0]
-		: result.contacts?.[0] ?? result.data?.[0];
+	const contact = Array.isArray(result) ? result[0] : (result.contacts?.[0] ?? result.data?.[0]);
 
 	if (!contact) {
 		console.log(`No contact found for ${email}`);
@@ -417,14 +395,11 @@ export async function deleteContactByEmail(email: string) {
 		{
 			method: "DELETE",
 			headers,
-		},
+		}
 	);
 
 	if (!deleteResponse.ok) {
-		throw new Error(
-			`Failed to delete contact: ${deleteResponse.status} ` +
-			(await deleteResponse.text()),
-		);
+		throw new Error(`Failed to delete contact: ${deleteResponse.status} ` + (await deleteResponse.text()));
 	}
 
 	console.log(`Deleted contact ${contactId} (${email})`);
@@ -444,33 +419,26 @@ type UseSendContactResponse = {
 	[key: string]: unknown;
 };
 
-export async function addContactToContactBook(
-	contact: AddContactInput,
-): Promise<UseSendContactResponse> {
+export async function addContactToContactBook(contact: AddContactInput): Promise<UseSendContactResponse> {
 	if (!contactBookId) {
-		throw new Error(
-			"Missing USESEND_SIGNUP_CONTACT_BOOK_ID environment variable",
-		);
+		throw new Error("Missing USESEND_SIGNUP_CONTACT_BOOK_ID environment variable");
 	}
 
 	if (!apiKey) {
 		throw new Error("Missing SAYR_EMAIL environment variable");
 	}
 
-	const response = await fetch(
-		`https://app.usesend.com/api/v1/contactBooks/${contactBookId}/contacts`,
-		{
-			method: "POST",
-			headers,
-			body: JSON.stringify({
-				email: contact.email,
-				firstName: contact.firstName,
-				lastName: contact.lastName,
-				properties: contact.properties,
-				subscribed: contact.subscribed ?? true,
-			}),
-		},
-	);
+	const response = await fetch(`https://app.usesend.com/api/v1/contactBooks/${contactBookId}/contacts`, {
+		method: "POST",
+		headers,
+		body: JSON.stringify({
+			email: contact.email,
+			firstName: contact.firstName,
+			lastName: contact.lastName,
+			properties: contact.properties,
+			subscribed: contact.subscribed ?? true,
+		}),
+	});
 
 	const responseText = await response.text();
 
@@ -479,15 +447,11 @@ export async function addContactToContactBook(
 	try {
 		data = JSON.parse(responseText) as UseSendContactResponse;
 	} catch {
-		throw new Error(
-			`UseSend returned invalid JSON: ${response.status} ${responseText}`,
-		);
+		throw new Error(`UseSend returned invalid JSON: ${response.status} ${responseText}`);
 	}
 
 	if (!response.ok) {
-		throw new Error(
-			`Failed to add contact: ${response.status} ${JSON.stringify(data)}`,
-		);
+		throw new Error(`Failed to add contact: ${response.status} ${JSON.stringify(data)}`);
 	}
 
 	return data;

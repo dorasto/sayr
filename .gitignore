@@ -63,3 +63,6 @@ pnpm-debug.log*
 # Zerops ZCP local session state (PIDs, timestamps, per-session work notes) —
 # machine/session-specific, not meant to be shared via git
 .zcp/
+
+# SAY-93 marketing research (competitor teardowns, quotes): kept locally, never committed
+/docs/marketing/

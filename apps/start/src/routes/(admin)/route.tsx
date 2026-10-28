@@ -8,7 +8,7 @@ import { NavigationTracker } from "@/components/admin/shell/navigation-tracker";
 import { RootProvider } from "@/components/admin/shell/context";
 import { AdminSidebar, Wrapper } from "@/components/generic/wrapper";
 import { PostHogUserSync } from "@/components/post-hog-provider";
-import { getAccess } from "@/getAccess";
+import { getAccess, requireAccount } from "@/getAccess";
 import { useGlobalCommands } from "@/hooks/commands/useGlobalCommands";
 import { getOgImageUrl, seo } from "@/seo";
 
@@ -21,20 +21,20 @@ const fetchAuth = createServerFn({ method: "GET" }).handler(async () => {
 });
 
 // Fetch organizations for the authenticated user
-export const getUserOrganizations = createServerFn({ method: "GET" })
-	.inputValidator((data: { account: schema.userType }) => data)
-	.handler(async ({ data }) => {
-		try {
-			const organizations = await getOrganizations(data.account.id);
-			return { account: data.account, organizations };
-		} catch (error) {
-			console.error("🚨 Error fetching organizations:", error);
-			if (error && typeof error === "object" && "redirect" in error) {
-				throw error;
-			}
-			throw redirect({ to: "/auth/login" });
+export const getUserOrganizations = createServerFn({ method: "GET" }).handler(async () => {
+	try {
+		// Identity comes from the session, never from client input (server fns are publicly callable).
+		const account = await requireAccount();
+		const organizations = await getOrganizations(account.id);
+		return { account, organizations };
+	} catch (error) {
+		console.error("🚨 Error fetching organizations:", error);
+		if (error && typeof error === "object" && "redirect" in error) {
+			throw error;
 		}
-	});
+		throw redirect({ to: "/auth/login" });
+	}
+});
 
 // Fetch instance-level capabilities for the current deployment
 const getServerCapabilities = createServerFn({ method: "GET" }).handler(async () => {
@@ -140,10 +140,7 @@ export const Route = createFileRoute("/(admin)")({
 			throw redirect({ to: "/auth/login" });
 		}
 
-		const [orgsResult, capabilities] = await Promise.all([
-			getUserOrganizations({ data: { account: context.account } }),
-			getServerCapabilities(),
-		]);
+		const [orgsResult, capabilities] = await Promise.all([getUserOrganizations(), getServerCapabilities()]);
 
 		return { ...orgsResult, aiEnabled: capabilities.aiEnabled };
 	},

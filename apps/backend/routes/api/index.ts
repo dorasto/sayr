@@ -5,12 +5,15 @@ import { internalApiV1 } from "./internal/v1";
 import { apiRouteIntegrations } from "./integrations";
 import { safeGetSession } from "@/getSession";
 import { db, schema } from "@repo/database";
-import { and, eq } from "drizzle-orm";
+import { and, eq, ne } from "drizzle-orm";
 import { createTraceAsync, maskEmail } from "@repo/opentelemetry/trace";
 import { Scalar } from "@scalar/hono-api-reference";
-import { traceOrgPermissionCheck } from "@/util";
+import { refreshGitHubTokenIfNeeded, traceOrgPermissionCheck } from "@/util";
+import { Octokit } from "@octokit/rest";
+import { getRedis } from "@repo/queue";
+import { createAppJWT } from "@repo/util/github/auth";
 import crypto from "node:crypto";
-import { deleteObjectByKey, getObjectBuffer } from "@repo/storage";
+import { deleteObjectByKey, GDPR_EXPORT_PREFIX, getObjectBuffer } from "@repo/storage";
 // Main API router
 export const apiRoute = new Hono<AppEnv>();
 apiRoute.use("*", async (c, next) => {
@@ -41,10 +44,7 @@ apiRoute.get(
 apiRoute.use("*", async (c, next) => {
 	const method = c.req.method;
 	const path = c.req.path;
-	const exists =
-		routeExists(method, path) ||
-		path.startsWith("/integrations/") ||
-		path.includes("/integrations/");
+	const exists = routeExists(method, path) || path.startsWith("/integrations/") || path.includes("/integrations/");
 	if (!exists) {
 		return next();
 	}
@@ -55,21 +55,21 @@ apiRoute.use("*", async (c, next) => {
 		onSuccess: (result) =>
 			result
 				? {
-					outcome:
-						result.user.role === "system"
-							? "Session verified and attached for system user"
-							: "Session verified and attached",
-					data: {
-						user: {
-							id: result.user.id,
-							role: result.user.role,
-							email: maskEmail(result.user.email),
-						}
-					},
-				}
+						outcome:
+							result.user.role === "system"
+								? "Session verified and attached for system user"
+								: "Session verified and attached",
+						data: {
+							user: {
+								id: result.user.id,
+								role: result.user.role,
+								email: maskEmail(result.user.email),
+							},
+						},
+					}
 				: {
-					outcome: "No active session found",
-				},
+						outcome: "No active session found",
+					},
 	});
 	if (!session) {
 		console.warn(`⚠️ No session found for ${c.req.method} ${c.req.path}`);
@@ -79,29 +79,158 @@ apiRoute.use("*", async (c, next) => {
 	c.set("session", session.session);
 	return next();
 });
+/* ================= GITHUB APP INSTALL FLOW ================= */
+
+/** How long a GitHub App install `state` nonce stays valid (seconds). */
+const GITHUB_INSTALL_STATE_TTL_SECONDS = 30 * 60;
+/** Allowed clock skew between our clock and GitHub's `created_at` (ms). */
+const GITHUB_INSTALL_CLOCK_SKEW_MS = 60_000;
+
+type GithubInstallState = { userId: string; orgId: string; issuedAt: number };
+
+const githubInstallStateKey = (nonce: string) => `github:install-state:${nonce}`;
+
+function parseGithubInstallState(raw: string | null): GithubInstallState | null {
+	if (!raw) return null;
+	try {
+		const parsed: unknown = JSON.parse(raw);
+		if (
+			typeof parsed === "object" &&
+			parsed !== null &&
+			"userId" in parsed &&
+			"orgId" in parsed &&
+			"issuedAt" in parsed &&
+			typeof parsed.userId === "string" &&
+			typeof parsed.orgId === "string" &&
+			typeof parsed.issuedAt === "number"
+		) {
+			return { userId: parsed.userId, orgId: parsed.orgId, issuedAt: parsed.issuedAt };
+		}
+	} catch {
+		// fall through
+	}
+	return null;
+}
+
+function getHttpStatus(error: unknown): number | undefined {
+	return typeof error === "object" && error !== null && "status" in error
+		? Number((error as { status: unknown }).status)
+		: undefined;
+}
+
+/**
+ * True when the user's linked GitHub OAuth account can see this installation
+ * of our GitHub App (`GET /user/installations`). False on any failure.
+ */
+async function userTokenCanAccessInstallation(userId: string, installationId: number): Promise<boolean> {
+	const githubAccount = await db.query.account.findFirst({
+		where: (a) => and(eq(a.userId, userId), eq(a.providerId, "github")),
+	});
+	if (!githubAccount?.accessToken) return false;
+
+	const appId = Number(process.env.GITHUB_APP_ID);
+	const listsInstallation = async (token: string | null) => {
+		if (!token) return false;
+		const octokit = new Octokit({ auth: token });
+		const installations = await octokit.paginate("GET /user/installations", { per_page: 100 });
+		return installations.some((i) => i.id === installationId && i.app_id === appId);
+	};
+
+	try {
+		const refreshed = await refreshGitHubTokenIfNeeded(githubAccount);
+		try {
+			return await listsInstallation(refreshed.accessToken);
+		} catch (error) {
+			if (getHttpStatus(error) !== 401 || !refreshed.refreshToken) throw error;
+			const forced = await refreshGitHubTokenIfNeeded({ ...refreshed, accessTokenExpiresAt: new Date(0) });
+			return await listsInstallation(forced.accessToken);
+		}
+	} catch (error) {
+		console.warn("GitHub org-check: user installation lookup failed", getHttpStatus(error));
+		return false;
+	}
+}
+
+/**
+ * Fallback proof for a fresh install when the user token can't vouch for it:
+ * GitHub reports a brand-new install (`setup_action=install`), the installation
+ * was created after the state nonce was issued, and it isn't linked to any other org.
+ */
+async function isFreshInstallForState(
+	installationId: number,
+	setupAction: string | undefined,
+	state: GithubInstallState
+): Promise<boolean> {
+	if (setupAction !== "install") return false;
+	try {
+		const appOctokit = new Octokit({ auth: createAppJWT() });
+		const res = await appOctokit.request("GET /app/installations/{installation_id}", {
+			installation_id: installationId,
+		});
+		const createdAt = Date.parse(res.data.created_at);
+		if (Number.isNaN(createdAt) || createdAt < state.issuedAt - GITHUB_INSTALL_CLOCK_SKEW_MS) return false;
+	} catch {
+		return false;
+	}
+	const linkedElsewhere = await db.query.githubInstallationOrg.findFirst({
+		columns: { id: true },
+		where: and(
+			eq(schema.githubInstallationOrg.installationId, installationId),
+			ne(schema.githubInstallationOrg.organizationId, state.orgId)
+		),
+	});
+	return !linkedElsewhere;
+}
+
+/**
+ * Issues a single-use, short-lived `state` nonce bound to (user, org) for the
+ * GitHub App install URL. `/github/org-check` only links installations that
+ * come back with a valid nonce for the signed-in user.
+ */
+apiRoute.post("/github/install-state", async (c) => {
+	const session = c.get("session");
+	if (!session?.userId) {
+		return c.json({ success: false, error: "Unauthorized." }, 401);
+	}
+
+	const body: unknown = await c.req.json().catch(() => null);
+	const orgId =
+		typeof body === "object" && body !== null && "orgId" in body && typeof body.orgId === "string"
+			? body.orgId
+			: undefined;
+	if (!orgId) {
+		return c.json({ success: false, error: "Invalid orgId." }, 400);
+	}
+
+	const isAuthorized = await traceOrgPermissionCheck(session.userId, orgId, "admin.administrator");
+	if (!isAuthorized) {
+		return c.json({ success: false, error: "You don't have permission to do that" }, 401);
+	}
+
+	const nonce = crypto.randomBytes(32).toString("hex");
+	const state: GithubInstallState = { userId: session.userId, orgId, issuedAt: Date.now() };
+	await getRedis().set(githubInstallStateKey(nonce), JSON.stringify(state), "EX", GITHUB_INSTALL_STATE_TTL_SECONDS);
+
+	return c.json({ success: true, data: { state: nonce } });
+});
+
 apiRoute.get("/github/org-check", async (c) => {
 	const traceAsync = createTraceAsync();
 
 	const installationIdRaw = c.req.query("installation_id");
 	const stateRaw = c.req.query("state");
+	const setupAction = c.req.query("setup_action");
 
 	const installationId = Number(installationIdRaw);
 
-	if (!installationIdRaw || Number.isNaN(installationId) || !stateRaw) {
+	if (
+		!installationIdRaw ||
+		!Number.isInteger(installationId) ||
+		installationId <= 0 ||
+		!stateRaw ||
+		!/^[a-f0-9]{64}$/.test(stateRaw)
+	) {
 		return c.text("❌ Missing or invalid parameters", 400);
-	}
-
-	// ✅ Safe state parsing
-	let orgId: string | undefined;
-	try {
-		const match = stateRaw.match(/^org_(.+)$/);
-		orgId = match?.[1];
-	} catch {
-		return c.text("❌ Invalid state", 400);
-	}
-
-	if (!orgId) {
-		return c.text("❌ Invalid organization", 400);
 	}
 
 	const session = c.get("session");
@@ -109,40 +238,49 @@ apiRoute.get("/github/org-check", async (c) => {
 		return c.text("❌ Not authenticated", 401);
 	}
 
-	const isAuthorized = await traceOrgPermissionCheck(
-		session.userId,
-		orgId,
-		"admin.administrator"
-	)
+	// Every failure past this point gets the same response, so the endpoint
+	// can't be used to probe which installation IDs exist or are linked.
+	const denied = () => c.text("❌ Could not link this GitHub installation", 403);
 
+	// Consume the nonce up front: single use, whatever the outcome.
+	const state = parseGithubInstallState(await getRedis().getdel(githubInstallStateKey(stateRaw)));
+	if (!state || state.userId !== session.userId) {
+		return denied();
+	}
+	const orgId = state.orgId;
 
+	const isAuthorized = await traceOrgPermissionCheck(session.userId, orgId, "admin.administrator");
 	if (!isAuthorized) {
-		return c.json(
-			{
-				success: false,
-				error: "You don't have permission to do that",
-			},
-			401
-		);
+		return denied();
 	}
 
-	// ✅ Trace retries
+	// Prove the user actually has access to this installation before linking it.
+	const canLink = await traceAsync(
+		"verifyGithubInstallationAccess",
+		async () =>
+			(await userTokenCanAccessInstallation(session.userId, installationId)) ||
+			(await isFreshInstallForState(installationId, setupAction, state)),
+		{
+			description: "Verifying the user can access the GitHub installation",
+			data: { installation_id: installationId },
+		}
+	);
+	if (!canLink) {
+		return denied();
+	}
+
+	// The install webhook may land just after GitHub redirects here; wait for it.
 	const found = await traceAsync(
 		"findGithubInstallation",
 		async () => {
 			for (let attempt = 1; attempt <= 5; attempt++) {
 				const found = await db.query.githubInstallation.findFirst({
-					where: eq(
-						schema.githubInstallation.installationId,
-						installationId
-					),
+					where: eq(schema.githubInstallation.installationId, installationId),
 				});
 
 				if (found) return found;
 
-				await new Promise((res) =>
-					setTimeout(res, 500 * attempt)
-				);
+				await new Promise((res) => setTimeout(res, 500 * attempt));
 			}
 			return null;
 		},
@@ -153,25 +291,20 @@ apiRoute.get("/github/org-check", async (c) => {
 	);
 
 	if (!found) {
-		return c.text("❌ Installation not found", 404);
+		return denied();
 	}
 
 	// Check if this org is already linked to this installation
 	const existingLink = await db.query.githubInstallationOrg.findFirst({
 		where: and(
 			eq(schema.githubInstallationOrg.installationId, installationId),
-			eq(schema.githubInstallationOrg.organizationId, orgId),
+			eq(schema.githubInstallationOrg.organizationId, orgId)
 		),
 	});
 
-	const root =
-		process.env.VITE_URL_ROOT ??
-		"http://localhost:3000";
+	const root = process.env.VITE_URL_ROOT ?? "http://localhost:3000";
 
-	const redirectUrl = new URL(
-		`/settings/org/${orgId}/connections/github`,
-		root
-	).toString();
+	const redirectUrl = new URL(`/settings/org/${orgId}/connections/github`, root).toString();
 
 	if (existingLink) {
 		// Already linked to this org — just redirect, don't error
@@ -200,12 +333,26 @@ apiRoute.get("/gdpr/export/download", async (c) => {
 		return new Response("Missing parameters", { status: 400 });
 	}
 
+	// Without a salt the token is just sha256(key) and anyone could mint one.
+	const salt = process.env.FILE_SALT;
+	if (!salt) {
+		return new Response("GDPR export downloads are not configured", { status: 503 });
+	}
+
+	// Only GDPR export objects (gdpr_exports/<userId>/<timestamp>/<hash>.json) can be fetched here.
+	const keyPattern = new RegExp(`^${GDPR_EXPORT_PREFIX}[A-Za-z0-9_-]+/\\d+/[a-f0-9]{64}\\.json$`);
+	if (!keyPattern.test(key)) {
+		return new Response("Invalid or expired token", { status: 403 });
+	}
+
 	const expected = crypto
 		.createHash("sha256")
-		.update(key + process.env.FILE_SALT)
+		.update(key + salt)
 		.digest("hex");
 
-	if (token !== expected) {
+	const tokenBuf = Buffer.from(token);
+	const expectedBuf = Buffer.from(expected);
+	if (tokenBuf.length !== expectedBuf.length || !crypto.timingSafeEqual(tokenBuf, expectedBuf)) {
 		return new Response("Invalid or expired token", { status: 403 });
 	}
 
@@ -220,7 +367,7 @@ apiRoute.get("/gdpr/export/download", async (c) => {
 		status: 200,
 		headers: {
 			"Content-Type": "application/json",
-			"Content-Disposition": "attachment; filename=gdpr-export.json"
-		}
+			"Content-Disposition": "attachment; filename=gdpr-export.json",
+		},
 	});
 });

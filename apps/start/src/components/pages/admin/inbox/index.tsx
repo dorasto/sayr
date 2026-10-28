@@ -93,7 +93,7 @@ export default function InboxPage() {
 			// Fetch it from the server
 			try {
 				const result = await getTaskByIdForInbox({
-					data: { accountId: account.id, orgId, taskId },
+					data: { orgId, taskId },
 				});
 				if (result.task) {
 					setSelectedTask(result.task);

@@ -17,6 +17,25 @@ interface SeoOptions {
 	type?: "website" | "article";
 }
 
+/** A JSON-LD <script> entry for a route's `head().scripts`. */
+export function jsonLdScript(data: Record<string, unknown>) {
+	return { type: "application/ld+json", children: JSON.stringify({ "@context": "https://schema.org", ...data }) };
+}
+
+/** BreadcrumbList JSON-LD from [name, path] pairs, starting after Home. */
+export function breadcrumbJsonLd(trail: [name: string, path: string][]) {
+	const items: [string, string][] = [["Home", "/"], ...trail];
+	return jsonLdScript({
+		"@type": "BreadcrumbList",
+		itemListElement: items.map(([name, path], index) => ({
+			"@type": "ListItem",
+			position: index + 1,
+			name,
+			item: `${SITE_URL}${path}`,
+		})),
+	});
+}
+
 export function seoMeta({ title, description, path, image, type = "website" }: SeoOptions) {
 	const fullTitle = title === SITE_NAME ? title : `${title} - ${SITE_NAME}`;
 	const url = `${SITE_URL}${path}`;

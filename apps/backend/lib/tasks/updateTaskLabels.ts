@@ -5,6 +5,7 @@ import {
 	getOrganizationMembers,
 	getTaskById,
 	removeLabelFromTask,
+	toPublicTask,
 } from "@repo/database";
 import { createTraceAsync } from "@repo/opentelemetry/trace";
 import { and, eq } from "drizzle-orm";
@@ -142,7 +143,7 @@ export async function updateTaskLabelsService(params: UpdateTaskLabelsServicePar
 
 			sseBroadcastToRoom(orgId, `tasks;task:${taskId}`, data, found?.id, true);
 			if (taskWithData?.visible === "public") {
-				sseBroadcastPublic(orgId, { ...data }, found?.id);
+				sseBroadcastPublic(orgId, { ...data, data: toPublicTask(taskWithData) }, found?.id);
 			}
 
 			const members = await getOrganizationMembers(orgId);

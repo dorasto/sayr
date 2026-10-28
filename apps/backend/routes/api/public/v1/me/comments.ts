@@ -292,18 +292,19 @@ const UpdateCommentSchemaData = z.object({
 });
 
 /**
- * Editing an org comment mirrors the internal `PUT /edit-comment` handler exactly:
- * for a member of the org, there is NO author-only check — any member who can
- * comment can edit any comment. (Non-member guest editing of their own public
- * comment, the handler's other branch, is out of scope for v1 — a personal key's
- * owner not being a member of the org fails the "members" check below and gets a
- * clean 403 rather than silently degrading.)
+ * Editing an org comment mirrors the internal `PUT /edit-comment` handler (and
+ * the delete route below): editing your own comment needs the `tasks.comment`
+ * bar; editing someone else's needs the `moderation.manageComments` scope.
+ * (Non-member guest editing of their own public comment, the handler's other
+ * branch, is out of scope for v1 — a personal key's owner not being a member
+ * of the org gets a clean 403 rather than silently degrading.)
  */
 commentsRoute.patch(
 	"/comments/:commentId",
 	describeOkNotFound({
 		summary: "Edit Task Comment",
-		description: "Edit the content or visibility of a comment. Requires org membership — not limited to your own.",
+		description:
+			"Edit the content or visibility of a comment. Your own needs only membership; someone else's needs comment moderation.",
 		dataSchema: UpdateCommentSchemaData,
 		bodySchema: UpdateCommentSchema,
 		tags: ["Tasks"],
@@ -329,12 +330,17 @@ commentsRoute.patch(
 			return c.json(errorResponse("Comment not found", "No comment found with the provided id"), 404);
 		}
 
-		const isAuthorized = await assertApiAccess(c, comment.organizationId, "tasks.comment");
+		const isAuthor = comment.createdBy === principal.userId;
+		const isAuthorized = isAuthor
+			? await assertApiAccess(c, comment.organizationId, "tasks.comment")
+			: await assertApiAccess(c, comment.organizationId, "moderation.manageComments");
 		if (!isAuthorized) {
 			return c.json(
 				errorResponse(
 					"You don't have permission to edit this comment.",
-					"You are not a member of this organization."
+					isAuthor
+						? "You are not a member of this organization."
+						: "Editing another member's comment requires comment moderation."
 				),
 				403
 			);

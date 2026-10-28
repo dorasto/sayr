@@ -3,23 +3,26 @@ import { RootProviderOrganization } from "@/contexts/ContextOrg";
 import { useOrgCommands } from "@/hooks/commands/useOrgCommands";
 import { getAdminOrganization } from "@/lib/serverFunctions/getAdminOrganization";
 import { createServerFn } from "@tanstack/react-start";
-import { getOrgPermissions, type schema } from "@repo/database";
+import { getOrgPermissions } from "@repo/database";
+import { requireAccount } from "@/getAccess";
 import { seo, getOgImageUrl } from "@/seo";
 import { PermissionError } from "@repo/util";
 
 /**
- * Fetches all merged organization-level permissions for a user.
+ * Fetches all merged organization-level permissions for the session user.
  *
- * Input: { account, orgId }
+ * Input: { orgId }
  * Output: { permissions }
  */
 export const getUserOrgPermissions = createServerFn({ method: "GET" })
-	.inputValidator((data: { account: schema.userType; orgId: string }) => data)
+	.validator((data: { orgId: string }) => data)
 	.handler(async ({ data }) => {
 		try {
-			const permissions = await getOrgPermissions(data.account.id, data.orgId);
+			// Identity comes from the session, never from client input (server fns are publicly callable).
+			const account = await requireAccount();
+			const permissions = await getOrgPermissions(account.id, data.orgId);
 			return {
-				account: data.account,
+				account,
 				orgId: data.orgId,
 				permissions,
 			};
@@ -39,33 +42,24 @@ export const Route = createFileRoute("/(admin)/$orgId")({
 		const { account } = context;
 
 		// ❌ Skip non-app / internal routes
-		if (
-			location.external ||
-			location.pathname.startsWith("/.well-known")
-		) {
+		if (location.external || location.pathname.startsWith("/.well-known")) {
 			return;
 		}
 
 		const searchParams = new URLSearchParams(location.search);
-		const currentUrl = `${location.pathname}${searchParams.toString()
-			? `?${searchParams.toString()}`
-			: ""
-			}`;
+		const currentUrl = `${location.pathname}${searchParams.toString() ? `?${searchParams.toString()}` : ""}`;
 
 		if (!account) {
 			throw redirect({
 				to: "/auth/login",
 				headers: {
-					"Set-Cookie": `post_login_redirect=${encodeURIComponent(
-						currentUrl
-					)}; Path=/; HttpOnly; SameSite=Lax`,
+					"Set-Cookie": `post_login_redirect=${encodeURIComponent(currentUrl)}; Path=/; HttpOnly; SameSite=Lax`,
 				},
 			});
 		}
 
 		const { permissions } = await getUserOrgPermissions({
 			data: {
-				account,
 				orgId: params.orgId,
 			},
 		});
@@ -73,16 +67,14 @@ export const Route = createFileRoute("/(admin)/$orgId")({
 		return { permissions };
 	},
 	loader: async ({ params, context }) => {
-		const { account, permissions } = context;
+		const { account } = context;
 		if (!account) throw redirect({ to: "/auth/login" });
 		const org = await getAdminOrganization({
 			data: {
-				account,
 				orgId: params.orgId,
-				permissions: permissions as any,
 			},
 		});
-		if (!org.organization.members.find(e => e.userId === account.id)?.seatAssigned) {
+		if (!org.organization.members.find((e) => e.userId === account.id)?.seatAssigned) {
 			throw new PermissionError();
 		}
 		return org;

@@ -5,7 +5,7 @@ import { inArray } from "drizzle-orm";
 import { Hono } from "hono";
 import { safeGetApiKey } from "@/getApiKey";
 import { safeGetSession } from "@/getSession";
-import { safeGetOrganization } from "@/util";
+import { safeGetOrganization, tracePublicOrgAccessCheck } from "@/util";
 import { buildOrgRoomKeys, parseOrgIdsChannels } from "./channels";
 import type { ServerEventBaseMessage } from "./types";
 
@@ -236,6 +236,42 @@ export function findSSEClientsByUserId(userId: string): SSEClient[] {
 
 	return results;
 }
+
+/**
+ * Removes every SSE connection of `userId` from `orgId`'s non-public rooms — call after the user
+ * loses access to the org (e.g. member removal) so they stop receiving its private events. A
+ * connection subscribed only to that org is closed; a multi-org connection just leaves that org's
+ * rooms and keeps its others. The org's `public` room is left alone, since anyone may join it.
+ * Returns how many connections were affected.
+ */
+export function evictUserFromOrgRooms(userId: string, orgId: string): number {
+	const prefix = `${orgId}:`;
+	const publicKey = `${orgId}:public`;
+	let affected = 0;
+
+	for (const client of findSSEClientsByUserId(userId)) {
+		const revoked = client.roomKeys.filter((key) => key.startsWith(prefix) && key !== publicKey);
+		if (revoked.length === 0) continue;
+		affected++;
+
+		const remaining = client.roomKeys.filter((key) => !revoked.includes(key));
+		if (remaining.length === 0) {
+			// close() unsubscribes from every room and drops the client from clientsById.
+			client.close();
+			continue;
+		}
+
+		for (const key of revoked) {
+			const room = sseRooms.get(key);
+			if (!room) continue;
+			room.delete(client);
+			if (room.size === 0) sseRooms.delete(key);
+		}
+		client.roomKeys = remaining;
+	}
+
+	return affected;
+}
 function getDeviceType(userAgent: string | undefined): string {
 	if (!userAgent) return "unknown";
 	const ua = userAgent.toLowerCase();
@@ -325,6 +361,15 @@ sseRoute.get("/", async (c) => {
 	let validOrgIds: string[] = [];
 	// Channels joined in every valid org — just `[channel]` outside the multi-org branch's list form.
 	let orgIdsChannels: string[] = [];
+	// Set only when `orgId` passed the membership check below. The fallback room join further down
+	// may use `orgId` for a non-public channel ONLY when this is true, so an unchecked `orgId` can
+	// never land a connection in a private org room.
+	let verifiedSingleOrg = false;
+	if (requestedOrgIds.length > 0 && orgId) {
+		// `orgIds` and `orgId` are mutually exclusive; accepting both would let one be checked and
+		// the other used.
+		return c.json({ error: "Specify either orgId or orgIds, not both" }, 400);
+	}
 	if (channel === "system" && userId && authenticated) {
 		// no org required, no membership needed
 	} else if (requestedOrgIds.length > 0) {
@@ -342,9 +387,20 @@ sseRoute.get("/", async (c) => {
 			}))
 		);
 		validOrgIds = checks.filter((check) => check.org).map((check) => check.id);
+		if (validOrgIds.length === 0) {
+			return c.json({ error: "Unauthorized or org does not exist" }, 403);
+		}
 	} else if (!channel || channel === "public") {
-		// public channel allowed for everyone
+		// public channel allowed for everyone — unless the org turned its public page off,
+		// in which case only its members may still listen.
 		channel = "public";
+		if (
+			orgId &&
+			!(await tracePublicOrgAccessCheck(orgId, "enablePublicPage")) &&
+			!(await safeGetOrganization(orgId, session?.user.id || ""))
+		) {
+			return c.json({ error: "Organization not available" }, 403);
+		}
 	} else if (orgId) {
 		// Non-public channel → must be a valid org and user member
 		const org = await safeGetOrganization(orgId, session?.user.id || "");
@@ -352,6 +408,7 @@ sseRoute.get("/", async (c) => {
 			// block connection
 			return c.json({ error: "Unauthorized or org does not exist" }, 403);
 		}
+		verifiedSingleOrg = true;
 	} else {
 		// no org provided for non-public channel → block
 
@@ -403,11 +460,17 @@ sseRoute.get("/", async (c) => {
 					if (!sseRooms.has(key)) sseRooms.set(key, new Set());
 					sseRooms.get(key)!.add(client);
 				}
-			} else {
+			} else if (channel === "public" || (channel === "user" && !orgId) || verifiedSingleOrg) {
+				// `public` (and its authenticated `user` variant) is open to everyone; any other
+				// channel reaches here only after `orgId` passed the membership check above.
 				const key = `${orgId || ""}:${channel}`;
 				client.roomKeys = [key];
 				if (!sseRooms.has(key)) sseRooms.set(key, new Set());
 				sseRooms.get(key)!.add(client);
+			} else {
+				// Defensive: the checks above should make this unreachable. Never join an unverified room.
+				close();
+				return;
 			}
 			clientsById.set(id, client);
 

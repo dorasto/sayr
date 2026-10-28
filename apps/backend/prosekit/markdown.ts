@@ -12,7 +12,10 @@ const markdownSerializer = new MarkdownSerializer(
 			state.closeBlock(node);
 		},
 		heading: (state, node) => {
-			state.write(`${"#".repeat(node.attrs.level)} `);
+			// Clamp: `level` comes from user-supplied JSON — a huge/negative value would
+			// make String.repeat throw (RangeError) or allocate an enormous string.
+			const level = Math.min(Math.max(Math.trunc(Number(node.attrs.level)) || 1, 1), 6);
+			state.write(`${"#".repeat(level)} `);
 			state.renderInline(node);
 			state.closeBlock(node);
 		},

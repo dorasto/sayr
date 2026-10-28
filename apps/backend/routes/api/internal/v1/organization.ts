@@ -13,6 +13,8 @@ import {
 	getLabels,
 	getOrganizationMembers,
 	type OrganizationSettings,
+	publicOrganizationRedactions,
+	toPublicOrganizationSettings,
 	schema,
 	searchOrgInteractors,
 	searchOrgMembers,
@@ -21,15 +23,21 @@ import {
 } from "@repo/database";
 import { canCreateResource, getEditionCapabilities, getEffectiveLimits, getLimitReachedMessage } from "@repo/edition";
 import { createTraceAsync } from "@repo/opentelemetry/trace";
-import { deleteFolder, removeObject, uploadObject } from "@repo/storage";
-import { ensureCdnUrl, getFileNameFromUrl, isSlugBanned } from "@repo/util";
+import { deleteFolder, removeObject, resolveSafeUploadType, uploadObject } from "@repo/storage";
+import { ensureCdnUrl, generateSlug, getFileNameFromUrl, isSlugBanned } from "@repo/util";
 import { type SendEmailOptions, sendEmailBatch } from "@repo/util/email";
 import { createAppJWT, getInstallationDetailsWithRepos, getInstallationToken } from "@repo/util/github/auth";
-import { and, count, eq, ilike, isNull, ne, or } from "drizzle-orm";
+import { and, count, eq, ilike, inArray, isNull, ne, or } from "drizzle-orm";
 import { Hono } from "hono";
 import { emitEvent } from "@/clickhouse";
 import type { AppEnv } from "@/index";
-import { findClientBysseId, sseBroadcastByUserId, sseBroadcastPublic, sseBroadcastToRoom } from "@/routes/events";
+import {
+	evictUserFromOrgRooms,
+	findClientBysseId,
+	sseBroadcastByUserId,
+	sseBroadcastPublic,
+	sseBroadcastToRoom,
+} from "@/routes/events";
 import type { ServerEventBaseMessage } from "@/routes/events/types";
 import { enforceLimit, refreshGitHubTokenIfNeeded, traceOrgPermissionCheck, tracePublicOrgAccessCheck } from "@/util";
 import { apiRouteAdminProjectTask } from "./task";
@@ -37,8 +45,8 @@ import { createPolar } from "@polar-sh/sdk/2026-10";
 
 const polarClient = getEditionCapabilities().polarBillingEnabled
 	? createPolar({
-		accessToken: process.env.POLAR_ACCESS_TOKEN!,
-	})
+			accessToken: process.env.POLAR_ACCESS_TOKEN!,
+		})
 	: null;
 export const apiRouteAdminOrganization = new Hono<AppEnv>();
 
@@ -95,6 +103,50 @@ function deepMergeSettings<T extends object>(current: T, incoming: Partial<T>, d
 				: incomingValue;
 	}
 	return result as T;
+}
+
+/**
+ * Top-level `organization.settings` keys an org admin may write through
+ * `/update`. Anything else in the request's `settings` is dropped.
+ */
+const WRITABLE_SETTINGS_KEYS: ReadonlySet<string> = new Set<keyof OrganizationSettings>([
+	"allowActionsOnClosedTasks",
+	"publicActions",
+	"enablePublicPage",
+	"publicTaskAllowBlank",
+	"publicTaskFields",
+	"ai",
+]);
+
+/**
+ * `settings.ai.*` keys that are server/staff-owned (set via the console
+ * routes) and must never be writable by an org admin through `/update`.
+ */
+const SERVER_OWNED_AI_SETTINGS_KEYS: ReadonlySet<string> = new Set<string>(["rateLimited"]);
+
+/**
+ * Reduces a client-supplied `settings` patch to the keys an org admin is
+ * allowed to change. Returns `undefined` when nothing writable remains.
+ */
+function sanitizeIncomingSettings(incoming: unknown): Partial<OrganizationSettings> | undefined {
+	if (!isPlainObject(incoming)) return undefined;
+	const result: Record<string, unknown> = {};
+	for (const key of Object.keys(incoming)) {
+		if (!WRITABLE_SETTINGS_KEYS.has(key)) continue;
+		const value = incoming[key];
+		if (key === "ai") {
+			if (!isPlainObject(value)) continue;
+			const ai: Record<string, unknown> = {};
+			for (const aiKey of Object.keys(value)) {
+				if (SERVER_OWNED_AI_SETTINGS_KEYS.has(aiKey) || FORBIDDEN_MERGE_KEYS.has(aiKey)) continue;
+				ai[aiKey] = value[aiKey];
+			}
+			if (Object.keys(ai).length > 0) result.ai = ai;
+			continue;
+		}
+		result[key] = value;
+	}
+	return Object.keys(result).length > 0 ? (result as Partial<OrganizationSettings>) : undefined;
 }
 
 // Create a new organization
@@ -307,6 +359,31 @@ apiRouteAdminOrganization.post("/update", async (c) => {
 		return c.json({ success: false, error: "You don't have permission to do that." }, 401);
 	}
 
+	if (!isPlainObject(data)) {
+		return c.json({ success: false, error: "Invalid request" }, 400);
+	}
+
+	// Explicit allowlist of admin-writable columns. Server-owned fields
+	// (createdBy, plan, seatCount, polar*, currentPeriodEnd, privateId,
+	// isSystemOrg, id, timestamps) are never taken from the request body.
+	const updates: Partial<typeof schema.organization.$inferInsert> = {};
+	if (typeof data.name === "string") updates.name = data.name;
+	if (typeof data.slug === "string") updates.slug = data.slug;
+	if (typeof data.description === "string") updates.description = data.description;
+	if (typeof data.shortId === "string") updates.shortId = data.shortId;
+	if (typeof data.logo === "string" || data.logo === null) {
+		updates.logo = data.logo && `organization/${orgId}/${getFileNameFromUrl(data.logo)}`;
+	}
+	if (typeof data.bannerImg === "string" || data.bannerImg === null) {
+		updates.bannerImg = data.bannerImg && `organization/${orgId}/${getFileNameFromUrl(data.bannerImg)}`;
+	}
+	const incomingSettings = sanitizeIncomingSettings(data.settings);
+
+	// Same rule as `/create`.
+	if (updates.shortId && !/^[A-Z]{1,3}$/.test(updates.shortId)) {
+		return c.json({ success: false, error: "Short ID must be 1-3 uppercase letters" }, 400);
+	}
+
 	// -------------------------------------------------------------------------
 	// Transaction: slug check + update
 	// -------------------------------------------------------------------------
@@ -335,16 +412,22 @@ apiRouteAdminOrganization.post("/update", async (c) => {
 				// overwriting — see deepMergeSettings' doc comment for why:
 				// two saves racing on different settings.* keys must not
 				// clobber each other.
-				const mergedSettings: OrganizationSettings | undefined = data.settings
+				const mergedSettings: OrganizationSettings | undefined = incomingSettings
 					? deepMergeSettings(
-						(currentOrg.settings as OrganizationSettings | null) ?? defaultOrganizationSettings,
-						data.settings as Partial<OrganizationSettings>
-					)
+							(currentOrg.settings as OrganizationSettings | null) ?? defaultOrganizationSettings,
+							incomingSettings
+						)
 					: undefined;
 
-				// 2️⃣ Slug uniqueness + banned check (only if changed)
-				if (data.slug && data.slug !== currentOrg.slug) {
-					if (isSlugBanned(data.slug)) {
+				// 2️⃣ Slug format + uniqueness + banned check (only if changed)
+				if (updates.slug !== undefined && updates.slug !== currentOrg.slug) {
+					// Must already be in canonical slug form (lowercase a-z0-9 and
+					// single inner hyphens) — the slug is used as a subdomain.
+					if (!updates.slug || generateSlug(updates.slug) !== updates.slug) {
+						throw new Error("SLUG_INVALID");
+					}
+
+					if (isSlugBanned(updates.slug)) {
 						throw new Error("SLUG_BANNED");
 					}
 
@@ -353,7 +436,7 @@ apiRouteAdminOrganization.post("/update", async (c) => {
 							id: schema.organization.id,
 						})
 						.from(schema.organization)
-						.where(eq(schema.organization.slug, data.slug))
+						.where(eq(schema.organization.slug, updates.slug))
 						.limit(1);
 
 					if (existing) {
@@ -365,10 +448,8 @@ apiRouteAdminOrganization.post("/update", async (c) => {
 				const [updated] = await tx
 					.update(schema.organization)
 					.set({
-						...data,
+						...updates,
 						...(mergedSettings ? { settings: mergedSettings } : {}),
-						logo: data.logo && `organization/${orgId}/${getFileNameFromUrl(data.logo)}`,
-						bannerImg: data.bannerImg && `organization/${orgId}/${getFileNameFromUrl(data.bannerImg)}`,
 						updatedAt: new Date(),
 					})
 					.where(eq(schema.organization.id, orgId))
@@ -384,6 +465,10 @@ apiRouteAdminOrganization.post("/update", async (c) => {
 			},
 		}
 	).catch(async (err) => {
+		if ((err as Error).message === "SLUG_INVALID") {
+			return "SLUG_INVALID" as const;
+		}
+
 		if ((err as Error).message === "SLUG_BANNED") {
 			await recordWideError({
 				name: "organization.update.slug_banned",
@@ -416,6 +501,10 @@ apiRouteAdminOrganization.post("/update", async (c) => {
 
 		throw err;
 	});
+
+	if (result === "SLUG_INVALID") {
+		return c.json({ success: false, error: "Slug may only contain lowercase letters, numbers, and hyphens" }, 400);
+	}
 
 	if (result === "SLUG_BANNED") {
 		return c.json(
@@ -456,7 +545,8 @@ apiRouteAdminOrganization.post("/update", async (c) => {
 				...dataMsg,
 				data: {
 					...dataMsg.data,
-					privateId: null,
+					settings: toPublicOrganizationSettings(dataMsg.data.settings),
+					...publicOrganizationRedactions,
 				},
 			});
 
@@ -474,7 +564,7 @@ apiRouteAdminOrganization.post("/update", async (c) => {
 		actor_id: session?.userId ?? "",
 		target_id: orgId,
 		org_id: orgId,
-		metadata: { fields: Object.keys(data) },
+		metadata: { fields: [...Object.keys(updates), ...(incomingSettings ? ["settings"] : [])] },
 	});
 
 	return c.json({
@@ -515,8 +605,15 @@ apiRouteAdminOrganization.put("/:orgId/logo", async (c) => {
 		return c.json({ success: false, error: "No file uploaded" }, 400);
 	}
 
+	// Extension + Content-Type come from the image allowlist, never the client — anything else (html, svg, ...)
+	// would be served from the files host as a live document.
+	const safeType = resolveSafeUploadType({ type: file.type, name: file.name }, "image");
+	if (!safeType) {
+		return c.json({ success: false, error: "Unsupported file type" }, 400);
+	}
+
 	const buffer = Buffer.from(await file.arrayBuffer());
-	const ext = file.name.split(".").pop() || file.type.split("/")[1] || "png";
+	const ext = safeType.ext;
 	const objectName = `/logo.${ext}`;
 
 	if (oldLogo) {
@@ -537,7 +634,7 @@ apiRouteAdminOrganization.put("/:orgId/logo", async (c) => {
 		"organization.logo.upload",
 		() =>
 			uploadObject(objectName, buffer, `organization/${orgId}`, {
-				"Content-Type": file.type || "application/octet-stream",
+				"Content-Type": safeType.contentType,
 				originalName: objectName,
 			}),
 		{
@@ -586,8 +683,15 @@ apiRouteAdminOrganization.put("/:orgId/banner", async (c) => {
 		return c.json({ success: false, error: "No file uploaded" }, 400);
 	}
 
+	// Extension + Content-Type come from the image allowlist, never the client — anything else (html, svg, ...)
+	// would be served from the files host as a live document.
+	const safeType = resolveSafeUploadType({ type: file.type, name: file.name }, "image");
+	if (!safeType) {
+		return c.json({ success: false, error: "Unsupported file type" }, 400);
+	}
+
 	const buffer = Buffer.from(await file.arrayBuffer());
-	const ext = file.name.split(".").pop() || file.type.split("/")[1] || "png";
+	const ext = safeType.ext;
 	const objectName = `banner.${ext}`;
 
 	if (oldBanner) {
@@ -602,7 +706,7 @@ apiRouteAdminOrganization.put("/:orgId/banner", async (c) => {
 		"organization.banner.upload",
 		() =>
 			uploadObject(objectName, buffer, `organization/${orgId}`, {
-				"Content-Type": file.type || "application/octet-stream",
+				"Content-Type": safeType.contentType,
 				originalName: objectName,
 			}),
 		{
@@ -1101,6 +1205,65 @@ apiRouteAdminOrganization.delete("/delete-category", async (c) => {
 
 // Issue Template management
 // Create issue template
+/**
+ * Verifies that every label/category/release/assignee an issue template
+ * references belongs to `orgId`. Returns an error message, or null if valid.
+ */
+async function validateIssueTemplateRefs(
+	orgId: string,
+	refs: { categoryId: unknown; labelIds: unknown; releaseId: unknown; assigneeIds: unknown }
+): Promise<string | null> {
+	const { categoryId, labelIds, releaseId, assigneeIds } = refs;
+
+	if (categoryId) {
+		if (typeof categoryId !== "string") return "Invalid category.";
+		const found = await db.query.category.findFirst({
+			columns: { id: true },
+			where: and(eq(schema.category.id, categoryId), eq(schema.category.organizationId, orgId)),
+		});
+		if (!found) return "Category not found.";
+	}
+
+	if (releaseId) {
+		if (typeof releaseId !== "string") return "Invalid release.";
+		const found = await db.query.release.findFirst({
+			columns: { id: true },
+			where: and(eq(schema.release.id, releaseId), eq(schema.release.organizationId, orgId)),
+		});
+		if (!found) return "Release not found.";
+	}
+
+	if (labelIds !== undefined && labelIds !== null) {
+		if (!Array.isArray(labelIds) || !labelIds.every((l): l is string => typeof l === "string")) {
+			return "Invalid labels.";
+		}
+		const unique = [...new Set(labelIds)];
+		if (unique.length > 0) {
+			const found = await db
+				.select({ id: schema.label.id })
+				.from(schema.label)
+				.where(and(inArray(schema.label.id, unique), eq(schema.label.organizationId, orgId)));
+			if (found.length !== unique.length) return "One or more labels not found.";
+		}
+	}
+
+	if (assigneeIds !== undefined && assigneeIds !== null) {
+		if (!Array.isArray(assigneeIds) || !assigneeIds.every((a): a is string => typeof a === "string")) {
+			return "Invalid assignees.";
+		}
+		const unique = [...new Set(assigneeIds)];
+		if (unique.length > 0) {
+			const found = await db
+				.select({ userId: schema.member.userId })
+				.from(schema.member)
+				.where(and(inArray(schema.member.userId, unique), eq(schema.member.organizationId, orgId)));
+			if (found.length !== unique.length) return "One or more assignees are not members of this organization.";
+		}
+	}
+
+	return null;
+}
+
 apiRouteAdminOrganization.post("/create-issue-template", async (c) => {
 	const traceAsync = createTraceAsync();
 	const recordWideError = c.get("recordWideError");
@@ -1125,6 +1288,11 @@ apiRouteAdminOrganization.post("/create-issue-template", async (c) => {
 
 	if (!isAuthorized) {
 		return c.json({ success: false, error: "You don't have permission to do that." }, 401);
+	}
+
+	const refError = await validateIssueTemplateRefs(orgId, { categoryId, labelIds, releaseId, assigneeIds });
+	if (refError) {
+		return c.json({ success: false, error: refError }, 400);
 	}
 
 	const issueTemplateLimitRes = await enforceLimit({
@@ -1275,6 +1443,11 @@ apiRouteAdminOrganization.patch("/edit-issue-template", async (c) => {
 
 	if (!isAuthorized) {
 		return c.json({ success: false, error: "You don't have permission to do that." }, 401);
+	}
+
+	const refError = await validateIssueTemplateRefs(orgId, { categoryId, labelIds, releaseId, assigneeIds });
+	if (refError) {
+		return c.json({ success: false, error: refError }, 400);
 	}
 
 	// Block editing if the org is over the issue templates limit (must delete to get back under)
@@ -1760,6 +1933,24 @@ apiRouteAdminOrganization.delete("/delete-view", async (c) => {
 	});
 });
 
+/**
+ * True when the GitHub App installation has been linked to this org (via
+ * `/:orgId/github/link`, which verifies the linking user can access it).
+ * Sync rows may only reference installations linked to their own org.
+ */
+async function isInstallationLinkedToOrg(orgId: string, installationId: unknown): Promise<boolean> {
+	const id = Number(installationId);
+	if (typeof orgId !== "string" || !Number.isInteger(id) || id <= 0) return false;
+	const link = await db.query.githubInstallationOrg.findFirst({
+		columns: { id: true },
+		where: and(
+			eq(schema.githubInstallationOrg.installationId, id),
+			eq(schema.githubInstallationOrg.organizationId, orgId)
+		),
+	});
+	return !!link;
+}
+
 apiRouteAdminOrganization.post("/connections/github/sync-repo", async (c) => {
 	const traceAsync = createTraceAsync();
 	const recordWideError = c.get("recordWideError");
@@ -1783,6 +1974,10 @@ apiRouteAdminOrganization.post("/connections/github/sync-repo", async (c) => {
 			},
 			401
 		);
+	}
+
+	if (!(await isInstallationLinkedToOrg(orgId, installationId))) {
+		return c.json({ success: false, error: "GitHub installation is not linked to this organization." }, 403);
 	}
 
 	const existing = await traceAsync(
@@ -1866,10 +2061,14 @@ apiRouteAdminOrganization.patch("/connections/github/sync-repo", async (c) => {
 		);
 	}
 
+	if (!(await isInstallationLinkedToOrg(orgId, installationId))) {
+		return c.json({ success: false, error: "GitHub installation is not linked to this organization." }, 403);
+	}
+
 	/* ================= CHECK EXISTS ================= */
 
 	const existingSync = await db.query.githubRepository.findFirst({
-		where: eq(schema.githubRepository.id, syncId),
+		where: and(eq(schema.githubRepository.id, syncId), eq(schema.githubRepository.organizationId, orgId)),
 	});
 
 	if (!existingSync) {
@@ -1931,7 +2130,7 @@ apiRouteAdminOrganization.patch("/connections/github/sync-repo", async (c) => {
 					repoName,
 					categoryId,
 				})
-				.where(eq(schema.githubRepository.id, syncId)),
+				.where(and(eq(schema.githubRepository.id, syncId), eq(schema.githubRepository.organizationId, orgId))),
 		{
 			description: "Updating GitHub sync repository",
 			data: {
@@ -1981,7 +2180,7 @@ apiRouteAdminOrganization.patch("/connections/github/sync-repo/toggle", async (c
 	/* ================= CHECK EXISTS ================= */
 
 	const existing = await db.query.githubRepository.findFirst({
-		where: eq(schema.githubRepository.id, syncId),
+		where: and(eq(schema.githubRepository.id, syncId), eq(schema.githubRepository.organizationId, orgId)),
 	});
 
 	if (!existing) {
@@ -2005,7 +2204,7 @@ apiRouteAdminOrganization.patch("/connections/github/sync-repo/toggle", async (c
 					enabled,
 					updatedAt: new Date(),
 				})
-				.where(eq(schema.githubRepository.id, syncId)),
+				.where(and(eq(schema.githubRepository.id, syncId), eq(schema.githubRepository.organizationId, orgId))),
 		{
 			description: enabled ? "Enabling GitHub sync repository" : "Disabling GitHub sync repository",
 			data: {
@@ -2158,8 +2357,7 @@ apiRouteAdminOrganization.delete("/delete", async (c) => {
 					400
 				);
 			}
-			polarClient &&
-				(await polarClient.customers.deleteExternal(org.id));
+			polarClient && (await polarClient.customers.deleteExternal(org.id));
 
 			await traceAsync(
 				"organization.delete.s3_files",
@@ -2302,8 +2500,14 @@ apiRouteAdminOrganization.post("/member", async (c) => {
 		columns: { id: true },
 	});
 	const effectiveUsed = assignedCount.length + pendingInvites.length;
-	const limits = getEffectiveLimits(org?.plan);
-	const seatLimit = limits.members ?? org?.seatCount ?? 0;
+	// Same rule as invite acceptance (admin.ts): the plan limit, further capped on cloud Pro by the
+	// purchased seatCount. Self-hosted seatCount is just the schema default, so it isn't applied there.
+	const planSeatLimit = getEffectiveLimits(org?.plan).members ?? Number.POSITIVE_INFINITY;
+	const purchasedSeatLimit =
+		getEditionCapabilities().polarBillingEnabled && org?.plan === "pro" && org.seatCount != null
+			? org.seatCount
+			: Number.POSITIVE_INFINITY;
+	const seatLimit = Math.min(planSeatLimit, purchasedSeatLimit);
 	if (effectiveUsed + emails.length > seatLimit) {
 		const available = Math.max(0, seatLimit - effectiveUsed);
 		return c.json(
@@ -2335,8 +2539,8 @@ apiRouteAdminOrganization.post("/member", async (c) => {
 
 					const existingMember = user
 						? await db.query.member.findFirst({
-							where: and(eq(schema.member.organizationId, orgId), eq(schema.member.userId, user.id)),
-						})
+								where: and(eq(schema.member.organizationId, orgId), eq(schema.member.userId, user.id)),
+							})
 						: null;
 
 					if (existingMember) continue;
@@ -2669,19 +2873,40 @@ apiRouteAdminOrganization.delete("/member", async (c) => {
 	if (!isAuthorized) {
 		return c.json({ success: false, error: "You don't have permission to remove members." }, 401);
 	}
+
+	if (typeof userId !== "string" || !userId) {
+		return c.json({ success: false, error: "Invalid member." }, 400);
+	}
+
+	// The owner's membership can't be removed here — ownership must be
+	// transferred first (`/transfer-ownership`).
+	const org = await db.query.organization.findFirst({
+		columns: { createdBy: true },
+		where: eq(schema.organization.id, orgId),
+	});
+	if (org?.createdBy === userId) {
+		return c.json({ success: false, error: "The organization owner can't be removed." }, 403);
+	}
+
 	const member = await db.query.member.findFirst({
 		where: and(eq(schema.member.organizationId, orgId), eq(schema.member.userId, userId)),
 	});
 
 	const removed = await traceAsync(
 		"member.remove.delete",
-		async () => {
-			const [member] = await db
-				.delete(schema.member)
-				.where(and(eq(schema.member.organizationId, orgId), eq(schema.member.userId, userId)))
-				.returning();
-			return member;
-		},
+		async () =>
+			db.transaction(async (tx) => {
+				const [member] = await tx
+					.delete(schema.member)
+					.where(and(eq(schema.member.organizationId, orgId), eq(schema.member.userId, userId)))
+					.returning();
+				if (!member) return member;
+				// A removed member must not stay assigned to this org's tasks.
+				await tx
+					.delete(schema.taskAssignee)
+					.where(and(eq(schema.taskAssignee.organizationId, orgId), eq(schema.taskAssignee.userId, userId)));
+				return member;
+			}),
 		{ description: "Removing member", data: { orgId, userId } }
 	);
 
@@ -2714,6 +2939,8 @@ apiRouteAdminOrganization.delete("/member", async (c) => {
 				type: "MEMBER_ACTIONS",
 				data: { orgId, userId, action: "REMOVED" },
 			});
+			// Drop any live connections from this org's private rooms — membership is only checked on connect.
+			evictUserFromOrgRooms(userId, orgId);
 		},
 		{ description: "Broadcasting member removal" }
 	);
@@ -2817,7 +3044,7 @@ apiRouteAdminOrganization.delete("/connections/github/sync-repo", async (c) => {
 	/* ================= CHECK EXISTS ================= */
 
 	const existing = await db.query.githubRepository.findFirst({
-		where: eq(schema.githubRepository.id, syncId),
+		where: and(eq(schema.githubRepository.id, syncId), eq(schema.githubRepository.organizationId, orgId)),
 	});
 
 	if (!existing) {
@@ -2834,7 +3061,10 @@ apiRouteAdminOrganization.delete("/connections/github/sync-repo", async (c) => {
 
 	const result = await traceAsync(
 		"github.syncRepo.delete",
-		() => db.delete(schema.githubRepository).where(eq(schema.githubRepository.id, syncId)),
+		() =>
+			db
+				.delete(schema.githubRepository)
+				.where(and(eq(schema.githubRepository.id, syncId), eq(schema.githubRepository.organizationId, orgId))),
 		{
 			description: "Deleting GitHub sync repository",
 			data: {
@@ -3180,14 +3410,14 @@ apiRouteAdminOrganization.post("/team", async (c) => {
 
 	const teamPermissions: TeamPermissions = permissions
 		? {
-			admin: { ...defaultTeamPermissions.admin, ...permissions.admin },
-			content: { ...defaultTeamPermissions.content, ...permissions.content },
-			tasks: { ...defaultTeamPermissions.tasks, ...permissions.tasks },
-			moderation: {
-				...defaultTeamPermissions.moderation,
-				...permissions.moderation,
-			},
-		}
+				admin: { ...defaultTeamPermissions.admin, ...permissions.admin },
+				content: { ...defaultTeamPermissions.content, ...permissions.content },
+				tasks: { ...defaultTeamPermissions.tasks, ...permissions.tasks },
+				moderation: {
+					...defaultTeamPermissions.moderation,
+					...permissions.moderation,
+				},
+			}
 		: defaultTeamPermissions;
 
 	const team = await traceAsync(
@@ -3241,14 +3471,14 @@ apiRouteAdminOrganization.patch("/team", async (c) => {
 
 	const teamPermissions: TeamPermissions = permissions
 		? {
-			admin: { ...defaultTeamPermissions.admin, ...permissions.admin },
-			content: { ...defaultTeamPermissions.content, ...permissions.content },
-			tasks: { ...defaultTeamPermissions.tasks, ...permissions.tasks },
-			moderation: {
-				...defaultTeamPermissions.moderation,
-				...permissions.moderation,
-			},
-		}
+				admin: { ...defaultTeamPermissions.admin, ...permissions.admin },
+				content: { ...defaultTeamPermissions.content, ...permissions.content },
+				tasks: { ...defaultTeamPermissions.tasks, ...permissions.tasks },
+				moderation: {
+					...defaultTeamPermissions.moderation,
+					...permissions.moderation,
+				},
+			}
 		: defaultTeamPermissions;
 
 	const team = await traceAsync(
@@ -3341,6 +3571,26 @@ apiRouteAdminOrganization.delete("/team", async (c) => {
 	});
 });
 
+/**
+ * True only when `teamId` and `memberId` both belong to `orgId`. Guards the
+ * team-member routes, whose permission check is scoped to the submitted
+ * `org_id` but which otherwise accept arbitrary team/member ids.
+ */
+async function teamAndMemberBelongToOrg(orgId: string, teamId: unknown, memberId: unknown): Promise<boolean> {
+	if (typeof orgId !== "string" || typeof teamId !== "string" || typeof memberId !== "string") return false;
+	const [teamRow, memberRow] = await Promise.all([
+		db.query.team.findFirst({
+			columns: { id: true },
+			where: and(eq(schema.team.id, teamId), eq(schema.team.organizationId, orgId)),
+		}),
+		db.query.member.findFirst({
+			columns: { id: true },
+			where: and(eq(schema.member.id, memberId), eq(schema.member.organizationId, orgId)),
+		}),
+	]);
+	return !!teamRow && !!memberRow;
+}
+
 apiRouteAdminOrganization.post("/team-member", async (c) => {
 	const traceAsync = createTraceAsync();
 	const recordWideError = c.get("recordWideError");
@@ -3358,6 +3608,10 @@ apiRouteAdminOrganization.post("/team-member", async (c) => {
 			},
 			401
 		);
+	}
+
+	if (!(await teamAndMemberBelongToOrg(orgId, teamId, memberId))) {
+		return c.json({ success: false, error: "Team or member not found." }, 404);
 	}
 
 	const memberTeam = await traceAsync(
@@ -3412,6 +3666,10 @@ apiRouteAdminOrganization.delete("/team-member", async (c) => {
 		);
 	}
 
+	if (!(await teamAndMemberBelongToOrg(orgId, teamId, memberId))) {
+		return c.json({ success: false, error: "Team or member not found." }, 404);
+	}
+
 	const removed = await traceAsync(
 		"team.member.remove.delete",
 		async () => {
@@ -3461,40 +3719,23 @@ apiRouteAdminOrganization.post("/bootstrap-admin-team", async (c) => {
 		return c.json({ success: false, error: "Invalid organization" }, 400);
 	}
 
-	const membership = await traceAsync(
-		"team.bootstrap.membership_check",
-		() =>
-			db.query.member.findFirst({
-				where: and(eq(schema.member.organizationId, orgId), eq(schema.member.userId, session.userId)),
-			}),
-		{
-			description: "Checking user membership",
-			data: {
-				user: { id: session.userId },
-				organization: { id: orgId },
-			},
-		}
-	);
+	// Owner (organization.createdBy) or an existing administrator only —
+	// hasOrgPermission grants the owner full access, so this covers both.
+	const isAuthorized = await traceOrgPermissionCheck(session.userId, orgId, "admin.administrator");
 
-	if (!membership) {
+	if (!isAuthorized) {
 		await recordWideError({
 			name: "team.bootstrap.auth",
 			error: new Error("Unauthorized"),
 			code: "UNAUTHORIZED",
-			message: "User is not a member of this organization",
+			message: "User is not the owner or an administrator of this organization",
 			contextData: {
 				user: { id: session.userId },
 				organization: { id: orgId },
 			},
 		});
 
-		return c.json(
-			{
-				success: false,
-				error: "You must be a member of this organization.",
-			},
-			401
-		);
+		return c.json({ success: false, error: "You don't have permission to do that." }, 401);
 	}
 
 	const adminTeam = await traceAsync("team.bootstrap.create", () => bootstrapOrganizationAdminTeam(orgId), {
@@ -3532,7 +3773,7 @@ apiRouteAdminOrganization.post("/bootstrap-admin-team", async (c) => {
 	}
 
 	// ✅ Success “event” captured as a traced span
-	await traceAsync("team.bootstrap.success", async () => { }, {
+	await traceAsync("team.bootstrap.success", async () => {}, {
 		description: "Admin team bootstrapped successfully",
 		data: {
 			user: { id: session.userId },

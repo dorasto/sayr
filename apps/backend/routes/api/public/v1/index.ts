@@ -9,6 +9,7 @@ import {
 	getReleasesPage,
 	getTaskByShortId,
 	schema,
+	toPublicRelease,
 	userSummaryColumns,
 } from "@repo/database";
 import { createTraceAsync } from "@repo/opentelemetry/trace";
@@ -736,10 +737,14 @@ apiPublicRouteV1.get(
 				return c.json(errorResponse("Organization not found"), 404);
 			}
 
-			const task = await traceAsync("task.comments.task_lookup", () => getTaskByShortId(org.id, taskShortId), {
-				description: "Finding task by short ID",
-				data: { orgId: org.id, taskShortId },
-			});
+			const task = await traceAsync(
+				"task.comments.task_lookup",
+				() => getTaskByShortId(org.id, taskShortId, "public"),
+				{
+					description: "Finding task by short ID",
+					data: { orgId: org.id, taskShortId },
+				}
+			);
 
 			if (!task) {
 				await recordWideError({
@@ -1035,7 +1040,8 @@ apiPublicRouteV1.get(
 
 		return c.json(
 			successResponse({
-				...release,
+				// Linked PR bodies can carry private-repo detail — public projection only.
+				...toPublicRelease(release),
 				descriptionHtml: release.description ? prosekitJSONToHTML(release.description) : "",
 				descriptionMarkdown: release.description ? prosekitJSONToMarkdown(release.description) : "",
 				tasks: tasksWithLabels,

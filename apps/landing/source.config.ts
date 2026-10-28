@@ -25,3 +25,14 @@ export const features: DocCollection<typeof frontmatterSchema> =
     dir: "content/features",
     schema: frontmatterSchema,
   });
+
+// Marketing SEO pages (/compare, /alternatives, /solutions, /integrations,
+// /guides) — the MDX body only, at content/pages/<section>/<slug>.mdx. Title,
+// description, heading, last-updated date and related pages live in
+// src/data/marketing-pages.ts, same split as the feature pages above.
+export const pages: DocCollection<typeof frontmatterSchema> =
+  defineCollections({
+    type: "doc",
+    dir: "content/pages",
+    schema: frontmatterSchema,
+  });

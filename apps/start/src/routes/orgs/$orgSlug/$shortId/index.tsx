@@ -24,10 +24,11 @@ interface LLMOCommentWithReplies extends LLMOComment {
 }
 
 const fetchPublicTask = createServerFn({ method: "GET" })
-	.inputValidator((data: { slug: string; shortId: number }) => data)
+	.validator((data: { slug: string; shortId: number }) => data)
 	.handler(async ({ data }) => {
 		const organization = await getOrganizationPublic(data.slug);
-		if (!organization)
+		// A disabled public page serves nothing (the layout shows "Organization Not Available").
+		if (!organization?.settings?.enablePublicPage)
 			return {
 				task: null,
 				release: null,

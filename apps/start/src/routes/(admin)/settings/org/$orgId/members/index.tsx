@@ -3,11 +3,13 @@ import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import SettingsOrganizationPageTeam from "@/components/pages/admin/settings/orgId/members";
 import { SubWrapper } from "@/components/generic/wrapper";
+import { requireOrgMember } from "@/getAccess";
 import { seo } from "@/seo";
 
 const fetchMembersData = createServerFn({ method: "GET" })
-	.inputValidator((data: { orgId: string }) => data)
+	.validator((data: { orgId: string }) => data)
 	.handler(async ({ data }) => {
+		await requireOrgMember(data.orgId);
 		const [invites, teams] = await Promise.all([
 			db.query.invite.findMany({
 				where: (invites, { eq, and }) => and(eq(invites.status, "pending"), eq(invites.organizationId, data.orgId)),

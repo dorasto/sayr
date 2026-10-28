@@ -50,7 +50,7 @@ type ConsoleUsersInput = {
 };
 
 export const getConsoleUsersServer = createServerFn({ method: "GET" })
-	.inputValidator((data: ConsoleUsersInput) => data)
+	.validator((data: ConsoleUsersInput) => data)
 	.handler(async ({ data }) => {
 		await requireAdmin();
 
@@ -154,7 +154,7 @@ export const getConsoleUsersServer = createServerFn({ method: "GET" })
 // ──────────────────────────────────────────────
 
 export const getConsoleUserServer = createServerFn({ method: "GET" })
-	.inputValidator((data: { userId: string }) => data)
+	.validator((data: { userId: string }) => data)
 	.handler(async ({ data }) => {
 		const { userId } = data;
 		try {
@@ -330,7 +330,7 @@ type ConsoleOrgsInput = {
 };
 
 export const getConsoleOrgsServer = createServerFn({ method: "GET" })
-	.inputValidator((data: ConsoleOrgsInput) => data)
+	.validator((data: ConsoleOrgsInput) => data)
 	.handler(async ({ data }) => {
 		await requireAdmin();
 
@@ -421,7 +421,7 @@ export const getConsoleOrgsServer = createServerFn({ method: "GET" })
 // ──────────────────────────────────────────────
 
 export const getConsoleOrgServer = createServerFn({ method: "GET" })
-	.inputValidator((data: { orgId: string }) => data)
+	.validator((data: { orgId: string }) => data)
 	.handler(async ({ data }) => {
 		const { orgId } = data;
 		try {

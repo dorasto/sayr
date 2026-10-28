@@ -9,29 +9,31 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as MarketingRouteImport } from './routes/_marketing'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as MarketingIndexRouteImport } from './routes/_marketing/index'
-import { Route as DocsChar123Char125DotmdRouteImport } from './routes/docs/{$}[.]md'
-import { Route as DocsLlmsDottxtRouteImport } from './routes/docs/llms[.]txt'
-import { Route as DocsLlmsFullDottxtRouteImport } from './routes/docs/llms-full[.]txt'
-import { Route as DocsSplatRouteImport } from './routes/docs/$'
-import { Route as ApiSearchRouteImport } from './routes/api/search'
-import { Route as ApiOpenapiProxyRouteImport } from './routes/api/openapi-proxy'
-import { Route as ApiOgRouteImport } from './routes/api/og'
 import { Route as MarketingPricingRouteImport } from './routes/_marketing/pricing'
-import { Route as MarketingLegalTermsRouteImport } from './routes/_marketing/legal/terms'
-import { Route as MarketingLegalSubprocessorsRouteImport } from './routes/_marketing/legal/subprocessors'
-import { Route as MarketingLegalPrivacyRouteImport } from './routes/_marketing/legal/privacy'
+import { Route as ApiOgRouteImport } from './routes/api/og'
+import { Route as ApiOpenapiProxyRouteImport } from './routes/api/openapi-proxy'
+import { Route as ApiSearchRouteImport } from './routes/api/search'
+import { Route as DocsSplatRouteImport } from './routes/docs/$'
+import { Route as DocsLlmsFullDottxtRouteImport } from './routes/docs/llms-full[.]txt'
+import { Route as DocsLlmsDottxtRouteImport } from './routes/docs/llms[.]txt'
+import { Route as DocsChar123Char125DotmdRouteImport } from './routes/docs/{$}[.]md'
+import { Route as MarketingSectionIndexRouteImport } from './routes/_marketing/$section/index'
+import { Route as MarketingSectionSlugRouteImport } from './routes/_marketing/$section/$slug'
 import { Route as MarketingFeaturesSlugRouteImport } from './routes/_marketing/features/$slug'
+import { Route as MarketingLegalPrivacyRouteImport } from './routes/_marketing/legal/privacy'
+import { Route as MarketingLegalSubprocessorsRouteImport } from './routes/_marketing/legal/subprocessors'
+import { Route as MarketingLegalTermsRouteImport } from './routes/_marketing/legal/terms'
 
+const MarketingRoute = MarketingRouteImport.update({
+  id: '/_marketing',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
   path: '/sitemap.xml',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const MarketingRoute = MarketingRouteImport.update({
-  id: '/_marketing',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MarketingIndexRoute = MarketingIndexRouteImport.update({
@@ -39,29 +41,14 @@ const MarketingIndexRoute = MarketingIndexRouteImport.update({
   path: '/',
   getParentRoute: () => MarketingRoute,
 } as any)
-const DocsChar123Char125DotmdRoute = DocsChar123Char125DotmdRouteImport.update({
-  id: '/docs/{$}.md',
-  path: '/docs/{$}.md',
-  getParentRoute: () => rootRouteImport,
+const MarketingPricingRoute = MarketingPricingRouteImport.update({
+  id: '/pricing',
+  path: '/pricing',
+  getParentRoute: () => MarketingRoute,
 } as any)
-const DocsLlmsDottxtRoute = DocsLlmsDottxtRouteImport.update({
-  id: '/docs/llms.txt',
-  path: '/docs/llms.txt',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DocsLlmsFullDottxtRoute = DocsLlmsFullDottxtRouteImport.update({
-  id: '/docs/llms-full.txt',
-  path: '/docs/llms-full.txt',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DocsSplatRoute = DocsSplatRouteImport.update({
-  id: '/docs/$',
-  path: '/docs/$',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiSearchRoute = ApiSearchRouteImport.update({
-  id: '/api/search',
-  path: '/api/search',
+const ApiOgRoute = ApiOgRouteImport.update({
+  id: '/api/og',
+  path: '/api/og',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiOpenapiProxyRoute = ApiOpenapiProxyRouteImport.update({
@@ -69,19 +56,49 @@ const ApiOpenapiProxyRoute = ApiOpenapiProxyRouteImport.update({
   path: '/api/openapi-proxy',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiOgRoute = ApiOgRouteImport.update({
-  id: '/api/og',
-  path: '/api/og',
+const ApiSearchRoute = ApiSearchRouteImport.update({
+  id: '/api/search',
+  path: '/api/search',
   getParentRoute: () => rootRouteImport,
 } as any)
-const MarketingPricingRoute = MarketingPricingRouteImport.update({
-  id: '/pricing',
-  path: '/pricing',
+const DocsSplatRoute = DocsSplatRouteImport.update({
+  id: '/docs/$',
+  path: '/docs/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DocsLlmsFullDottxtRoute = DocsLlmsFullDottxtRouteImport.update({
+  id: '/docs/llms-full.txt',
+  path: '/docs/llms-full.txt',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DocsLlmsDottxtRoute = DocsLlmsDottxtRouteImport.update({
+  id: '/docs/llms.txt',
+  path: '/docs/llms.txt',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DocsChar123Char125DotmdRoute = DocsChar123Char125DotmdRouteImport.update({
+  id: '/docs/{$}.md',
+  path: '/docs/{$}.md',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MarketingSectionIndexRoute = MarketingSectionIndexRouteImport.update({
+  id: '/$section/',
+  path: '/$section/',
   getParentRoute: () => MarketingRoute,
 } as any)
-const MarketingLegalTermsRoute = MarketingLegalTermsRouteImport.update({
-  id: '/legal/terms',
-  path: '/legal/terms',
+const MarketingSectionSlugRoute = MarketingSectionSlugRouteImport.update({
+  id: '/$section/$slug',
+  path: '/$section/$slug',
+  getParentRoute: () => MarketingRoute,
+} as any)
+const MarketingFeaturesSlugRoute = MarketingFeaturesSlugRouteImport.update({
+  id: '/features/$slug',
+  path: '/features/$slug',
+  getParentRoute: () => MarketingRoute,
+} as any)
+const MarketingLegalPrivacyRoute = MarketingLegalPrivacyRouteImport.update({
+  id: '/legal/privacy',
+  path: '/legal/privacy',
   getParentRoute: () => MarketingRoute,
 } as any)
 const MarketingLegalSubprocessorsRoute =
@@ -90,14 +107,9 @@ const MarketingLegalSubprocessorsRoute =
     path: '/legal/subprocessors',
     getParentRoute: () => MarketingRoute,
   } as any)
-const MarketingLegalPrivacyRoute = MarketingLegalPrivacyRouteImport.update({
-  id: '/legal/privacy',
-  path: '/legal/privacy',
-  getParentRoute: () => MarketingRoute,
-} as any)
-const MarketingFeaturesSlugRoute = MarketingFeaturesSlugRouteImport.update({
-  id: '/features/$slug',
-  path: '/features/$slug',
+const MarketingLegalTermsRoute = MarketingLegalTermsRouteImport.update({
+  id: '/legal/terms',
+  path: '/legal/terms',
   getParentRoute: () => MarketingRoute,
 } as any)
 
@@ -112,10 +124,12 @@ export interface FileRoutesByFullPath {
   '/docs/llms-full.txt': typeof DocsLlmsFullDottxtRoute
   '/docs/llms.txt': typeof DocsLlmsDottxtRoute
   '/docs/{$}.md': typeof DocsChar123Char125DotmdRoute
+  '/$section/$slug': typeof MarketingSectionSlugRoute
   '/features/$slug': typeof MarketingFeaturesSlugRoute
   '/legal/privacy': typeof MarketingLegalPrivacyRoute
   '/legal/subprocessors': typeof MarketingLegalSubprocessorsRoute
   '/legal/terms': typeof MarketingLegalTermsRoute
+  '/$section/': typeof MarketingSectionIndexRoute
 }
 export interface FileRoutesByTo {
   '/sitemap.xml': typeof SitemapDotxmlRoute
@@ -128,10 +142,12 @@ export interface FileRoutesByTo {
   '/docs/llms.txt': typeof DocsLlmsDottxtRoute
   '/docs/{$}.md': typeof DocsChar123Char125DotmdRoute
   '/': typeof MarketingIndexRoute
+  '/$section/$slug': typeof MarketingSectionSlugRoute
   '/features/$slug': typeof MarketingFeaturesSlugRoute
   '/legal/privacy': typeof MarketingLegalPrivacyRoute
   '/legal/subprocessors': typeof MarketingLegalSubprocessorsRoute
   '/legal/terms': typeof MarketingLegalTermsRoute
+  '/$section': typeof MarketingSectionIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -146,10 +162,12 @@ export interface FileRoutesById {
   '/docs/llms.txt': typeof DocsLlmsDottxtRoute
   '/docs/{$}.md': typeof DocsChar123Char125DotmdRoute
   '/_marketing/': typeof MarketingIndexRoute
+  '/_marketing/$section/$slug': typeof MarketingSectionSlugRoute
   '/_marketing/features/$slug': typeof MarketingFeaturesSlugRoute
   '/_marketing/legal/privacy': typeof MarketingLegalPrivacyRoute
   '/_marketing/legal/subprocessors': typeof MarketingLegalSubprocessorsRoute
   '/_marketing/legal/terms': typeof MarketingLegalTermsRoute
+  '/_marketing/$section/': typeof MarketingSectionIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -164,10 +182,12 @@ export interface FileRouteTypes {
     | '/docs/llms-full.txt'
     | '/docs/llms.txt'
     | '/docs/{$}.md'
+    | '/$section/$slug'
     | '/features/$slug'
     | '/legal/privacy'
     | '/legal/subprocessors'
     | '/legal/terms'
+    | '/$section/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/sitemap.xml'
@@ -180,10 +200,12 @@ export interface FileRouteTypes {
     | '/docs/llms.txt'
     | '/docs/{$}.md'
     | '/'
+    | '/$section/$slug'
     | '/features/$slug'
     | '/legal/privacy'
     | '/legal/subprocessors'
     | '/legal/terms'
+    | '/$section'
   id:
     | '__root__'
     | '/_marketing'
@@ -197,10 +219,12 @@ export interface FileRouteTypes {
     | '/docs/llms.txt'
     | '/docs/{$}.md'
     | '/_marketing/'
+    | '/_marketing/$section/$slug'
     | '/_marketing/features/$slug'
     | '/_marketing/legal/privacy'
     | '/_marketing/legal/subprocessors'
     | '/_marketing/legal/terms'
+    | '/_marketing/$section/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -217,18 +241,18 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/sitemap.xml': {
-      id: '/sitemap.xml'
-      path: '/sitemap.xml'
-      fullPath: '/sitemap.xml'
-      preLoaderRoute: typeof SitemapDotxmlRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/_marketing': {
       id: '/_marketing'
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof MarketingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_marketing/': {
@@ -238,39 +262,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MarketingIndexRouteImport
       parentRoute: typeof MarketingRoute
     }
-    '/docs/{$}.md': {
-      id: '/docs/{$}.md'
-      path: '/docs/{$}.md'
-      fullPath: '/docs/{$}.md'
-      preLoaderRoute: typeof DocsChar123Char125DotmdRouteImport
-      parentRoute: typeof rootRouteImport
+    '/_marketing/pricing': {
+      id: '/_marketing/pricing'
+      path: '/pricing'
+      fullPath: '/pricing'
+      preLoaderRoute: typeof MarketingPricingRouteImport
+      parentRoute: typeof MarketingRoute
     }
-    '/docs/llms.txt': {
-      id: '/docs/llms.txt'
-      path: '/docs/llms.txt'
-      fullPath: '/docs/llms.txt'
-      preLoaderRoute: typeof DocsLlmsDottxtRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/docs/llms-full.txt': {
-      id: '/docs/llms-full.txt'
-      path: '/docs/llms-full.txt'
-      fullPath: '/docs/llms-full.txt'
-      preLoaderRoute: typeof DocsLlmsFullDottxtRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/docs/$': {
-      id: '/docs/$'
-      path: '/docs/$'
-      fullPath: '/docs/$'
-      preLoaderRoute: typeof DocsSplatRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/search': {
-      id: '/api/search'
-      path: '/api/search'
-      fullPath: '/api/search'
-      preLoaderRoute: typeof ApiSearchRouteImport
+    '/api/og': {
+      id: '/api/og'
+      path: '/api/og'
+      fullPath: '/api/og'
+      preLoaderRoute: typeof ApiOgRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/openapi-proxy': {
@@ -280,39 +283,53 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiOpenapiProxyRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/og': {
-      id: '/api/og'
-      path: '/api/og'
-      fullPath: '/api/og'
-      preLoaderRoute: typeof ApiOgRouteImport
+    '/api/search': {
+      id: '/api/search'
+      path: '/api/search'
+      fullPath: '/api/search'
+      preLoaderRoute: typeof ApiSearchRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_marketing/pricing': {
-      id: '/_marketing/pricing'
-      path: '/pricing'
-      fullPath: '/pricing'
-      preLoaderRoute: typeof MarketingPricingRouteImport
+    '/docs/$': {
+      id: '/docs/$'
+      path: '/docs/$'
+      fullPath: '/docs/$'
+      preLoaderRoute: typeof DocsSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/docs/llms-full.txt': {
+      id: '/docs/llms-full.txt'
+      path: '/docs/llms-full.txt'
+      fullPath: '/docs/llms-full.txt'
+      preLoaderRoute: typeof DocsLlmsFullDottxtRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/docs/llms.txt': {
+      id: '/docs/llms.txt'
+      path: '/docs/llms.txt'
+      fullPath: '/docs/llms.txt'
+      preLoaderRoute: typeof DocsLlmsDottxtRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/docs/{$}.md': {
+      id: '/docs/{$}.md'
+      path: '/docs/{$}.md'
+      fullPath: '/docs/{$}.md'
+      preLoaderRoute: typeof DocsChar123Char125DotmdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_marketing/$section/': {
+      id: '/_marketing/$section/'
+      path: '/$section'
+      fullPath: '/$section/'
+      preLoaderRoute: typeof MarketingSectionIndexRouteImport
       parentRoute: typeof MarketingRoute
     }
-    '/_marketing/legal/terms': {
-      id: '/_marketing/legal/terms'
-      path: '/legal/terms'
-      fullPath: '/legal/terms'
-      preLoaderRoute: typeof MarketingLegalTermsRouteImport
-      parentRoute: typeof MarketingRoute
-    }
-    '/_marketing/legal/subprocessors': {
-      id: '/_marketing/legal/subprocessors'
-      path: '/legal/subprocessors'
-      fullPath: '/legal/subprocessors'
-      preLoaderRoute: typeof MarketingLegalSubprocessorsRouteImport
-      parentRoute: typeof MarketingRoute
-    }
-    '/_marketing/legal/privacy': {
-      id: '/_marketing/legal/privacy'
-      path: '/legal/privacy'
-      fullPath: '/legal/privacy'
-      preLoaderRoute: typeof MarketingLegalPrivacyRouteImport
+    '/_marketing/$section/$slug': {
+      id: '/_marketing/$section/$slug'
+      path: '/$section/$slug'
+      fullPath: '/$section/$slug'
+      preLoaderRoute: typeof MarketingSectionSlugRouteImport
       parentRoute: typeof MarketingRoute
     }
     '/_marketing/features/$slug': {
@@ -322,25 +339,50 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MarketingFeaturesSlugRouteImport
       parentRoute: typeof MarketingRoute
     }
+    '/_marketing/legal/privacy': {
+      id: '/_marketing/legal/privacy'
+      path: '/legal/privacy'
+      fullPath: '/legal/privacy'
+      preLoaderRoute: typeof MarketingLegalPrivacyRouteImport
+      parentRoute: typeof MarketingRoute
+    }
+    '/_marketing/legal/subprocessors': {
+      id: '/_marketing/legal/subprocessors'
+      path: '/legal/subprocessors'
+      fullPath: '/legal/subprocessors'
+      preLoaderRoute: typeof MarketingLegalSubprocessorsRouteImport
+      parentRoute: typeof MarketingRoute
+    }
+    '/_marketing/legal/terms': {
+      id: '/_marketing/legal/terms'
+      path: '/legal/terms'
+      fullPath: '/legal/terms'
+      preLoaderRoute: typeof MarketingLegalTermsRouteImport
+      parentRoute: typeof MarketingRoute
+    }
   }
 }
 
 interface MarketingRouteChildren {
   MarketingPricingRoute: typeof MarketingPricingRoute
   MarketingIndexRoute: typeof MarketingIndexRoute
+  MarketingSectionSlugRoute: typeof MarketingSectionSlugRoute
   MarketingFeaturesSlugRoute: typeof MarketingFeaturesSlugRoute
   MarketingLegalPrivacyRoute: typeof MarketingLegalPrivacyRoute
   MarketingLegalSubprocessorsRoute: typeof MarketingLegalSubprocessorsRoute
   MarketingLegalTermsRoute: typeof MarketingLegalTermsRoute
+  MarketingSectionIndexRoute: typeof MarketingSectionIndexRoute
 }
 
 const MarketingRouteChildren: MarketingRouteChildren = {
   MarketingPricingRoute: MarketingPricingRoute,
   MarketingIndexRoute: MarketingIndexRoute,
+  MarketingSectionSlugRoute: MarketingSectionSlugRoute,
   MarketingFeaturesSlugRoute: MarketingFeaturesSlugRoute,
   MarketingLegalPrivacyRoute: MarketingLegalPrivacyRoute,
   MarketingLegalSubprocessorsRoute: MarketingLegalSubprocessorsRoute,
   MarketingLegalTermsRoute: MarketingLegalTermsRoute,
+  MarketingSectionIndexRoute: MarketingSectionIndexRoute,
 }
 
 const MarketingRouteWithChildren = MarketingRoute._addFileChildren(

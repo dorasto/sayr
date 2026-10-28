@@ -40,7 +40,7 @@ export function BackupCodesDialog({ open, onOpenChange, codes, isSetup = false, 
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className="max-w-md">
+			<DialogContent className="ph-no-capture max-w-md">
 				<DialogHeader>
 					<DialogTitle>{isSetup ? "Save Your Backup Codes" : "Backup Codes"}</DialogTitle>
 					<DialogDescription>

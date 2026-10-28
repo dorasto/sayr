@@ -77,7 +77,7 @@ export function GenerateBackupCodesDialog({ open, onOpenChange }: GenerateBackup
 				else onOpenChange(true);
 			}}
 		>
-			<DialogContent className="max-w-md">
+			<DialogContent className="ph-no-capture max-w-md">
 				<DialogHeader>
 					<DialogTitle>Generate New Backup Codes</DialogTitle>
 					<DialogDescription>

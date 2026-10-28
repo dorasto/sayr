@@ -23,7 +23,6 @@ export async function getRelease(releaseId: string): Promise<schema.releaseType 
  * @returns Promise resolving to release data or null if not found
  */
 export async function getReleaseBySlug(orgId: string, slug: string): Promise<schema.ReleaseWithTasks | null> {
-
 	const release: any = await db.query.release.findFirst({
 		where: and(eq(schema.release.organizationId, orgId), eq(schema.release.slug, slug)),
 	});
@@ -36,6 +35,24 @@ export async function getReleaseBySlug(orgId: string, slug: string): Promise<sch
 	}
 
 	return release || null;
+}
+
+/**
+ * Public projection of a linked GitHub pull request. The PR description
+ * (`body`) can carry internal detail from a private repository, so it is
+ * blanked for anything served to anonymous callers (public API, public
+ * portal, public SSE). The row keeps its shape so existing renderers
+ * (`LinkedGithubPRs`) still work. There's no repository visibility column to
+ * filter on, so every linked PR is still listed — just without its body.
+ */
+export function toPublicPullRequest<T extends schema.githubPullRequestType>(pr: T): T {
+	return { ...pr, body: null };
+}
+
+/** Public projection of a release: linked PRs are passed through `toPublicPullRequest`. */
+export function toPublicRelease<T extends { githubPullRequests?: schema.githubPullRequestType[] }>(release: T): T {
+	if (!release.githubPullRequests) return release;
+	return { ...release, githubPullRequests: release.githubPullRequests.map(toPublicPullRequest) };
 }
 
 /**
@@ -79,7 +96,7 @@ export async function getReleasesPage(
 		page?: number;
 		limit?: number;
 		status?: ReleaseStatus | "all";
-	} = {},
+	} = {}
 ): Promise<{
 	releases: schema.releaseType[];
 	pagination: {
@@ -100,10 +117,7 @@ export async function getReleasesPage(
 			? eq(schema.release.organizationId, orgId)
 			: and(eq(schema.release.organizationId, orgId), eq(schema.release.status, status));
 
-	const [countResult] = await db
-		.select({ count: sql<number>`count(*)` })
-		.from(schema.release)
-		.where(whereClause);
+	const [countResult] = await db.select({ count: sql<number>`count(*)` }).from(schema.release).where(whereClause);
 
 	const totalItems = Number(countResult?.count ?? 0);
 	const totalPages = Math.max(Math.ceil(totalItems / limit), 1);
@@ -116,10 +130,7 @@ export async function getReleasesPage(
 		orderBy = [desc(schema.release.updatedAt)];
 	} else {
 		// planned, in-progress, or "all" — soonest target date first, nulls last
-		orderBy = [
-			sql`${schema.release.targetDate} ASC NULLS LAST`,
-			asc(schema.release.slug),
-		];
+		orderBy = [sql`${schema.release.targetDate} ASC NULLS LAST`, asc(schema.release.slug)];
 	}
 
 	const releases = await db.query.release.findMany({
@@ -390,20 +401,14 @@ export async function markReleaseAsReleased(
 // ─── Release Labels ───────────────────────────────────────────────────────────
 
 export async function addReleaseLabel(releaseId: string, organizationId: string, labelId: string): Promise<void> {
-	await db
-		.insert(schema.releaseLabelAssignment)
-		.values({ releaseId, organizationId, labelId })
-		.onConflictDoNothing();
+	await db.insert(schema.releaseLabelAssignment).values({ releaseId, organizationId, labelId }).onConflictDoNothing();
 }
 
 export async function removeReleaseLabel(releaseId: string, labelId: string): Promise<void> {
 	await db
 		.delete(schema.releaseLabelAssignment)
 		.where(
-			and(
-				eq(schema.releaseLabelAssignment.releaseId, releaseId),
-				eq(schema.releaseLabelAssignment.labelId, labelId)
-			)
+			and(eq(schema.releaseLabelAssignment.releaseId, releaseId), eq(schema.releaseLabelAssignment.labelId, labelId))
 		);
 }
 
@@ -473,9 +478,9 @@ export async function getReleaseStatusUpdates(
 			!visibility || visibility === "all"
 				? eq(schema.releaseStatusUpdate.releaseId, releaseId)
 				: and(
-					eq(schema.releaseStatusUpdate.releaseId, releaseId),
-					eq(schema.releaseStatusUpdate.visibility, visibility)
-				),
+						eq(schema.releaseStatusUpdate.releaseId, releaseId),
+						eq(schema.releaseStatusUpdate.visibility, visibility)
+					),
 		orderBy: [desc(schema.releaseStatusUpdate.createdAt)],
 		with: {
 			author: { columns: userSummaryColumns },
@@ -584,9 +589,10 @@ export async function getReleaseComments(
 			.then((r) => r[0]?.count ?? 0),
 		db.query.releaseComment.findMany({
 			where: whereClause,
-			orderBy: opts.direction === "desc"
-				? [desc(schema.releaseComment.createdAt)]
-				: [asc(schema.releaseComment.createdAt)],
+			orderBy:
+				opts.direction === "desc"
+					? [desc(schema.releaseComment.createdAt)]
+					: [asc(schema.releaseComment.createdAt)],
 			limit: opts.limit,
 			offset: opts.offset,
 			with: {
@@ -623,7 +629,9 @@ export async function getReleaseComments(
 	};
 }
 
-function buildReactionSummary(reactions: schema.releaseCommentReactionType[]): schema.ReleaseCommentWithAuthor["reactions"] {
+function buildReactionSummary(
+	reactions: schema.releaseCommentReactionType[]
+): schema.ReleaseCommentWithAuthor["reactions"] {
 	if (!reactions.length) return { total: 0, reactions: {} };
 	const map: Record<string, { count: number; users: string[] }> = {};
 	for (const r of reactions) {
@@ -678,10 +686,7 @@ export async function getReleaseCommentReplyCountBatch(
 
 		// Fetch replies with authors to extract unique participants
 		const replies = await db.query.releaseComment.findMany({
-			where: and(
-				eq(schema.releaseComment.releaseId, releaseId),
-				eq(schema.releaseComment.parentId, parentId)
-			),
+			where: and(eq(schema.releaseComment.releaseId, releaseId), eq(schema.releaseComment.parentId, parentId)),
 			with: {
 				createdBy: { columns: userSummaryColumns },
 			},
@@ -716,10 +721,7 @@ export async function getReleaseCommentReplies(
 	parentId: string
 ): Promise<schema.ReleaseCommentWithAuthor[]> {
 	const rows = await db.query.releaseComment.findMany({
-		where: and(
-			eq(schema.releaseComment.releaseId, releaseId),
-			eq(schema.releaseComment.parentId, parentId)
-		),
+		where: and(eq(schema.releaseComment.releaseId, releaseId), eq(schema.releaseComment.parentId, parentId)),
 		orderBy: [asc(schema.releaseComment.createdAt)],
 		with: {
 			createdBy: { columns: userSummaryColumns },

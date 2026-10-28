@@ -54,6 +54,14 @@ Reference by name, never paste the value. `zerops_env`/`zerops_discover` read en
 - Diagnosing live errors/502s/build failures from prose instead of `zerops_verify`/`zerops_logs`/`zerops_events`/`zerops_env`.
 - Hand-rolling `import.yaml` or `zcli project create` for a "promote to prod" / "go live" intent → `workflow="launch-production"`.
 
+## Words for the person
+
+A standard pair's halves are `{name}dev` and `{name}stage` to the tools; those names, "dev/stage pair" and "promote to stage" stay in tool calls and never reach the person. What you tell the person:
+
+- The stage half is **your preview** (in a Mate, "<Mate>'s preview"): a copy of the app for trying the work, whose data is a test copy. Never call it "online", "live", "stage", "deployed to stage" or "dev and stage", and never suggest installing or sharing it — no "Add to Home Screen", no link to pass around. In a Mate, "stage" and "production" are only the application's environments.
+- The dev half is where you build; if you give its address, it is work in progress, a preview too, never the app.
+- The real app is production. Until its first release there is none, so the preview is not yet what anyone uses — say so if they treat it as the app. Once production runs a release (in a Mate, the application's production the person released; elsewhere the project `launch-production` made), its address is the real app's: say so, and send them there for anything real — sharing, installing, real data.
+
 ## Workflow detail
 
 - `develop` — service code edit. `scope` = runtime services this touches; get from `zerops_discover`, don't invent. `intent` = one-line proposal; workflow returns the plan, react to that. 1 task = 1 session; new `intent` auto-closes prior.

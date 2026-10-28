@@ -4,6 +4,7 @@ import defaultMdxComponents from "fumadocs-ui/mdx";
 import type { MDXComponents } from "mdx/types";
 import { FeatureCallout } from "@/components/features/callout";
 import { ComparisonCallout } from "@/components/features/comparison-callout";
+import { ComparisonTable } from "@/components/features/comparison-table";
 import { FeatureStep } from "@/components/features/feature-step";
 import openapiDocument from "@/data/openapi-public.json";
 
@@ -34,6 +35,7 @@ export function getMDXComponents(components?: MDXComponents) {
 		...defaultMdxComponents,
 		FeatureCallout,
 		ComparisonCallout,
+		ComparisonTable,
 		FeatureStep,
 		APIPage,
 		...components,

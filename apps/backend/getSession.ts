@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import { getCookieValue } from "./util";
 
 // -----------------------------------------------------------------------------
-// Session cache (in-memory, keyed by better-auth.session_token)
+// Session cache (in-memory, keyed by the verified Better Auth session cookie value)
 // -----------------------------------------------------------------------------
 type SessionValue = Awaited<ReturnType<typeof auth.api.getSession>>;
 
@@ -15,12 +15,28 @@ console.log(
 	"| BETTER_AUTH_URL:",
 	process.env.BETTER_AUTH_URL || "(not set)",
 	"| BETTER_AUTH_SECRET set:",
-	!!process.env.BETTER_AUTH_SECRET,
+	!!process.env.BETTER_AUTH_SECRET
 );
 
 const sessionCache = new Map<string, { value: SessionValue | null; expiresAt: number }>();
 
-function getSessionToken(headers: Headers): string {
+// The session cookie name Better Auth actually reads in this environment (depends on
+// useSecureCookies / cookiePrefix). Only this cookie may be used as a cache key — keying on
+// a cookie Better Auth ignores would let a planted cookie alias someone else's session.
+let sessionCookieNamePromise: Promise<string> | null = null;
+function getSessionCookieName(): Promise<string> {
+	sessionCookieNamePromise ??= auth.$context
+		.then((ctx) => ctx.authCookies.sessionToken.name)
+		.catch(() => `${process.env.APP_ENV === "production" ? "__Secure-" : ""}better-auth.session_token`);
+	return sessionCookieNamePromise;
+}
+
+/**
+ * Returns the cache key for this request: the raw value of the session cookie Better Auth
+ * verifies, "anonymous" when absent, or `null` when the request is ambiguous (the cookie is
+ * sent more than once) and must not be cached.
+ */
+function getSessionToken(headers: Headers, cookieName: string): string | null {
 	const cookieHeader = headers.get("cookie");
 	if (!cookieHeader) {
 		return "anonymous";
@@ -28,25 +44,26 @@ function getSessionToken(headers: Headers): string {
 
 	// Split and clean up each cookie pair
 	const cookies = cookieHeader.split(";").map((c) => c.trim());
+	const matches = cookies.filter((c) => c.startsWith(`${cookieName}=`));
 
-	// Possible cookie names (with and without the __Secure- prefix)
-	const cookieNames = ["__Secure-better-auth.session_token", "better-auth.session_token"];
-
-	// Try to find the first cookie that matches any of the allowed names
-	const sessionCookie = cookies.find((c) => cookieNames.some((name) => c.startsWith(`${name}=`)));
-
-	if (!sessionCookie) {
+	if (matches.length === 0) {
 		// Log cookie names present (values masked) to diagnose mismatched cookie names
 		const presentNames = cookies.map((c) => c.split("=")[0]).join(", ");
 		console.warn("[safeGetSession] no session_token cookie found. Cookie names present:", presentNames || "(none)");
 		return "anonymous";
 	}
 
+	if (matches.length > 1) {
+		// Duplicate session cookies (e.g. one planted from a sibling subdomain) — we can't know
+		// which one Better Auth will verify, so bypass the cache for this request.
+		return null;
+	}
+
 	// Extract everything after the first "=" safely
-	const [, rawValue] = sessionCookie.split("=", 2);
+	const rawValue = (matches[0] as string).slice(cookieName.length + 1);
 
 	try {
-		return decodeURIComponent(rawValue as string);
+		return decodeURIComponent(rawValue);
 	} catch {
 		// Handle malformed or non-encoded cookies gracefully
 		return rawValue || "anonymous";
@@ -65,8 +82,9 @@ const systemAccountCache: {
 	user: undefined,
 };
 
-export async function safeGetSession(headers: Headers, ms = 10_000, ttl = 1 * 60 * 1000): Promise<SessionValue | null> {
-	const key = getSessionToken(headers);
+// Kept short: a revoked/signed-out session stays usable from this cache until the entry expires.
+export async function safeGetSession(headers: Headers, ms = 10_000, ttl = 10_000): Promise<SessionValue | null> {
+	const key = getSessionToken(headers, await getSessionCookieName());
 	const now = Date.now();
 
 	// 🔒 1. Internal shortcut path (supports cookie OR header)
@@ -130,10 +148,16 @@ export async function safeGetSession(headers: Headers, ms = 10_000, ttl = 1 * 60
 	}
 
 	// ✅ 2. Serve from cache if available and valid
-	const cached = sessionCache.get(key);
+	const cached = key === null ? undefined : sessionCache.get(key);
 	if (cached && cached.expiresAt > now) {
 		if (cached.value === null) {
-			console.warn("[safeGetSession] serving cached null for token prefix:", key.slice(0, 8), "— expires in", Math.round((cached.expiresAt - now) / 1000), "s");
+			console.warn(
+				"[safeGetSession] serving cached null for token prefix:",
+				key?.slice(0, 8),
+				"— expires in",
+				Math.round((cached.expiresAt - now) / 1000),
+				"s"
+			);
 		}
 		return cached.value;
 	}
@@ -145,19 +169,32 @@ export async function safeGetSession(headers: Headers, ms = 10_000, ttl = 1 * 60
 		// Fetch the real session
 		const session = (await Promise.race([auth.api.getSession({ headers }), timeoutPromise])) as SessionValue;
 
-		// Cache with full TTL if session found; shorter TTL if getSession returned null (e.g. expired/invalid token)
-		sessionCache.set(key, { value: session, expiresAt: now + (session ? ttl : 10_000) });
-		if (!session) {
-			console.warn("[safeGetSession] getSession returned null for token prefix:", key.slice(0, 8), "(cached 10s)");
+		// Cache with full TTL if session found; shorter TTL if getSession returned null (e.g. expired/invalid token).
+		// A session is only cached when the token Better Auth verified is the one in our cache key
+		// (cookie value is "<token>.<signature>"), so a cache hit can only go to a request presenting
+		// that exact verified cookie.
+		if (key !== null) {
+			if (!session) {
+				sessionCache.set(key, { value: null, expiresAt: now + 10_000 });
+				console.warn(
+					"[safeGetSession] getSession returned null for token prefix:",
+					key.slice(0, 8),
+					"(cached 10s)"
+				);
+			} else if (session.session?.token && session.session.token === key.split(".")[0]) {
+				sessionCache.set(key, { value: session, expiresAt: now + ttl });
+			}
 		}
 		return session;
 	} catch (err) {
 		const isTimeout = err instanceof Error && err.message === "Timeout";
 		console.error(
-			`[safeGetSession] ${isTimeout ? "TIMEOUT" : "ERROR"} for token prefix ${key.slice(0, 8)}:`,
-			isTimeout ? `exceeded ${ms}ms` : err,
+			`[safeGetSession] ${isTimeout ? "TIMEOUT" : "ERROR"} for token prefix ${key?.slice(0, 8) ?? "(uncached)"}:`,
+			isTimeout ? `exceeded ${ms}ms` : err
 		);
-		sessionCache.set(key, { value: null, expiresAt: now + 5_000 });
+		if (key !== null) {
+			sessionCache.set(key, { value: null, expiresAt: now + 5_000 });
+		}
 		return null;
 	}
 }

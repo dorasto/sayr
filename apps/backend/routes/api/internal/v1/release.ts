@@ -89,7 +89,7 @@ apiRouteAdminRelease.post("/create", async (c) => {
 		traceName: "release.count_all",
 		entityName: "release",
 		traceAsync,
-		recordWideError
+		recordWideError,
 	});
 	if (releaseLimitRes) return releaseLimitRes;
 
@@ -819,6 +819,10 @@ apiRouteAdminRelease.patch("/:releaseId/comments/:commentId", async (c) => {
 	const existingComment = await findCommentInRelease(commentId, releaseId, orgId);
 	if (!existingComment) return c.json({ success: false, error: "Comment not found" }, 404);
 
+	// Authorship alone isn't enough: a former member must not keep editing/deleting their comments.
+	const isMember = await traceOrgPermissionCheck(session.userId, orgId, "members");
+	if (!isMember) return c.json({ success: false, error: "Permission denied" }, 401);
+
 	const isOwner = existingComment.createdBy === session.userId;
 	const canManage = await traceOrgPermissionCheck(session.userId, orgId, "moderation.manageComments");
 	if (!isOwner && !canManage) return c.json({ success: false, error: "Permission denied" }, 401);
@@ -850,6 +854,10 @@ apiRouteAdminRelease.delete("/:releaseId/comments/:commentId", async (c) => {
 	// The comment must belong to this release (and organization) before ownership is considered.
 	const existingComment = await findCommentInRelease(commentId, releaseId, orgId);
 	if (!existingComment) return c.json({ success: false, error: "Comment not found" }, 404);
+
+	// Authorship alone isn't enough: a former member must not keep editing/deleting their comments.
+	const isMember = await traceOrgPermissionCheck(session.userId, orgId, "members");
+	if (!isMember) return c.json({ success: false, error: "Permission denied" }, 401);
 
 	const isOwner = existingComment.createdBy === session.userId;
 	const canManage = await traceOrgPermissionCheck(session.userId, orgId, "moderation.manageComments");
@@ -966,12 +974,15 @@ apiRouteAdminRelease.post("/:releaseId/github_prs/link", async (c) => {
 
 	try {
 		// Create or update the GitHub PR record
-		const existingPR = await traceAsync("release.link.github-pr-check", async () => db.query.githubPullRequest.findFirst({
-			where: and(
-				eq(schema.githubPullRequest.repositoryId, repositoryId),
-				eq(schema.githubPullRequest.prNumber, prNumber)
-			)
-		}),
+		const existingPR = await traceAsync(
+			"release.link.github-pr-check",
+			async () =>
+				db.query.githubPullRequest.findFirst({
+					where: and(
+						eq(schema.githubPullRequest.repositoryId, repositoryId),
+						eq(schema.githubPullRequest.prNumber, prNumber)
+					),
+				}),
 			{
 				description: "Checking for existing GitHub PR link",
 				data: { repositoryId, prNumber, releaseId },
@@ -980,7 +991,7 @@ apiRouteAdminRelease.post("/:releaseId/github_prs/link", async (c) => {
 					data: { repositoryId, prNumber, releaseId, existingPRId: result?.id },
 				}),
 			}
-		)
+		);
 
 		let githubPR;
 		if (existingPR) {
@@ -994,52 +1005,75 @@ apiRouteAdminRelease.post("/:releaseId/github_prs/link", async (c) => {
 					error: new Error("GitHub PR already linked to a different release"),
 					code: "GITHUB_PR_LINK_CONFLICT",
 					message: "GitHub PR is already linked to a different release",
-					contextData: { repositoryId, prNumber, existingReleaseId: existingPR.releaseId, attemptedReleaseId: releaseId },
+					contextData: {
+						repositoryId,
+						prNumber,
+						existingReleaseId: existingPR.releaseId,
+						attemptedReleaseId: releaseId,
+					},
 				});
 				return c.json({ success: false, error: "GitHub PR is already linked to a different release" }, 400);
 			}
 			// Update existing PR
-			githubPR = await traceAsync("release.link.github-pr-update", async () => db
-				.update(schema.githubPullRequest)
-				.set({ releaseId: releaseId })
-				.where(eq(schema.githubPullRequest.id, existingPR.id))
-				.returning()
-				, {
+			githubPR = await traceAsync(
+				"release.link.github-pr-update",
+				async () =>
+					db
+						.update(schema.githubPullRequest)
+						.set({ releaseId: releaseId })
+						.where(eq(schema.githubPullRequest.id, existingPR.id))
+						.returning(),
+				{
 					description: "Linking existing GitHub PR to release",
 					data: { repositoryId, prNumber, releaseId },
 					onSuccess: () => ({
 						description: "GitHub PR linked to release successfully",
-						data: { organization: { id: orgId }, user: { id: session?.userId }, repositoryId, prNumber, releaseId },
-					})
+						data: {
+							organization: { id: orgId },
+							user: { id: session?.userId },
+							repositoryId,
+							prNumber,
+							releaseId,
+						},
+					}),
 				}
 			);
 		} else {
 			// Create new PR record
-			githubPR = await traceAsync("release.link.github-pr-create", async () => db
-				.insert(schema.githubPullRequest)
-				.values({
-					repositoryId: repositoryId,
-					organizationId: orgId,
-					prNumber: prNumber,
-					prUrl: prUrl,
-					title,
-					body: prBody,
-					headSha,
-					headBranch,
-					baseBranch,
-					state: state,
-					merged: merged,
-					mergeCommitSha: mergeCommitSha,
-					releaseId: releaseId,
-				})
-				.returning()
-				, {
+			githubPR = await traceAsync(
+				"release.link.github-pr-create",
+				async () =>
+					db
+						.insert(schema.githubPullRequest)
+						.values({
+							repositoryId: repositoryId,
+							organizationId: orgId,
+							prNumber: prNumber,
+							prUrl: prUrl,
+							title,
+							body: prBody,
+							headSha,
+							headBranch,
+							baseBranch,
+							state: state,
+							merged: merged,
+							mergeCommitSha: mergeCommitSha,
+							releaseId: releaseId,
+						})
+						.returning(),
+				{
 					description: "Creating new GitHub PR link to release",
 					data: { repositoryId, prNumber, releaseId },
 					onSuccess: () => ({
 						description: "GitHub PR linked to release successfully",
-						data: { organization: { id: orgId }, user: { id: session?.userId }, repositoryId, prNumber, releaseId },
-					})
+						data: {
+							organization: { id: orgId },
+							user: { id: session?.userId },
+							repositoryId,
+							prNumber,
+							releaseId,
+						},
+					}),
 				}
 			);
 		}
@@ -1079,15 +1113,28 @@ apiRouteAdminRelease.delete("/:releaseId/github_prs/:githubPRId/unlink", async (
 
 	try {
 		// Update the GitHub PR to remove the release association
-		const result = await traceAsync("release.unlink.github-pr", async () => db
-			.update(schema.githubPullRequest)
-			.set({ releaseId: null })
-			.where(and(eq(schema.githubPullRequest.id, githubPRId), eq(schema.githubPullRequest.organizationId, orgId), eq(schema.githubPullRequest.releaseId, releaseId))).returning(),
+		const result = await traceAsync(
+			"release.unlink.github-pr",
+			async () =>
+				db
+					.update(schema.githubPullRequest)
+					.set({ releaseId: null })
+					.where(
+						and(
+							eq(schema.githubPullRequest.id, githubPRId),
+							eq(schema.githubPullRequest.organizationId, orgId),
+							eq(schema.githubPullRequest.releaseId, releaseId)
+						)
+					)
+					.returning(),
 			{
 				description: "Unlinking GitHub PR from release",
 				data: { githubPRId, releaseId },
 				onSuccess: (result) => ({
-					description: result.length > 0 ? "GitHub PR unlinked from release successfully" : "GitHub PR not found or not linked to this release",
+					description:
+						result.length > 0
+							? "GitHub PR unlinked from release successfully"
+							: "GitHub PR not found or not linked to this release",
 					data: { organization: { id: orgId }, user: { id: session?.userId }, githubPRId, releaseId },
 				}),
 			}

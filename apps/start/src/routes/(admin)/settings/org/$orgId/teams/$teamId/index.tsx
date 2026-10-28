@@ -3,14 +3,16 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { SubWrapper } from "@/components/generic/wrapper";
 import SettingsOrganizationPageTeamSettings from "@/components/pages/admin/settings/orgId/team-settings";
+import { requireOrgMember } from "@/getAccess";
 import { seo } from "@/seo";
 
 /**
  * Fetch a single team and its members for the given org/team IDs.
  */
 const fetchteam = createServerFn({ method: "GET" })
-	.inputValidator((data: { orgid: string; teamid: string }) => data)
+	.validator((data: { orgid: string; teamid: string }) => data)
 	.handler(async ({ data }) => {
+		await requireOrgMember(data.orgid);
 		// Find the team within this organization
 		const teamdata = await db.query.team.findFirst({
 			where: (team, { eq, and }) => and(eq(team.organizationId, data.orgid), eq(team.name, data.teamid)),

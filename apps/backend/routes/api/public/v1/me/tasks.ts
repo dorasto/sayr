@@ -6,6 +6,7 @@ import {
 	getTaskById,
 	getTaskComments,
 	schema,
+	toPublicTask,
 } from "@repo/database";
 import { isAiEnabled } from "@repo/edition";
 import { createTraceAsync } from "@repo/opentelemetry/trace";
@@ -259,7 +260,11 @@ tasksRoute.post(
 				};
 
 				sseBroadcastToRoom(orgId, "tasks", data);
-				sseBroadcastPublic(orgId, { ...data, data: data });
+				// Only public tasks go to the public room, and only in their public projection.
+				if (taskWithData?.visible === "public") {
+					const publicData = { ...data, data: toPublicTask(taskWithData) };
+					sseBroadcastPublic(orgId, { ...publicData, data: publicData });
+				}
 
 				const members = await getOrganizationMembers(orgId);
 				members.forEach((member) => {
@@ -398,7 +403,7 @@ tasksRoute.post(
 				sseBroadcastToRoom(orgId, `tasks;task:${taskId}`, message, undefined, true);
 
 				if (taskWithData?.visible === "public") {
-					sseBroadcastPublic(orgId, { ...message });
+					sseBroadcastPublic(orgId, { ...message, data: toPublicTask(taskWithData) });
 				}
 
 				const members = await getOrganizationMembers(orgId);

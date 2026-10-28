@@ -9,6 +9,7 @@ import {
 	CommandShortcut,
 } from "@repo/ui/components/command";
 import { DialogTitle } from "@repo/ui/components/dialog";
+import { formatTaskKey } from "@repo/util";
 import { IconArrowBack, IconArrowLeft, IconArrowsUpDown, IconLoader2 } from "@tabler/icons-react";
 import { useStore } from "@tanstack/react-store";
 import * as React from "react";
@@ -169,7 +170,7 @@ export default function AdminCommand() {
 				label: task.title || "Untitled task",
 				icon: taskStatusIcon(task.status, isAssigned),
 				metadata: assignToggleMeta(task.shortId, isAssigned, taskAssignmentContext.orgShortId),
-				keywords: `${task.shortId ?? ""} ${task.title ?? ""}`,
+				keywords: `${taskAssignmentContext.orgShortId && task.shortId != null ? formatTaskKey(taskAssignmentContext.orgShortId, task.shortId) : ""} ${task.shortId ?? ""} ${task.title ?? ""}`,
 				closeOnSelect: false,
 				action: async () => {
 					if (isAssigned) {
