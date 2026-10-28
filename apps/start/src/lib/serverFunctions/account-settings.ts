@@ -80,7 +80,8 @@ export const getConnectionSettings = createServerFn({ method: "GET" }).handler(a
 	]);
 	return {
 		accountEmail: user.email,
-		email: email ?? null,
+		// Only the row id goes to the client — the full credential account row carries the password hash and tokens.
+		email: email ? { id: email.id } : null,
 		githubUser: githubUser && github ? { ...githubUser, account_id: github.id } : null,
 		dorasUser,
 		discordUser: discordUser && discord ? { ...discordUser, account_id: discord.id } : null,

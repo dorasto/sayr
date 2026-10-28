@@ -167,7 +167,7 @@ export function SystemApiKeys({ initialData = [] }: SystemApiKeysProps) {
 			{error && <p className="text-sm text-red-500">{error}</p>}
 
 			{createdKey && (
-				<div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+				<div className="ph-no-capture p-4 bg-green-50 border border-green-200 rounded-lg">
 					<p className="text-sm font-medium text-green-800 mb-2">
 						API key created successfully! Copy it now — you won't be able to see it
 						again.

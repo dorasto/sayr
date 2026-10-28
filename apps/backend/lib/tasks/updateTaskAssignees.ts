@@ -5,6 +5,7 @@ import {
 	getOrganizationMembers,
 	getTaskById,
 	schema,
+	toPublicTask,
 	userSummaryColumns,
 } from "@repo/database";
 import { createTraceAsync } from "@repo/opentelemetry/trace";
@@ -200,7 +201,7 @@ export async function updateTaskAssigneesService(params: UpdateTaskAssigneesServ
 
 			sseBroadcastToRoom(orgId, `tasks;task:${taskId}`, data, found?.id, true);
 			if (taskWithData?.visible === "public") {
-				sseBroadcastPublic(orgId, { ...data }, found?.id);
+				sseBroadcastPublic(orgId, { ...data, data: toPublicTask(taskWithData) }, found?.id);
 			}
 
 			const members = await getOrganizationMembers(orgId);

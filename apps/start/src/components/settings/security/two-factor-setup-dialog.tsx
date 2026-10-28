@@ -69,7 +69,7 @@ export function TwoFactorSetupDialog({ open, onOpenChange, totpUri, onVerified }
 
 	return (
 		<Dialog open={open} onOpenChange={handleOpenChange}>
-			<DialogContent className="md:min-w-xl">
+			<DialogContent className="ph-no-capture md:min-w-xl">
 				<DialogHeader>
 					<DialogTitle>Set Up Authenticator App</DialogTitle>
 					<DialogDescription>

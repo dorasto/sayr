@@ -24,7 +24,6 @@ export const OrganizationMemberSchema = z.object({
 	user: OrganizationMemberUserSchema,
 });
 
-//@ts-expect-error
 export const OrganizationSchema = createSelectSchema(schema.organization)
 	.omit({
 		privateId: true,
@@ -42,7 +41,6 @@ export const OrganizationSchema = createSelectSchema(schema.organization)
 		members: z.array(OrganizationMemberSchema),
 	});
 
-//@ts-expect-error
 export const PublicUserSchema = createSelectSchema(authSchema.user)
 	.pick({
 		id: true,

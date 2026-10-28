@@ -7,9 +7,11 @@ import { db } from "@repo/database";
 import { getEdition } from "@repo/edition";
 import { ensureBucketExists } from "@repo/storage";
 import { sql } from "drizzle-orm";
-import { Hono } from "hono";
+import { type Context, Hono, type MiddlewareHandler } from "hono";
 import { serveStatic, websocket } from "hono/bun";
 import { cors } from "hono/cors";
+import { csrf } from "hono/csrf";
+import { HTTPException } from "hono/http-exception";
 import { requestId } from "hono/request-id";
 import type { ApiKeyPrincipal } from "./lib/apiKeyAuth";
 import { rootSpanPlugin } from "@/tracing/index";
@@ -108,6 +110,106 @@ app.use(
 		maxAge: 600,
 	})
 );
+
+// -----------------------------------------------------------------------------
+// CSRF
+// -----------------------------------------------------------------------------
+// Session cookies are SameSite=Lax and scoped to `.${root}`, so a page on any sibling
+// subdomain is *same-site* and its requests carry the cookie. CORS doesn't help with
+// "simple" requests (form posts, text/plain, no body) — they're sent without a preflight
+// and `c.req.json()` parses a text/plain body happily. User-uploaded content is served
+// from `files.<root>`, so without this an uploaded HTML file could drive the internal API
+// as whoever opened it. JSON requests already need a CORS preflight, which only admits
+// VITE_URL_ROOT, so hono/csrf (which only inspects form-like/missing content types) is
+// enough to close the gap.
+
+const rootDomain = process.env.VITE_ROOT_DOMAIN?.toLowerCase() || null;
+
+// Hosts serving user-uploaded content: subdomains of root, but never a trusted origin.
+// Mirrors the exclusion in @repo/auth's trustedOrigins.
+const filesHosts = new Set<string>();
+if (rootDomain) filesHosts.add(`files.${rootDomain}`);
+try {
+	const cdnHost = process.env.FILE_CDN ? new URL(process.env.FILE_CDN).hostname.toLowerCase() : "";
+	if (cdnHost && cdnHost !== rootDomain) filesHosts.add(cdnHost);
+} catch {
+	// FILE_CDN may be unset or not an absolute URL; nothing to exclude then.
+}
+
+/**
+ * Whether a browser origin belongs to this deployment: the admin app (VITE_URL_ROOT), the
+ * root domain, or one of its subdomains (org portals, api) — never the user-content host.
+ * Only used as a fallback for browsers that don't send `Sec-Fetch-Site` (older browsers, and
+ * any browser on a plain-http non-localhost self-host, where Fetch Metadata isn't sent).
+ */
+function isFirstPartyOrigin(value: string | undefined | null): boolean {
+	if (!value) return false;
+	let parsed: URL;
+	try {
+		parsed = new URL(value);
+	} catch {
+		return false;
+	}
+	if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return false;
+	const hostname = parsed.hostname.toLowerCase();
+	if (filesHosts.has(hostname)) return false;
+	if (parsed.origin === toOrigin(process.env.VITE_URL_ROOT)) return true;
+	if (!isProduction) {
+		if (hostname === "localhost" || hostname.endsWith(".localhost")) return true;
+		if (hostname === "127.0.0.1" || hostname === "[::1]") return true;
+	}
+	return rootDomain !== null && (hostname === rootDomain || hostname.endsWith(`.${rootDomain}`));
+}
+
+const csrfProtection = csrf({
+	// Passes outright when Sec-Fetch-Site is "same-origin" (the browser saw the request as
+	// same-origin — the normal case, since the frontends call the API on relative paths
+	// through the proxy). Otherwise this decides on the Origin header.
+	origin: (origin, c) => {
+		// A modern browser that reported a cross-origin request: only the admin app may
+		// call cross-origin, matching the CORS policy above. Same-site siblings (portals,
+		// files) are refused.
+		if (c.req.header("sec-fetch-site")) {
+			return origin === toOrigin(process.env.VITE_URL_ROOT);
+		}
+		return isFirstPartyOrigin(origin);
+	},
+});
+
+/**
+ * CSRF guard for cookie-authenticated mutating routes. Requests carrying neither `Origin`
+ * nor `Sec-Fetch-Site` aren't from a browser that could be coerced into them (every
+ * browser sends Origin on non-GET requests) — they're server-to-server calls from the
+ * start server functions, worker, or integrations service, and are let through.
+ */
+const csrfGuard: MiddlewareHandler<AppEnv> = async (c, next) => {
+	if (!c.req.header("origin") && !c.req.header("sec-fetch-site")) {
+		return next();
+	}
+	try {
+		return await csrfProtection(c, next);
+	} catch (err) {
+		// Without this, app.onError would turn the 403 into a logged 500.
+		if (err instanceof HTTPException && err.status === 403) {
+			return c.json({ success: false, error: "Cross-site request rejected" }, 403);
+		}
+		throw err;
+	}
+};
+app.use("/api/internal/*", csrfGuard);
+app.use("/api/integrations/*", csrfGuard);
+
+/**
+ * For cookie-authenticated GET endpoints that change state (they can't use the CSRF
+ * middleware, which skips safe methods): true when the request is a navigation or fetch
+ * initiated from our own origin, or a top-level navigation the user made directly.
+ * Falls back to Referer when Fetch Metadata isn't available; with neither, refuses.
+ */
+export function isFirstPartyBrowserRequest(c: Context<AppEnv>): boolean {
+	const site = c.req.header("sec-fetch-site");
+	if (site) return site === "same-origin" || site === "none";
+	return isFirstPartyOrigin(c.req.header("referer"));
+}
 
 // -----------------------------------------------------------------------------
 // Core Middleware chain

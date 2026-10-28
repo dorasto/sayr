@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import SettingsOrganizationPageTeams from "@/components/pages/admin/settings/orgId/teams";
 import { SubWrapper } from "@/components/generic/wrapper";
+import { requireOrgMember } from "@/getAccess";
 import { seo } from "@/seo";
 
 /**
@@ -10,8 +11,9 @@ import { seo } from "@/seo";
  * for a specific organization.
  */
 const fetchTeams = createServerFn({ method: "GET" })
-	.inputValidator((data: { orgId: string }) => data)
+	.validator((data: { orgId: string }) => data)
 	.handler(async ({ data }) => {
+		await requireOrgMember(data.orgId);
 		// Load all teams for this organization with members attached
 		const teams = await db.query.team.findMany({
 			where: (t, { eq }) => eq(t.organizationId, data.orgId),

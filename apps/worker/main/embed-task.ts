@@ -1,5 +1,5 @@
 import { embedText } from "@repo/ai";
-import { getTaskById, updateTaskEmbedding } from "@repo/database";
+import { getTaskById, isTaskEmbeddingAllowedForOrg, updateTaskEmbedding } from "@repo/database";
 import { getEditionCapabilities } from "@repo/edition";
 import { createTraceAsync } from "@repo/opentelemetry/trace";
 import type { JobGroups } from "@repo/queue";
@@ -13,7 +13,7 @@ import { extractPlainText } from "@repo/util";
  *
  * No-ops quietly if the task no longer exists (e.g. deleted between enqueue
  * and processing), has no meaningful text to embed, or if this edition
- * doesn't have semantic search enabled (defense-in-depth — the enqueue call
+ * doesn't have semantic search enabled, or the org has AI disabled (defense-in-depth — the enqueue call
  * sites already gate on this; this covers stale queued jobs left over from
  * before an edition change, or a future enqueue site that forgets to check).
  */
@@ -22,6 +22,11 @@ export async function embedTaskWorker(job: JobGroups["main"] & { type: "embed_ta
 
 	const { orgId, taskId } = job.payload;
 	const traceAsync = createTraceAsync();
+
+	// An org with AI turned off must not have its task text sent to the
+	// embedding provider — re-checked here so jobs queued before the org
+	// switched AI off are dropped too.
+	if (!(await isTaskEmbeddingAllowedForOrg(orgId))) return;
 
 	const task = await getTaskById(orgId, taskId);
 	if (!task) return;

@@ -17,7 +17,6 @@ export const Route = createFileRoute("/(admin)/$orgId/tasks/$taskShortId")({
 		}
 		return await getAdminOrganizationTask({
 			data: {
-				account: context.account,
 				orgId: params.orgId,
 				taskShortId,
 			},

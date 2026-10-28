@@ -23,10 +23,29 @@ const authCallbackUrl = process.env.VITE_AUTH_CALLBACK_URL || process.env.VITE_U
 const isBarelocalhost = rootUrl === "localhost";
 const { polarBillingEnabled } = getEditionCapabilities();
 
+// Hosts that serve user-uploaded content. They're subdomains of root (so matched by the
+// `*.root` wildcard) but must never be trusted as an auth origin.
+const filesHosts = new Set<string>([`files.${rootUrl}`]);
+try {
+	const cdnHost = process.env.FILE_CDN ? new URL(process.env.FILE_CDN).hostname.toLowerCase() : "";
+	if (cdnHost && cdnHost !== rootUrl) filesHosts.add(cdnHost);
+} catch {
+	// FILE_CDN may be unset or not an absolute URL in some setups; ignore.
+}
+
+function isFilesHostOrigin(value: string | null | undefined): boolean {
+	if (!value) return false;
+	try {
+		return filesHosts.has(new URL(value).hostname.toLowerCase());
+	} catch {
+		return false;
+	}
+}
+
 const polarClient = polarBillingEnabled
 	? createPolar({
-		accessToken: process.env.POLAR_ACCESS_TOKEN!,
-	})
+			accessToken: process.env.POLAR_ACCESS_TOKEN!,
+		})
 	: null;
 const plugins = [
 	lastLoginMethod({
@@ -99,15 +118,15 @@ export const auth = betterAuth({
 			passkey: schema.auth.passkey,
 		},
 	}),
-	trustedOrigins: [
-		`http://${rootUrl}`,
-		`http://${rootUrl}:3000`,
-		`https://${rootUrl}`,
-		// ✅ wildcard subdomains
-		`https://*.${rootUrl}`,
-		`http://*.${rootUrl}`,
-		`http://*.${rootUrl}:3000`,
-	],
+	// Org portals live on `<slug>.<root>`, so subdomains must be trusted by wildcard. The user-content
+	// files host is also a subdomain of root, and Better Auth's wildcard syntax can't express an
+	// exclusion — so when a request originates from a files host, drop the wildcards for that request.
+	trustedOrigins: (request) => {
+		const explicit = [`http://${rootUrl}`, `http://${rootUrl}:3000`, `https://${rootUrl}`];
+		const wildcards = [`https://*.${rootUrl}`, `http://*.${rootUrl}`, `http://*.${rootUrl}:3000`];
+		const source = request?.headers.get("origin") || request?.headers.get("referer");
+		return isFilesHostOrigin(source) ? explicit : [...explicit, ...wildcards];
+	},
 	advanced: {
 		// Enable cross-subdomain cookies for production and dev domains that support it
 		// Disabled for bare "localhost" since browsers reject .localhost as cookie domain

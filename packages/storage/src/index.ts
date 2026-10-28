@@ -9,9 +9,8 @@ import {
 	CreateBucketCommand,
 	PutBucketPolicyCommand,
 	ListObjectsV2Command,
-	GetObjectCommand
+	GetObjectCommand,
 } from "@aws-sdk/client-s3";
-import { lookup as mimeLookup } from "mime-types";
 import { ensureCdnUrl } from "@repo/util";
 const BUCKET = process.env.STORAGE_BUCKET || "";
 if (!BUCKET) {
@@ -59,7 +58,7 @@ const publicPolicy = (bucket: string) =>
 				Principal: "*",
 				Action: ["s3:GetObject"],
 				Resource: [`arn:aws:s3:::${bucket}/*`],
-			}
+			},
 		],
 	});
 
@@ -68,7 +67,7 @@ export async function ensureBucketExists() {
 		await s3Client.send(
 			new CreateBucketCommand({
 				Bucket: BUCKET,
-			}),
+			})
 		);
 		console.log(`Storage Bucket "${BUCKET}" created`);
 		try {
@@ -76,7 +75,7 @@ export async function ensureBucketExists() {
 				new PutBucketPolicyCommand({
 					Bucket: BUCKET,
 					Policy: publicPolicy(BUCKET),
-				}),
+				})
 			);
 			console.log(`Public object access policy applied to "${BUCKET}"`);
 		} catch (err) {
@@ -91,6 +90,65 @@ export async function ensureBucketExists() {
 			throw err;
 		}
 	}
+}
+
+/**
+ * Allowlist of file types we are willing to store and serve from the public
+ * files host, keyed by extension. Anything not listed here (html, svg, xml, js,
+ * …) is never stored with a renderable Content-Type.
+ */
+const SAFE_IMAGE_TYPES: Record<string, string> = {
+	png: "image/png",
+	jpg: "image/jpeg",
+	jpeg: "image/jpeg",
+	gif: "image/gif",
+	webp: "image/webp",
+	avif: "image/avif",
+};
+
+const SAFE_VIDEO_TYPES: Record<string, string> = {
+	mp4: "video/mp4",
+	m4v: "video/mp4",
+	webm: "video/webm",
+	mov: "video/quicktime",
+	qt: "video/quicktime",
+	ogv: "video/ogg",
+};
+
+const SAFE_UPLOAD_TYPES: Record<string, string> = { ...SAFE_IMAGE_TYPES, ...SAFE_VIDEO_TYPES };
+
+export type SafeUploadKind = "image" | "media";
+
+/**
+ * Resolves a client-supplied file to a safe extension + Content-Type, or `null`
+ * when the type is not allowlisted. The client's MIME type is only used to pick
+ * an entry from the allowlist; the returned values always come from the table.
+ *
+ * @param file - The uploaded file's declared `type` and `name`.
+ * @param kind - `"image"` for raster images only, `"media"` for images + video.
+ */
+export function resolveSafeUploadType(
+	file: { type?: string; name?: string },
+	kind: SafeUploadKind
+): { ext: string; contentType: string } | null {
+	const table = kind === "image" ? SAFE_IMAGE_TYPES : SAFE_UPLOAD_TYPES;
+	const declaredType = (file.type || "").toLowerCase().split(";")[0]?.trim() || "";
+	const name = file.name || "";
+	const nameExt = name.includes(".") ? name.split(".").pop()?.toLowerCase() || "" : "";
+
+	// Prefer the declared MIME type when it maps to an allowlisted entry.
+	if (declaredType) {
+		const ext =
+			nameExt && table[nameExt] === declaredType
+				? nameExt
+				: Object.keys(table).find((key) => table[key] === declaredType);
+		const contentType = ext ? table[ext] : undefined;
+		return ext && contentType ? { ext, contentType } : null;
+	}
+
+	// No declared type: fall back to the filename extension.
+	const contentType = nameExt ? table[nameExt] : undefined;
+	return contentType ? { ext: nameExt, contentType } : null;
 }
 
 /**
@@ -120,10 +178,7 @@ export async function uploadObject(
 	const salt = process.env.FILE_SALT || "";
 
 	// Length of the final hash string — e.g. 16 / 24 / 32 / 64
-	const hashLength = parseInt(
-		process.env.FILE_NAME_HASH_LENGTH || "64",
-		10
-	);
+	const hashLength = parseInt(process.env.FILE_NAME_HASH_LENGTH || "64", 10);
 
 	// Generate salted SHA-256 hash
 	const fullHash = crypto
@@ -138,19 +193,15 @@ export async function uploadObject(
 	const obfuscatedName = extension ? `${shortHash}.${extension}` : shortHash;
 
 	// Prefix with optional path (like folders in S3/rustfs)
-	const finalKey = path
-		? `${path.replace(/\/+$/, "")}/${obfuscatedName}`
-		: obfuscatedName;
+	const finalKey = path ? `${path.replace(/\/+$/, "")}/${obfuscatedName}` : obfuscatedName;
 
 	// Auto-size for strings/buffers
-	const contentLength =
-		typeof data === "string" || Buffer.isBuffer(data)
-			? Buffer.byteLength(data)
-			: undefined;
+	const contentLength = typeof data === "string" || Buffer.isBuffer(data) ? Buffer.byteLength(data) : undefined;
 
-	// Infer MIME type from the *original* objectName extension
-	const contentType =
-		(mimeLookup(objectName) || undefined) ?? undefined; // e.g. image/png
+	// Only allowlisted extensions get a renderable Content-Type. Anything else
+	// (html, svg, xml, js, …) is stored as an opaque download so the files host
+	// can never serve it as an active document.
+	const safeContentType = extension ? SAFE_UPLOAD_TYPES[extension.toLowerCase()] : undefined;
 
 	await s3Client.send(
 		new PutObjectCommand({
@@ -158,7 +209,8 @@ export async function uploadObject(
 			Key: finalKey,
 			Body: data as any, // S3Client accepts string | Uint8Array | Readable
 			ContentLength: contentLength,
-			ContentType: contentType, // 👈 this makes the browser render images inline
+			ContentType: safeContentType ?? "application/octet-stream",
+			ContentDisposition: safeContentType ? undefined : "attachment",
 			Metadata: meta,
 		})
 	);
@@ -202,9 +254,7 @@ export async function removeObject(objectName: string): Promise<void> {
  * console.log("Multiple files removed.");
  * ```
  */
-export async function removeObjects(
-	objectNames: string[]
-): Promise<DeleteObjectsCommandOutput> {
+export async function removeObjects(objectNames: string[]): Promise<DeleteObjectsCommandOutput> {
 	if (objectNames.length === 0) {
 		return {} as DeleteObjectsCommandOutput;
 	}
@@ -241,18 +291,13 @@ export async function removeObjects(
  * // → ["https://cdn.example.com/files/abc123/img1.png", ...]
  * ```
  */
-export async function listUserFiles(
-	userId: string,
-	privateId?: string
-): Promise<string[]> {
-	const prefix = privateId
-		? `files/${privateId}/${userId}/`
-		: `files/${userId}/`;
+export async function listUserFiles(userId: string, privateId?: string): Promise<string[]> {
+	const prefix = privateId ? `files/${privateId}/${userId}/` : `files/${userId}/`;
 
 	const res = await s3Client.send(
 		new ListObjectsV2Command({
 			Bucket: BUCKET,
-			Prefix: prefix
+			Prefix: prefix,
 		})
 	);
 
@@ -264,10 +309,7 @@ export async function listUserFiles(
 		.map((key) => ensureCdnUrl(key));
 }
 
-export async function listAllUserFiles(
-	userId: string,
-	privateIds: string[]
-): Promise<string[]> {
+export async function listAllUserFiles(userId: string, privateIds: string[]): Promise<string[]> {
 	const results: string[] = [];
 
 	// 1. User‑only folder
@@ -283,15 +325,14 @@ export async function listAllUserFiles(
 	return results;
 }
 
+/** Storage key prefix for GDPR data exports. */
+export const GDPR_EXPORT_PREFIX = "gdpr_exports/";
 
-export async function uploadGdprExport(
-	userId: string,
-	jsonData: any,
-): Promise<string> {
+export async function uploadGdprExport(userId: string, jsonData: any): Promise<string> {
 	const timestamp = Date.now();
 	const randomHash = crypto.randomBytes(32).toString("hex");
 	const fileName = `${randomHash}.json`;
-	const key = `gdpr_exports/${userId}/${timestamp}/${fileName}`;
+	const key = `${GDPR_EXPORT_PREFIX}${userId}/${timestamp}/${fileName}`;
 	const body = Buffer.from(JSON.stringify(jsonData, null, 2));
 	await s3Client.send(
 		new PutObjectCommand({
@@ -301,7 +342,7 @@ export async function uploadGdprExport(
 			ContentType: "application/json",
 			Metadata: {
 				userId,
-			}
+			},
 		})
 	);
 	return key;
@@ -311,7 +352,7 @@ export async function getObjectBuffer(key: string): Promise<Buffer | null> {
 	const res = await s3Client.send(
 		new GetObjectCommand({
 			Bucket: BUCKET,
-			Key: key
+			Key: key,
 		})
 	);
 
@@ -323,7 +364,7 @@ export async function deleteObjectByKey(key: string): Promise<void> {
 	await s3Client.send(
 		new DeleteObjectCommand({
 			Bucket: BUCKET,
-			Key: key
+			Key: key,
 		})
 	);
 }

@@ -6,13 +6,15 @@ import { eq } from "drizzle-orm";
 import { PermissionError } from "@repo/util";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
+import { requireOrgMember } from "@/getAccess";
 import { seo } from "@/seo";
 
 const edition = import.meta.env.VITE_SAYR_EDITION ?? "community";
 
 const fetchPlanLimits = createServerFn({ method: "GET" })
-	.inputValidator((data: { orgId: string }) => data)
+	.validator((data: { orgId: string }) => data)
 	.handler(async ({ data }) => {
+		await requireOrgMember(data.orgId);
 		const org = await db.query.organization.findFirst({
 			where: eq(schema.organization.id, data.orgId),
 			columns: { plan: true },

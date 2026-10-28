@@ -1,12 +1,23 @@
-import { db, getIssueTemplates, getLabels, getOrganization, getReleases, schema } from "@repo/database";
+import {
+	db,
+	getIssueTemplates,
+	getLabels,
+	getOrganization,
+	getOrgPermissions,
+	getReleases,
+	schema,
+} from "@repo/database";
 import { isRedirect, redirect } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { eq } from "drizzle-orm";
+import { requireAccount } from "@/getAccess";
 
 export const getAdminOrganization = createServerFn({ method: "GET" })
-	.inputValidator((data: { account: schema.userType; orgId: string, permissions: schema.TeamPermissions }) => data)
+	.validator((data: { orgId: string }) => data)
 	.handler(async ({ data }) => {
-		const { account, orgId, permissions } = data;
+		const { orgId } = data;
+		// Identity comes from the session, never from client input (server fns are publicly callable).
+		const account = await requireAccount();
 		try {
 			if (!orgId) {
 				throw redirect({ to: "/" });
@@ -33,6 +44,7 @@ export const getAdminOrganization = createServerFn({ method: "GET" })
 			});
 			const issueTemplates = await getIssueTemplates(organization.id);
 			const releases = await getReleases(organization.id);
+			const permissions = await getOrgPermissions(account.id, organization.id);
 			return { organization, labels, views, categories, issueTemplates, releases, permissions };
 		} catch (error) {
 			// If it's already a redirect, re-throw it

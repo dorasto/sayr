@@ -9,85 +9,74 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as ProsekitTestRouteImport } from './routes/prosekit-test'
-import { Route as ManifestDotwebmanifestRouteImport } from './routes/manifest[.]webmanifest'
-import { Route as LlmsDottxtRouteImport } from './routes/llms[.]txt'
-import { Route as HealthRouteImport } from './routes/health'
 import { Route as adminRouteRouteImport } from './routes/(admin)/route'
+import { Route as HealthRouteImport } from './routes/health'
+import { Route as LlmsDottxtRouteImport } from './routes/llms[.]txt'
+import { Route as ManifestDotwebmanifestRouteImport } from './routes/manifest[.]webmanifest'
+import { Route as ProsekitTestRouteImport } from './routes/prosekit-test'
 import { Route as adminIndexRouteImport } from './routes/(admin)/index'
-import { Route as AuthSignupRouteImport } from './routes/auth/signup'
-import { Route as AuthReauthRouteImport } from './routes/auth/reauth'
-import { Route as AuthPasswordResetRouteImport } from './routes/auth/password-reset'
-import { Route as AuthLoginRouteImport } from './routes/auth/login'
-import { Route as AuthAuthCheckRouteImport } from './routes/auth/auth-check'
-import { Route as Auth2faRouteImport } from './routes/auth/2fa'
-import { Route as ApiTracesRouteImport } from './routes/api/traces'
-import { Route as ApiOgRouteImport } from './routes/api/og'
-import { Route as ApiImagePreviewRouteImport } from './routes/api/image-preview'
-import { Route as OrgsOrgSlugRouteRouteImport } from './routes/orgs/$orgSlug/route'
-import { Route as adminSettingsRouteRouteImport } from './routes/(admin)/settings/route'
-import { Route as adminMineRouteRouteImport } from './routes/(admin)/mine/route'
-import { Route as adminInboxRouteRouteImport } from './routes/(admin)/inbox/route'
-import { Route as adminHomeRouteRouteImport } from './routes/(admin)/home/route'
 import { Route as adminOrgIdRouteRouteImport } from './routes/(admin)/$orgId/route'
-import { Route as OrgsOrgSlugIndexRouteImport } from './routes/orgs/$orgSlug/index'
-import { Route as InviteOrgIdIndexRouteImport } from './routes/invite/$orgId/index'
-import { Route as adminSettingsIndexRouteImport } from './routes/(admin)/settings/index'
-import { Route as adminMineIndexRouteImport } from './routes/(admin)/mine/index'
-import { Route as adminInboxIndexRouteImport } from './routes/(admin)/inbox/index'
-import { Route as adminHomeIndexRouteImport } from './routes/(admin)/home/index'
-import { Route as adminConsoleIndexRouteImport } from './routes/(admin)/console/index'
+import { Route as adminHomeRouteRouteImport } from './routes/(admin)/home/route'
+import { Route as adminInboxRouteRouteImport } from './routes/(admin)/inbox/route'
+import { Route as adminMineRouteRouteImport } from './routes/(admin)/mine/route'
+import { Route as adminSettingsRouteRouteImport } from './routes/(admin)/settings/route'
+import { Route as ApiImagePreviewRouteImport } from './routes/api/image-preview'
+import { Route as ApiOgRouteImport } from './routes/api/og'
+import { Route as ApiTracesRouteImport } from './routes/api/traces'
+import { Route as Auth2faRouteImport } from './routes/auth/2fa'
+import { Route as AuthAuthCheckRouteImport } from './routes/auth/auth-check'
+import { Route as AuthLoginRouteImport } from './routes/auth/login'
+import { Route as AuthPasswordResetRouteImport } from './routes/auth/password-reset'
+import { Route as AuthReauthRouteImport } from './routes/auth/reauth'
+import { Route as AuthSignupRouteImport } from './routes/auth/signup'
+import { Route as OrgsOrgSlugRouteRouteImport } from './routes/orgs/$orgSlug/route'
 import { Route as adminOrgIdIndexRouteImport } from './routes/(admin)/$orgId/index'
-import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
-import { Route as adminSettingsConnectionsRouteRouteImport } from './routes/(admin)/settings/connections/route'
 import { Route as adminOrgIdTasksRouteRouteImport } from './routes/(admin)/$orgId/tasks/route'
-import { Route as OrgsOrgSlugRoadmapIndexRouteImport } from './routes/orgs/$orgSlug/roadmap/index'
-import { Route as OrgsOrgSlugReleasesIndexRouteImport } from './routes/orgs/$orgSlug/releases/index'
-import { Route as OrgsOrgSlugNewIndexRouteImport } from './routes/orgs/$orgSlug/new/index'
-import { Route as OrgsOrgSlugActivityIndexRouteImport } from './routes/orgs/$orgSlug/activity/index'
-import { Route as OrgsOrgSlugShortIdIndexRouteImport } from './routes/orgs/$orgSlug/$shortId/index'
-import { Route as adminSettingsSecurityIndexRouteImport } from './routes/(admin)/settings/security/index'
-import { Route as adminSettingsConnectionsIndexRouteImport } from './routes/(admin)/settings/connections/index'
-import { Route as adminSettingsApiKeysIndexRouteImport } from './routes/(admin)/settings/api-keys/index'
-import { Route as adminConsoleConnectionsIndexRouteImport } from './routes/(admin)/console/connections/index'
-import { Route as adminOrgIdViewsIndexRouteImport } from './routes/(admin)/$orgId/views/index'
-import { Route as adminOrgIdTasksIndexRouteImport } from './routes/(admin)/$orgId/tasks/index'
+import { Route as adminConsoleIndexRouteImport } from './routes/(admin)/console/index'
+import { Route as adminHomeIndexRouteImport } from './routes/(admin)/home/index'
+import { Route as adminInboxIndexRouteImport } from './routes/(admin)/inbox/index'
+import { Route as adminMineIndexRouteImport } from './routes/(admin)/mine/index'
+import { Route as adminSettingsIndexRouteImport } from './routes/(admin)/settings/index'
+import { Route as adminSettingsConnectionsRouteRouteImport } from './routes/(admin)/settings/connections/route'
+import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as InviteOrgIdIndexRouteImport } from './routes/invite/$orgId/index'
+import { Route as OrgsOrgSlugIndexRouteImport } from './routes/orgs/$orgSlug/index'
 import { Route as adminOrgIdReleasesIndexRouteImport } from './routes/(admin)/$orgId/releases/index'
-import { Route as adminConsoleUsersUserIdRouteImport } from './routes/(admin)/console/users/$userId'
-import { Route as adminConsoleOrganizationsOrgIdRouteImport } from './routes/(admin)/console/organizations/$orgId'
 import { Route as adminOrgIdReleasesReleaseSlugRouteImport } from './routes/(admin)/$orgId/releases/$releaseSlug'
-import { Route as adminSettingsOrgOrgIdRouteRouteImport } from './routes/(admin)/settings/org/$orgId/route'
+import { Route as adminOrgIdTasksIndexRouteImport } from './routes/(admin)/$orgId/tasks/index'
 import { Route as adminOrgIdTasksTaskShortIdRouteRouteImport } from './routes/(admin)/$orgId/tasks/$taskShortId/route'
-import { Route as OrgsOrgSlugReleasesReleaseSlugIndexRouteImport } from './routes/orgs/$orgSlug/releases/$releaseSlug/index'
-import { Route as adminSettingsOrgOrgIdIndexRouteImport } from './routes/(admin)/settings/org/$orgId/index'
+import { Route as adminOrgIdViewsIndexRouteImport } from './routes/(admin)/$orgId/views/index'
+import { Route as adminConsoleConnectionsIndexRouteImport } from './routes/(admin)/console/connections/index'
+import { Route as adminConsoleOrganizationsOrgIdRouteImport } from './routes/(admin)/console/organizations/$orgId'
+import { Route as adminConsoleUsersUserIdRouteImport } from './routes/(admin)/console/users/$userId'
+import { Route as adminSettingsApiKeysIndexRouteImport } from './routes/(admin)/settings/api-keys/index'
+import { Route as adminSettingsConnectionsIndexRouteImport } from './routes/(admin)/settings/connections/index'
+import { Route as adminSettingsOrgOrgIdRouteRouteImport } from './routes/(admin)/settings/org/$orgId/route'
+import { Route as adminSettingsSecurityIndexRouteImport } from './routes/(admin)/settings/security/index'
+import { Route as OrgsOrgSlugShortIdIndexRouteImport } from './routes/orgs/$orgSlug/$shortId/index'
+import { Route as OrgsOrgSlugActivityIndexRouteImport } from './routes/orgs/$orgSlug/activity/index'
+import { Route as OrgsOrgSlugNewIndexRouteImport } from './routes/orgs/$orgSlug/new/index'
+import { Route as OrgsOrgSlugReleasesIndexRouteImport } from './routes/orgs/$orgSlug/releases/index'
+import { Route as OrgsOrgSlugRoadmapIndexRouteImport } from './routes/orgs/$orgSlug/roadmap/index'
 import { Route as adminOrgIdTasksTaskShortIdIndexRouteImport } from './routes/(admin)/$orgId/tasks/$taskShortId/index'
-import { Route as adminSettingsOrgOrgIdViewsIndexRouteImport } from './routes/(admin)/settings/org/$orgId/views/index'
-import { Route as adminSettingsOrgOrgIdTemplatesIndexRouteImport } from './routes/(admin)/settings/org/$orgId/templates/index'
-import { Route as adminSettingsOrgOrgIdTeamsIndexRouteImport } from './routes/(admin)/settings/org/$orgId/teams/index'
-import { Route as adminSettingsOrgOrgIdMembersIndexRouteImport } from './routes/(admin)/settings/org/$orgId/members/index'
-import { Route as adminSettingsOrgOrgIdLabelsIndexRouteImport } from './routes/(admin)/settings/org/$orgId/labels/index'
-import { Route as adminSettingsOrgOrgIdConnectionsIndexRouteImport } from './routes/(admin)/settings/org/$orgId/connections/index'
-import { Route as adminSettingsOrgOrgIdCategoriesIndexRouteImport } from './routes/(admin)/settings/org/$orgId/categories/index'
-import { Route as adminSettingsOrgOrgIdBillingIndexRouteImport } from './routes/(admin)/settings/org/$orgId/billing/index'
+import { Route as adminSettingsOrgOrgIdIndexRouteImport } from './routes/(admin)/settings/org/$orgId/index'
+import { Route as OrgsOrgSlugReleasesReleaseSlugIndexRouteImport } from './routes/orgs/$orgSlug/releases/$releaseSlug/index'
 import { Route as adminSettingsOrgOrgIdAiIndexRouteImport } from './routes/(admin)/settings/org/$orgId/ai/index'
+import { Route as adminSettingsOrgOrgIdBillingIndexRouteImport } from './routes/(admin)/settings/org/$orgId/billing/index'
+import { Route as adminSettingsOrgOrgIdCategoriesIndexRouteImport } from './routes/(admin)/settings/org/$orgId/categories/index'
+import { Route as adminSettingsOrgOrgIdConnectionsIndexRouteImport } from './routes/(admin)/settings/org/$orgId/connections/index'
+import { Route as adminSettingsOrgOrgIdLabelsIndexRouteImport } from './routes/(admin)/settings/org/$orgId/labels/index'
+import { Route as adminSettingsOrgOrgIdMembersIndexRouteImport } from './routes/(admin)/settings/org/$orgId/members/index'
+import { Route as adminSettingsOrgOrgIdTeamsIndexRouteImport } from './routes/(admin)/settings/org/$orgId/teams/index'
 import { Route as adminSettingsOrgOrgIdTeamsNewRouteImport } from './routes/(admin)/settings/org/$orgId/teams/new'
-import { Route as adminSettingsOrgOrgIdTeamsTeamIdIndexRouteImport } from './routes/(admin)/settings/org/$orgId/teams/$teamId/index'
-import { Route as adminSettingsOrgOrgIdConnectionsGithubIndexRouteImport } from './routes/(admin)/settings/org/$orgId/connections/github/index'
+import { Route as adminSettingsOrgOrgIdTemplatesIndexRouteImport } from './routes/(admin)/settings/org/$orgId/templates/index'
+import { Route as adminSettingsOrgOrgIdViewsIndexRouteImport } from './routes/(admin)/settings/org/$orgId/views/index'
 import { Route as adminSettingsOrgOrgIdConnectionsIntegrationIdIndexRouteImport } from './routes/(admin)/settings/org/$orgId/connections/$integrationId/index'
+import { Route as adminSettingsOrgOrgIdConnectionsGithubIndexRouteImport } from './routes/(admin)/settings/org/$orgId/connections/github/index'
+import { Route as adminSettingsOrgOrgIdTeamsTeamIdIndexRouteImport } from './routes/(admin)/settings/org/$orgId/teams/$teamId/index'
 
-const ProsekitTestRoute = ProsekitTestRouteImport.update({
-  id: '/prosekit-test',
-  path: '/prosekit-test',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ManifestDotwebmanifestRoute = ManifestDotwebmanifestRouteImport.update({
-  id: '/manifest.webmanifest',
-  path: '/manifest.webmanifest',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LlmsDottxtRoute = LlmsDottxtRouteImport.update({
-  id: '/llms.txt',
-  path: '/llms.txt',
+const adminRouteRoute = adminRouteRouteImport.update({
+  id: '/(admin)',
   getParentRoute: () => rootRouteImport,
 } as any)
 const HealthRoute = HealthRouteImport.update({
@@ -95,8 +84,19 @@ const HealthRoute = HealthRouteImport.update({
   path: '/health',
   getParentRoute: () => rootRouteImport,
 } as any)
-const adminRouteRoute = adminRouteRouteImport.update({
-  id: '/(admin)',
+const LlmsDottxtRoute = LlmsDottxtRouteImport.update({
+  id: '/llms.txt',
+  path: '/llms.txt',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ManifestDotwebmanifestRoute = ManifestDotwebmanifestRouteImport.update({
+  id: '/manifest.webmanifest',
+  path: '/manifest.webmanifest',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProsekitTestRoute = ProsekitTestRouteImport.update({
+  id: '/prosekit-test',
+  path: '/prosekit-test',
   getParentRoute: () => rootRouteImport,
 } as any)
 const adminIndexRoute = adminIndexRouteImport.update({
@@ -104,69 +104,9 @@ const adminIndexRoute = adminIndexRouteImport.update({
   path: '/',
   getParentRoute: () => adminRouteRoute,
 } as any)
-const AuthSignupRoute = AuthSignupRouteImport.update({
-  id: '/auth/signup',
-  path: '/auth/signup',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthReauthRoute = AuthReauthRouteImport.update({
-  id: '/auth/reauth',
-  path: '/auth/reauth',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthPasswordResetRoute = AuthPasswordResetRouteImport.update({
-  id: '/auth/password-reset',
-  path: '/auth/password-reset',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthLoginRoute = AuthLoginRouteImport.update({
-  id: '/auth/login',
-  path: '/auth/login',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthAuthCheckRoute = AuthAuthCheckRouteImport.update({
-  id: '/auth/auth-check',
-  path: '/auth/auth-check',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const Auth2faRoute = Auth2faRouteImport.update({
-  id: '/auth/2fa',
-  path: '/auth/2fa',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiTracesRoute = ApiTracesRouteImport.update({
-  id: '/api/traces',
-  path: '/api/traces',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiOgRoute = ApiOgRouteImport.update({
-  id: '/api/og',
-  path: '/api/og',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiImagePreviewRoute = ApiImagePreviewRouteImport.update({
-  id: '/api/image-preview',
-  path: '/api/image-preview',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const OrgsOrgSlugRouteRoute = OrgsOrgSlugRouteRouteImport.update({
-  id: '/orgs/$orgSlug',
-  path: '/orgs/$orgSlug',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const adminSettingsRouteRoute = adminSettingsRouteRouteImport.update({
-  id: '/settings',
-  path: '/settings',
-  getParentRoute: () => adminRouteRoute,
-} as any)
-const adminMineRouteRoute = adminMineRouteRouteImport.update({
-  id: '/mine',
-  path: '/mine',
-  getParentRoute: () => adminRouteRoute,
-} as any)
-const adminInboxRouteRoute = adminInboxRouteRouteImport.update({
-  id: '/inbox',
-  path: '/inbox',
+const adminOrgIdRouteRoute = adminOrgIdRouteRouteImport.update({
+  id: '/$orgId',
+  path: '/$orgId',
   getParentRoute: () => adminRouteRoute,
 } as any)
 const adminHomeRouteRoute = adminHomeRouteRouteImport.update({
@@ -174,55 +114,105 @@ const adminHomeRouteRoute = adminHomeRouteRouteImport.update({
   path: '/home',
   getParentRoute: () => adminRouteRoute,
 } as any)
-const adminOrgIdRouteRoute = adminOrgIdRouteRouteImport.update({
-  id: '/$orgId',
-  path: '/$orgId',
+const adminInboxRouteRoute = adminInboxRouteRouteImport.update({
+  id: '/inbox',
+  path: '/inbox',
   getParentRoute: () => adminRouteRoute,
 } as any)
-const OrgsOrgSlugIndexRoute = OrgsOrgSlugIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => OrgsOrgSlugRouteRoute,
+const adminMineRouteRoute = adminMineRouteRouteImport.update({
+  id: '/mine',
+  path: '/mine',
+  getParentRoute: () => adminRouteRoute,
 } as any)
-const InviteOrgIdIndexRoute = InviteOrgIdIndexRouteImport.update({
-  id: '/invite/$orgId/',
-  path: '/invite/$orgId/',
+const adminSettingsRouteRoute = adminSettingsRouteRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => adminRouteRoute,
+} as any)
+const ApiImagePreviewRoute = ApiImagePreviewRouteImport.update({
+  id: '/api/image-preview',
+  path: '/api/image-preview',
   getParentRoute: () => rootRouteImport,
 } as any)
-const adminSettingsIndexRoute = adminSettingsIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => adminSettingsRouteRoute,
+const ApiOgRoute = ApiOgRouteImport.update({
+  id: '/api/og',
+  path: '/api/og',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const adminMineIndexRoute = adminMineIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => adminMineRouteRoute,
+const ApiTracesRoute = ApiTracesRouteImport.update({
+  id: '/api/traces',
+  path: '/api/traces',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const adminInboxIndexRoute = adminInboxIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => adminInboxRouteRoute,
+const Auth2faRoute = Auth2faRouteImport.update({
+  id: '/auth/2fa',
+  path: '/auth/2fa',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const adminHomeIndexRoute = adminHomeIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => adminHomeRouteRoute,
+const AuthAuthCheckRoute = AuthAuthCheckRouteImport.update({
+  id: '/auth/auth-check',
+  path: '/auth/auth-check',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const adminConsoleIndexRoute = adminConsoleIndexRouteImport.update({
-  id: '/console/',
-  path: '/console/',
-  getParentRoute: () => adminRouteRoute,
+const AuthLoginRoute = AuthLoginRouteImport.update({
+  id: '/auth/login',
+  path: '/auth/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthPasswordResetRoute = AuthPasswordResetRouteImport.update({
+  id: '/auth/password-reset',
+  path: '/auth/password-reset',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthReauthRoute = AuthReauthRouteImport.update({
+  id: '/auth/reauth',
+  path: '/auth/reauth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthSignupRoute = AuthSignupRouteImport.update({
+  id: '/auth/signup',
+  path: '/auth/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OrgsOrgSlugRouteRoute = OrgsOrgSlugRouteRouteImport.update({
+  id: '/orgs/$orgSlug',
+  path: '/orgs/$orgSlug',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const adminOrgIdIndexRoute = adminOrgIdIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => adminOrgIdRouteRoute,
 } as any)
-const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
-  id: '/api/auth/$',
-  path: '/api/auth/$',
-  getParentRoute: () => rootRouteImport,
+const adminOrgIdTasksRouteRoute = adminOrgIdTasksRouteRouteImport.update({
+  id: '/tasks',
+  path: '/tasks',
+  getParentRoute: () => adminOrgIdRouteRoute,
+} as any)
+const adminConsoleIndexRoute = adminConsoleIndexRouteImport.update({
+  id: '/console/',
+  path: '/console/',
+  getParentRoute: () => adminRouteRoute,
+} as any)
+const adminHomeIndexRoute = adminHomeIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => adminHomeRouteRoute,
+} as any)
+const adminInboxIndexRoute = adminInboxIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => adminInboxRouteRoute,
+} as any)
+const adminMineIndexRoute = adminMineIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => adminMineRouteRoute,
+} as any)
+const adminSettingsIndexRoute = adminSettingsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => adminSettingsRouteRoute,
 } as any)
 const adminSettingsConnectionsRouteRoute =
   adminSettingsConnectionsRouteRouteImport.update({
@@ -230,42 +220,69 @@ const adminSettingsConnectionsRouteRoute =
     path: '/connections',
     getParentRoute: () => adminSettingsRouteRoute,
   } as any)
-const adminOrgIdTasksRouteRoute = adminOrgIdTasksRouteRouteImport.update({
-  id: '/tasks',
-  path: '/tasks',
+const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
+  id: '/api/auth/$',
+  path: '/api/auth/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InviteOrgIdIndexRoute = InviteOrgIdIndexRouteImport.update({
+  id: '/invite/$orgId/',
+  path: '/invite/$orgId/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OrgsOrgSlugIndexRoute = OrgsOrgSlugIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => OrgsOrgSlugRouteRoute,
+} as any)
+const adminOrgIdReleasesIndexRoute = adminOrgIdReleasesIndexRouteImport.update({
+  id: '/releases/',
+  path: '/releases/',
   getParentRoute: () => adminOrgIdRouteRoute,
 } as any)
-const OrgsOrgSlugRoadmapIndexRoute = OrgsOrgSlugRoadmapIndexRouteImport.update({
-  id: '/roadmap/',
-  path: '/roadmap/',
-  getParentRoute: () => OrgsOrgSlugRouteRoute,
-} as any)
-const OrgsOrgSlugReleasesIndexRoute =
-  OrgsOrgSlugReleasesIndexRouteImport.update({
-    id: '/releases/',
-    path: '/releases/',
-    getParentRoute: () => OrgsOrgSlugRouteRoute,
+const adminOrgIdReleasesReleaseSlugRoute =
+  adminOrgIdReleasesReleaseSlugRouteImport.update({
+    id: '/releases/$releaseSlug',
+    path: '/releases/$releaseSlug',
+    getParentRoute: () => adminOrgIdRouteRoute,
   } as any)
-const OrgsOrgSlugNewIndexRoute = OrgsOrgSlugNewIndexRouteImport.update({
-  id: '/new/',
-  path: '/new/',
-  getParentRoute: () => OrgsOrgSlugRouteRoute,
+const adminOrgIdTasksIndexRoute = adminOrgIdTasksIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => adminOrgIdTasksRouteRoute,
 } as any)
-const OrgsOrgSlugActivityIndexRoute =
-  OrgsOrgSlugActivityIndexRouteImport.update({
-    id: '/activity/',
-    path: '/activity/',
-    getParentRoute: () => OrgsOrgSlugRouteRoute,
+const adminOrgIdTasksTaskShortIdRouteRoute =
+  adminOrgIdTasksTaskShortIdRouteRouteImport.update({
+    id: '/$taskShortId',
+    path: '/$taskShortId',
+    getParentRoute: () => adminOrgIdTasksRouteRoute,
   } as any)
-const OrgsOrgSlugShortIdIndexRoute = OrgsOrgSlugShortIdIndexRouteImport.update({
-  id: '/$shortId/',
-  path: '/$shortId/',
-  getParentRoute: () => OrgsOrgSlugRouteRoute,
+const adminOrgIdViewsIndexRoute = adminOrgIdViewsIndexRouteImport.update({
+  id: '/views/',
+  path: '/views/',
+  getParentRoute: () => adminOrgIdRouteRoute,
 } as any)
-const adminSettingsSecurityIndexRoute =
-  adminSettingsSecurityIndexRouteImport.update({
-    id: '/security/',
-    path: '/security/',
+const adminConsoleConnectionsIndexRoute =
+  adminConsoleConnectionsIndexRouteImport.update({
+    id: '/console/connections/',
+    path: '/console/connections/',
+    getParentRoute: () => adminRouteRoute,
+  } as any)
+const adminConsoleOrganizationsOrgIdRoute =
+  adminConsoleOrganizationsOrgIdRouteImport.update({
+    id: '/console/organizations/$orgId',
+    path: '/console/organizations/$orgId',
+    getParentRoute: () => adminRouteRoute,
+  } as any)
+const adminConsoleUsersUserIdRoute = adminConsoleUsersUserIdRouteImport.update({
+  id: '/console/users/$userId',
+  path: '/console/users/$userId',
+  getParentRoute: () => adminRouteRoute,
+} as any)
+const adminSettingsApiKeysIndexRoute =
+  adminSettingsApiKeysIndexRouteImport.update({
+    id: '/api-keys/',
+    path: '/api-keys/',
     getParentRoute: () => adminSettingsRouteRoute,
   } as any)
 const adminSettingsConnectionsIndexRoute =
@@ -274,67 +291,50 @@ const adminSettingsConnectionsIndexRoute =
     path: '/',
     getParentRoute: () => adminSettingsConnectionsRouteRoute,
   } as any)
-const adminSettingsApiKeysIndexRoute =
-  adminSettingsApiKeysIndexRouteImport.update({
-    id: '/api-keys/',
-    path: '/api-keys/',
-    getParentRoute: () => adminSettingsRouteRoute,
-  } as any)
-const adminConsoleConnectionsIndexRoute =
-  adminConsoleConnectionsIndexRouteImport.update({
-    id: '/console/connections/',
-    path: '/console/connections/',
-    getParentRoute: () => adminRouteRoute,
-  } as any)
-const adminOrgIdViewsIndexRoute = adminOrgIdViewsIndexRouteImport.update({
-  id: '/views/',
-  path: '/views/',
-  getParentRoute: () => adminOrgIdRouteRoute,
-} as any)
-const adminOrgIdTasksIndexRoute = adminOrgIdTasksIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => adminOrgIdTasksRouteRoute,
-} as any)
-const adminOrgIdReleasesIndexRoute = adminOrgIdReleasesIndexRouteImport.update({
-  id: '/releases/',
-  path: '/releases/',
-  getParentRoute: () => adminOrgIdRouteRoute,
-} as any)
-const adminConsoleUsersUserIdRoute = adminConsoleUsersUserIdRouteImport.update({
-  id: '/console/users/$userId',
-  path: '/console/users/$userId',
-  getParentRoute: () => adminRouteRoute,
-} as any)
-const adminConsoleOrganizationsOrgIdRoute =
-  adminConsoleOrganizationsOrgIdRouteImport.update({
-    id: '/console/organizations/$orgId',
-    path: '/console/organizations/$orgId',
-    getParentRoute: () => adminRouteRoute,
-  } as any)
-const adminOrgIdReleasesReleaseSlugRoute =
-  adminOrgIdReleasesReleaseSlugRouteImport.update({
-    id: '/releases/$releaseSlug',
-    path: '/releases/$releaseSlug',
-    getParentRoute: () => adminOrgIdRouteRoute,
-  } as any)
 const adminSettingsOrgOrgIdRouteRoute =
   adminSettingsOrgOrgIdRouteRouteImport.update({
     id: '/org/$orgId',
     path: '/org/$orgId',
     getParentRoute: () => adminSettingsRouteRoute,
   } as any)
-const adminOrgIdTasksTaskShortIdRouteRoute =
-  adminOrgIdTasksTaskShortIdRouteRouteImport.update({
-    id: '/$taskShortId',
-    path: '/$taskShortId',
-    getParentRoute: () => adminOrgIdTasksRouteRoute,
+const adminSettingsSecurityIndexRoute =
+  adminSettingsSecurityIndexRouteImport.update({
+    id: '/security/',
+    path: '/security/',
+    getParentRoute: () => adminSettingsRouteRoute,
   } as any)
-const OrgsOrgSlugReleasesReleaseSlugIndexRoute =
-  OrgsOrgSlugReleasesReleaseSlugIndexRouteImport.update({
-    id: '/releases/$releaseSlug/',
-    path: '/releases/$releaseSlug/',
+const OrgsOrgSlugShortIdIndexRoute = OrgsOrgSlugShortIdIndexRouteImport.update({
+  id: '/$shortId/',
+  path: '/$shortId/',
+  getParentRoute: () => OrgsOrgSlugRouteRoute,
+} as any)
+const OrgsOrgSlugActivityIndexRoute =
+  OrgsOrgSlugActivityIndexRouteImport.update({
+    id: '/activity/',
+    path: '/activity/',
     getParentRoute: () => OrgsOrgSlugRouteRoute,
+  } as any)
+const OrgsOrgSlugNewIndexRoute = OrgsOrgSlugNewIndexRouteImport.update({
+  id: '/new/',
+  path: '/new/',
+  getParentRoute: () => OrgsOrgSlugRouteRoute,
+} as any)
+const OrgsOrgSlugReleasesIndexRoute =
+  OrgsOrgSlugReleasesIndexRouteImport.update({
+    id: '/releases/',
+    path: '/releases/',
+    getParentRoute: () => OrgsOrgSlugRouteRoute,
+  } as any)
+const OrgsOrgSlugRoadmapIndexRoute = OrgsOrgSlugRoadmapIndexRouteImport.update({
+  id: '/roadmap/',
+  path: '/roadmap/',
+  getParentRoute: () => OrgsOrgSlugRouteRoute,
+} as any)
+const adminOrgIdTasksTaskShortIdIndexRoute =
+  adminOrgIdTasksTaskShortIdIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => adminOrgIdTasksTaskShortIdRouteRoute,
   } as any)
 const adminSettingsOrgOrgIdIndexRoute =
   adminSettingsOrgOrgIdIndexRouteImport.update({
@@ -342,52 +342,16 @@ const adminSettingsOrgOrgIdIndexRoute =
     path: '/',
     getParentRoute: () => adminSettingsOrgOrgIdRouteRoute,
   } as any)
-const adminOrgIdTasksTaskShortIdIndexRoute =
-  adminOrgIdTasksTaskShortIdIndexRouteImport.update({
-    id: '/',
-    path: '/',
-    getParentRoute: () => adminOrgIdTasksTaskShortIdRouteRoute,
+const OrgsOrgSlugReleasesReleaseSlugIndexRoute =
+  OrgsOrgSlugReleasesReleaseSlugIndexRouteImport.update({
+    id: '/releases/$releaseSlug/',
+    path: '/releases/$releaseSlug/',
+    getParentRoute: () => OrgsOrgSlugRouteRoute,
   } as any)
-const adminSettingsOrgOrgIdViewsIndexRoute =
-  adminSettingsOrgOrgIdViewsIndexRouteImport.update({
-    id: '/views/',
-    path: '/views/',
-    getParentRoute: () => adminSettingsOrgOrgIdRouteRoute,
-  } as any)
-const adminSettingsOrgOrgIdTemplatesIndexRoute =
-  adminSettingsOrgOrgIdTemplatesIndexRouteImport.update({
-    id: '/templates/',
-    path: '/templates/',
-    getParentRoute: () => adminSettingsOrgOrgIdRouteRoute,
-  } as any)
-const adminSettingsOrgOrgIdTeamsIndexRoute =
-  adminSettingsOrgOrgIdTeamsIndexRouteImport.update({
-    id: '/teams/',
-    path: '/teams/',
-    getParentRoute: () => adminSettingsOrgOrgIdRouteRoute,
-  } as any)
-const adminSettingsOrgOrgIdMembersIndexRoute =
-  adminSettingsOrgOrgIdMembersIndexRouteImport.update({
-    id: '/members/',
-    path: '/members/',
-    getParentRoute: () => adminSettingsOrgOrgIdRouteRoute,
-  } as any)
-const adminSettingsOrgOrgIdLabelsIndexRoute =
-  adminSettingsOrgOrgIdLabelsIndexRouteImport.update({
-    id: '/labels/',
-    path: '/labels/',
-    getParentRoute: () => adminSettingsOrgOrgIdRouteRoute,
-  } as any)
-const adminSettingsOrgOrgIdConnectionsIndexRoute =
-  adminSettingsOrgOrgIdConnectionsIndexRouteImport.update({
-    id: '/connections/',
-    path: '/connections/',
-    getParentRoute: () => adminSettingsOrgOrgIdRouteRoute,
-  } as any)
-const adminSettingsOrgOrgIdCategoriesIndexRoute =
-  adminSettingsOrgOrgIdCategoriesIndexRouteImport.update({
-    id: '/categories/',
-    path: '/categories/',
+const adminSettingsOrgOrgIdAiIndexRoute =
+  adminSettingsOrgOrgIdAiIndexRouteImport.update({
+    id: '/ai/',
+    path: '/ai/',
     getParentRoute: () => adminSettingsOrgOrgIdRouteRoute,
   } as any)
 const adminSettingsOrgOrgIdBillingIndexRoute =
@@ -396,10 +360,34 @@ const adminSettingsOrgOrgIdBillingIndexRoute =
     path: '/billing/',
     getParentRoute: () => adminSettingsOrgOrgIdRouteRoute,
   } as any)
-const adminSettingsOrgOrgIdAiIndexRoute =
-  adminSettingsOrgOrgIdAiIndexRouteImport.update({
-    id: '/ai/',
-    path: '/ai/',
+const adminSettingsOrgOrgIdCategoriesIndexRoute =
+  adminSettingsOrgOrgIdCategoriesIndexRouteImport.update({
+    id: '/categories/',
+    path: '/categories/',
+    getParentRoute: () => adminSettingsOrgOrgIdRouteRoute,
+  } as any)
+const adminSettingsOrgOrgIdConnectionsIndexRoute =
+  adminSettingsOrgOrgIdConnectionsIndexRouteImport.update({
+    id: '/connections/',
+    path: '/connections/',
+    getParentRoute: () => adminSettingsOrgOrgIdRouteRoute,
+  } as any)
+const adminSettingsOrgOrgIdLabelsIndexRoute =
+  adminSettingsOrgOrgIdLabelsIndexRouteImport.update({
+    id: '/labels/',
+    path: '/labels/',
+    getParentRoute: () => adminSettingsOrgOrgIdRouteRoute,
+  } as any)
+const adminSettingsOrgOrgIdMembersIndexRoute =
+  adminSettingsOrgOrgIdMembersIndexRouteImport.update({
+    id: '/members/',
+    path: '/members/',
+    getParentRoute: () => adminSettingsOrgOrgIdRouteRoute,
+  } as any)
+const adminSettingsOrgOrgIdTeamsIndexRoute =
+  adminSettingsOrgOrgIdTeamsIndexRouteImport.update({
+    id: '/teams/',
+    path: '/teams/',
     getParentRoute: () => adminSettingsOrgOrgIdRouteRoute,
   } as any)
 const adminSettingsOrgOrgIdTeamsNewRoute =
@@ -408,10 +396,22 @@ const adminSettingsOrgOrgIdTeamsNewRoute =
     path: '/teams/new',
     getParentRoute: () => adminSettingsOrgOrgIdRouteRoute,
   } as any)
-const adminSettingsOrgOrgIdTeamsTeamIdIndexRoute =
-  adminSettingsOrgOrgIdTeamsTeamIdIndexRouteImport.update({
-    id: '/teams/$teamId/',
-    path: '/teams/$teamId/',
+const adminSettingsOrgOrgIdTemplatesIndexRoute =
+  adminSettingsOrgOrgIdTemplatesIndexRouteImport.update({
+    id: '/templates/',
+    path: '/templates/',
+    getParentRoute: () => adminSettingsOrgOrgIdRouteRoute,
+  } as any)
+const adminSettingsOrgOrgIdViewsIndexRoute =
+  adminSettingsOrgOrgIdViewsIndexRouteImport.update({
+    id: '/views/',
+    path: '/views/',
+    getParentRoute: () => adminSettingsOrgOrgIdRouteRoute,
+  } as any)
+const adminSettingsOrgOrgIdConnectionsIntegrationIdIndexRoute =
+  adminSettingsOrgOrgIdConnectionsIntegrationIdIndexRouteImport.update({
+    id: '/connections/$integrationId/',
+    path: '/connections/$integrationId/',
     getParentRoute: () => adminSettingsOrgOrgIdRouteRoute,
   } as any)
 const adminSettingsOrgOrgIdConnectionsGithubIndexRoute =
@@ -420,10 +420,10 @@ const adminSettingsOrgOrgIdConnectionsGithubIndexRoute =
     path: '/connections/github/',
     getParentRoute: () => adminSettingsOrgOrgIdRouteRoute,
   } as any)
-const adminSettingsOrgOrgIdConnectionsIntegrationIdIndexRoute =
-  adminSettingsOrgOrgIdConnectionsIntegrationIdIndexRouteImport.update({
-    id: '/connections/$integrationId/',
-    path: '/connections/$integrationId/',
+const adminSettingsOrgOrgIdTeamsTeamIdIndexRoute =
+  adminSettingsOrgOrgIdTeamsTeamIdIndexRouteImport.update({
+    id: '/teams/$teamId/',
+    path: '/teams/$teamId/',
     getParentRoute: () => adminSettingsOrgOrgIdRouteRoute,
   } as any)
 
@@ -831,25 +831,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/prosekit-test': {
-      id: '/prosekit-test'
-      path: '/prosekit-test'
-      fullPath: '/prosekit-test'
-      preLoaderRoute: typeof ProsekitTestRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/manifest.webmanifest': {
-      id: '/manifest.webmanifest'
-      path: '/manifest.webmanifest'
-      fullPath: '/manifest.webmanifest'
-      preLoaderRoute: typeof ManifestDotwebmanifestRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/llms.txt': {
-      id: '/llms.txt'
-      path: '/llms.txt'
-      fullPath: '/llms.txt'
-      preLoaderRoute: typeof LlmsDottxtRouteImport
+    '/(admin)': {
+      id: '/(admin)'
+      path: ''
+      fullPath: ''
+      preLoaderRoute: typeof adminRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/health': {
@@ -859,11 +845,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof HealthRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/(admin)': {
-      id: '/(admin)'
-      path: ''
-      fullPath: ''
-      preLoaderRoute: typeof adminRouteRouteImport
+    '/llms.txt': {
+      id: '/llms.txt'
+      path: '/llms.txt'
+      fullPath: '/llms.txt'
+      preLoaderRoute: typeof LlmsDottxtRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/manifest.webmanifest': {
+      id: '/manifest.webmanifest'
+      path: '/manifest.webmanifest'
+      fullPath: '/manifest.webmanifest'
+      preLoaderRoute: typeof ManifestDotwebmanifestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/prosekit-test': {
+      id: '/prosekit-test'
+      path: '/prosekit-test'
+      fullPath: '/prosekit-test'
+      preLoaderRoute: typeof ProsekitTestRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/(admin)/': {
@@ -873,95 +873,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof adminIndexRouteImport
       parentRoute: typeof adminRouteRoute
     }
-    '/auth/signup': {
-      id: '/auth/signup'
-      path: '/auth/signup'
-      fullPath: '/auth/signup'
-      preLoaderRoute: typeof AuthSignupRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/auth/reauth': {
-      id: '/auth/reauth'
-      path: '/auth/reauth'
-      fullPath: '/auth/reauth'
-      preLoaderRoute: typeof AuthReauthRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/auth/password-reset': {
-      id: '/auth/password-reset'
-      path: '/auth/password-reset'
-      fullPath: '/auth/password-reset'
-      preLoaderRoute: typeof AuthPasswordResetRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/auth/login': {
-      id: '/auth/login'
-      path: '/auth/login'
-      fullPath: '/auth/login'
-      preLoaderRoute: typeof AuthLoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/auth/auth-check': {
-      id: '/auth/auth-check'
-      path: '/auth/auth-check'
-      fullPath: '/auth/auth-check'
-      preLoaderRoute: typeof AuthAuthCheckRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/auth/2fa': {
-      id: '/auth/2fa'
-      path: '/auth/2fa'
-      fullPath: '/auth/2fa'
-      preLoaderRoute: typeof Auth2faRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/traces': {
-      id: '/api/traces'
-      path: '/api/traces'
-      fullPath: '/api/traces'
-      preLoaderRoute: typeof ApiTracesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/og': {
-      id: '/api/og'
-      path: '/api/og'
-      fullPath: '/api/og'
-      preLoaderRoute: typeof ApiOgRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/image-preview': {
-      id: '/api/image-preview'
-      path: '/api/image-preview'
-      fullPath: '/api/image-preview'
-      preLoaderRoute: typeof ApiImagePreviewRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/orgs/$orgSlug': {
-      id: '/orgs/$orgSlug'
-      path: '/orgs/$orgSlug'
-      fullPath: '/orgs/$orgSlug'
-      preLoaderRoute: typeof OrgsOrgSlugRouteRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/(admin)/settings': {
-      id: '/(admin)/settings'
-      path: '/settings'
-      fullPath: '/settings'
-      preLoaderRoute: typeof adminSettingsRouteRouteImport
-      parentRoute: typeof adminRouteRoute
-    }
-    '/(admin)/mine': {
-      id: '/(admin)/mine'
-      path: '/mine'
-      fullPath: '/mine'
-      preLoaderRoute: typeof adminMineRouteRouteImport
-      parentRoute: typeof adminRouteRoute
-    }
-    '/(admin)/inbox': {
-      id: '/(admin)/inbox'
-      path: '/inbox'
-      fullPath: '/inbox'
-      preLoaderRoute: typeof adminInboxRouteRouteImport
+    '/(admin)/$orgId': {
+      id: '/(admin)/$orgId'
+      path: '/$orgId'
+      fullPath: '/$orgId'
+      preLoaderRoute: typeof adminOrgIdRouteRouteImport
       parentRoute: typeof adminRouteRoute
     }
     '/(admin)/home': {
@@ -971,61 +887,96 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof adminHomeRouteRouteImport
       parentRoute: typeof adminRouteRoute
     }
-    '/(admin)/$orgId': {
-      id: '/(admin)/$orgId'
-      path: '/$orgId'
-      fullPath: '/$orgId'
-      preLoaderRoute: typeof adminOrgIdRouteRouteImport
+    '/(admin)/inbox': {
+      id: '/(admin)/inbox'
+      path: '/inbox'
+      fullPath: '/inbox'
+      preLoaderRoute: typeof adminInboxRouteRouteImport
       parentRoute: typeof adminRouteRoute
     }
-    '/orgs/$orgSlug/': {
-      id: '/orgs/$orgSlug/'
-      path: '/'
-      fullPath: '/orgs/$orgSlug/'
-      preLoaderRoute: typeof OrgsOrgSlugIndexRouteImport
-      parentRoute: typeof OrgsOrgSlugRouteRoute
+    '/(admin)/mine': {
+      id: '/(admin)/mine'
+      path: '/mine'
+      fullPath: '/mine'
+      preLoaderRoute: typeof adminMineRouteRouteImport
+      parentRoute: typeof adminRouteRoute
     }
-    '/invite/$orgId/': {
-      id: '/invite/$orgId/'
-      path: '/invite/$orgId'
-      fullPath: '/invite/$orgId/'
-      preLoaderRoute: typeof InviteOrgIdIndexRouteImport
+    '/(admin)/settings': {
+      id: '/(admin)/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof adminSettingsRouteRouteImport
+      parentRoute: typeof adminRouteRoute
+    }
+    '/api/image-preview': {
+      id: '/api/image-preview'
+      path: '/api/image-preview'
+      fullPath: '/api/image-preview'
+      preLoaderRoute: typeof ApiImagePreviewRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/(admin)/settings/': {
-      id: '/(admin)/settings/'
-      path: '/'
-      fullPath: '/settings/'
-      preLoaderRoute: typeof adminSettingsIndexRouteImport
-      parentRoute: typeof adminSettingsRouteRoute
+    '/api/og': {
+      id: '/api/og'
+      path: '/api/og'
+      fullPath: '/api/og'
+      preLoaderRoute: typeof ApiOgRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/(admin)/mine/': {
-      id: '/(admin)/mine/'
-      path: '/'
-      fullPath: '/mine/'
-      preLoaderRoute: typeof adminMineIndexRouteImport
-      parentRoute: typeof adminMineRouteRoute
+    '/api/traces': {
+      id: '/api/traces'
+      path: '/api/traces'
+      fullPath: '/api/traces'
+      preLoaderRoute: typeof ApiTracesRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/(admin)/inbox/': {
-      id: '/(admin)/inbox/'
-      path: '/'
-      fullPath: '/inbox/'
-      preLoaderRoute: typeof adminInboxIndexRouteImport
-      parentRoute: typeof adminInboxRouteRoute
+    '/auth/2fa': {
+      id: '/auth/2fa'
+      path: '/auth/2fa'
+      fullPath: '/auth/2fa'
+      preLoaderRoute: typeof Auth2faRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/(admin)/home/': {
-      id: '/(admin)/home/'
-      path: '/'
-      fullPath: '/home/'
-      preLoaderRoute: typeof adminHomeIndexRouteImport
-      parentRoute: typeof adminHomeRouteRoute
+    '/auth/auth-check': {
+      id: '/auth/auth-check'
+      path: '/auth/auth-check'
+      fullPath: '/auth/auth-check'
+      preLoaderRoute: typeof AuthAuthCheckRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/(admin)/console/': {
-      id: '/(admin)/console/'
-      path: '/console'
-      fullPath: '/console/'
-      preLoaderRoute: typeof adminConsoleIndexRouteImport
-      parentRoute: typeof adminRouteRoute
+    '/auth/login': {
+      id: '/auth/login'
+      path: '/auth/login'
+      fullPath: '/auth/login'
+      preLoaderRoute: typeof AuthLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/password-reset': {
+      id: '/auth/password-reset'
+      path: '/auth/password-reset'
+      fullPath: '/auth/password-reset'
+      preLoaderRoute: typeof AuthPasswordResetRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/reauth': {
+      id: '/auth/reauth'
+      path: '/auth/reauth'
+      fullPath: '/auth/reauth'
+      preLoaderRoute: typeof AuthReauthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/signup': {
+      id: '/auth/signup'
+      path: '/auth/signup'
+      fullPath: '/auth/signup'
+      preLoaderRoute: typeof AuthSignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/orgs/$orgSlug': {
+      id: '/orgs/$orgSlug'
+      path: '/orgs/$orgSlug'
+      fullPath: '/orgs/$orgSlug'
+      preLoaderRoute: typeof OrgsOrgSlugRouteRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/(admin)/$orgId/': {
       id: '/(admin)/$orgId/'
@@ -1034,12 +985,47 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof adminOrgIdIndexRouteImport
       parentRoute: typeof adminOrgIdRouteRoute
     }
-    '/api/auth/$': {
-      id: '/api/auth/$'
-      path: '/api/auth/$'
-      fullPath: '/api/auth/$'
-      preLoaderRoute: typeof ApiAuthSplatRouteImport
-      parentRoute: typeof rootRouteImport
+    '/(admin)/$orgId/tasks': {
+      id: '/(admin)/$orgId/tasks'
+      path: '/tasks'
+      fullPath: '/$orgId/tasks'
+      preLoaderRoute: typeof adminOrgIdTasksRouteRouteImport
+      parentRoute: typeof adminOrgIdRouteRoute
+    }
+    '/(admin)/console/': {
+      id: '/(admin)/console/'
+      path: '/console'
+      fullPath: '/console/'
+      preLoaderRoute: typeof adminConsoleIndexRouteImport
+      parentRoute: typeof adminRouteRoute
+    }
+    '/(admin)/home/': {
+      id: '/(admin)/home/'
+      path: '/'
+      fullPath: '/home/'
+      preLoaderRoute: typeof adminHomeIndexRouteImport
+      parentRoute: typeof adminHomeRouteRoute
+    }
+    '/(admin)/inbox/': {
+      id: '/(admin)/inbox/'
+      path: '/'
+      fullPath: '/inbox/'
+      preLoaderRoute: typeof adminInboxIndexRouteImport
+      parentRoute: typeof adminInboxRouteRoute
+    }
+    '/(admin)/mine/': {
+      id: '/(admin)/mine/'
+      path: '/'
+      fullPath: '/mine/'
+      preLoaderRoute: typeof adminMineIndexRouteImport
+      parentRoute: typeof adminMineRouteRoute
+    }
+    '/(admin)/settings/': {
+      id: '/(admin)/settings/'
+      path: '/'
+      fullPath: '/settings/'
+      preLoaderRoute: typeof adminSettingsIndexRouteImport
+      parentRoute: typeof adminSettingsRouteRoute
     }
     '/(admin)/settings/connections': {
       id: '/(admin)/settings/connections'
@@ -1048,81 +1034,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof adminSettingsConnectionsRouteRouteImport
       parentRoute: typeof adminSettingsRouteRoute
     }
-    '/(admin)/$orgId/tasks': {
-      id: '/(admin)/$orgId/tasks'
-      path: '/tasks'
-      fullPath: '/$orgId/tasks'
-      preLoaderRoute: typeof adminOrgIdTasksRouteRouteImport
+    '/api/auth/$': {
+      id: '/api/auth/$'
+      path: '/api/auth/$'
+      fullPath: '/api/auth/$'
+      preLoaderRoute: typeof ApiAuthSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/invite/$orgId/': {
+      id: '/invite/$orgId/'
+      path: '/invite/$orgId'
+      fullPath: '/invite/$orgId/'
+      preLoaderRoute: typeof InviteOrgIdIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/orgs/$orgSlug/': {
+      id: '/orgs/$orgSlug/'
+      path: '/'
+      fullPath: '/orgs/$orgSlug/'
+      preLoaderRoute: typeof OrgsOrgSlugIndexRouteImport
+      parentRoute: typeof OrgsOrgSlugRouteRoute
+    }
+    '/(admin)/$orgId/releases/': {
+      id: '/(admin)/$orgId/releases/'
+      path: '/releases'
+      fullPath: '/$orgId/releases/'
+      preLoaderRoute: typeof adminOrgIdReleasesIndexRouteImport
       parentRoute: typeof adminOrgIdRouteRoute
     }
-    '/orgs/$orgSlug/roadmap/': {
-      id: '/orgs/$orgSlug/roadmap/'
-      path: '/roadmap'
-      fullPath: '/orgs/$orgSlug/roadmap/'
-      preLoaderRoute: typeof OrgsOrgSlugRoadmapIndexRouteImport
-      parentRoute: typeof OrgsOrgSlugRouteRoute
-    }
-    '/orgs/$orgSlug/releases/': {
-      id: '/orgs/$orgSlug/releases/'
-      path: '/releases'
-      fullPath: '/orgs/$orgSlug/releases/'
-      preLoaderRoute: typeof OrgsOrgSlugReleasesIndexRouteImport
-      parentRoute: typeof OrgsOrgSlugRouteRoute
-    }
-    '/orgs/$orgSlug/new/': {
-      id: '/orgs/$orgSlug/new/'
-      path: '/new'
-      fullPath: '/orgs/$orgSlug/new/'
-      preLoaderRoute: typeof OrgsOrgSlugNewIndexRouteImport
-      parentRoute: typeof OrgsOrgSlugRouteRoute
-    }
-    '/orgs/$orgSlug/activity/': {
-      id: '/orgs/$orgSlug/activity/'
-      path: '/activity'
-      fullPath: '/orgs/$orgSlug/activity/'
-      preLoaderRoute: typeof OrgsOrgSlugActivityIndexRouteImport
-      parentRoute: typeof OrgsOrgSlugRouteRoute
-    }
-    '/orgs/$orgSlug/$shortId/': {
-      id: '/orgs/$orgSlug/$shortId/'
-      path: '/$shortId'
-      fullPath: '/orgs/$orgSlug/$shortId/'
-      preLoaderRoute: typeof OrgsOrgSlugShortIdIndexRouteImport
-      parentRoute: typeof OrgsOrgSlugRouteRoute
-    }
-    '/(admin)/settings/security/': {
-      id: '/(admin)/settings/security/'
-      path: '/security'
-      fullPath: '/settings/security/'
-      preLoaderRoute: typeof adminSettingsSecurityIndexRouteImport
-      parentRoute: typeof adminSettingsRouteRoute
-    }
-    '/(admin)/settings/connections/': {
-      id: '/(admin)/settings/connections/'
-      path: '/'
-      fullPath: '/settings/connections/'
-      preLoaderRoute: typeof adminSettingsConnectionsIndexRouteImport
-      parentRoute: typeof adminSettingsConnectionsRouteRoute
-    }
-    '/(admin)/settings/api-keys/': {
-      id: '/(admin)/settings/api-keys/'
-      path: '/api-keys'
-      fullPath: '/settings/api-keys/'
-      preLoaderRoute: typeof adminSettingsApiKeysIndexRouteImport
-      parentRoute: typeof adminSettingsRouteRoute
-    }
-    '/(admin)/console/connections/': {
-      id: '/(admin)/console/connections/'
-      path: '/console/connections'
-      fullPath: '/console/connections/'
-      preLoaderRoute: typeof adminConsoleConnectionsIndexRouteImport
-      parentRoute: typeof adminRouteRoute
-    }
-    '/(admin)/$orgId/views/': {
-      id: '/(admin)/$orgId/views/'
-      path: '/views'
-      fullPath: '/$orgId/views/'
-      preLoaderRoute: typeof adminOrgIdViewsIndexRouteImport
+    '/(admin)/$orgId/releases/$releaseSlug': {
+      id: '/(admin)/$orgId/releases/$releaseSlug'
+      path: '/releases/$releaseSlug'
+      fullPath: '/$orgId/releases/$releaseSlug'
+      preLoaderRoute: typeof adminOrgIdReleasesReleaseSlugRouteImport
       parentRoute: typeof adminOrgIdRouteRoute
     }
     '/(admin)/$orgId/tasks/': {
@@ -1132,18 +1076,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof adminOrgIdTasksIndexRouteImport
       parentRoute: typeof adminOrgIdTasksRouteRoute
     }
-    '/(admin)/$orgId/releases/': {
-      id: '/(admin)/$orgId/releases/'
-      path: '/releases'
-      fullPath: '/$orgId/releases/'
-      preLoaderRoute: typeof adminOrgIdReleasesIndexRouteImport
+    '/(admin)/$orgId/tasks/$taskShortId': {
+      id: '/(admin)/$orgId/tasks/$taskShortId'
+      path: '/$taskShortId'
+      fullPath: '/$orgId/tasks/$taskShortId'
+      preLoaderRoute: typeof adminOrgIdTasksTaskShortIdRouteRouteImport
+      parentRoute: typeof adminOrgIdTasksRouteRoute
+    }
+    '/(admin)/$orgId/views/': {
+      id: '/(admin)/$orgId/views/'
+      path: '/views'
+      fullPath: '/$orgId/views/'
+      preLoaderRoute: typeof adminOrgIdViewsIndexRouteImport
       parentRoute: typeof adminOrgIdRouteRoute
     }
-    '/(admin)/console/users/$userId': {
-      id: '/(admin)/console/users/$userId'
-      path: '/console/users/$userId'
-      fullPath: '/console/users/$userId'
-      preLoaderRoute: typeof adminConsoleUsersUserIdRouteImport
+    '/(admin)/console/connections/': {
+      id: '/(admin)/console/connections/'
+      path: '/console/connections'
+      fullPath: '/console/connections/'
+      preLoaderRoute: typeof adminConsoleConnectionsIndexRouteImport
       parentRoute: typeof adminRouteRoute
     }
     '/(admin)/console/organizations/$orgId': {
@@ -1153,12 +1104,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof adminConsoleOrganizationsOrgIdRouteImport
       parentRoute: typeof adminRouteRoute
     }
-    '/(admin)/$orgId/releases/$releaseSlug': {
-      id: '/(admin)/$orgId/releases/$releaseSlug'
-      path: '/releases/$releaseSlug'
-      fullPath: '/$orgId/releases/$releaseSlug'
-      preLoaderRoute: typeof adminOrgIdReleasesReleaseSlugRouteImport
-      parentRoute: typeof adminOrgIdRouteRoute
+    '/(admin)/console/users/$userId': {
+      id: '/(admin)/console/users/$userId'
+      path: '/console/users/$userId'
+      fullPath: '/console/users/$userId'
+      preLoaderRoute: typeof adminConsoleUsersUserIdRouteImport
+      parentRoute: typeof adminRouteRoute
+    }
+    '/(admin)/settings/api-keys/': {
+      id: '/(admin)/settings/api-keys/'
+      path: '/api-keys'
+      fullPath: '/settings/api-keys/'
+      preLoaderRoute: typeof adminSettingsApiKeysIndexRouteImport
+      parentRoute: typeof adminSettingsRouteRoute
+    }
+    '/(admin)/settings/connections/': {
+      id: '/(admin)/settings/connections/'
+      path: '/'
+      fullPath: '/settings/connections/'
+      preLoaderRoute: typeof adminSettingsConnectionsIndexRouteImport
+      parentRoute: typeof adminSettingsConnectionsRouteRoute
     }
     '/(admin)/settings/org/$orgId': {
       id: '/(admin)/settings/org/$orgId'
@@ -1167,26 +1132,47 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof adminSettingsOrgOrgIdRouteRouteImport
       parentRoute: typeof adminSettingsRouteRoute
     }
-    '/(admin)/$orgId/tasks/$taskShortId': {
-      id: '/(admin)/$orgId/tasks/$taskShortId'
-      path: '/$taskShortId'
-      fullPath: '/$orgId/tasks/$taskShortId'
-      preLoaderRoute: typeof adminOrgIdTasksTaskShortIdRouteRouteImport
-      parentRoute: typeof adminOrgIdTasksRouteRoute
+    '/(admin)/settings/security/': {
+      id: '/(admin)/settings/security/'
+      path: '/security'
+      fullPath: '/settings/security/'
+      preLoaderRoute: typeof adminSettingsSecurityIndexRouteImport
+      parentRoute: typeof adminSettingsRouteRoute
     }
-    '/orgs/$orgSlug/releases/$releaseSlug/': {
-      id: '/orgs/$orgSlug/releases/$releaseSlug/'
-      path: '/releases/$releaseSlug'
-      fullPath: '/orgs/$orgSlug/releases/$releaseSlug/'
-      preLoaderRoute: typeof OrgsOrgSlugReleasesReleaseSlugIndexRouteImport
+    '/orgs/$orgSlug/$shortId/': {
+      id: '/orgs/$orgSlug/$shortId/'
+      path: '/$shortId'
+      fullPath: '/orgs/$orgSlug/$shortId/'
+      preLoaderRoute: typeof OrgsOrgSlugShortIdIndexRouteImport
       parentRoute: typeof OrgsOrgSlugRouteRoute
     }
-    '/(admin)/settings/org/$orgId/': {
-      id: '/(admin)/settings/org/$orgId/'
-      path: '/'
-      fullPath: '/settings/org/$orgId/'
-      preLoaderRoute: typeof adminSettingsOrgOrgIdIndexRouteImport
-      parentRoute: typeof adminSettingsOrgOrgIdRouteRoute
+    '/orgs/$orgSlug/activity/': {
+      id: '/orgs/$orgSlug/activity/'
+      path: '/activity'
+      fullPath: '/orgs/$orgSlug/activity/'
+      preLoaderRoute: typeof OrgsOrgSlugActivityIndexRouteImport
+      parentRoute: typeof OrgsOrgSlugRouteRoute
+    }
+    '/orgs/$orgSlug/new/': {
+      id: '/orgs/$orgSlug/new/'
+      path: '/new'
+      fullPath: '/orgs/$orgSlug/new/'
+      preLoaderRoute: typeof OrgsOrgSlugNewIndexRouteImport
+      parentRoute: typeof OrgsOrgSlugRouteRoute
+    }
+    '/orgs/$orgSlug/releases/': {
+      id: '/orgs/$orgSlug/releases/'
+      path: '/releases'
+      fullPath: '/orgs/$orgSlug/releases/'
+      preLoaderRoute: typeof OrgsOrgSlugReleasesIndexRouteImport
+      parentRoute: typeof OrgsOrgSlugRouteRoute
+    }
+    '/orgs/$orgSlug/roadmap/': {
+      id: '/orgs/$orgSlug/roadmap/'
+      path: '/roadmap'
+      fullPath: '/orgs/$orgSlug/roadmap/'
+      preLoaderRoute: typeof OrgsOrgSlugRoadmapIndexRouteImport
+      parentRoute: typeof OrgsOrgSlugRouteRoute
     }
     '/(admin)/$orgId/tasks/$taskShortId/': {
       id: '/(admin)/$orgId/tasks/$taskShortId/'
@@ -1195,53 +1181,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof adminOrgIdTasksTaskShortIdIndexRouteImport
       parentRoute: typeof adminOrgIdTasksTaskShortIdRouteRoute
     }
-    '/(admin)/settings/org/$orgId/views/': {
-      id: '/(admin)/settings/org/$orgId/views/'
-      path: '/views'
-      fullPath: '/settings/org/$orgId/views/'
-      preLoaderRoute: typeof adminSettingsOrgOrgIdViewsIndexRouteImport
+    '/(admin)/settings/org/$orgId/': {
+      id: '/(admin)/settings/org/$orgId/'
+      path: '/'
+      fullPath: '/settings/org/$orgId/'
+      preLoaderRoute: typeof adminSettingsOrgOrgIdIndexRouteImport
       parentRoute: typeof adminSettingsOrgOrgIdRouteRoute
     }
-    '/(admin)/settings/org/$orgId/templates/': {
-      id: '/(admin)/settings/org/$orgId/templates/'
-      path: '/templates'
-      fullPath: '/settings/org/$orgId/templates/'
-      preLoaderRoute: typeof adminSettingsOrgOrgIdTemplatesIndexRouteImport
-      parentRoute: typeof adminSettingsOrgOrgIdRouteRoute
+    '/orgs/$orgSlug/releases/$releaseSlug/': {
+      id: '/orgs/$orgSlug/releases/$releaseSlug/'
+      path: '/releases/$releaseSlug'
+      fullPath: '/orgs/$orgSlug/releases/$releaseSlug/'
+      preLoaderRoute: typeof OrgsOrgSlugReleasesReleaseSlugIndexRouteImport
+      parentRoute: typeof OrgsOrgSlugRouteRoute
     }
-    '/(admin)/settings/org/$orgId/teams/': {
-      id: '/(admin)/settings/org/$orgId/teams/'
-      path: '/teams'
-      fullPath: '/settings/org/$orgId/teams/'
-      preLoaderRoute: typeof adminSettingsOrgOrgIdTeamsIndexRouteImport
-      parentRoute: typeof adminSettingsOrgOrgIdRouteRoute
-    }
-    '/(admin)/settings/org/$orgId/members/': {
-      id: '/(admin)/settings/org/$orgId/members/'
-      path: '/members'
-      fullPath: '/settings/org/$orgId/members/'
-      preLoaderRoute: typeof adminSettingsOrgOrgIdMembersIndexRouteImport
-      parentRoute: typeof adminSettingsOrgOrgIdRouteRoute
-    }
-    '/(admin)/settings/org/$orgId/labels/': {
-      id: '/(admin)/settings/org/$orgId/labels/'
-      path: '/labels'
-      fullPath: '/settings/org/$orgId/labels/'
-      preLoaderRoute: typeof adminSettingsOrgOrgIdLabelsIndexRouteImport
-      parentRoute: typeof adminSettingsOrgOrgIdRouteRoute
-    }
-    '/(admin)/settings/org/$orgId/connections/': {
-      id: '/(admin)/settings/org/$orgId/connections/'
-      path: '/connections'
-      fullPath: '/settings/org/$orgId/connections/'
-      preLoaderRoute: typeof adminSettingsOrgOrgIdConnectionsIndexRouteImport
-      parentRoute: typeof adminSettingsOrgOrgIdRouteRoute
-    }
-    '/(admin)/settings/org/$orgId/categories/': {
-      id: '/(admin)/settings/org/$orgId/categories/'
-      path: '/categories'
-      fullPath: '/settings/org/$orgId/categories/'
-      preLoaderRoute: typeof adminSettingsOrgOrgIdCategoriesIndexRouteImport
+    '/(admin)/settings/org/$orgId/ai/': {
+      id: '/(admin)/settings/org/$orgId/ai/'
+      path: '/ai'
+      fullPath: '/settings/org/$orgId/ai/'
+      preLoaderRoute: typeof adminSettingsOrgOrgIdAiIndexRouteImport
       parentRoute: typeof adminSettingsOrgOrgIdRouteRoute
     }
     '/(admin)/settings/org/$orgId/billing/': {
@@ -1251,11 +1209,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof adminSettingsOrgOrgIdBillingIndexRouteImport
       parentRoute: typeof adminSettingsOrgOrgIdRouteRoute
     }
-    '/(admin)/settings/org/$orgId/ai/': {
-      id: '/(admin)/settings/org/$orgId/ai/'
-      path: '/ai'
-      fullPath: '/settings/org/$orgId/ai/'
-      preLoaderRoute: typeof adminSettingsOrgOrgIdAiIndexRouteImport
+    '/(admin)/settings/org/$orgId/categories/': {
+      id: '/(admin)/settings/org/$orgId/categories/'
+      path: '/categories'
+      fullPath: '/settings/org/$orgId/categories/'
+      preLoaderRoute: typeof adminSettingsOrgOrgIdCategoriesIndexRouteImport
+      parentRoute: typeof adminSettingsOrgOrgIdRouteRoute
+    }
+    '/(admin)/settings/org/$orgId/connections/': {
+      id: '/(admin)/settings/org/$orgId/connections/'
+      path: '/connections'
+      fullPath: '/settings/org/$orgId/connections/'
+      preLoaderRoute: typeof adminSettingsOrgOrgIdConnectionsIndexRouteImport
+      parentRoute: typeof adminSettingsOrgOrgIdRouteRoute
+    }
+    '/(admin)/settings/org/$orgId/labels/': {
+      id: '/(admin)/settings/org/$orgId/labels/'
+      path: '/labels'
+      fullPath: '/settings/org/$orgId/labels/'
+      preLoaderRoute: typeof adminSettingsOrgOrgIdLabelsIndexRouteImport
+      parentRoute: typeof adminSettingsOrgOrgIdRouteRoute
+    }
+    '/(admin)/settings/org/$orgId/members/': {
+      id: '/(admin)/settings/org/$orgId/members/'
+      path: '/members'
+      fullPath: '/settings/org/$orgId/members/'
+      preLoaderRoute: typeof adminSettingsOrgOrgIdMembersIndexRouteImport
+      parentRoute: typeof adminSettingsOrgOrgIdRouteRoute
+    }
+    '/(admin)/settings/org/$orgId/teams/': {
+      id: '/(admin)/settings/org/$orgId/teams/'
+      path: '/teams'
+      fullPath: '/settings/org/$orgId/teams/'
+      preLoaderRoute: typeof adminSettingsOrgOrgIdTeamsIndexRouteImport
       parentRoute: typeof adminSettingsOrgOrgIdRouteRoute
     }
     '/(admin)/settings/org/$orgId/teams/new': {
@@ -1265,11 +1251,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof adminSettingsOrgOrgIdTeamsNewRouteImport
       parentRoute: typeof adminSettingsOrgOrgIdRouteRoute
     }
-    '/(admin)/settings/org/$orgId/teams/$teamId/': {
-      id: '/(admin)/settings/org/$orgId/teams/$teamId/'
-      path: '/teams/$teamId'
-      fullPath: '/settings/org/$orgId/teams/$teamId/'
-      preLoaderRoute: typeof adminSettingsOrgOrgIdTeamsTeamIdIndexRouteImport
+    '/(admin)/settings/org/$orgId/templates/': {
+      id: '/(admin)/settings/org/$orgId/templates/'
+      path: '/templates'
+      fullPath: '/settings/org/$orgId/templates/'
+      preLoaderRoute: typeof adminSettingsOrgOrgIdTemplatesIndexRouteImport
+      parentRoute: typeof adminSettingsOrgOrgIdRouteRoute
+    }
+    '/(admin)/settings/org/$orgId/views/': {
+      id: '/(admin)/settings/org/$orgId/views/'
+      path: '/views'
+      fullPath: '/settings/org/$orgId/views/'
+      preLoaderRoute: typeof adminSettingsOrgOrgIdViewsIndexRouteImport
+      parentRoute: typeof adminSettingsOrgOrgIdRouteRoute
+    }
+    '/(admin)/settings/org/$orgId/connections/$integrationId/': {
+      id: '/(admin)/settings/org/$orgId/connections/$integrationId/'
+      path: '/connections/$integrationId'
+      fullPath: '/settings/org/$orgId/connections/$integrationId/'
+      preLoaderRoute: typeof adminSettingsOrgOrgIdConnectionsIntegrationIdIndexRouteImport
       parentRoute: typeof adminSettingsOrgOrgIdRouteRoute
     }
     '/(admin)/settings/org/$orgId/connections/github/': {
@@ -1279,11 +1279,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof adminSettingsOrgOrgIdConnectionsGithubIndexRouteImport
       parentRoute: typeof adminSettingsOrgOrgIdRouteRoute
     }
-    '/(admin)/settings/org/$orgId/connections/$integrationId/': {
-      id: '/(admin)/settings/org/$orgId/connections/$integrationId/'
-      path: '/connections/$integrationId'
-      fullPath: '/settings/org/$orgId/connections/$integrationId/'
-      preLoaderRoute: typeof adminSettingsOrgOrgIdConnectionsIntegrationIdIndexRouteImport
+    '/(admin)/settings/org/$orgId/teams/$teamId/': {
+      id: '/(admin)/settings/org/$orgId/teams/$teamId/'
+      path: '/teams/$teamId'
+      fullPath: '/settings/org/$orgId/teams/$teamId/'
+      preLoaderRoute: typeof adminSettingsOrgOrgIdTeamsTeamIdIndexRouteImport
       parentRoute: typeof adminSettingsOrgOrgIdRouteRoute
     }
   }

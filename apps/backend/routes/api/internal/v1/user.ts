@@ -1,8 +1,16 @@
-import { auth, db, getUsersByIds, schema, searchUsers, getOrgMemberUserIds, getTaskParticipantUserIds } from "@repo/database";
+import {
+	auth,
+	db,
+	getUsersByIds,
+	schema,
+	searchUsers,
+	getOrgMemberUserIds,
+	getTaskParticipantUserIds,
+} from "@repo/database";
 import { createTraceAsync, getTraceContext } from "@repo/opentelemetry/trace";
-import { removeObject, uploadObject, deleteFolder } from "@repo/storage";
+import { deleteFolder, removeObject, resolveSafeUploadType, uploadObject } from "@repo/storage";
 import { ensureCdnUrl, getFileNameFromUrl } from "@repo/util";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { Hono } from "hono";
 import type { AppEnv } from "@/index";
 import { enqueue, getRedis } from "@repo/queue";
@@ -30,15 +38,41 @@ apiRouteAdminUser.get("/search", async (c) => {
 	const orgId = c.req.query("orgId");
 	const taskId = c.req.query("taskId");
 	const limitParam = c.req.query("limit");
-	const limit = limitParam ? Number.parseInt(limitParam, 10) : 20;
+	const limit = Math.min(Math.max(Number.parseInt(limitParam || "20", 10) || 20, 1), 50);
 
 	try {
 		const redis = getRedis();
 		let tier1Users: schema.UserSummary[] = []; // Task participants
 		let tier2Users: schema.UserSummary[] = []; // Org members
 
-		// Tier 1: Task participants (if taskId provided)
+		// Access checks run before any cache/DB read. A caller who isn't allowed to see a
+		// tier just doesn't get it (rather than a 403), so the editor on public portal
+		// pages keeps working with the global (tier 3) results.
+		const callerId = session.userId;
+		const membershipCache = new Map<string, boolean>();
+		const isMemberOf = async (organizationId: string): Promise<boolean> => {
+			const known = membershipCache.get(organizationId);
+			if (known !== undefined) return known;
+			const membership = await db.query.member.findFirst({
+				where: and(eq(schema.member.organizationId, organizationId), eq(schema.member.userId, callerId)),
+				columns: { id: true },
+			});
+			membershipCache.set(organizationId, !!membership);
+			return !!membership;
+		};
+
+		let canSeeTaskParticipants = false;
 		if (taskId) {
+			const task = await db.query.task.findFirst({
+				where: eq(schema.task.id, taskId),
+				columns: { organizationId: true, visible: true },
+			});
+			canSeeTaskParticipants = !!task && (task.visible === "public" || (await isMemberOf(task.organizationId)));
+		}
+		const canSeeOrgMembers = orgId ? await isMemberOf(orgId) : false;
+
+		// Tier 1: Task participants (if taskId provided)
+		if (taskId && canSeeTaskParticipants) {
 			const cacheKey = `mention:participants:${taskId}`;
 			let cachedParticipants: schema.UserSummary[] | null = null;
 
@@ -79,17 +113,16 @@ apiRouteAdminUser.get("/search", async (c) => {
 			// Filter by query if provided
 			if (query) {
 				const lowerQuery = query.toLowerCase();
-				tier1Users = cachedParticipants.filter((u) =>
-					u.name.toLowerCase().includes(lowerQuery) ||
-					u.displayName?.toLowerCase().includes(lowerQuery)
+				tier1Users = cachedParticipants.filter(
+					(u) => u.name.toLowerCase().includes(lowerQuery) || u.displayName?.toLowerCase().includes(lowerQuery)
 				);
 			} else {
 				tier1Users = cachedParticipants;
 			}
 		}
 
-		// Tier 2: Org members (if orgId provided)
-		if (orgId) {
+		// Tier 2: Org members (if orgId provided and the caller is a member)
+		if (orgId && canSeeOrgMembers) {
 			const cacheKey = `mention:members:${orgId}`;
 			let cachedMembers: schema.UserSummary[] | null = null;
 
@@ -103,18 +136,16 @@ apiRouteAdminUser.get("/search", async (c) => {
 			}
 
 			if (!cachedMembers) {
-				const memberIds = await traceAsync(
-					"mention.org_members",
-					() => getOrgMemberUserIds(orgId),
-					{ description: "Getting org member IDs", data: { orgId } }
-				);
+				const memberIds = await traceAsync("mention.org_members", () => getOrgMemberUserIds(orgId), {
+					description: "Getting org member IDs",
+					data: { orgId },
+				});
 
 				if (memberIds.length > 0) {
-					cachedMembers = await traceAsync(
-						"mention.org_members.resolve",
-						() => getUsersByIds(memberIds),
-						{ description: "Resolving org member IDs", data: { count: memberIds.length } }
-					);
+					cachedMembers = await traceAsync("mention.org_members.resolve", () => getUsersByIds(memberIds), {
+						description: "Resolving org member IDs",
+						data: { count: memberIds.length },
+					});
 
 					// Cache for 5 minutes
 					try {
@@ -131,10 +162,10 @@ apiRouteAdminUser.get("/search", async (c) => {
 			const tier1Ids = new Set(tier1Users.map((u) => u.id));
 			if (query) {
 				const lowerQuery = query.toLowerCase();
-				tier2Users = cachedMembers.filter((u) =>
-					!tier1Ids.has(u.id) &&
-					(u.name.toLowerCase().includes(lowerQuery) ||
-						u.displayName?.toLowerCase().includes(lowerQuery))
+				tier2Users = cachedMembers.filter(
+					(u) =>
+						!tier1Ids.has(u.id) &&
+						(u.name.toLowerCase().includes(lowerQuery) || u.displayName?.toLowerCase().includes(lowerQuery))
 				);
 			} else {
 				tier2Users = cachedMembers.filter((u) => !tier1Ids.has(u.id));
@@ -146,18 +177,16 @@ apiRouteAdminUser.get("/search", async (c) => {
 		const remainingSlots = limit - tier1Users.length - tier2Users.length;
 
 		if (remainingSlots > 0 && query && query.length >= 2) {
-			const excludeIds = [
-				...tier1Users.map((u) => u.id),
-				...tier2Users.map((u) => u.id),
-			];
+			const excludeIds = [...tier1Users.map((u) => u.id), ...tier2Users.map((u) => u.id)];
 
 			tier3Users = await traceAsync(
 				"mention.global_search",
-				() => searchUsers({
-					query,
-					limit: remainingSlots,
-					excludeIds,
-				}),
+				() =>
+					searchUsers({
+						query,
+						limit: remainingSlots,
+						excludeIds,
+					}),
 				{ description: "Searching all users", data: { query, excludeCount: excludeIds.length } }
 			);
 		}
@@ -224,14 +253,10 @@ apiRouteAdminUser.post("/resolve", async (c) => {
 		// Fetch missing users from DB
 		let dbUsers: schema.UserSummary[] = [];
 		if (missingIds.length > 0) {
-			dbUsers = await traceAsync(
-				"user.resolve",
-				() => getUsersByIds(missingIds),
-				{
-					description: "Resolving user IDs to summaries",
-					data: { count: missingIds.length },
-				},
-			);
+			dbUsers = await traceAsync("user.resolve", () => getUsersByIds(missingIds), {
+				description: "Resolving user IDs to summaries",
+				data: { count: missingIds.length },
+			});
 
 			// Cache each resolved user
 			for (const user of dbUsers) {
@@ -355,8 +380,21 @@ apiRouteAdminUser.put("/profile-picture", async (c) => {
 		return c.json({ success: false, error: "No file uploaded" }, 400);
 	}
 
+	// Only allowlisted raster image types; ext + Content-Type come from the allowlist, not the client.
+	const safeType = resolveSafeUploadType({ type: file.type, name: file.name }, "image");
+	if (!safeType) {
+		await recordWideError({
+			name: "user.profile_picture.validation",
+			error: new Error("Unsupported file type"),
+			code: "UNSUPPORTED_FILE_TYPE",
+			message: "Profile picture file type is not allowed",
+			contextData: { userId: session.userId, fileType: file.type },
+		});
+		return c.json({ success: false, error: "Unsupported file type" }, 400);
+	}
+
 	const buffer = Buffer.from(await file.arrayBuffer());
-	const ext = file.name.split(".").pop() || file.type.split("/")[1] || "png";
+	const ext = safeType.ext;
 	const objectName = `/avatar.${ext}`;
 
 	// Remove old image if exists
@@ -379,7 +417,7 @@ apiRouteAdminUser.put("/profile-picture", async (c) => {
 		"user.profile_picture.upload",
 		() =>
 			uploadObject(objectName, buffer, `profile/${session.userId}`, {
-				"Content-Type": file.type || "application/octet-stream",
+				"Content-Type": safeType.contentType,
 				originalName: objectName,
 			}),
 		{
@@ -491,8 +529,7 @@ apiRouteAdminUser.get("/export", async (c) => {
 
 	return c.json({
 		success: true,
-		message:
-			"Your data export has started. You will be notified when it is ready.",
+		message: "Your data export has started. You will be notified when it is ready.",
 	});
 });
 
@@ -517,8 +554,7 @@ apiRouteAdminUser.delete("/delete", async (c) => {
 		return c.json(
 			{
 				success: false,
-				error:
-					"You cannot delete your account while you own organizations. Transfer ownership or delete your organizations first.",
+				error: "You cannot delete your account while you own organizations. Transfer ownership or delete your organizations first.",
 			},
 			400
 		);
@@ -538,10 +574,7 @@ apiRouteAdminUser.delete("/delete", async (c) => {
 				if (!user) {
 					throw new Error(`User not found: ${userId}`);
 				}
-				await db
-					.update(schema.taskTimeline)
-					.set({ actorId: null })
-					.where(eq(schema.taskTimeline.actorId, userId));
+				await db.update(schema.taskTimeline).set({ actorId: null }).where(eq(schema.taskTimeline.actorId, userId));
 				await db
 					.update(schema.taskComment)
 					.set({ createdBy: null })

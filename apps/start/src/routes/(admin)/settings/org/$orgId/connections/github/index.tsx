@@ -32,7 +32,8 @@ function RouteComponent() {
 	const queryClient = useQueryClient();
 	const [open, setOpen] = useState(false);
 
-	const base = import.meta.env.VITE_APP_ENV === "development" ? "/backend-api/internal" : "/api/internal";
+	const apiRoot = import.meta.env.VITE_APP_ENV === "development" ? "/backend-api" : "/api";
+	const base = `${apiRoot}/internal`;
 
 	/* ================= EXISTING CONNECTIONS ================= */
 
@@ -91,6 +92,31 @@ function RouteComponent() {
 	});
 
 	const appName = import.meta.env.VITE_GITHUB_APP_NAME;
+
+	/* ================= INSTALL TO NEW ACCOUNT ================= */
+
+	// The install `state` is a server-issued, single-use nonce bound to this user + org;
+	// /api/github/org-check rejects the GitHub redirect without it.
+	const installMutation = useMutation({
+		mutationFn: async () => {
+			const res = await fetch(`${apiRoot}/github/install-state`, {
+				method: "POST",
+				credentials: "include",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ orgId }),
+			});
+			if (!res.ok) throw new Error("Failed to start GitHub install");
+			const json: { data?: { state?: string } } = await res.json();
+			const state = json.data?.state;
+			if (!state) throw new Error("Failed to start GitHub install");
+			return state;
+		},
+		onSuccess: (state) => {
+			window.location.assign(
+				`https://github.com/apps/${appName}/installations/new?state=${encodeURIComponent(state)}`
+			);
+		},
+	});
 	const githubAccountNotConnected =
 		installationsData?.error && (!installationsData?.data || installationsData.data.length === 0);
 
@@ -210,15 +236,19 @@ function RouteComponent() {
 								)}
 
 								{/* ================= INSTALL NEW ACCOUNT ================= */}
-								<a
-									href={`https://github.com/apps/${appName}/installations/new?state=org_${orgId}`}
-									target="_blank"
-									rel="noopener noreferrer"
+								<Button
+									variant="outline"
+									className="w-full"
+									onClick={() => installMutation.mutate()}
+									disabled={installMutation.isPending}
 								>
-									<Button variant="outline" className="w-full">
-										Install to another GitHub account
-									</Button>
-								</a>
+									Install to another GitHub account
+								</Button>
+								{installMutation.isError && (
+									<p className="text-sm text-destructive">
+										Couldn't start the GitHub install. Please try again.
+									</p>
+								)}
 							</div>
 						)}
 					</AdaptiveDialogBody>

@@ -7,7 +7,7 @@ import { ReleasesChangelog } from "@/components/public/releases/releases-changel
 import { getOgImageUrl, seo } from "@/seo";
 
 const fetchPublicOrgMeta = createServerFn({ method: "GET" })
-	.inputValidator((data: { slug: string }) => data)
+	.validator((data: { slug: string }) => data)
 	.handler(async ({ data }) => {
 		const { multiTenantEnabled } = getEditionCapabilities();
 		let resolvedSlug = data.slug;

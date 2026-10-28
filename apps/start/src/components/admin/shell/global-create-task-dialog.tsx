@@ -56,7 +56,7 @@ export function GlobalCreateTaskDialog() {
 		let cancelled = false;
 		setIsLoading(true);
 
-		getAdminOrganization({ data: { account, orgId: resolvedOrgId } })
+		getAdminOrganization({ data: { orgId: resolvedOrgId } })
 			.then((result) => {
 				if (cancelled) return;
 				setOrgData({

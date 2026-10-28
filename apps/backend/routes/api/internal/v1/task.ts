@@ -22,11 +22,13 @@ import {
 	getTaskById,
 	getTaskRelations,
 	getTaskTimeline,
+	isTaskEmbeddingAllowedForOrg,
 	removeTaskParent,
 	removeTaskRelation,
 	schema,
 	searchTasksByOrganization,
 	setTaskParent,
+	toPublicTask,
 	userSummaryColumns,
 } from "@repo/database";
 import { getEditionCapabilities } from "@repo/edition";
@@ -70,6 +72,21 @@ import {
 import { errorResponse, paginatedSuccessResponse } from "../../../../responses";
 
 export const apiRouteAdminProjectTask = new Hono<AppEnv>();
+
+/**
+ * Whether a non-member may read a task's activity/comments: the task must
+ * belong to `orgId`, be `visible === "public"`, and the org's public page must
+ * be enabled.
+ */
+async function isTaskPubliclyViewable(orgId: string, taskId: string): Promise<boolean> {
+	if (!orgId || !taskId) return false;
+	const task = await db.query.task.findFirst({
+		where: (t) => and(eq(t.id, taskId), eq(t.organizationId, orgId), eq(t.visible, "public")),
+		columns: { id: true },
+	});
+	if (!task) return false;
+	return tracePublicOrgAccessCheck(orgId, "enablePublicPage");
+}
 
 // Create a new task
 apiRouteAdminProjectTask.post("/create", async (c) => {
@@ -118,6 +135,28 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 	// task for an issue opened by a Sayr-linked GitHub user, so the task shows
 	// them as the creator instead of the system account.
 	const effectiveCreatedBy = isSystemAccount && bodyCreatedBy ? bodyCreatedBy : session?.userId;
+
+	// parentId / releaseId are caller-supplied IDs — they must reference rows in
+	// this same organization, never another tenant's task or release.
+	if (parentId) {
+		const parentTask = await db.query.task.findFirst({
+			where: (t) => and(eq(t.id, parentId), eq(t.organizationId, orgId)),
+			columns: { id: true },
+		});
+		if (!parentTask) {
+			return c.json({ success: false, error: "Parent task not found." }, 404);
+		}
+	}
+	if (releaseId) {
+		const release = await db.query.release.findFirst({
+			where: (r) => and(eq(r.id, releaseId), eq(r.organizationId, orgId)),
+			columns: { id: true },
+		});
+		if (!release) {
+			return c.json({ success: false, error: "Release not found." }, 404);
+		}
+	}
+
 	const task = await traceAsync(
 		"task.create.insert",
 		() =>
@@ -210,7 +249,8 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 
 			sseBroadcastToRoom(orgId, `tasks`, data, found?.id);
 			if (taskWithData?.visible === "public") {
-				sseBroadcastPublic(orgId, { ...data, data: data }, found?.id);
+				const publicData = { ...data, data: toPublicTask(taskWithData) };
+				sseBroadcastPublic(orgId, { ...publicData, data: publicData }, found?.id);
 			}
 
 			const members = await getOrganizationMembers(orgId);
@@ -338,10 +378,15 @@ apiRouteAdminProjectTask.post("/create", async (c) => {
 	// needs one — no diffing needed here, unlike /update below. Cloud-only —
 	// self-hosted editions never populate task.embedding, so recommendations
 	// fall back to the local word-overlap heuristic there instead.
+	// Skipped when the org has AI turned off — the embedding sends task text to the AI provider.
 	if (getEditionCapabilities().semanticSearchEnabled) {
-		enqueue("main", { type: "embed_task", payload: { orgId, taskId: task.id } }).catch((err) => {
-			console.error("[task.create] Failed to enqueue embed_task job:", err);
-		});
+		isTaskEmbeddingAllowedForOrg(orgId)
+			.then((allowed) =>
+				allowed ? enqueue("main", { type: "embed_task", payload: { orgId, taskId: task.id } }) : undefined
+			)
+			.catch((err) => {
+				console.error("[task.create] Failed to enqueue embed_task job:", err);
+			});
 	}
 
 	return c.json({ success: true, data: taskWithData });
@@ -511,7 +556,11 @@ apiRouteAdminProjectTask.post("/public-create", async (c) => {
 			};
 
 			sseBroadcastToRoom(orgId, "tasks", data, found?.id);
-			sseBroadcastPublic(orgId, { ...data, data: data }, found?.id);
+			// A template can make the task private — only broadcast publicly when it's public.
+			if (taskWithData?.visible === "public") {
+				const publicData = { ...data, data: toPublicTask(taskWithData) };
+				sseBroadcastPublic(orgId, { ...publicData, data: publicData }, found?.id);
+			}
 
 			const members = await getOrganizationMembers(orgId);
 			members.forEach((member) => {
@@ -537,10 +586,15 @@ apiRouteAdminProjectTask.post("/public-create", async (c) => {
 	// task always needs its semantic-search embedding generated. Public tasks
 	// were previously missing this entirely, leaving `task.embedding` NULL
 	// until a later edit or manual backfill.
+	// Skipped when the org has AI turned off — the embedding sends task text to the AI provider.
 	if (getEditionCapabilities().semanticSearchEnabled) {
-		enqueue("main", { type: "embed_task", payload: { orgId, taskId: task.id } }).catch((err) => {
-			console.error("[task.public_create] Failed to enqueue embed_task job:", err);
-		});
+		isTaskEmbeddingAllowedForOrg(orgId)
+			.then((allowed) =>
+				allowed ? enqueue("main", { type: "embed_task", payload: { orgId, taskId: task.id } }) : undefined
+			)
+			.catch((err) => {
+				console.error("[task.public_create] Failed to enqueue embed_task job:", err);
+			});
 	}
 
 	return c.json({ success: true, data: taskWithData });
@@ -623,8 +677,9 @@ apiRouteAdminProjectTask.patch("/update", async (c) => {
 	// `updates.createdBy` itself — the service only looks at the known
 	// title/description/status/priority/category/releaseId/visible keys, so
 	// leaving `createdBy` in `updates` for this session-authenticated internal
-	// route is inert; that field is only honoured here, never for the API path).
-	const userId = updates.createdBy || session?.userId;
+	// route is inert). Only the internal system account may attribute the
+	// change to another user (mirrors /create) — never a regular session.
+	const userId = isSystemAccount && updates.createdBy ? updates.createdBy : session?.userId;
 
 	const taskWithData = await updateTaskService({
 		orgId,
@@ -935,8 +990,18 @@ apiRouteAdminProjectTask.delete("/remove-relation", async (c) => {
 			data: { orgId, relationId },
 		});
 
-		// Log timeline events on both tasks if IDs were provided
-		if (sourceTaskId && targetTaskId) {
+		// Log timeline events on both tasks if IDs were provided — and only when
+		// both caller-supplied IDs are actually tasks in this organization.
+		const ownedTaskCount =
+			sourceTaskId && targetTaskId
+				? (
+						await db.query.task.findMany({
+							where: (t) => and(eq(t.organizationId, orgId), or(eq(t.id, sourceTaskId), eq(t.id, targetTaskId))),
+							columns: { id: true },
+						})
+					).length
+				: 0;
+		if (sourceTaskId && targetTaskId && ownedTaskCount === 2) {
 			await Promise.all([
 				addLogEventTask(sourceTaskId, orgId, "relation_removed", relationId, null, session?.userId),
 				addLogEventTask(targetTaskId, orgId, "relation_removed", relationId, null, session?.userId),
@@ -1223,7 +1288,7 @@ apiRouteAdminProjectTask.post("/github-link", async (c) => {
 
 			sseBroadcastToRoom(orgId, `tasks;task:${taskId}`, data, undefined, true);
 			if (taskWithData?.visible === "public") {
-				sseBroadcastPublic(orgId, { ...data });
+				sseBroadcastPublic(orgId, { ...data, data: toPublicTask(taskWithData) });
 			}
 
 			const members = await getOrganizationMembers(orgId);
@@ -1342,7 +1407,7 @@ apiRouteAdminProjectTask.post("/activity", async (c) => {
 			sseBroadcastToRoom(orgId, `tasks;task:${taskId}`, message, undefined, true);
 
 			if (taskWithData?.visible === "public") {
-				sseBroadcastPublic(orgId, { ...message });
+				sseBroadcastPublic(orgId, { ...message, data: toPublicTask(taskWithData) });
 			}
 
 			const members = await getOrganizationMembers(orgId);
@@ -1530,15 +1595,26 @@ apiRouteAdminProjectTask.post("/create-comment", async (c) => {
 		task_id: taskId,
 		content,
 		visibility,
-		source,
-		externalAuthorLogin,
-		externalAuthorUrl,
-		externalIssueNumber,
-		externalCommentId,
-		externalCommentUrl,
+		source: bodySource,
+		externalAuthorLogin: bodyExternalAuthorLogin,
+		externalAuthorUrl: bodyExternalAuthorUrl,
+		externalIssueNumber: bodyExternalIssueNumber,
+		externalCommentId: bodyExternalCommentId,
+		externalCommentUrl: bodyExternalCommentUrl,
 		parentId,
 	} = await c.req.json();
 	const session = c.get("session");
+	// Provenance fields (source + external GitHub linkage) may only be set by the
+	// internal system account — i.e. the GitHub sync worker (apps/worker/github/comment.ts).
+	// A regular session must never be able to forge a "github"-sourced comment or
+	// claim an external comment ID (which the edit/delete sync paths key off).
+	const isSystemAccount = c.get("user")?.role === "system";
+	const source = isSystemAccount ? bodySource : undefined;
+	const externalAuthorLogin = isSystemAccount ? bodyExternalAuthorLogin : undefined;
+	const externalAuthorUrl = isSystemAccount ? bodyExternalAuthorUrl : undefined;
+	const externalIssueNumber = isSystemAccount ? bodyExternalIssueNumber : undefined;
+	const externalCommentId = isSystemAccount ? bodyExternalCommentId : undefined;
+	const externalCommentUrl = isSystemAccount ? bodyExternalCommentUrl : undefined;
 	// This is a session-authenticated HTTP route — nothing in this codebase calls it with
 	// a trustworthy client-supplied actor, so the comment's author/sync identity is always
 	// whoever the request is actually authenticated as. A client-supplied `createdBy` was
@@ -1598,6 +1674,15 @@ apiRouteAdminProjectTask.post("/create-comment", async (c) => {
 				},
 				404
 			);
+		}
+	} else {
+		// Members: the task must still belong to the org they're authorized for.
+		const task = await db.query.task.findFirst({
+			where: (t) => and(eq(t.id, taskId), eq(t.organizationId, orgId)),
+			columns: { id: true },
+		});
+		if (!task) {
+			return c.json({ success: false, error: "Task not found." }, 404);
 		}
 	}
 	// Blocked users cannot post at all
@@ -1834,7 +1919,10 @@ apiRouteAdminProjectTask.put("/edit-comment", async (c) => {
 
 	const comment = await traceAsync(
 		"task.comment.edit.lookup",
-		() => db.query.taskComment.findFirst({ where: (t) => eq(t.id, commentId) }),
+		() =>
+			db.query.taskComment.findFirst({
+				where: (t) => and(eq(t.id, commentId), eq(t.organizationId, orgId)),
+			}),
 		{ description: "Finding comment to edit", data: { commentId } }
 	);
 
@@ -1870,6 +1958,13 @@ apiRouteAdminProjectTask.put("/edit-comment", async (c) => {
 		if (!task) {
 			return c.json({ success: false, error: "Task not found or is not public." }, 404);
 		}
+	} else if (comment.createdBy !== session?.userId) {
+		// Members: author, admin, or mod can edit (mirrors /delete-comment)
+		const hasAdminPermission = await traceOrgPermissionCheck(session?.userId || "", orgId, "admin.administrator");
+		const hasModPermission = await traceOrgPermissionCheck(session?.userId || "", orgId, "moderation.manageComments");
+		if (!hasAdminPermission && !hasModPermission) {
+			return c.json({ success: false, error: "You don't have permission to edit this comment." }, 403);
+		}
 	}
 
 	await traceAsync(
@@ -1893,7 +1988,7 @@ apiRouteAdminProjectTask.put("/edit-comment", async (c) => {
 						visibility: visibility ?? comment.visibility,
 						updatedAt: new Date(),
 					})
-					.where(eq(schema.taskComment.id, commentId));
+					.where(and(eq(schema.taskComment.id, commentId), eq(schema.taskComment.organizationId, orgId)));
 			}),
 		{
 			description: "Updating comment and inserting history",
@@ -2012,7 +2107,10 @@ apiRouteAdminProjectTask.delete("/delete-comment", async (c) => {
 	// Fetch the comment
 	const comment = await traceAsync(
 		"task.comment.delete.lookup",
-		() => db.query.taskComment.findFirst({ where: (t) => eq(t.id, commentId) }),
+		() =>
+			db.query.taskComment.findFirst({
+				where: (t) => and(eq(t.id, commentId), eq(t.organizationId, orgId)),
+			}),
 		{ description: "Finding comment to delete", data: { commentId } }
 	);
 
@@ -2047,10 +2145,11 @@ apiRouteAdminProjectTask.delete("/delete-comment", async (c) => {
 			return c.json({ success: false, error: "You can only delete your own comments." }, 403);
 		}
 
-		// Verify the task is public
-		const task = taskId
+		// Verify the comment's own task is public (not a caller-supplied task_id)
+		const task = comment.taskId
 			? await db.query.task.findFirst({
-					where: (t) => and(eq(t.id, taskId), eq(t.organizationId, orgId), eq(t.visible, "public")),
+					where: (t) =>
+						and(eq(t.id, comment.taskId as string), eq(t.organizationId, orgId), eq(t.visible, "public")),
 					columns: { id: true },
 				})
 			: null;
@@ -2112,13 +2211,29 @@ apiRouteAdminProjectTask.delete("/delete-comment", async (c) => {
 		() =>
 			db.transaction(async (tx) => {
 				// Delete comment history first (foreign key constraint)
-				await tx.delete(schema.taskCommentHistory).where(eq(schema.taskCommentHistory.commentId, commentId));
+				await tx
+					.delete(schema.taskCommentHistory)
+					.where(
+						and(
+							eq(schema.taskCommentHistory.commentId, commentId),
+							eq(schema.taskCommentHistory.organizationId, orgId)
+						)
+					);
 
 				// Delete reactions
-				await tx.delete(schema.taskCommentReaction).where(eq(schema.taskCommentReaction.commentId, commentId));
+				await tx
+					.delete(schema.taskCommentReaction)
+					.where(
+						and(
+							eq(schema.taskCommentReaction.commentId, commentId),
+							eq(schema.taskCommentReaction.organizationId, orgId)
+						)
+					);
 
 				// Delete the comment
-				await tx.delete(schema.taskComment).where(eq(schema.taskComment.id, commentId));
+				await tx
+					.delete(schema.taskComment)
+					.where(and(eq(schema.taskComment.id, commentId), eq(schema.taskComment.organizationId, orgId)));
 			}),
 		{
 			description: "Deleting comment and related data",
@@ -2179,7 +2294,10 @@ apiRouteAdminProjectTask.patch("/update-comment-visibility", async (c) => {
 	// Fetch the comment
 	const comment = await traceAsync(
 		"task.comment.visibility.lookup",
-		() => db.query.taskComment.findFirst({ where: (t) => eq(t.id, commentId) }),
+		() =>
+			db.query.taskComment.findFirst({
+				where: (t) => and(eq(t.id, commentId), eq(t.organizationId, orgId)),
+			}),
 		{ description: "Finding comment to update visibility", data: { commentId } }
 	);
 
@@ -2273,7 +2391,7 @@ apiRouteAdminProjectTask.patch("/update-comment-visibility", async (c) => {
 						externalCommentUrl: null,
 					}),
 				})
-				.where(eq(schema.taskComment.id, commentId)),
+				.where(and(eq(schema.taskComment.id, commentId), eq(schema.taskComment.organizationId, orgId))),
 		{
 			description: "Updating comment visibility",
 			data: { orgId, commentId, visibility },
@@ -2338,6 +2456,23 @@ apiRouteAdminProjectTask.post("/create-reaction", async (c) => {
 			);
 		}
 	}
+
+	// The comment must belong to the authorized org + task. Non-members may only
+	// react to public comments.
+	const targetComment = await db.query.taskComment.findFirst({
+		where: (t) =>
+			and(
+				eq(t.id, commentId),
+				eq(t.organizationId, orgId),
+				eq(t.taskId, taskId),
+				isOrgMember ? undefined : eq(t.visibility, "public")
+			),
+		columns: { id: true },
+	});
+	if (!targetComment) {
+		return c.json({ success: false, error: "Comment not found." }, 404);
+	}
+
 	if (session?.userId) {
 		const blockedIds = await getBlockedUserIds(orgId);
 		if (blockedIds.includes(session?.userId || "")) {
@@ -2474,6 +2609,14 @@ apiRouteAdminProjectTask.get("/timeline/activity", async (c) => {
 		);
 	}
 
+	// Members see the full timeline; everyone else only for a public task in an
+	// org whose public page is enabled (what the public task page renders).
+	const session = c.get("session");
+	const isOrgMember = await traceOrgPermissionCheck(session?.userId || "", orgId || "", "members");
+	if (!isOrgMember && !(await isTaskPubliclyViewable(orgId || "", taskId || ""))) {
+		return c.json({ success: false, error: "Task not found." }, 404);
+	}
+
 	const timeline = await traceAsync("task.timeline.activity", () => getTaskTimeline(orgId || "", taskId || ""), {
 		description: "Fetching task timeline activity",
 		data: { orgId, taskId },
@@ -2513,6 +2656,11 @@ apiRouteAdminProjectTask.get("/timeline/comments", async (c) => {
 
 		// 🧩 Permission check
 		const isPublic = !session || !(await traceOrgPermissionCheck(session.userId, orgId, "members"));
+
+		// Non-members may only read comments on a public task with the public page enabled
+		if (isPublic && !(await isTaskPubliclyViewable(orgId, taskId))) {
+			return c.json({ success: false, error: "Task not found." }, 404);
+		}
 
 		// Fetch blocked user IDs for public viewers so their comments are excluded server-side
 		const blockedIds = isPublic ? await getBlockedUserIds(orgId) : [];
@@ -2715,6 +2863,17 @@ apiRouteAdminProjectTask.get("/timeline/comments/replies", async (c) => {
 
 		const session = c.get("session");
 		const isPublic = !session || !(await traceOrgPermissionCheck(session.userId, orgId, "members"));
+
+		// Non-members: the parent comment must be a public comment on a publicly viewable task
+		if (isPublic) {
+			const parentComment = await db.query.taskComment.findFirst({
+				where: (t) => and(eq(t.id, commentId), eq(t.organizationId, orgId), eq(t.visibility, "public")),
+				columns: { taskId: true },
+			});
+			if (!parentComment?.taskId || !(await isTaskPubliclyViewable(orgId, parentComment.taskId))) {
+				return c.json({ success: false, error: "Comment not found." }, 404);
+			}
+		}
 
 		const page = Math.max(Number(q.page) || 1, 1);
 		const limit = Math.min(Number(q.limit) || 50, 100);

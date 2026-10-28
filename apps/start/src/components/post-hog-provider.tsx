@@ -28,6 +28,12 @@ export function initPostHog() {
 		capture_performance: true,
 		// Session recording for debugging slow loads
 		disable_session_recording: false,
+		// Never record typed values; elements showing secrets (API keys, TOTP secret/QR, backup codes) carry the
+		// `ph-no-capture` class, which blocks them from replay (and from autocapture).
+		session_recording: {
+			maskAllInputs: true,
+			blockClass: "ph-no-capture",
+		},
 		// Autocapture clicks, inputs, etc.
 		autocapture: true,
 		// Enable exception autocapture for window.onerror and unhandled promise rejections

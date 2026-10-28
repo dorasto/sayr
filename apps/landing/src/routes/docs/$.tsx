@@ -12,6 +12,12 @@ import { encodeMarkdownUrl } from "@/lib/shared";
 import { source } from "@/lib/source";
 
 export const Route = createFileRoute("/docs/$")({
+	// Split the loader together with the component. Router only code-splits
+	// `component` by default, so the loader (and the module-level docs
+	// `clientLoader`, MDX components and OpenAPI UI it pulls in) would
+	// otherwise land in the main entry and be preloaded on every page,
+	// including the homepage.
+	codeSplitGroupings: [["loader", "component"]],
 	component: Page,
 	loader: async ({ params }) => {
 		const slugs = params._splat?.split("/") ?? [];
@@ -30,7 +36,7 @@ export const Route = createFileRoute("/docs/$")({
 });
 
 const serverLoader = createServerFn({ method: "GET" })
-	.inputValidator((slugs: string[]) => slugs)
+	.validator((slugs: string[]) => slugs)
 	.handler(async ({ data: slugs }) => {
 		const page = source.getPage(slugs);
 		if (!page) throw notFound();

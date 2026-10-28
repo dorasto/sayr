@@ -1,12 +1,22 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { FEATURES } from "@/data/features";
+import { PAGES, pagePath, SECTIONS, type SectionId } from "@/data/marketing-pages";
 import { SITE_URL } from "@/lib/seo";
 import { source } from "@/lib/source";
 
 const STATIC_PATHS = ["/", "/pricing", "/legal/privacy", "/legal/terms", "/legal/subprocessors"];
 
-function urlEntry(path: string): string {
-	return `<url><loc>${SITE_URL}${path}</loc></url>`;
+function urlEntry(path: string, lastmod?: string): string {
+	return `<url><loc>${SITE_URL}${path}</loc>${lastmod ? `<lastmod>${lastmod}</lastmod>` : ""}</url>`;
+}
+
+/** Marketing pages with their `updated` date, plus each non-empty section hub (dated by its newest page). */
+function marketingEntries(): string[] {
+	const hubs = (Object.keys(SECTIONS) as SectionId[]).flatMap((section) => {
+		const dates = PAGES.filter((page) => page.section === section).map((page) => page.updated);
+		return dates.length > 0 ? [urlEntry(`/${section}`, dates.sort().at(-1))] : [];
+	});
+	return [...hubs, ...PAGES.map((page) => urlEntry(pagePath(page), page.updated))];
 }
 
 export const Route = createFileRoute("/sitemap.xml")({
@@ -19,7 +29,7 @@ export const Route = createFileRoute("/sitemap.xml")({
 
 				const body = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${paths.map(urlEntry).join("\n")}
+${[...paths.map((path) => urlEntry(path)), ...marketingEntries()].join("\n")}
 </urlset>`;
 
 				return new Response(body, {

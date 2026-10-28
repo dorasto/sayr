@@ -26,7 +26,7 @@ import { userSummaryColumns, userSummarySelect } from "./index";
  */
 export async function getOrganizations(
 	userId: string,
-	options?: { includeUnseated?: boolean },
+	options?: { includeUnseated?: boolean }
 ): Promise<schema.OrganizationWithMembers[]> {
 	const includeUnseated = options?.includeUnseated ?? false;
 
@@ -48,8 +48,7 @@ export async function getOrganizations(
 				},
 			},
 		},
-		where: (organization, { inArray }) =>
-			inArray(organization.id, orgIds),
+		where: (organization, { inArray }) => inArray(organization.id, orgIds),
 	});
 
 	const result = orgsWithMembers
@@ -59,9 +58,7 @@ export async function getOrganizations(
 
 			if (org.plan !== "pro") return true;
 
-			const currentMember = org.members.find(
-				(m) => m.userId === userId,
-			);
+			const currentMember = org.members.find((m) => m.userId === userId);
 
 			return currentMember?.seatAssigned === true;
 		})
@@ -76,12 +73,8 @@ export async function getOrganizations(
 			return {
 				...org,
 				members,
-				logo: org.logo
-					? ensureCdnUrl(org.logo)
-					: null,
-				bannerImg: org.bannerImg
-					? ensureCdnUrl(org.bannerImg)
-					: null,
+				logo: org.logo ? ensureCdnUrl(org.logo) : null,
+				bannerImg: org.bannerImg ? ensureCdnUrl(org.bannerImg) : null,
 			};
 		});
 
@@ -131,7 +124,7 @@ export async function getOrganizations(
 export async function getOrganization(
 	orgId: string,
 	userId: string,
-	options?: { includeUnseated?: boolean; blockOrgUnseated?: boolean },
+	options?: { includeUnseated?: boolean; blockOrgUnseated?: boolean }
 ): Promise<schema.OrganizationWithMembers | null> {
 	const includeUnseated = options?.includeUnseated ?? false;
 	const blockOrgUnseated = options?.blockOrgUnseated ?? false;
@@ -153,18 +146,12 @@ export async function getOrganization(
 	if (!organization) return null;
 
 	// Ensure current user is part of it
-	const member = organization.members.find(
-		(m) => m.userId === userId,
-	);
+	const member = organization.members.find((m) => m.userId === userId);
 
 	if (!member) return null;
 
 	// Only enforce seat checks on pro plans
-	if (
-		organization.plan === "pro" &&
-		blockOrgUnseated &&
-		!member.seatAssigned
-	) {
+	if (organization.plan === "pro" && blockOrgUnseated && !member.seatAssigned) {
 		return null;
 	}
 
@@ -178,12 +165,8 @@ export async function getOrganization(
 	return {
 		...organization,
 		members,
-		logo: organization.logo
-			? ensureCdnUrl(organization.logo)
-			: null,
-		bannerImg: organization.bannerImg
-			? ensureCdnUrl(organization.bannerImg)
-			: null,
+		logo: organization.logo ? ensureCdnUrl(organization.logo) : null,
+		bannerImg: organization.bannerImg ? ensureCdnUrl(organization.bannerImg) : null,
 	};
 }
 
@@ -242,9 +225,7 @@ export async function isOrganizationMember(orgId: string, userId: string): Promi
  * }
  * ```
  */
-export async function getOrganizationPublic(
-	orgSlug: string,
-): Promise<schema.OrganizationWithMembers | null> {
+export async function getOrganizationPublic(orgSlug: string): Promise<schema.OrganizationWithMembers | null> {
 	const organization = await db.query.organization.findFirst({
 		where: (org) => eq(org.slug, orgSlug),
 		with: {
@@ -276,22 +257,50 @@ export async function getOrganizationPublic(
 
 	if (!organization) return null;
 
-	const filteredMembers = organization.members.filter(
-		(m) => m.seatAssigned,
-	);
+	// Polar seat ids are billing data — never hand them to anonymous callers.
+	const filteredMembers = organization.members
+		.filter((m) => m.seatAssigned)
+		.map((m) => ({ ...m, seatAssignedId: null }));
 
 	return {
 		...organization,
 		//@ts-expect-error
 		members: filteredMembers,
-		logo: organization.logo
-			? ensureCdnUrl(organization.logo)
-			: null,
-		bannerImg: organization.bannerImg
-			? ensureCdnUrl(organization.bannerImg)
-			: null,
-		privateId: null,
+		logo: organization.logo ? ensureCdnUrl(organization.logo) : null,
+		bannerImg: organization.bannerImg ? ensureCdnUrl(organization.bannerImg) : null,
+		settings: toPublicOrganizationSettings(organization.settings),
+		// Server-owned / billing fields are blanked for the public view
+		// (the type stays `OrganizationWithMembers` for existing callers).
+		...publicOrganizationRedactions,
 	};
+}
+
+/**
+ * Field overrides applied to any organization row exposed to anonymous
+ * callers (public portal loaders, public API, public SSE broadcasts).
+ */
+export const publicOrganizationRedactions = {
+	privateId: null,
+	plan: null,
+	seatCount: null,
+	polarCustomerId: null,
+	polarSubscriptionId: null,
+	currentPeriodEnd: null,
+	createdBy: null,
+} as const;
+
+/**
+ * Org settings as exposed to anonymous callers. `settings.ai` holds admin-only
+ * config (custom prompts, templates, selected models, rate-limit state) that no
+ * public surface reads, so it's dropped; every other flag (enablePublicPage,
+ * publicActions, publicTaskFields, ...) is needed by the portal and kept.
+ * Use alongside `publicOrganizationRedactions` wherever an org row goes public.
+ */
+export function toPublicOrganizationSettings(
+	settings: schema.organizationType["settings"]
+): schema.organizationType["settings"] {
+	const { ai: _ai, ...publicSettings } = settings;
+	return publicSettings;
 }
 
 /**
@@ -321,7 +330,8 @@ export async function getOrganizationPublicById(orgId: string): Promise<schema.o
 			...organization,
 			logo: organization.logo ? ensureCdnUrl(organization.logo) : null,
 			bannerImg: organization.bannerImg ? ensureCdnUrl(organization.bannerImg) : null,
-			privateId: null,
+			settings: toPublicOrganizationSettings(organization.settings),
+			...publicOrganizationRedactions,
 		};
 	}
 	return null;
@@ -357,10 +367,11 @@ const fullAdminPermissions: TeamPermissions = {
 
 /**
  * Creates a default "Admin" team for an organization with full permissions
- * and adds all existing organization members to it.
+ * and adds the organization owner (`organization.createdBy`) to it. Other
+ * members are never added here — grant them admin explicitly via teams.
  *
  * This function is idempotent - if an "Admin" team already exists,
- * it will just ensure all members are added to it.
+ * it will just ensure the owner is in it.
  *
  * @param orgId - The ID of the organization to bootstrap.
  * @returns The created or existing Administrators team.
@@ -401,10 +412,23 @@ export async function bootstrapOrganizationAdminTeam(orgId: string): Promise<sch
 		adminTeam = created;
 	}
 
-	// Get all organization members
-	const members = await db.query.member.findMany({
-		where: (m) => eq(m.organizationId, orgId),
-	});
+	// Only the organization owner is seeded into the full-permission Admin
+	// team. Adding every member here would let any member escalate to
+	// administrator by calling the bootstrap endpoint.
+	const [org] = await db
+		.select({ createdBy: schema.organization.createdBy })
+		.from(schema.organization)
+		.where(eq(schema.organization.id, orgId))
+		.limit(1);
+
+	if (!org?.createdBy) {
+		return adminTeam;
+	}
+
+	const members = await db
+		.select({ id: schema.member.id })
+		.from(schema.member)
+		.where(and(eq(schema.member.organizationId, orgId), eq(schema.member.userId, org.createdBy)));
 
 	// Get existing team memberships
 	const existingMemberships = await db.query.memberTeam.findMany({
@@ -413,7 +437,7 @@ export async function bootstrapOrganizationAdminTeam(orgId: string): Promise<sch
 
 	const existingMemberIds = new Set(existingMemberships.map((mt) => mt.memberId));
 
-	// Add any members not already in the team
+	// Add the owner if not already in the team
 	const membersToAdd = members.filter((m) => !existingMemberIds.has(m.id));
 
 	if (membersToAdd.length > 0) {
@@ -476,7 +500,7 @@ export async function addMemberToAdminTeam(orgId: string, memberId: string): Pro
  */
 export async function searchOrgMembers(
 	orgId: string,
-	options?: { query?: string; limit?: number },
+	options?: { query?: string; limit?: number }
 ): Promise<schema.UserSummary[]> {
 	const limit = options?.limit ?? 20;
 	const query = options?.query?.trim();
@@ -494,17 +518,12 @@ export async function searchOrgMembers(
 	// Get members (only those with assigned seats)
 	const members = await db.query.member.findMany({
 		where: (member) =>
-			and(
-				eq(member.organizationId, orgId),
-				organization.plan === "pro"
-					? eq(member.seatAssigned, true)
-					: undefined
-			),
+			and(eq(member.organizationId, orgId), organization.plan === "pro" ? eq(member.seatAssigned, true) : undefined),
 		with: {
 			user: {
-				columns: userSummaryColumns
-			}
-		}
+				columns: userSummaryColumns,
+			},
+		},
 	});
 
 	let users = members.map((m) => m.user);
@@ -513,12 +532,8 @@ export async function searchOrgMembers(
 	if (query) {
 		const lowerQuery = query.toLowerCase();
 		users = users.filter((user) => {
-			const matchesName = user.name
-				.toLowerCase()
-				.includes(lowerQuery);
-			const matchesDisplayName = user.displayName
-				?.toLowerCase()
-				.includes(lowerQuery);
+			const matchesName = user.name.toLowerCase().includes(lowerQuery);
+			const matchesDisplayName = user.displayName?.toLowerCase().includes(lowerQuery);
 
 			return matchesName || matchesDisplayName;
 		});
@@ -548,7 +563,7 @@ export async function searchOrgMembers(
  */
 export async function searchOrgInteractors(
 	orgId: string,
-	options?: { query?: string; limit?: number },
+	options?: { query?: string; limit?: number }
 ): Promise<schema.UserSummary[]> {
 	const limit = options?.limit ?? 20;
 	const query = options?.query?.trim();
@@ -585,10 +600,7 @@ export async function searchOrgInteractors(
 	if (nonMemberIds.length === 0) return [];
 
 	// Fetch user summaries
-	const users = await db
-		.select(userSummarySelect)
-		.from(auth.user)
-		.where(inArray(auth.user.id, nonMemberIds));
+	const users = await db.select(userSummarySelect).from(auth.user).where(inArray(auth.user.id, nonMemberIds));
 
 	// Apply text filter if provided
 	let filtered = users;
@@ -637,7 +649,7 @@ export async function blockUser(
 	orgId: string,
 	userId: string,
 	blockedBy: string,
-	reason?: string,
+	reason?: string
 ): Promise<schema.BlockedUserWithDetails | null> {
 	// Check if already blocked
 	const existing = await db.query.blockedUser.findFirst({

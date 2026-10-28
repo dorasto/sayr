@@ -30,7 +30,22 @@ apiRouteIntegrations.all("/:orgId/*", async (c) => {
     if (adminErr) return adminErr;
 
     const requestUrl = new URL(c.req.url);
-    const path = c.req.path.replace(`/api/integrations/${orgId}/`, "");
+    // The admin check above is for `orgId` only — rebuild the rest of the path segment by segment so dot
+    // segments or encoded separators can't climb out of `/${orgId}/integrations/` into another org's routes.
+    const segments: string[] = [];
+    for (const raw of c.req.path.replace(`/api/integrations/${orgId}/`, "").split("/")) {
+        let segment: string;
+        try {
+            segment = decodeURIComponent(raw);
+        } catch {
+            return c.json({ success: false, error: "Invalid path" }, 400);
+        }
+        if (segment === "." || segment === ".." || segment.includes("/") || segment.includes("\\")) {
+            return c.json({ success: false, error: "Invalid path" }, 400);
+        }
+        segments.push(encodeURIComponent(segment));
+    }
+    const path = segments.join("/");
     const INTERNAL_URL = `${API_URL}/${orgId}/integrations/${path}${requestUrl.search}`;
 
     try {
