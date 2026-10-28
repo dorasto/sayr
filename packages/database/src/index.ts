@@ -51,11 +51,15 @@ import {
 	organization,
 	type TeamPermissions,
 	team,
+	notifications,
+	notificationSettings
 } from "../schema";
 
 import { user } from "../schema/auth";
 import { db } from "./database";
-
+import { createNotificationClient, createNotificationProcessor } from "@repo/notification";
+import { createDrizzleNotificationRepository } from "@repo/notification";
+export { createNotificationClient }
 /** Full admin permissions - all flags set to true (for platform admins) */
 const fullPermissions: TeamPermissions = {
 	admin: {
@@ -302,3 +306,59 @@ export async function getOrgPermissions(userId: string, orgId: string): Promise<
 
 	return combined;
 }
+
+export const NotificationHelper = createDrizzleNotificationRepository({
+	db,
+	schema: { notifications, notificationSettings },
+})
+export const processNotificationCreate = createNotificationProcessor(
+	NotificationHelper,
+	async (notification, job) => {
+		const apiUrl =
+			process.env.APP_ENV === "development"
+				? "http://localhost:5468/api/internal"
+				: "http://backend:5468/api/internal";
+
+		const internalSecret = process.env.INTERNAL_SECRET;
+
+		if (!internalSecret) {
+			throw new Error("INTERNAL_SECRET is not configured");
+		}
+
+		const response = await fetch(
+			`${apiUrl}/v1/console/create-notification`,
+			{
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+					Cookie: `sayr_internal=${internalSecret}`,
+					"user-agent": "Sayr-Worker/1.0",
+					"x-internal-secret": internalSecret,
+					"x-internal-service": "sayr-worker",
+					"x-internal-timestamp": new Date().toISOString(),
+				},
+				body: JSON.stringify({
+					id: notification.id,
+					type: job.payload.type,
+					recipientId: job.payload.recipientId,
+					actorId: job.payload.actorId ?? null,
+					scopeType: job.payload.scopeType ?? null,
+					scopeId: job.payload.scopeId ?? null,
+					resourceType: job.payload.resourceType ?? null,
+					resourceId: job.payload.resourceId ?? null,
+					data: job.payload.data,
+				}),
+			},
+		);
+
+		if (!response.ok) {
+			const responseText = await response.text();
+
+			throw new Error(
+				`Failed to publish notification ${notification.id}. ` +
+				`Status: ${response.status}. ` +
+				`Response: ${responseText}`,
+			);
+		}
+	}
+)

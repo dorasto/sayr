@@ -10,6 +10,7 @@ import { useEffect } from "react";
 import { markNotificationsReadByTaskAction } from "@/lib/fetches/notification";
 import { useServerEventsSubscription } from "@/hooks/useServerEventsSubscription";
 import type { ServerEventMessage } from "@/lib/serverEvents";
+import { notificationActions } from "@/lib/stores/notification-store";
 
 export const Route = createFileRoute("/(admin)/$orgId/tasks/$taskShortId/")({
 	component: RouteComponent,
@@ -35,6 +36,7 @@ function RouteComponent() {
 	useEffect(() => {
 		if (task.id) {
 			markNotificationsReadByTaskAction(task.id);
+			notificationActions.refresh()
 		}
 	}, [task.id]);
 

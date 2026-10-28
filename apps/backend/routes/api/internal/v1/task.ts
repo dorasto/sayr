@@ -3,7 +3,6 @@ import {
 	addLabelToTask,
 	addLogEventTask,
 	createComment,
-	createNotification,
 	createOrToggleCommentReaction,
 	createOrToggleTaskVote,
 	createTask,
@@ -38,7 +37,7 @@ import { getInstallationToken } from "@repo/util/github/auth";
 import { and, desc, eq, ilike, isNull, notInArray, or, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import { emitEvent, type PlatformEventType } from "@/clickhouse";
-import type { AppEnv } from "@/index";
+import { createNotification, type AppEnv } from "@/index";
 import { prosekitJSONToMarkdown } from "@/prosekit/markdown";
 import { resolveMentionLinksForGithub } from "@/prosekit/resolveMentions";
 import {
@@ -436,9 +435,9 @@ apiRouteAdminProjectTask.post("/public-create", async (c) => {
 	// (assignees, status, release, visibility, etc.) that the frontend never sends.
 	const template = templateId
 		? await traceAsync("task.public_create.load_template", () => getIssueTemplateById(templateId), {
-				description: "Loading issue template for public task creation",
-				data: { templateId },
-			})
+			description: "Loading issue template for public task creation",
+			data: { templateId },
+		})
 		: null;
 
 	// Validate the template belongs to this org
@@ -1833,21 +1832,16 @@ apiRouteAdminProjectTask.post("/create-comment", async (c) => {
 	if (mentionOnlyUserIds.length > 0) {
 		for (const userId of mentionOnlyUserIds) {
 			try {
-				const notif = await createNotification({
-					organizationId: orgId,
-					userId,
-					actorId: actorId ?? null,
-					taskId,
-					timelineEventId: null,
+				await createNotification({
 					type: "mention",
+					resourceId: orgId,
+					recipientId: userId,
+					actorId: actorId ?? null,
+					data: {
+						taskId,
+						commentId: newComment?.id
+					}
 				});
-				if (notif) {
-					sseBroadcastByUserId(notif.userId, "", orgId, {
-						type: "NEW_NOTIFICATION" as ServerEventBaseMessage["type"],
-						data: notif,
-						meta: { ts: Date.now() },
-					});
-				}
 			} catch {
 				// Notification failures should never break task operations
 			}
@@ -1870,7 +1864,7 @@ apiRouteAdminProjectTask.post("/create-comment", async (c) => {
 						{ sourceTaskId: taskId },
 						actorId ?? undefined
 					).catch(
-						() => {} // never let timeline failures break comment creation
+						() => { } // never let timeline failures break comment creation
 					)
 				)
 		);
@@ -1950,9 +1944,9 @@ apiRouteAdminProjectTask.put("/edit-comment", async (c) => {
 		// Verify the task is public
 		const task = comment.taskId
 			? await db.query.task.findFirst({
-					where: (t) => and(eq(t.id, comment.taskId!), eq(t.organizationId, orgId), eq(t.visible, "public")),
-					columns: { id: true },
-				})
+				where: (t) => and(eq(t.id, comment.taskId!), eq(t.organizationId, orgId), eq(t.visible, "public")),
+				columns: { id: true },
+			})
 			: null;
 
 		if (!task) {
@@ -2166,9 +2160,9 @@ apiRouteAdminProjectTask.delete("/delete-comment", async (c) => {
 		try {
 			const syncTask = comment.taskId
 				? await db.query.task.findFirst({
-						where: (t) => and(eq(t.id, comment.taskId as string), eq(t.organizationId, orgId)),
-						with: { githubIssue: true },
-					})
+					where: (t) => and(eq(t.id, comment.taskId as string), eq(t.organizationId, orgId)),
+					with: { githubIssue: true },
+				})
 				: null;
 
 			if (syncTask?.visible === "public" && syncTask.githubIssue) {
@@ -2335,9 +2329,9 @@ apiRouteAdminProjectTask.patch("/update-comment-visibility", async (c) => {
 		try {
 			const syncTask = comment.taskId
 				? await db.query.task.findFirst({
-						where: (t) => and(eq(t.id, comment.taskId as string), eq(t.organizationId, orgId)),
-						with: { githubIssue: true },
-					})
+					where: (t) => and(eq(t.id, comment.taskId as string), eq(t.organizationId, orgId)),
+					with: { githubIssue: true },
+				})
 				: null;
 
 			if (syncTask?.visible === "public" && syncTask.githubIssue) {
@@ -3101,12 +3095,12 @@ export function baseTaskWhere(
 		...(includeClosed
 			? []
 			: [
-					or(
-						eq(schema.task.status, "todo"),
-						eq(schema.task.status, "in-progress"),
-						eq(schema.task.status, "backlog")
-					),
-				]),
+				or(
+					eq(schema.task.status, "todo"),
+					eq(schema.task.status, "in-progress"),
+					eq(schema.task.status, "backlog")
+				),
+			]),
 		...(isPublic === false ? [] : [eq(schema.task.visible, "public")]),
 	];
 
@@ -3203,13 +3197,13 @@ apiRouteAdminProjectTask.get("/tasks", async (c) => {
 					orderBy: isTrending
 						? undefined
 						: (t, { desc }) => {
-								if (sortBy === "newest") {
-									return [desc(t.createdAt)];
-								}
+							if (sortBy === "newest") {
+								return [desc(t.createdAt)];
+							}
 
-								// mostPopular
-								return [desc(t.voteCount), desc(t.createdAt)];
-							},
+							// mostPopular
+							return [desc(t.voteCount), desc(t.createdAt)];
+						},
 
 					limit: isTrending ? limit * 5 : limit,
 					offset: isTrending ? 0 : offset,

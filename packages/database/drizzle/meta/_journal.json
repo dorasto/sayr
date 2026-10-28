@@ -218,6 +218,20 @@
       "when": 1789479169286,
       "tag": "20260915133249_flowery_thunderball",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1792327624691,
+      "tag": "20261018124704_sleepy_doctor_spectrum",
+      "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1792389114953,
+      "tag": "20261019055154_noisy_siren",
+      "breakpoints": true
     }
   ]
 }

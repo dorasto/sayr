@@ -1,6 +1,4 @@
 import {
-	createNotification,
-	createNotifications,
 	extractUserMentions,
 	getOrganizationMembers,
 	getTaskAssigneeIds,
@@ -8,6 +6,7 @@ import {
 } from "@repo/database";
 import { sseBroadcastByUserId } from "@/routes/events";
 import type { ServerEventBaseMessage } from "@/routes/events/types";
+import { AppTypeNotification, createNotification } from "@/index";
 
 /**
  * Creates notifications for task assignees and broadcasts them via WebSocket.
@@ -21,7 +20,7 @@ export async function notifyAssignees(params: {
 	taskId: string;
 	orgId: string;
 	actorId: string | undefined;
-	type: (typeof schema.notificationTypeEnum.enumValues)[number];
+	type: AppTypeNotification
 	timelineEventId?: string;
 }) {
 	try {
@@ -31,23 +30,20 @@ export async function notifyAssignees(params: {
 		const memberIds = new Set((await getOrganizationMembers(params.orgId)).map((m) => m.userId));
 		const assigneeIds = taskAssigneeIds.filter((id) => memberIds.has(id));
 		if (assigneeIds.length === 0) return;
-
-		const notifications = await createNotifications({
-			organizationId: params.orgId,
-			userIds: assigneeIds,
-			actorId: params.actorId ?? null,
-			taskId: params.taskId,
-			timelineEventId: params.timelineEventId ?? null,
-			type: params.type,
-		});
-
-		// Broadcast to each recipient via WebSocket
-		for (const notif of notifications) {
-			sseBroadcastByUserId(notif.userId, "", params.orgId, {
-				type: "NEW_NOTIFICATION" as ServerEventBaseMessage["type"],
-				data: notif,
-				meta: { ts: Date.now() },
-			});
+		// Deduplicate and filter out the actor
+		const uniqueUserIds = [...new Set(assigneeIds)].filter((id) => id !== params.actorId);
+		if (uniqueUserIds.length === 0) return [];
+		for (const item of uniqueUserIds) {
+			createNotification({
+				type: params.type,
+				resourceId: params.orgId,
+				recipientId: item,
+				actorId: params.actorId ?? null,
+				data: {
+					taskId: params.taskId,
+					timelineEventId: params.timelineEventId ?? undefined,
+				}
+			} as Parameters<typeof createNotification>[0]);
 		}
 	} catch {
 		// Notification failures should never break task operations
@@ -74,22 +70,16 @@ export async function notifyMentions(params: {
 		// Mentions are explicit — the user typed @someone — so self-mentions are intentional.
 		const dedupedIds = [...new Set(mentionedUserIds)];
 		for (const userId of dedupedIds) {
-			const notif = await createNotification({
-				organizationId: params.orgId,
-				userId,
-				actorId: params.actorId ?? null,
-				taskId: params.taskId,
-				timelineEventId: params.timelineEventId ?? null,
+			createNotification({
 				type: "mention",
+				resourceId: params.orgId,
+				recipientId: userId,
+				actorId: params.actorId ?? null,
+				data: {
+					taskId: params.taskId,
+					timelineEventId: params.timelineEventId ?? undefined,
+				}
 			});
-
-			if (notif) {
-				sseBroadcastByUserId(notif.userId, "", params.orgId, {
-					type: "NEW_NOTIFICATION" as ServerEventBaseMessage["type"],
-					data: notif,
-					meta: { ts: Date.now() },
-				});
-			}
 		}
 	} catch {
 		// Notification failures should never break task operations

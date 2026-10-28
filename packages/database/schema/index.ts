@@ -1,21 +1,22 @@
-import type { account, session, two_factor, user, verification } from "./auth";
+import type { account, session, two_factor, verification } from "./auth";
+import { user } from "./auth";
 import type { githubIssueType } from "./github_issue.schema";
 import type { labelType } from "./label.schema";
 import type { OrganizationMemberType, TeamPermissions } from "./member.schema";
-import type { OrganizationSettings, organizationType } from "./organization.schema";
+import { organization, type organizationType } from "./organization.schema";
 import type { releaseType } from "./release.schema";
 import type { taskType } from "./task.schema";
 import type { taskCommentType } from "./taskComment.schema";
 import type { taskTimelineType } from "./taskTimeline.schema";
 import type { issueTemplateType } from "./taskTemplate.schema";
 import type { labelType as LabelTypeImport } from "./label.schema";
-import type { notificationType } from "./notification.schema";
 import { githubPullRequestType } from "./github_pull_request.schema";
 import type { blockedUserType } from "./blockedUser.schema";
 import type { taskRelationType } from "./taskRelation.schema";
 
 import type { releaseStatusUpdateType } from "./release_status_update.schema";
 import type { releaseCommentType } from "./release_comment.schema";
+import { createNotificationRelations, createNotificationSchema } from "@repo/notification";
 export * from "./release_status_update.schema";
 export * from "./release_comment.schema";
 export * from "./release_comment_reaction.schema";
@@ -40,7 +41,6 @@ export * from "./taskRelation.schema";
 export * from "./taskTemplate.schema";
 export * from "./taskVote.schema";
 export * from "./apikey.schema";
-export * from "./notification.schema";
 export * from "./github_pull_request.schema";
 export * from "./blockedUser.schema";
 export * from "./github_branch_link.schema";
@@ -202,30 +202,6 @@ export type ReleaseCommentWithAuthor = Omit<releaseCommentType, "createdBy"> & {
 	};
 };
 
-export type NotificationWithDetails = notificationType & {
-	actor?: UserSummary | null;
-	task: {
-		id: string;
-		shortId: number | null;
-		title: string;
-		status: string;
-		priority: string;
-	};
-	organization: {
-		id: string;
-		name: string;
-		slug: string;
-		logo: string | null;
-		shortId: string;
-	};
-	timelineEvent?: {
-		id: string;
-		eventType: string;
-		fromValue: unknown;
-		toValue: unknown;
-	} | null;
-};
-
 /* -------------------------------------------------------------------------- */
 /*                               Auth Types                                   */
 /* -------------------------------------------------------------------------- */
@@ -240,3 +216,28 @@ export type BlockedUserWithDetails = blockedUserType & {
 	user: UserSummary;
 	blockedByUser: UserSummary;
 };
+
+export const {
+	notifications,
+	notificationSettings,
+} = createNotificationSchema({
+	recipientId: () => user.id,
+	actorId: () => user.id,
+});
+
+export const {
+	notificationRelations,
+	notificationSettingsRelations,
+} = createNotificationRelations(
+	{ notifications, notificationSettings },
+	{
+		recipientId: () => user.id,
+		actorId: () => user.id,
+		resourceId: () => organization.id,
+	},
+	{
+		recipient: user,
+		actor: user,
+		resourceId: organization
+	},
+);

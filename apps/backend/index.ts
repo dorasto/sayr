@@ -3,7 +3,7 @@ import { initTracing } from "@repo/opentelemetry";
 initTracing(`sayr-backend`);
 
 import type { auth } from "@repo/auth/index";
-import { db } from "@repo/database";
+import { createNotificationClient, db } from "@repo/database";
 import { getEdition } from "@repo/edition";
 import { ensureBucketExists } from "@repo/storage";
 import { sql } from "drizzle-orm";
@@ -20,6 +20,46 @@ import sseRoute from "./routes/events";
 import { renderRoute } from "./routes/render";
 import { webhookRoute } from "./routes/webhook";
 import { type RecordWideError, wideEventMiddleware } from "./tracing/wideEvent";
+import { enqueue } from "@repo/queue";
+export type AppTypeNotification = "mention" | "comment" | "status_change" | "priority_change" | "assignee_added" | "assignee_removed"
+export type AppNotificationMap = {
+	mention: {
+		taskId: string;
+		timelineEventId?: string | undefined;
+		commentId?: string;
+	};
+	comment: {
+		taskId: string;
+		commentId: string;
+		preview?: string;
+		timelineEventId: string | undefined;
+	};
+	status_change: {
+		taskId: string;
+		oldStatus: string;
+		newStatus: string;
+		timelineEventId: string | undefined;
+	};
+	priority_change: {
+		taskId: string;
+		timelineEventId: string | undefined;
+	};
+	assignee_added: {
+		taskId: string;
+		timelineEventId: string | undefined;
+	};
+	assignee_removed: {
+		taskId: string;
+		timelineEventId: string | undefined;
+	};
+};
+export const {
+	createNotification,
+} = createNotificationClient<AppNotificationMap>(
+	(job) => {
+		return enqueue("main", { type: "notification_create", ...job });
+	},
+);
 // -----------------------------------------------------------------------------
 // Types
 // -----------------------------------------------------------------------------
