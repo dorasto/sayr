@@ -41,6 +41,7 @@ export * from "./taskRelation.schema";
 export * from "./taskTemplate.schema";
 export * from "./taskVote.schema";
 export * from "./apikey.schema";
+export * from "./oauth.schema";
 export * from "./github_pull_request.schema";
 export * from "./blockedUser.schema";
 export * from "./github_branch_link.schema";

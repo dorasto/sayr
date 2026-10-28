@@ -1,5 +1,6 @@
 import { inferAdditionalFields, lastLoginMethodClient, twoFactorClient } from "better-auth/client/plugins";
 import { passkeyClient } from "@better-auth/passkey/client";
+import { oauthProviderClient } from "@better-auth/oauth-provider/client";
 import { createAuthClient } from "better-auth/react"; // make sure to import from better-auth/react
 import type { auth } from "./index";
 export const authClient = createAuthClient({
@@ -12,6 +13,8 @@ export const authClient = createAuthClient({
 			},
 		}),
 		passkeyClient(),
+		// Powers the MCP consent page (SAY-31) — approve/deny calls go through this.
+		oauthProviderClient(),
 	],
 });
 const setLoginOriginCookie = () => {

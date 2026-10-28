@@ -2,10 +2,13 @@ import * as schema from "@repo/database";
 import { db } from "@repo/database";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { admin, genericOAuth, lastLoginMethod, twoFactor } from "better-auth/plugins";
+import { admin, genericOAuth, jwt, lastLoginMethod, twoFactor } from "better-auth/plugins";
 import { passkey } from "@better-auth/passkey";
 import { polar, checkout } from "@polar-sh/better-auth";
 import { createPolar } from "@polar-sh/sdk/2026-10";
+import { mcp } from "@better-auth/mcp";
+import { cimd } from "@better-auth/cimd";
+import { fetchClientMetadataResource } from "@better-auth/cimd/node";
 import { getEditionCapabilities, isCloud, isSelfHosted } from "@repo/edition";
 import { eq, sql } from "drizzle-orm";
 import { sendEmail } from "@repo/util";
@@ -22,6 +25,9 @@ const authCallbackUrl = process.env.VITE_AUTH_CALLBACK_URL || process.env.VITE_U
 // For local dev with subdomains, use "app.localhost" pattern or sslip.io/nip.io
 const isBarelocalhost = rootUrl === "localhost";
 const { polarBillingEnabled } = getEditionCapabilities();
+// MCP server access is cloud-only (SAY-31). The canonical protected-resource identifier
+// must be HTTPS except on loopback hosts, so dev falls back to the bare backend origin.
+const mcpResource = isProd ? `https://api.${rootUrl}/mcp` : "http://localhost:5468/mcp";
 
 // Hosts that serve user-uploaded content. They're subdomains of root (so matched by the
 // `*.root` wildcard) but must never be trusted as an auth origin.
@@ -104,6 +110,22 @@ const plugins = [
 		rpID: rootUrl || "localhost",
 		rpName: "sayr.io",
 	}),
+	// MCP server access (SAY-31) is cloud-only — self-hosted editions don't get the
+	// OAuth authorization-server endpoints at all, not just a feature gate on top.
+	...(isCloud()
+		? [
+				jwt(),
+				mcp({
+					loginPage: "/auth/login",
+					consentPage: "/auth/consent",
+					resource: mcpResource,
+				}),
+				cimd({
+					fetchClientMetadataResource,
+					metadataProfile: "mcp-2026-07-28",
+				}),
+			]
+		: []),
 ];
 
 export const auth = betterAuth({
@@ -116,6 +138,13 @@ export const auth = betterAuth({
 			apikey: schema.schema.apikey,
 			twoFactor: schema.auth.two_factor,
 			passkey: schema.auth.passkey,
+			oauthClient: schema.schema.oauthClient,
+			oauthResource: schema.schema.oauthResource,
+			oauthClientResource: schema.schema.oauthClientResource,
+			oauthRefreshToken: schema.schema.oauthRefreshToken,
+			oauthAccessToken: schema.schema.oauthAccessToken,
+			oauthConsent: schema.schema.oauthConsent,
+			oauthClientAssertion: schema.schema.oauthClientAssertion,
 		},
 	}),
 	// Org portals live on `<slug>.<root>`, so subdomains must be trusted by wildcard. The user-content
