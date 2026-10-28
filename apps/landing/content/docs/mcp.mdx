@@ -7,10 +7,8 @@ icon: IconPlugConnected
 Sayr runs a remote [Model Context Protocol](https://modelcontextprotocol.io) (MCP) server, so an AI agent can read and write tasks, comments, and more in your organization on your behalf, the same way the [CLI](/docs/cli) or a [personal access token](/docs/cli/authentication) does.
 
 <Callout type="info" title="Early preview">
-  MCP support is newly available and still growing. The tool surface below is
-  what's shipped today; more tools (updating tasks, releases, labels and
-  categories) are coming. It's a **Sayr Cloud** feature — self-hosted
-  instances don't expose an MCP server yet.
+  MCP support is newly available. It's a **Sayr Cloud** feature —
+  self-hosted instances don't expose an MCP server yet.
 </Callout>
 
 ## Setting it up
@@ -189,7 +187,11 @@ MCP access reuses the exact same scope vocabulary and permission model as [perso
 
 Like the CLI, the MCP server applies these checks to every task — including ones you created or are assigned to. If your team doesn't grant `tasks.editAny`, an agent can still change status and priority (where allowed) but not a task's title or description.
 
-If you revoke consent or your role changes, that takes effect immediately on the next call — nothing is cached against the old permissions.
+If your role or teams change, that takes effect on the very next call — nothing is cached against the old permissions.
+
+## Disconnecting an app
+
+Every app you've approved is listed under **Settings → Connections → Connected apps**, with when you connected it and how many permissions it holds. **Revoke** cuts it off immediately: its current access stops working on the next call, and it can't renew it. To use the app again, connect it and approve it from scratch.
 
 ## Rate limits
 

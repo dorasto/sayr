@@ -1,5 +1,6 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { SubWrapper } from "@/components/generic/wrapper";
+import { ConnectedAppsSettings } from "@/components/settings/sections/connected-apps-settings";
 import { ConnectionsSettings } from "@/components/settings/sections/connections-settings";
 import { seo } from "@/seo";
 
@@ -20,7 +21,10 @@ function RouteComponent() {
 			style="compact"
 			description="Connect accounts to sign in with and power integrations"
 		>
-			<ConnectionsSettings />
+			<div className="flex flex-col gap-6">
+				<ConnectionsSettings />
+				{import.meta.env.VITE_SAYR_EDITION === "cloud" && <ConnectedAppsSettings />}
+			</div>
 		</SubWrapper>
 	);
 }

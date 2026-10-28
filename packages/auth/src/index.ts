@@ -135,7 +135,9 @@ const plugins = [
 	// OAuth authorization-server endpoints at all, not just a feature gate on top.
 	...(isCloud()
 		? [
-				jwt(),
+				// Only the MCP access tokens need signing. Without this, every getSession — including
+				// apps/backend's, on every API request — signs a throwaway `set-auth-jwt` header.
+				jwt({ disableSettingJwtHeader: true }),
 				mcp({
 					loginPage: "/auth/login",
 					consentPage: "/auth/consent",
