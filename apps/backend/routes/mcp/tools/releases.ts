@@ -13,7 +13,8 @@ import {
 	markReleasedService,
 	updateReleaseService,
 } from "../../../lib/releases/lifecycle";
-import { type McpUserClaims, resolveAndRateLimitOrg, toolError, toolJson } from "../context";
+import { MARKDOWN_MENTIONS_HINT, type McpUserClaims, resolveAndRateLimitOrg, toolError, toolJson } from "../context";
+import { withResolvedMentions } from "../../../prosekit/resolveMarkdownMentions";
 
 export const orgArg = z.string().describe('Organization slug (e.g. "platform") or id.');
 export const releaseArg = z.string().describe('Release slug (e.g. "v1.2.0") or id.');
@@ -116,7 +117,7 @@ export function registerReleaseTools(server: McpServer, claims: McpUserClaims | 
 				org: orgArg,
 				name: z.string().min(1),
 				slug: z.string().optional().describe("Unique in the organization."),
-				description: z.string().optional().describe("Markdown."),
+				description: z.string().optional().describe(`Markdown. ${MARKDOWN_MENTIONS_HINT}`),
 				status: z.enum(RELEASE_STATUSES).optional().describe('Default "planned".'),
 				targetDate: z.string().optional().describe("ISO date, e.g. 2026-10-01."),
 				releasedAt: z.string().optional().describe('ISO date. Defaults to now when status is "released".'),
@@ -132,6 +133,7 @@ export function registerReleaseTools(server: McpServer, claims: McpUserClaims | 
 
 			const input = parseCreateReleaseInput(fields);
 			if (!input.ok) return toolError(input.error);
+			input.value = await withResolvedMentions(input.value, g.orgId);
 
 			try {
 				const release = await createReleaseService({
@@ -157,7 +159,10 @@ export function registerReleaseTools(server: McpServer, claims: McpUserClaims | 
 				release: releaseArg,
 				name: z.string().optional(),
 				slug: z.string().optional().describe("Unique in the organization."),
-				description: z.string().optional().describe("Markdown. Pass an empty string to clear it."),
+				description: z
+					.string()
+					.optional()
+					.describe(`Markdown. Pass an empty string to clear it. ${MARKDOWN_MENTIONS_HINT}`),
 				status: z.enum(RELEASE_STATUSES).optional(),
 				targetDate: z.string().nullable().optional().describe("ISO date, or null to clear."),
 				releasedAt: z.string().nullable().optional().describe("ISO date, or null to clear."),
@@ -180,6 +185,7 @@ export function registerReleaseTools(server: McpServer, claims: McpUserClaims | 
 
 			const input = parseUpdateReleaseInput(fields);
 			if (!input.ok) return toolError(input.error);
+			input.value = await withResolvedMentions(input.value, g.orgId);
 
 			try {
 				const updated = await updateReleaseService({ orgId: g.orgId, release, input: input.value });

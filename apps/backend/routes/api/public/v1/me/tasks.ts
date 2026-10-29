@@ -17,6 +17,7 @@ import type { AppEnv } from "@/index";
 import { prosekitJSONToHTML } from "@/prosekit/html";
 import { prosekitJSONToMarkdown } from "@/prosekit/markdown";
 import { markdownToProsekitJSON } from "@/prosekit/parser";
+import { resolveMarkdownMentions } from "@/prosekit/resolveMarkdownMentions";
 import {
 	findSSEClientsByUserId,
 	sseBroadcastIndividual,
@@ -195,7 +196,9 @@ tasksRoute.post(
 			releaseId = resolved.releaseId;
 		}
 
-		const descriptionProsekit = description ? markdownToProsekitJSON(description) : undefined;
+		const descriptionProsekit = description
+			? await resolveMarkdownMentions(markdownToProsekitJSON(description), orgId)
+			: undefined;
 		const task = await traceAsync(
 			"task.create.insert",
 			() =>

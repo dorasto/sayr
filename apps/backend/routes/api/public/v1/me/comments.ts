@@ -6,7 +6,9 @@ import z from "zod";
 import type { AppEnv } from "@/index";
 import { prosekitJSONToHTML } from "@/prosekit/html";
 import { prosekitJSONToMarkdown } from "@/prosekit/markdown";
+import { notifyCommentCreated } from "../../../../../lib/tasks/notify";
 import { markdownToProsekitJSON } from "@/prosekit/parser";
+import { resolveMarkdownMentions } from "@/prosekit/resolveMarkdownMentions";
 import {
 	findSSEClientsByUserId,
 	sseBroadcastIndividual,
@@ -113,8 +115,7 @@ commentsRoute.post(
 			return c.json(errorResponse("Task not found", "No task found with the provided ID in the organization"), 404);
 		}
 
-		// biome-ignore lint/suspicious/noExplicitAny: markdownToProsekitJSON's return type isn't exported
-		const descriptionProsekit: any = content ? markdownToProsekitJSON(content) : undefined;
+		const descriptionProsekit = await resolveMarkdownMentions(markdownToProsekitJSON(content ?? ""), orgId);
 
 		const comment = await traceAsync("public.me.task.comment.insert", () =>
 			createComment(
@@ -136,6 +137,14 @@ commentsRoute.post(
 		if (!comment) {
 			return c.json(errorResponse("Failed to create comment", "An error occurred while creating the comment"), 500);
 		}
+
+		await notifyCommentCreated({
+			taskId,
+			orgId,
+			actorId: userId,
+			commentId: comment.id,
+			content: descriptionProsekit,
+		});
 
 		await traceAsync(
 			"task.comment.create.broadcast",

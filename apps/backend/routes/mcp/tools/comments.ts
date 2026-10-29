@@ -5,10 +5,12 @@ import { z } from "zod";
 import { resolveTaskId } from "../../../lib/apiRefs";
 import { assertMcpAccess } from "../../../lib/mcp/auth";
 import { prosekitJSONToMarkdown } from "../../../prosekit/markdown";
+import { notifyCommentCreated } from "../../../lib/tasks/notify";
 import { markdownToProsekitJSON } from "../../../prosekit/parser";
+import { resolveMarkdownMentions } from "../../../prosekit/resolveMarkdownMentions";
 import { findSSEClientsByUserId, sseBroadcastIndividual, sseBroadcastPublic, sseBroadcastToRoom } from "../../events";
 import type { ServerEventBaseMessage } from "../../events/types";
-import { type McpUserClaims, resolveAndRateLimitOrg, toolError, toolJson } from "../context";
+import { MARKDOWN_MENTIONS_HINT, type McpUserClaims, resolveAndRateLimitOrg, toolError, toolJson } from "../context";
 
 /** Mirrors comments.ts's own create-broadcast block — only goes to the public room when the comment itself is public. */
 async function broadcastCommentCreated(orgId: string, taskId: string, visibility: "public" | "internal") {
@@ -105,7 +107,7 @@ export function registerCommentTools(server: McpServer, claims: McpUserClaims | 
 			inputSchema: z.object({
 				org: z.string().describe('Organization slug (e.g. "platform") or id.'),
 				task: z.string().describe('Task short id (the number in SAY-123, e.g. "123") or task id.'),
-				content: z.string().min(1).describe("Markdown content."),
+				content: z.string().min(1).describe(`Markdown content. ${MARKDOWN_MENTIONS_HINT}`),
 				visibility: z.enum(["public", "internal"]).optional().describe("Default public."),
 			}),
 		},
@@ -127,16 +129,24 @@ export function registerCommentTools(server: McpServer, claims: McpUserClaims | 
 			const taskId = await resolveTaskId(orgId, taskRef);
 			if (!taskId) return toolError(`No task found for "${taskRef}" in this organization.`);
 
+			const prosekitContent = await resolveMarkdownMentions(markdownToProsekitJSON(content), orgId);
 			const comment = await createComment(
 				orgId,
 				taskId,
-				markdownToProsekitJSON(content),
+				prosekitContent,
 				visibility ?? "public",
 				claims.userId,
 				"sayr"
 			);
 			if (!comment) return toolError("Failed to create comment.");
 
+			await notifyCommentCreated({
+				taskId,
+				orgId,
+				actorId: claims.userId,
+				commentId: comment.id,
+				content: prosekitContent,
+			});
 			await broadcastCommentCreated(orgId, taskId, visibility ?? "public");
 
 			return toolJson({ id: comment.id, taskId });
@@ -152,7 +162,7 @@ export function registerCommentTools(server: McpServer, claims: McpUserClaims | 
 			inputSchema: z.object({
 				org: z.string().describe('Organization slug (e.g. "platform") or id.'),
 				commentId: z.string(),
-				content: z.string().min(1).describe("Markdown content."),
+				content: z.string().min(1).describe(`Markdown content. ${MARKDOWN_MENTIONS_HINT}`),
 				visibility: z.enum(["public", "internal"]).optional(),
 			}),
 		},
@@ -180,6 +190,7 @@ export function registerCommentTools(server: McpServer, claims: McpUserClaims | 
 				);
 			}
 
+			const prosekitContent = await resolveMarkdownMentions(markdownToProsekitJSON(content), orgId);
 			await db.transaction(async (tx) => {
 				await tx.insert(schema.taskCommentHistory).values({
 					organizationId: comment.organizationId,
@@ -191,7 +202,7 @@ export function registerCommentTools(server: McpServer, claims: McpUserClaims | 
 				await tx
 					.update(schema.taskComment)
 					.set({
-						content: markdownToProsekitJSON(content),
+						content: prosekitContent,
 						visibility: visibility ?? comment.visibility,
 						updatedAt: new Date(),
 					})
