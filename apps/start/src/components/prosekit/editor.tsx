@@ -25,6 +25,7 @@ import SlashMenuTemplate from "./ui/slash-menu-template";
 import TableHandle from "./ui/table-handle";
 import TaskMenu from "./ui/task-menu";
 import UserMenu from "./ui/user-menu";
+import { normalizeDocJSON } from "./sanitize-doc";
 
 /** Recursively extract user IDs from mention nodes in a ProseMirror document JSON. */
 function extractMentionUserIds(node: NodeJSON | undefined): string[] {
@@ -130,7 +131,12 @@ export default function Editor({
       firstLinePlaceholder,
       hasTemplate,
     });
-    return createEditor({ extension, defaultContent });
+    // normalizeDocJSON: stored content the schema would reject (e.g. a codeBlock with `language: null`,
+    // SAY-105) must not crash the page.
+    return createEditor({
+      extension,
+      defaultContent: defaultContent && normalizeDocJSON(defaultContent),
+    });
   }, [
     readonly,
     placeholder,

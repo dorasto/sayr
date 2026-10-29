@@ -19,6 +19,27 @@ function isSafeMediaSrc(src: string): boolean {
 	return /^https?:/i.test(cleaned);
 }
 
+/**
+ * Attr fixes for stored shapes the schema would reject on load. A codeBlock's `language` must be a string, but the
+ * backend's Markdown parser stored `null` for fences with no language (SAY-105), which made `nodeFromJSON` throw and
+ * crashed the whole task page. `""` is what the editor already treats as plain text.
+ */
+function normalizeNodeAttrs(node: NodeJSON): NodeJSON["attrs"] {
+	if (node.type === "codeBlock" && typeof node.attrs?.language !== "string") {
+		return { ...node.attrs, language: "" };
+	}
+	return node.attrs;
+}
+
+/** Returns a copy of a stored ProseKit document the editor can load (see normalizeNodeAttrs). Content is unchanged. */
+export function normalizeDocJSON(node: NodeJSON): NodeJSON {
+	const next: NodeJSON = { ...node };
+	const attrs = normalizeNodeAttrs(node);
+	if (attrs !== node.attrs) next.attrs = attrs;
+	if (node.content) next.content = node.content.map(normalizeDocJSON);
+	return next;
+}
+
 function isSafeMark(mark: MarkJSON): boolean {
 	if (mark.type !== "link") return true;
 	const href = mark.attrs?.href;
@@ -36,9 +57,11 @@ export function sanitizeDocJSON(node: NodeJSON): NodeJSON {
 	if (node.marks) {
 		next.marks = node.marks.filter(isSafeMark);
 	}
+	const attrs = normalizeNodeAttrs(node);
+	if (attrs !== node.attrs) next.attrs = attrs;
 	const src = node.attrs?.src;
 	if (typeof src === "string" && !isSafeMediaSrc(src)) {
-		next.attrs = { ...node.attrs, src: null };
+		next.attrs = { ...next.attrs, src: null };
 	}
 	if (node.content) {
 		next.content = node.content.map(sanitizeDocJSON);
