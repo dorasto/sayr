@@ -1,6 +1,6 @@
 import type { schema } from "@repo/database";
 import { describe, expect, it } from "vitest";
-import { applyReleaseTaskEvent, readReleasesEvent } from "./release-page-event";
+import { applyReleaseTaskEvent, readReleasesEvent, upsertReleaseRow } from "./release-page-event";
 
 const RELEASE_ID = "rel-1";
 
@@ -136,5 +136,26 @@ describe("applyReleaseTaskEvent", () => {
 	it("ignores partial task payloads like { releaseId: null }", () => {
 		const tasks = [t1];
 		expect(applyReleaseTaskEvent(tasks, { releaseId: null }, RELEASE_ID)).toBe(tasks);
+	});
+});
+
+describe("upsertReleaseRow", () => {
+	const a = makeRelease();
+	const b = makeRelease({ id: "rel-2", slug: "0.9.0" });
+
+	it("replaces a release row in place", () => {
+		const renamed = makeRelease({ name: "Renamed" });
+		expect(upsertReleaseRow([a, b], renamed)).toEqual([renamed, b]);
+	});
+
+	it("appends a new release row", () => {
+		expect(upsertReleaseRow([a], b)).toEqual([a, b]);
+	});
+
+	it("returns the same list for non-row payloads", () => {
+		const list = [a];
+		expect(upsertReleaseRow(list, { releaseId: RELEASE_ID })).toBe(list);
+		expect(upsertReleaseRow(list, { taskId: "t-1", releaseId: null })).toBe(list);
+		expect(upsertReleaseRow(list, [a])).toBe(list);
 	});
 });

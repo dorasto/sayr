@@ -36,9 +36,8 @@ import type { MentionContext } from "@/hooks/useMentionUsers";
 import { useServerEventsSubscription } from "@/hooks/useServerEventsSubscription";
 import { useWSMessageHandler, type WSMessageHandler } from "@/hooks/useWSMessageHandler";
 import { commandActions } from "@/lib/command-store";
-import { isReleaseRow } from "@/lib/board/apply-lander-event";
 import { getReleaseWithTasksAction, updateReleaseAction } from "@/lib/fetches/release";
-import { applyReleaseTaskEvent, readReleasesEvent } from "@/lib/releases/release-page-event";
+import { applyReleaseTaskEvent, readReleasesEvent, upsertReleaseRow } from "@/lib/releases/release-page-event";
 import type { ServerEventMessage } from "@/lib/serverEvents";
 import { sidebarActions } from "@/lib/sidebar/sidebar-store";
 import { useToastAction } from "@/lib/util";
@@ -140,13 +139,8 @@ function ReleaseDetailPageContent() {
 		UPDATE_RELEASES: (msg) => {
 			if (!("data" in msg) || !release) return;
 			const data: unknown = msg.data;
-			if (isReleaseRow(data)) {
-				setReleases(
-					releases.some((r) => r.id === data.id)
-						? releases.map((r) => (r.id === data.id ? data : r))
-						: [...releases, data]
-				);
-			}
+			const nextReleases = upsertReleaseRow(releases, data);
+			if (nextReleases !== releases) setReleases(nextReleases);
 			const result = readReleasesEvent(data, release.id, new Set(tasks.map((t) => t.id)));
 			if (result.kind === "release") {
 				// Preserve tasks array and createdBy when updating release metadata

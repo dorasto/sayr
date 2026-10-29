@@ -23,6 +23,7 @@ import { useLayoutOrganization } from "@/contexts/ContextOrg";
 import { usePlanLimits } from "@/hooks/usePlanLimits";
 import { useServerEventsSubscription } from "@/hooks/useServerEventsSubscription";
 import { useWSMessageHandler, type WSMessageHandler } from "@/hooks/useWSMessageHandler";
+import { upsertReleaseRow } from "@/lib/releases/release-page-event";
 import type { ServerEventMessage } from "@/lib/serverEvents";
 import { sidebarActions } from "@/lib/sidebar/sidebar-store";
 import { CreateReleaseDialog } from "./create-release-dialog";
@@ -63,14 +64,19 @@ export default function OrganizationReleasesPage() {
 		serverEvents,
 		orgId: organization.id,
 		organization: organization,
-		channel: "admin",
+		// Release events only go to the `releases` room (same as the release page), not `admin`.
+		channel: "releases",
 		setOrganization: setOrganization,
 	});
 
 	const handlers: WSMessageHandler<ServerEventMessage> = {
 		UPDATE_RELEASES: (msg) => {
-			if (msg.scope === "CHANNEL") {
-				setReleases(msg.data);
+			const next = upsertReleaseRow(releases, msg.data);
+			if (next !== releases) setReleases(next);
+		},
+		DELETE_RELEASE: (msg) => {
+			if (releases.some((release) => release.id === msg.data.releaseId)) {
+				setReleases(releases.filter((release) => release.id !== msg.data.releaseId));
 			}
 		},
 	};

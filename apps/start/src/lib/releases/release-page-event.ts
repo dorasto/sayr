@@ -43,6 +43,17 @@ export function readReleasesEvent(
 }
 
 /**
+ * The org's release list after an UPDATE_RELEASES `data`: a release row replaces the one with the same
+ * id or is appended; any other shape ({ releaseId }, { taskId, releaseId }) leaves the list as it is.
+ */
+export function upsertReleaseRow(releases: schema.releaseType[], payload: unknown): schema.releaseType[] {
+	if (!isReleaseRow(payload)) return releases;
+	return releases.some((release) => release.id === payload.id)
+		? releases.map((release) => (release.id === payload.id ? payload : release))
+		: [...releases, payload];
+}
+
+/**
  * UPDATE_TASK. A full task record is upserted when it belongs to this release and removed when it
  * no longer does; `{ taskIds, status: "done" }` (publishing auto-closed tasks) updates their status.
  * Returns the same array when nothing on this page changed.

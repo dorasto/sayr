@@ -29,7 +29,7 @@ export default function OrganizationViewsPage() {
 
 	const handlers: WSMessageHandler<ServerEventMessage> = {
 		UPDATE_VIEWS: (msg) => {
-			if (msg.scope === "CHANNEL") {
+			if (msg.scope === "INDIVIDUAL" && msg.meta?.orgId === organization.id) {
 				setViews(msg.data);
 			}
 		},
