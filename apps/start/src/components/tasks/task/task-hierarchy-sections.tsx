@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import type { schema } from "@repo/database";
-import { Tile, TileAction, TileHeader, TileTitle } from "@repo/ui/components/doras-ui/tile";
+import { Tile, TileAction } from "@repo/ui/components/doras-ui/tile";
 import { Label } from "@repo/ui/components/label";
 import { Button } from "@repo/ui/components/button";
 import { sendWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
@@ -150,16 +150,12 @@ export function TaskParentSection({
 	};
 
 	return (
-		<div className="p-1 flex flex-col gap-2 max-w-full">
+		<div className="px-1 flex flex-col gap-2 max-w-full">
 			<Tile className="md:w-full items-start p-0 flex-col gap-1" variant="transparent">
 				{task.parent && (
-					<TileHeader>
-						<TileTitle asChild>
-							<Label variant="description" className="text-xs">
-								Parent task
-							</Label>
-						</TileTitle>
-					</TileHeader>
+					<Label variant="description" className="px-1">
+						Parent task
+					</Label>
 				)}
 				<TileAction className="w-full min-w-0">
 					{task.parent ? (
@@ -344,16 +340,12 @@ export function TaskSubtasksSection({
 	const subtaskIds = subtasks.map((s) => s.id);
 
 	return (
-		<div className="p-1 flex flex-col gap-2 max-w-full">
+		<div className="px-1 flex flex-col gap-2 max-w-full">
 			<Tile className="md:w-full items-start p-0 flex-col gap-1" variant="transparent">
 				{subtasks.length > 0 && (
-					<TileHeader>
-						<TileTitle asChild>
-							<Label variant="description" className="text-xs">
-								Subtasks
-							</Label>
-						</TileTitle>
-					</TileHeader>
+					<Label variant="description" className="px-1">
+						Subtasks
+					</Label>
 				)}
 				<TileAction className="w-full min-w-0">
 					<div className="flex flex-col gap-0.5 w-full min-w-0">
@@ -536,15 +528,11 @@ export function TaskRelationsSection({
 		<>
 			{/* Each relation type group is its own top-level Tile section */}
 			{Array.from(groupedRelations.entries()).map(([groupLabel, groupRelations]) => (
-				<div key={groupLabel} className="p-1 flex flex-col gap-2 max-w-full">
+				<div key={groupLabel} className="px-1 flex flex-col gap-2 max-w-full">
 					<Tile className="md:w-full items-start p-0 flex-col gap-1" variant="transparent">
-						<TileHeader>
-							<TileTitle asChild>
-								<Label variant="description" className="text-xs">
-									{groupLabel}
-								</Label>
-							</TileTitle>
-						</TileHeader>
+						<Label variant="description" className="px-1">
+							{groupLabel}
+						</Label>
 						<TileAction className="w-full min-w-0">
 							<div className="flex flex-col gap-0.5 w-full min-w-0">
 								{groupRelations.map((relation) => (
@@ -577,7 +565,7 @@ export function TaskRelationsSection({
 			))}
 
 			{/* Add relation — top-level section matching sidebar styling */}
-			<div className="p-1 flex flex-col gap-2 max-w-full">
+			<div className="px-1 flex flex-col gap-2 max-w-full">
 				{addingType ? (
 					<TaskPicker
 						organizationId={task.organizationId}

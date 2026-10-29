@@ -211,9 +211,10 @@ export default function GlobalTaskAssignees({
 					{currentAssigneeIds.length === 0 ? (
 						<ComboBoxTrigger disabled={!editable} className={className}>
 							<ComboBoxValue placeholder="Status">
+								{/* "Unassigned", not display.label's "None": this row has no heading saying what's empty. */}
 								<div className="flex items-center gap-2 text-muted-foreground">
 									{display.icon}
-									<span>{display.label}</span>
+									<span>Unassigned</span>
 								</div>
 							</ComboBoxValue>
 							{showChevron && <ComboBoxIcon />}
