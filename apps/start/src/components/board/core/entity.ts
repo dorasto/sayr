@@ -129,7 +129,7 @@ export function eraseBoardGroupings<T extends BoardItem>(
 	return groupings as unknown as readonly BoardGroupingDefinition<BoardItem>[] | undefined;
 }
 
-type ArrangingEntity<T extends BoardItem> = Pick<BoardEntity<T>, "extractFilterValue" | "isCompleted" | "sort">;
+export type ArrangingEntity<T extends BoardItem> = Pick<BoardEntity<T>, "extractFilterValue" | "isCompleted" | "sort">;
 
 /** The entity's items matching `filters`. */
 export function filterEntityItems<T extends BoardItem>(

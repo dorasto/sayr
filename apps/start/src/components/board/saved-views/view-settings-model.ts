@@ -1,5 +1,13 @@
-// Pure slug handling for the view settings sheet (view-settings-sheet.tsx). Kept free of `@/` imports so
-// vitest can run it.
+// Pure logic for the view settings sheet (view-settings-sheet.tsx): slug handling, the "anything changed?"
+// check and the preview. Kept free of `@/` imports so vitest can run it.
+
+import type { schema } from "@repo/database";
+import type { BoardItem } from "../core/board-item";
+import { type ArrangingEntity, arrangeBoardItems } from "../core/entity";
+import { areViewConfigsEqual, DEFAULT_FILTER_STATE, mapViewConfigToState } from "../core/view-config";
+import { deserializeFilters, serializeFilters } from "../filter/serialization";
+
+type ViewConfig = NonNullable<schema.savedViewType["viewConfig"]>;
 
 /**
  * Normalises slug input as it's typed: lowercase, spaces to hyphens, anything but word characters and hyphens
@@ -31,4 +39,70 @@ export function isViewSlugTaken(
 	viewId: string
 ): boolean {
 	return views.some((view) => view.id !== viewId && (view.slug === slug || view.id === slug));
+}
+
+/** What the sheet edits: the view's name, slug field, filter params and (form-normalised) view config. */
+export interface ViewDraft {
+	name: string;
+	slug: string;
+	filterParams: string;
+	viewConfig: ViewConfig;
+}
+
+/**
+ * Canonical form of serialised filters for comparison: conditions only (the builder's condition ids aren't
+ * serialised), and no empty groups, so adding then removing a condition reads as unchanged.
+ */
+function normalizeFilterParams(params: string): string {
+	const state = deserializeFilters(params) ?? DEFAULT_FILTER_STATE;
+	return serializeFilters({ ...state, groups: state.groups.filter((group) => group.conditions.length > 0) });
+}
+
+/** Whether saving `draft` would change `saved` (both with the view config already form-normalised). */
+export function isViewDraftChanged(saved: ViewDraft, draft: ViewDraft): boolean {
+	return (
+		draft.name.trim() !== saved.name ||
+		resolveSlugUpdate(draft.slug, saved.slug || null) !== undefined ||
+		normalizeFilterParams(draft.filterParams) !== normalizeFilterParams(saved.filterParams) ||
+		!areViewConfigsEqual(mapViewConfigToState(draft.viewConfig), mapViewConfigToState(saved.viewConfig)) ||
+		(draft.viewConfig.icon ?? "") !== (saved.viewConfig.icon ?? "") ||
+		(draft.viewConfig.color ?? "") !== (saved.viewConfig.color ?? "")
+	);
+}
+
+/** How many items the sheet's preview lists before "+ N more". */
+export const VIEW_PREVIEW_LIMIT = 3;
+
+export interface ViewPreview<T> {
+	/** Everything the view would show. */
+	total: number;
+	/** The first `limit` of them, in the view's order. */
+	items: readonly T[];
+	/** `total` minus the listed ones. */
+	more: number;
+}
+
+/**
+ * What a (draft) saved view would show on this board: the board's own `arrangeBoardItems` pipeline (filters,
+ * completed visibility, sort — what `Board` renders) run with the draft's filter params and view config.
+ */
+export function buildViewPreview<T extends BoardItem>(
+	entity: ArrangingEntity<T>,
+	items: readonly T[],
+	{ filterParams, viewConfig }: Pick<ViewDraft, "filterParams" | "viewConfig">,
+	{ ownsMembership = false, limit = VIEW_PREVIEW_LIMIT }: { ownsMembership?: boolean; limit?: number } = {}
+): ViewPreview<T> {
+	const { showCompletedTasks, sortBy = "none", sortDirection = "asc" } = mapViewConfigToState(viewConfig);
+	const arranged = arrangeBoardItems(entity, items, {
+		filters: deserializeFilters(filterParams) ?? DEFAULT_FILTER_STATE,
+		showCompleted: showCompletedTasks,
+		sortBy,
+		sortDirection,
+		ownsMembership,
+	});
+	return {
+		total: arranged.length,
+		items: arranged.slice(0, limit),
+		more: Math.max(0, arranged.length - limit),
+	};
 }
