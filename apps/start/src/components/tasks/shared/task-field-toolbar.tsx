@@ -286,7 +286,7 @@ export default function TaskFieldToolbar({
 			// Support controlled open from overflow menu
 			const isOverflowTriggered = overflowOpenField === "release";
 			return (
-				<div className="relative group/release-link flex items-center gap-1">
+				<div className="relative group/release-link flex items-center gap-1 min-w-0 max-w-full">
 					<GlobalTaskRelease
 						{...buildSharedProps(cfg)}
 						releases={releases}
@@ -308,7 +308,7 @@ export default function TaskFieldToolbar({
 								orgId: task.organizationId,
 								releaseSlug: selectedRelease.slug,
 							}}
-							className="opacity-0 group-hover/release-link:opacity-100 transition-opacity"
+							className="shrink-0 opacity-0 group-hover/release-link:opacity-100 transition-opacity"
 							onClick={(e) => e.stopPropagation()}
 						>
 							<Button variant="ghost" size="sm" className="h-[26px] aspect-square p-0 rounded-lg">

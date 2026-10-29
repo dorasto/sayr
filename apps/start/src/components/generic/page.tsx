@@ -302,10 +302,17 @@ export function PanelContent({
                 className={classNames?.header}
               />
             )}
-            {/* key forces remount when switching items */}
+            {/* key forces remount when switching items. overflow-x-hidden on
+			    both content divs: overflow-y-auto alone computes overflow-x to
+			    auto too, so one field that fails to truncate (a missing
+			    min-w-0 somewhere in its flex chain) scrolls the whole drawer
+			    sideways. This is only the backstop; fix the field itself. */}
             <div
               key={lastTriggerId}
-              className={cn("flex-1 overflow-y-auto p-2", classNames?.content)}
+              className={cn(
+                "flex-1 overflow-y-auto overflow-x-hidden p-2",
+                classNames?.content,
+              )}
             >
               {tabs.find((t) => t.id === currentTab)?.content ?? <div />}
             </div>
@@ -340,7 +347,10 @@ export function PanelContent({
                 )
               ))}
             <div
-              className={cn("flex-1 overflow-y-auto p-2", classNames?.content)}
+              className={cn(
+                "flex-1 overflow-y-auto overflow-x-hidden p-2",
+                classNames?.content,
+              )}
             >
               {content || <div />}
             </div>

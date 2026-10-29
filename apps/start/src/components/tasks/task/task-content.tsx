@@ -62,7 +62,7 @@ export function TaskContentSideContent({
 
 	return (
 		<div className="flex flex-col gap-3 w-full">
-			<div className="p-1 pt-3 flex flex-col gap-2 max-w-full md:max-w-1/2">
+			<div className="p-1 pt-3 flex flex-col gap-2 max-w-full">
 				<TaskFieldToolbar
 					task={task}
 					variant="sidebar"
@@ -87,7 +87,7 @@ export function TaskContentSideContent({
 							</Label>
 						</TileTitle>
 					</TileHeader>
-					<TileAction>
+					<TileAction className="w-full min-w-0">
 						<GlobalTaskAssignees
 							className="bg-transparent p-1 h-auto"
 							task={task}
@@ -111,7 +111,7 @@ export function TaskContentSideContent({
 							</Label>
 						</TileTitle>
 					</TileHeader>
-					<TileAction>
+					<TileAction className="w-full min-w-0">
 						<GlobalTaskLabels
 							showLabel={false}
 							task={task}
