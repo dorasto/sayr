@@ -84,14 +84,16 @@ const prosekitMarkdownParser = new MarkdownParser(prosekitSchema, md, {
 	fence: {
 		block: "codeBlock",
 		getAttrs: (tok) => ({
-			language: tok.info || null,
+			// Always a string: the editor's codeBlock rejects null (SAY-105); "" is its "plain text".
+			language: tok.info?.trim() || "",
 		}),
 	},
 
 	code_block: {
 		block: "codeBlock",
 		getAttrs: (tok) => ({
-			language: tok.info || null,
+			// Always a string: the editor's codeBlock rejects null (SAY-105); "" is its "plain text".
+			language: tok.info?.trim() || "",
 		}),
 	},
 
