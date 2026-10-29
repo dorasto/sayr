@@ -1,7 +1,6 @@
 import type { schema } from "@repo/database";
 import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
-import { cn } from "@repo/ui/lib/utils";
-import { extractTaskText, formatDate, getInitials } from "@repo/util";
+import { extractTaskText, formatDate, formatDateCompact, getInitials } from "@repo/util";
 import { IconRocket } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
 import RenderIcon from "@/components/generic/RenderIcon";
@@ -14,20 +13,22 @@ interface ReleasesKanbanCardProps {
 	orgId: string;
 }
 
-/** "Released …", "Due …" (overdue while still open), or nothing set yet. */
-export function getReleaseDateLabel(release: schema.releaseType): { text: string; overdue: boolean } {
+/**
+ * The one date worth showing on a release, compact ("Apr 20", year only when it isn't this year): when it shipped
+ * once released, else its target. The column already says which; the full date and its meaning are in the tooltip.
+ */
+export function getReleaseDisplayDate(release: schema.releaseType): { short: string; title: string } | null {
 	if (release.status === "released" && release.releasedAt) {
-		return { text: `Released ${formatDate(release.releasedAt)}`, overdue: false };
+		return { short: formatDateCompact(release.releasedAt), title: `Released ${formatDate(release.releasedAt)}` };
 	}
-	if (!release.targetDate) return { text: "No target date", overdue: false };
-	const overdue = release.status !== "archived" && new Date(release.targetDate).getTime() < Date.now();
-	return { text: `Due ${formatDate(release.targetDate)}${overdue ? " · overdue" : ""}`, overdue };
+	if (!release.targetDate) return null;
+	return { short: formatDateCompact(release.targetDate), title: `Target ${formatDate(release.targetDate)}` };
 }
 
 /**
  * A release on the releases board, shaped like the task cards (no border or status stripe; the column already says
  * the status): icon, name and slug on one line, a line of the notes, the release's tasks as a segmented bar (done /
- * in progress / planned, canceled left out — the public changelog's bar), then the lead and the due/released date.
+ * in progress / planned, canceled left out — the public changelog's bar), then the lead and the target/released date (compact; each only when set).
  */
 export function ReleasesKanbanCard({ release, orgId }: ReleasesKanbanCardProps) {
 	const { organization } = useLayoutOrganization();
@@ -36,7 +37,7 @@ export function ReleasesKanbanCard({ release, orgId }: ReleasesKanbanCardProps) 
 	const lead = release.leadId
 		? organization.members.find((member) => member.userId === release.leadId)?.user
 		: undefined;
-	const date = getReleaseDateLabel(release);
+	const date = getReleaseDisplayDate(release);
 
 	const total = counts ? counts.done + counts.inProgress + counts.planned : 0;
 	const progressLabel = !counts
@@ -99,20 +100,24 @@ export function ReleasesKanbanCard({ release, orgId }: ReleasesKanbanCardProps) 
 				)}
 			</div>
 
-			<div className="flex min-w-0 items-center gap-2 text-[11px] text-muted-foreground">
-				{lead ? (
-					<>
-						<Avatar className="size-4 shrink-0">
-							<AvatarImage src={lead.image ?? undefined} alt={lead.name} />
-							<AvatarFallback className="text-[8px]">{getInitials(lead.name)}</AvatarFallback>
-						</Avatar>
-						<span className="min-w-0 truncate">{lead.displayName || lead.name}</span>
-					</>
-				) : (
-					<span>No lead</span>
-				)}
-				<span className={cn("ml-auto shrink-0", date.overdue && "text-destructive")}>{date.text}</span>
-			</div>
+			{(lead || date) && (
+				<div className="flex min-w-0 items-center gap-2 text-[11px] text-muted-foreground">
+					{lead && (
+						<>
+							<Avatar className="size-4 shrink-0">
+								<AvatarImage src={lead.image ?? undefined} alt={lead.name} />
+								<AvatarFallback className="text-[8px]">{getInitials(lead.name)}</AvatarFallback>
+							</Avatar>
+							<span className="min-w-0 truncate">{lead.displayName || lead.name}</span>
+						</>
+					)}
+					{date && (
+						<time className="ml-auto shrink-0 tabular-nums" title={date.title}>
+							{date.short}
+						</time>
+					)}
+				</div>
+			)}
 		</Link>
 	);
 }
