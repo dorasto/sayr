@@ -48,28 +48,29 @@ export function TaskMention({ task, categories, hide }: TaskMentionProps) {
 
 	return (
 		<Tooltip>
-			<TooltipTrigger asChild>
-				<Link {...linkProps} disabled={hide}>
-					{/* Title & Short ID */}
-					<InlineLabel
-						className="text-sm ps-5 align-bottom shrink-0 pr-1.5 rounded-lg bg-accent text-accent-foreground"
-						text={`${displayKey} ${task.title}`}
-						textNode={
-							<>
-								<span className="text-sm!">{task.title ? ` ${task.title}` : ""}</span>
-							</>
-						}
-						icon={statusIcon}
-					/>
-					{/* <span className="text-muted-foreground group-hover:text-foreground transition-colors whitespace-nowrap">
+			<TooltipTrigger
+				render={
+					<Link {...linkProps} disabled={hide}>
+						{/* Title & Short ID */}
+						<InlineLabel
+							className="text-sm ps-5 align-bottom shrink-0 pr-1.5 rounded-lg bg-accent text-accent-foreground"
+							text={`${displayKey} ${task.title}`}
+							textNode={
+								<>
+									<span className="text-sm!">{task.title ? ` ${task.title}` : ""}</span>
+								</>
+							}
+							icon={statusIcon}
+						/>
+						{/* <span className="text-muted-foreground group-hover:text-foreground transition-colors whitespace-nowrap">
 						<span className="font-medium text-foreground">
 							#{task.shortId ?? task.id}
 						</span>
 						{task.title ? ` · ${task.title}` : ""}
 					</span> */}
 
-					{/* Assignees */}
-					{/* {task.assignees && task.assignees.length > 0 && (
+						{/* Assignees */}
+						{/* {task.assignees && task.assignees.length > 0 && (
 						<div className="flex items-center -space-x-2">
 							{task.assignees.slice(0, 3).map((a, index) => (
 								<div key={a.id} className={cn("relative", `z-[${10 - index}]`)}>
@@ -101,8 +102,9 @@ export function TaskMention({ task, categories, hide }: TaskMentionProps) {
 							)}
 						</div>
 					)} */}
-				</Link>
-			</TooltipTrigger>
+					</Link>
+				}
+			/>
 
 			{/* Tooltip for detail preview */}
 			<TooltipContent

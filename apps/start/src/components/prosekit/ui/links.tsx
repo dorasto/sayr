@@ -136,9 +136,9 @@ export default function Link(props: ReactMarkViewProps) {
         if (!isOpen) setMode("view");
       }}
     >
-      <HoverCardTrigger asChild>
-        <span className="cursor-pointer">{content}</span>
-      </HoverCardTrigger>
+      <HoverCardTrigger
+        render={<span className="cursor-pointer">{content}</span>}
+      />
       <HoverCardContent
         side="top"
         align="start"
