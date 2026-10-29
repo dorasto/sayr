@@ -2,13 +2,17 @@ import * as schema from "@repo/database";
 import { db } from "@repo/database";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { admin, genericOAuth, lastLoginMethod, twoFactor } from "better-auth/plugins";
+import { admin, genericOAuth, jwt, lastLoginMethod, twoFactor } from "better-auth/plugins";
 import { passkey } from "@better-auth/passkey";
 import { polar, checkout } from "@polar-sh/better-auth";
 import { createPolar } from "@polar-sh/sdk/2026-10";
+import { mcp } from "@better-auth/mcp";
+import { cimd } from "@better-auth/cimd";
+import { fetchClientMetadataResource } from "@better-auth/cimd/node";
+import { DEFAULT_OAUTH_SCOPES } from "@better-auth/oauth-provider";
 import { getEditionCapabilities, isCloud, isSelfHosted } from "@repo/edition";
 import { eq, sql } from "drizzle-orm";
-import { sendEmail } from "@repo/util";
+import { ALL_API_KEY_SCOPES, sendEmail } from "@repo/util";
 import { addContactToContactBook, deleteContactByEmail } from "@repo/util/email";
 import { apiKey } from "@better-auth/api-key";
 import { getSessionCookie } from "better-auth/cookies";
@@ -22,6 +26,29 @@ const authCallbackUrl = process.env.VITE_AUTH_CALLBACK_URL || process.env.VITE_U
 // For local dev with subdomains, use "app.localhost" pattern or sslip.io/nip.io
 const isBarelocalhost = rootUrl === "localhost";
 const { polarBillingEnabled } = getEditionCapabilities();
+// MCP server access is cloud-only (SAY-31). The canonical protected-resource identifier
+// must be HTTPS except on loopback hosts, so dev falls back to the bare backend origin.
+// @better-auth/mcp's own resource validator is stricter than the general
+// loopback check elsewhere in this file: HTTP is only accepted for the literal
+// hostname "localhost" (confirmed by reading its source), not any *.localhost
+// subdomain. So dev can't go through the api.<root> virtual host the way prod
+// does — apps/backend registers this route at both its bare root (for this,
+// dev's unrewritten localhost:5468 traffic) and under /api/public (for prod's
+// api.<root> traffic, which always gets rewritten there). See routes/mcp.
+const mcpResource = isProd ? `https://api.${rootUrl}/mcp` : "http://localhost:5468/mcp";
+// Matches the `iss` claim the jwt() plugin actually signs: better-auth's own
+// baseURL (unset in dev, inferred from the request origin) appended with its
+// default `/api/auth` basePath. `authCallbackUrl` is the same "where the auth
+// handler lives" origin every redirect URI above already assumes in dev.
+const mcpIssuer = `${isProd ? `https://${rootUrl}` : authCallbackUrl}/api/auth`;
+const mcpJwksUrl = `${mcpIssuer}/jwks`;
+/**
+ * Exported so apps/backend's separate-process MCP resource-server route
+ * (SAY-31) can verify tokens against the exact same issuer/resource this
+ * config issues them for — these must never be independently recomputed from
+ * env vars elsewhere, or they will silently drift apart.
+ */
+export const mcpOAuthConfig = { resource: mcpResource, issuer: mcpIssuer, jwksUrl: mcpJwksUrl };
 
 // Hosts that serve user-uploaded content. They're subdomains of root (so matched by the
 // `*.root` wildcard) but must never be trusted as an auth origin.
@@ -104,11 +131,39 @@ const plugins = [
 		rpID: rootUrl || "localhost",
 		rpName: "sayr.io",
 	}),
+	// MCP server access (SAY-31) is cloud-only — self-hosted editions don't get the
+	// OAuth authorization-server endpoints at all, not just a feature gate on top.
+	...(isCloud()
+		? [
+				// Only the MCP access tokens need signing. Without this, every getSession — including
+				// apps/backend's, on every API request — signs a throwaway `set-auth-jwt` header.
+				jwt({ disableSettingJwtHeader: true }),
+				mcp({
+					loginPage: "/auth/login",
+					consentPage: "/auth/consent",
+					resource: mcpResource,
+					// Reuse the personal-API-key scope vocabulary (tasks.read, tasks.create, ...)
+					// rather than inventing a parallel one for MCP tokens.
+					scopes: [...DEFAULT_OAUTH_SCOPES, ...ALL_API_KEY_SCOPES],
+					// No client_credentials: every MCP token must belong to a signed-in user, so
+					// it can be held to that user's own team permissions in each org.
+					grantTypes: ["authorization_code", "refresh_token"],
+				}),
+				cimd({
+					fetchClientMetadataResource,
+					metadataProfile: "mcp-2026-07-28",
+				}),
+			]
+		: []),
 ];
 
 export const auth = betterAuth({
 	appName: "sayr.io",
-	baseURL: process.env.BETTER_AUTH_URL || (isProd ? `https://${rootUrl}` : undefined),
+	// Left undefined in dev pre-SAY-31, relying on better-auth inferring it per-request.
+	// The oauth-provider plugin needs a real URL at init time (before any request exists)
+	// to validate the issuer, so this now matches authCallbackUrl — the same origin every
+	// redirect URI above already assumes in dev — instead of crashing on an empty string.
+	baseURL: process.env.BETTER_AUTH_URL || (isProd ? `https://${rootUrl}` : authCallbackUrl),
 	database: drizzleAdapter(db, {
 		provider: "pg",
 		schema: {
@@ -116,6 +171,14 @@ export const auth = betterAuth({
 			apikey: schema.schema.apikey,
 			twoFactor: schema.auth.two_factor,
 			passkey: schema.auth.passkey,
+			oauthClient: schema.schema.oauthClient,
+			oauthResource: schema.schema.oauthResource,
+			oauthClientResource: schema.schema.oauthClientResource,
+			oauthRefreshToken: schema.schema.oauthRefreshToken,
+			oauthAccessToken: schema.schema.oauthAccessToken,
+			oauthConsent: schema.schema.oauthConsent,
+			oauthClientAssertion: schema.schema.oauthClientAssertion,
+			jwks: schema.schema.jwks,
 		},
 	}),
 	// Org portals live on `<slug>.<root>`, so subdomains must be trusted by wildcard. The user-content

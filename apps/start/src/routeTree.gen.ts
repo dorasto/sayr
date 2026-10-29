@@ -25,6 +25,7 @@ import { Route as ApiOgRouteImport } from './routes/api/og'
 import { Route as ApiTracesRouteImport } from './routes/api/traces'
 import { Route as Auth2faRouteImport } from './routes/auth/2fa'
 import { Route as AuthAuthCheckRouteImport } from './routes/auth/auth-check'
+import { Route as AuthConsentRouteImport } from './routes/auth/consent'
 import { Route as AuthLoginRouteImport } from './routes/auth/login'
 import { Route as AuthPasswordResetRouteImport } from './routes/auth/password-reset'
 import { Route as AuthReauthRouteImport } from './routes/auth/reauth'
@@ -152,6 +153,11 @@ const Auth2faRoute = Auth2faRouteImport.update({
 const AuthAuthCheckRoute = AuthAuthCheckRouteImport.update({
   id: '/auth/auth-check',
   path: '/auth/auth-check',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthConsentRoute = AuthConsentRouteImport.update({
+  id: '/auth/consent',
+  path: '/auth/consent',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthLoginRoute = AuthLoginRouteImport.update({
@@ -443,6 +449,7 @@ export interface FileRoutesByFullPath {
   '/api/traces': typeof ApiTracesRoute
   '/auth/2fa': typeof Auth2faRoute
   '/auth/auth-check': typeof AuthAuthCheckRoute
+  '/auth/consent': typeof AuthConsentRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/password-reset': typeof AuthPasswordResetRoute
   '/auth/reauth': typeof AuthReauthRoute
@@ -503,6 +510,7 @@ export interface FileRoutesByTo {
   '/api/traces': typeof ApiTracesRoute
   '/auth/2fa': typeof Auth2faRoute
   '/auth/auth-check': typeof AuthAuthCheckRoute
+  '/auth/consent': typeof AuthConsentRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/password-reset': typeof AuthPasswordResetRoute
   '/auth/reauth': typeof AuthReauthRoute
@@ -567,6 +575,7 @@ export interface FileRoutesById {
   '/api/traces': typeof ApiTracesRoute
   '/auth/2fa': typeof Auth2faRoute
   '/auth/auth-check': typeof AuthAuthCheckRoute
+  '/auth/consent': typeof AuthConsentRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/password-reset': typeof AuthPasswordResetRoute
   '/auth/reauth': typeof AuthReauthRoute
@@ -635,6 +644,7 @@ export interface FileRouteTypes {
     | '/api/traces'
     | '/auth/2fa'
     | '/auth/auth-check'
+    | '/auth/consent'
     | '/auth/login'
     | '/auth/password-reset'
     | '/auth/reauth'
@@ -695,6 +705,7 @@ export interface FileRouteTypes {
     | '/api/traces'
     | '/auth/2fa'
     | '/auth/auth-check'
+    | '/auth/consent'
     | '/auth/login'
     | '/auth/password-reset'
     | '/auth/reauth'
@@ -758,6 +769,7 @@ export interface FileRouteTypes {
     | '/api/traces'
     | '/auth/2fa'
     | '/auth/auth-check'
+    | '/auth/consent'
     | '/auth/login'
     | '/auth/password-reset'
     | '/auth/reauth'
@@ -821,6 +833,7 @@ export interface RootRouteChildren {
   ApiTracesRoute: typeof ApiTracesRoute
   Auth2faRoute: typeof Auth2faRoute
   AuthAuthCheckRoute: typeof AuthAuthCheckRoute
+  AuthConsentRoute: typeof AuthConsentRoute
   AuthLoginRoute: typeof AuthLoginRoute
   AuthPasswordResetRoute: typeof AuthPasswordResetRoute
   AuthReauthRoute: typeof AuthReauthRoute
@@ -941,6 +954,13 @@ declare module '@tanstack/react-router' {
       path: '/auth/auth-check'
       fullPath: '/auth/auth-check'
       preLoaderRoute: typeof AuthAuthCheckRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/consent': {
+      id: '/auth/consent'
+      path: '/auth/consent'
+      fullPath: '/auth/consent'
+      preLoaderRoute: typeof AuthConsentRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth/login': {
@@ -1522,6 +1542,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiTracesRoute: ApiTracesRoute,
   Auth2faRoute: Auth2faRoute,
   AuthAuthCheckRoute: AuthAuthCheckRoute,
+  AuthConsentRoute: AuthConsentRoute,
   AuthLoginRoute: AuthLoginRoute,
   AuthPasswordResetRoute: AuthPasswordResetRoute,
   AuthReauthRoute: AuthReauthRoute,

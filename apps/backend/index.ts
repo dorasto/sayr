@@ -16,12 +16,19 @@ import { requestId } from "hono/request-id";
 import type { ApiKeyPrincipal } from "./lib/apiKeyAuth";
 import { rootSpanPlugin } from "@/tracing/index";
 import { apiRoute } from "./routes/api";
+import { mcpFetchHandler, mcpProtectedResourceMetadata } from "./routes/mcp";
 import sseRoute from "./routes/events";
 import { renderRoute } from "./routes/render";
 import { webhookRoute } from "./routes/webhook";
 import { type RecordWideError, wideEventMiddleware } from "./tracing/wideEvent";
 import { enqueue } from "@repo/queue";
-export type AppTypeNotification = "mention" | "comment" | "status_change" | "priority_change" | "assignee_added" | "assignee_removed"
+export type AppTypeNotification =
+	| "mention"
+	| "comment"
+	| "status_change"
+	| "priority_change"
+	| "assignee_added"
+	| "assignee_removed";
 export type AppNotificationMap = {
 	mention: {
 		taskId: string;
@@ -53,13 +60,9 @@ export type AppNotificationMap = {
 		timelineEventId: string | undefined;
 	};
 };
-export const {
-	createNotification,
-} = createNotificationClient<AppNotificationMap>(
-	(job) => {
-		return enqueue("main", { type: "notification_create", ...job });
-	},
-);
+export const { createNotification } = createNotificationClient<AppNotificationMap>((job) => {
+	return enqueue("main", { type: "notification_create", ...job });
+});
 // -----------------------------------------------------------------------------
 // Types
 // -----------------------------------------------------------------------------
@@ -347,6 +350,17 @@ app.use("*", rootSpanPlugin());
 app.use("*", wideEventMiddleware());
 app.route("/api/webhook", webhookRoute);
 app.route("/api", apiRoute);
+// MCP server (SAY-31) — in dev the resource identifier is a bare http://localhost
+// origin (the plugin's own loopback check accepts only that exact hostname, not
+// *.localhost subdomains), so this traffic never goes through the api.<root>
+// host rewrite above and needs its own top-level registration. Prod's resource is
+// https://api.<root>/mcp, which always rewrites to the /api/public/mcp route
+// instead (see routes/api/index.ts) — this is a no-op there, never reached.
+const mcpRouteHandlerBare = (c: Context<AppEnv>) => mcpFetchHandler(c.req.raw);
+app.get("/mcp", mcpRouteHandlerBare);
+app.post("/mcp", mcpRouteHandlerBare);
+app.delete("/mcp", mcpRouteHandlerBare);
+app.get("/.well-known/oauth-protected-resource/mcp", () => mcpProtectedResourceMetadata());
 
 // 404 fallback
 app.all("*", async (c) => {

@@ -15,14 +15,17 @@
     "format": "biome format --write ."
   },
   "dependencies": {
-    "@better-auth/api-key": "^1.7.1",
-    "@better-auth/passkey": "^1.7.1",
+    "@better-auth/api-key": "^1.7.14",
+    "@better-auth/cimd": "1.7.14",
+    "@better-auth/mcp": "1.7.14",
+    "@better-auth/oauth-provider": "1.7.14",
+    "@better-auth/passkey": "^1.7.14",
     "@polar-sh/better-auth": "^2.0.0",
     "@polar-sh/sdk": "^1.0.0",
     "@repo/database": "workspace:*",
     "@repo/edition": "workspace:*",
     "@repo/util": "workspace:*",
-    "better-auth": "^1.7.1",
+    "better-auth": "^1.7.14",
     "drizzle-orm": "^0.45.2"
   },
   "devDependencies": {

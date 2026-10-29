@@ -1,6 +1,7 @@
-import { Hono } from "hono";
+import { Hono, type Context } from "hono";
 import { routeExists, type AppEnv } from "@/index";
 import { apiPublicRouteV1 } from "./public/v1";
+import { mcpFetchHandler, mcpProtectedResourceMetadata } from "../mcp";
 import { internalApiV1 } from "./internal/v1";
 import { apiRouteIntegrations } from "./integrations";
 import { safeGetSession } from "@/getSession";
@@ -21,6 +22,17 @@ apiRoute.use("*", async (c, next) => {
 	return next();
 });
 apiRoute.route("/public/v1", apiPublicRouteV1);
+// MCP server (SAY-31) — resource identifier is `https://api.<root>/mcp`, which the
+// host-based rewrite above turns into this exact path. Auth is its own OAuth
+// bearer-JWT verification (see routes/mcp), never the session middleware below.
+// routeExists() (below) matches on exact method, and Hono's `.all()` registers
+// routes under the literal method "ALL" — invisible to that check, which is why
+// this needs each method spelled out rather than a single `.all()`.
+const mcpRouteHandler = (c: Context<AppEnv>) => mcpFetchHandler(c.req.raw);
+apiRoute.get("/public/mcp", mcpRouteHandler);
+apiRoute.post("/public/mcp", mcpRouteHandler);
+apiRoute.delete("/public/mcp", mcpRouteHandler);
+apiRoute.get("/public/.well-known/oauth-protected-resource/mcp", () => mcpProtectedResourceMetadata());
 apiRoute.get(
 	"/public",
 	Scalar(() => {

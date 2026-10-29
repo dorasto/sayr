@@ -1,0 +1,211 @@
+---
+title: MCP Server
+description: Connect an AI agent (Claude, ChatGPT, or any MCP-compatible client) to Sayr using the Model Context Protocol
+icon: IconPlugConnected
+---
+
+Sayr runs a remote [Model Context Protocol](https://modelcontextprotocol.io) (MCP) server, so an AI agent can read and write tasks, comments, and more in your organization on your behalf, the same way the [CLI](/docs/cli) or a [personal access token](/docs/cli/authentication) does.
+
+<Callout type="info" title="Early preview">
+  MCP support is newly available. It's a **Sayr Cloud** feature —
+  self-hosted instances don't expose an MCP server yet.
+</Callout>
+
+## Setting it up
+
+The server URL is:
+
+```
+https://api.sayr.io/mcp
+```
+
+Sayr's MCP server authenticates over OAuth, the same standard most modern MCP clients speak natively. Adding the URL is normally the whole setup: your client discovers the authorization server on its own, opens a browser for you to sign in, and shows a consent screen listing exactly which scopes the agent is requesting before anything connects. No API key to generate or paste in.
+
+<Callout type="warn" title="Protocol version">
+  Sayr's server currently speaks only the newest MCP protocol revision
+  (2026-07-28). Most actively maintained clients already support it or will
+  very soon; if a client reports a connection or protocol-version error
+  rather than prompting you to sign in, it likely hasn't caught up yet. The
+  [CLI](/docs/cli) and [Public API](/docs/api/sdk) cover the same ground in
+  the meantime.
+</Callout>
+
+Where you paste the URL and what the menu is called varies by client. A few common ones:
+
+### Claude Code
+
+```bash
+claude mcp add --transport http sayr https://api.sayr.io/mcp
+```
+
+Then start a session and run `/mcp` to finish signing in.
+
+### Claude.ai / Claude Desktop
+
+Configured in the app, not a file: **Settings → Connectors → Add custom connector**, then enter a name and the URL above. (Requires a paid Claude plan.)
+
+### ChatGPT
+
+Also UI-only: **Settings → Connectors → Advanced settings → Developer mode** (turn it on) **→ Create connector**, then enter a name, the URL, and set **Authentication** to **OAuth**. (Requires a ChatGPT Plus, Pro, Team, or Enterprise account.)
+
+### Cursor
+
+`.cursor/mcp.json` in your project, or `~/.cursor/mcp.json` globally:
+
+```json title=".cursor/mcp.json"
+{
+	"mcpServers": {
+		"sayr": { "url": "https://api.sayr.io/mcp" }
+	}
+}
+```
+
+### VS Code (GitHub Copilot)
+
+`.vscode/mcp.json` — note the top-level key is `servers`, not `mcpServers`, and `type` is required here:
+
+```json title=".vscode/mcp.json"
+{
+	"servers": {
+		"sayr": { "type": "http", "url": "https://api.sayr.io/mcp" }
+	}
+}
+```
+
+### Other JSON-config clients
+
+Most other clients follow Cursor's shape, a `mcpServers` object keyed by a name you choose:
+
+```json
+{
+	"mcpServers": {
+		"sayr": { "url": "https://api.sayr.io/mcp" }
+	}
+}
+```
+
+A few (Windsurf, for one) use `serverUrl` instead of `url` — check your client's own docs if the connection doesn't show up after a restart.
+
+### YAML-based configs
+
+If your tool or agent framework takes its MCP server list as YAML rather than JSON, the equivalent is usually:
+
+```yaml
+mcpServers:
+  sayr:
+    url: https://api.sayr.io/mcp
+```
+
+### Local-only (stdio) clients
+
+If your client only supports local command-based servers, bridge it with [`mcp-remote`](https://www.npmjs.com/package/mcp-remote):
+
+```json
+{
+	"mcpServers": {
+		"sayr": { "command": "npx", "args": ["-y", "mcp-remote", "https://api.sayr.io/mcp"] }
+	}
+}
+```
+
+Whichever client you use, the first connection opens a browser for you to sign in and approve the requested scopes — nothing to generate or copy in beforehand.
+
+## What it can do today
+
+### Account
+
+| Tool                 | What it does                                        | Scope needed                   |
+| -------------------- | --------------------------------------------------- | ------------------------------ |
+| `whoami`             | The authenticated user this connection is acting as | none (just a valid connection) |
+| `list_organizations` | Organizations the user is a member of               | none (just a valid connection) |
+
+### Tasks
+
+| Tool                 | What it does                                                         | Scope needed                                                       |
+| -------------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| `list_tasks`         | Search and list tasks in an organization                             | `tasks.read`                                                       |
+| `get_task`           | Full detail for one task, by its number (e.g. `123`) or id           | `tasks.read`                                                       |
+| `create_task`        | Create a new task with a title, markdown description, status, priority | `tasks.create`                                                   |
+| `update_task`        | Change status, priority, title, description, category, release or visibility | `tasks.changeStatus` / `tasks.changePriority` / `tasks.editAny`, depending on the field |
+| `set_task_labels`    | Replace the labels on a task                                         | `content.manageLabels`                                             |
+| `set_task_assignees` | Replace the assignees on a task (organization members only)          | `tasks.assign`                                                     |
+
+### Comments
+
+| Tool             | What it does                                    | Scope needed                                                         |
+| ---------------- | ----------------------------------------------- | -------------------------------------------------------------------- |
+| `list_comments`  | List a task's comments, with reply counts       | `tasks.read`                                                         |
+| `create_comment` | Post a public or internal comment on a task     | `tasks.comment`                                                      |
+| `update_comment` | Edit a comment's content or visibility          | `tasks.comment` for your own; `moderation.manageComments` for others' |
+| `delete_comment` | Delete a comment                                | `tasks.comment` for your own; `moderation.manageComments` for others' |
+
+### Releases
+
+| Tool              | What it does                                                                                   | Scope needed             |
+| ----------------- | ---------------------------------------------------------------------------------------------- | ------------------------ |
+| `list_releases`   | List releases, optionally filtered by status                                                   | `tasks.read`             |
+| `get_release`     | One release by slug or id: description, lead, labels, linked pull requests, tasks and counts   | `tasks.read`             |
+| `create_release`  | Create a release with a name, slug, Markdown description, status and target date               | `content.manageReleases` |
+| `update_release`  | Change a release's name, slug, description, status, dates, color, icon or lead                 | `content.manageReleases` |
+| `publish_release` | Mark a release as released and close every open task in it                                    | `content.manageReleases` |
+| `delete_release`  | Delete a release (its tasks are unlinked, not deleted)                                         | `content.manageReleases` |
+
+To add a task to a release, use `update_task` with the release's slug or id as `releaseId`.
+
+### Release activity
+
+| Tool                           | What it does                                                                 | Scope needed                                                          |
+| ------------------------------ | ---------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| `list_release_status_updates`  | A release's status updates, newest first, with health and comment counts     | `tasks.read`                                                          |
+| `create_release_status_update` | Post a status update with a health rating (on track, at risk, off track)     | `content.manageReleases`                                              |
+| `update_release_status_update` | Edit a status update's content, health or visibility                         | `content.manageReleases`                                              |
+| `delete_release_status_update` | Delete a status update and its comments                                      | `content.manageReleases`                                              |
+| `list_release_comments`        | A release's top-level comments, optionally just those on one status update   | `tasks.read`                                                          |
+| `list_release_comment_replies` | The replies in one comment thread                                            | `tasks.read`                                                          |
+| `create_release_comment`       | Comment on a release or status update, or reply to a comment                 | `tasks.comment`                                                       |
+| `update_release_comment`       | Edit a release comment's content or visibility                               | `tasks.comment` for your own; `moderation.manageComments` for others' |
+| `delete_release_comment`       | Delete a release comment and its replies                                     | `tasks.comment` for your own; `moderation.manageComments` for others' |
+| `add_release_label`            | Add a label to a release                                                     | `content.manageReleases`                                              |
+| `remove_release_label`         | Remove a label from a release                                                | `content.manageReleases`                                              |
+| `link_release_pull_request`    | Link a GitHub pull request by URL (the repository must be connected)         | `content.manageReleases`                                              |
+| `unlink_release_pull_request`  | Unlink a pull request from a release                                         | `content.manageReleases`                                              |
+
+### Organization reference
+
+| Tool              | What it does                                                    | Scope needed           |
+| ----------------- | --------------------------------------------------------------- | ---------------------- |
+| `list_labels`     | Labels in an organization (for `set_task_labels`)               | `tasks.read`           |
+| `create_label`    | Create a label, or return the existing one with that name       | `content.manageLabels` |
+| `list_categories` | Categories in an organization (for `update_task`)               | `tasks.read`           |
+| `list_members`    | Members of an organization (for `set_task_assignees`)           | `tasks.read`           |
+
+Every tool except `whoami` and `list_organizations` takes an `org` argument (an organization's slug or id), so one connection can act across every organization you belong to — the agent names which org each call targets. Descriptions and comments are written and returned as Markdown.
+
+## Permissions
+
+MCP access reuses the exact same scope vocabulary and permission model as [personal access tokens](/docs/cli/authentication#scopes): during consent, you approve a specific set of scopes (`tasks.read`, `tasks.create`, `tasks.comment`, and so on), and from then on every call is checked twice — does the connection hold the scope, **and** do your teams in that organization currently allow it. A connection can never do more than you can yourself: if your team can't edit other people's tasks or manage labels, neither can your agent, even with every scope approved. Member, team, and billing management are never reachable this way, whatever scopes were granted.
+
+Like the CLI, the MCP server applies these checks to every task — including ones you created or are assigned to. If your team doesn't grant `tasks.editAny`, an agent can still change status and priority (where allowed) but not a task's title or description.
+
+If your role or teams change, that takes effect on the very next call — nothing is cached against the old permissions.
+
+## Disconnecting an app
+
+Every app you've approved is listed under **Settings → Connections → Connected apps**, with when you connected it and how many permissions it holds. **Revoke** cuts it off immediately: its current access stops working on the next call, and it can't renew it. To use the app again, connect it and approve it from scratch.
+
+## Rate limits
+
+Usage is rate-limited per organization, not capped by a monthly quota — there's no "ran out of AI actions" wall. The limit is higher on Pro:
+
+| Plan | Limit                          |
+| ---- | ------------------------------- |
+| Free | 20 requests/minute per person, per organization  |
+| Pro  | 120 requests/minute per person, per organization |
+
+The limit follows the plan of the organization each call targets, and every person and organization is metered independently: hitting the limit against one organization doesn't affect calls against another, and a teammate's agent doesn't use up yours.
+
+## Related
+
+- [CLI](/docs/cli): the same `/v1/me/*` API, from your terminal
+- [Authentication & API keys](/docs/cli/authentication): the scope catalog and how the permission check works
+- [Public API & SDK](/docs/api/sdk)

@@ -8,6 +8,7 @@ import {
 	IconHelpCircle,
 	IconLayoutKanban,
 	IconPlug,
+	IconPlugConnected,
 	IconServer,
 	IconSparkles,
 	IconTerminal2,
@@ -17,8 +18,8 @@ import { docs } from "collections/server";
 import { loader } from "fumadocs-core/source";
 import { createElement } from "react";
 
-// Maps the `icon` string in a folder's meta.json to a React element. Keep this
-// in sync with the icon names used across content/docs/**/meta.json.
+// Maps the `icon` string in a folder's meta.json (or a page's frontmatter) to a
+// React element. Keep this in sync with the icon names used across content/docs.
 const icons = {
 	IconApi,
 	IconBuildingSkyscraper,
@@ -29,6 +30,7 @@ const icons = {
 	IconHelpCircle,
 	IconLayoutKanban,
 	IconPlug,
+	IconPlugConnected,
 	IconServer,
 	IconSparkles,
 	IconTerminal2,

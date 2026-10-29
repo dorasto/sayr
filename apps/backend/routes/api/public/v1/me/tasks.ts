@@ -30,6 +30,7 @@ import { resolveOrganizationId, resolveReleaseId, resolveTaskId } from "../../..
 import { updateTaskService } from "../../../../../lib/tasks/updateTask";
 import {
 	TaskNotFoundError as AssigneesTaskNotFoundError,
+	NonMemberAssigneeError,
 	updateTaskAssigneesService,
 } from "../../../../../lib/tasks/updateTaskAssignees";
 import {
@@ -1100,6 +1101,12 @@ tasksRoute.post(
 				return c.json(
 					errorResponse("Task not found", "No task found with the provided id in the organization"),
 					404
+				);
+			}
+			if (err instanceof NonMemberAssigneeError) {
+				return c.json(
+					errorResponse("Invalid assignees", `${err.message}. Assignees must be members of this organization.`),
+					400
 				);
 			}
 			const errorMessage =

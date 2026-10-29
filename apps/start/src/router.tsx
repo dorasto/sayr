@@ -1,10 +1,41 @@
 import { QueryClient } from "@tanstack/react-query";
-import { createRouter } from "@tanstack/react-router";
+import { createRouter, defaultParseSearch, defaultStringifySearch } from "@tanstack/react-router";
 import { setupRouterSsrQueryIntegration } from "@tanstack/react-router-ssr-query";
 import NotFound from "./components/not-found";
 
 // Import the generated route tree
 import { routeTree } from "./routeTree.gen";
+
+// better-auth's OAuth provider signs the query it redirects to /auth/login and
+// /auth/consent (repeated `ba_param` keys + `sig`), and its client re-reads that
+// query from window.location.search. The default serializer JSON-coerces values
+// and collapses repeated keys, and SSR 307-redirects to that "canonical" URL —
+// which breaks the signature. Pass signed queries through as raw strings.
+function isSignedOAuthQuery(params: URLSearchParams) {
+	return params.has("sig") && params.has("ba_param");
+}
+
+function parseSearch(searchStr: string): Record<string, unknown> {
+	const params = new URLSearchParams(searchStr);
+	if (!isSignedOAuthQuery(params)) return defaultParseSearch(searchStr);
+	const search: Record<string, string | string[]> = {};
+	for (const key of new Set(params.keys())) {
+		const values = params.getAll(key);
+		search[key] = values.length === 1 ? (params.get(key) ?? "") : values;
+	}
+	return search;
+}
+
+function stringifySearch(search: Record<string, unknown>) {
+	if (search.sig === undefined || search.ba_param === undefined) return defaultStringifySearch(search);
+	const params = new URLSearchParams();
+	for (const [key, value] of Object.entries(search)) {
+		if (value === undefined) continue;
+		for (const v of Array.isArray(value) ? value : [value]) params.append(key, String(v));
+	}
+	const str = params.toString();
+	return str ? `?${str}` : "";
+}
 
 // Create a new router instance
 export const getRouter = () => {
@@ -24,6 +55,8 @@ export const getRouter = () => {
 		// Cache loader data for 30 seconds to prevent unnecessary refetches
 		// during hydration and same-route navigations
 		defaultPreloadStaleTime: 1000 * 30,
+		parseSearch,
+		stringifySearch,
 		rewrite: {
 			// INPUT: URL → Internal Route
 			// Transforms the browser URL to match internal route structure

@@ -1,5 +1,10 @@
 import { getEdition } from "./edition";
-import type { Edition, EditionCapabilities, PlanLimits } from "./types";
+import type {
+	CloudPlan,
+	Edition,
+	EditionCapabilities,
+	PlanLimits,
+} from "./types";
 
 // ---------------------------------------------------------------------------
 // Edition-level capabilities (instance-wide, not per-org)
@@ -94,6 +99,29 @@ export const FREE_LIMITS: PlanLimits = {
 	releases: 0,
 	aiEnabled: false,
 };
+
+/**
+ * MCP server access (SAY-31) is rate-limited by plan, not resource-count gated —
+ * kept out of `PlanLimits`/`canCreateResource` since it's a req/min ceiling, not
+ * a "how many of X can you create" cap. Cloud-only: self-hosted never reaches
+ * this, since the oauth-provider plugins aren't registered off cloud at all.
+ */
+export const MCP_RATE_LIMIT_PER_MINUTE: Record<CloudPlan, number> = {
+	free: 20,
+	pro: 120,
+};
+
+/**
+ * Per-(user, org) MCP request ceiling for an organization given a known edition
+ * and plan. Pure function -- safe for browser use.
+ */
+export function getMcpRateLimitPerMinute(
+	edition: Edition,
+	plan: string | null | undefined,
+): number {
+	if (edition !== "cloud") return MCP_RATE_LIMIT_PER_MINUTE.pro;
+	return MCP_RATE_LIMIT_PER_MINUTE[plan === "pro" ? "pro" : "free"];
+}
 
 // ---------------------------------------------------------------------------
 // Pure functions (no process.env -- safe for browser use)

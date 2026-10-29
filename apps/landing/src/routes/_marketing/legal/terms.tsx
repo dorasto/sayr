@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { seoMeta } from "@/lib/seo";
 
-const lastUpdated = "2026-02-16";
+const lastUpdated = "2026-10-28";
 // Construct as a local calendar date, not `new Date(lastUpdated)` — that parses
 // as UTC midnight, which renders a day early for anyone west of UTC once this
 // hydrates client-side.
@@ -189,6 +189,13 @@ function TermsPage() {
 						Sayr provides an API for programmatic access. API keys are tied to your account and you are
 						responsible for keeping them secure. We may impose rate limits or usage restrictions on API access.
 						Abuse of the API may result in throttling or termination of access.
+					</p>
+					<p className="mt-2">
+						You can also authorise third-party apps, such as AI assistants, to act on your behalf through Sayr's
+						MCP server. An app you authorise can only do what you can do yourself, limited further by the
+						permissions you approve. Actions it takes are taken on your behalf, and you are responsible for them
+						as if you had taken them yourself. You can revoke an app's access at any time from your account
+						settings.
 					</p>
 				</section>
 

@@ -41,6 +41,8 @@ export * from "./taskRelation.schema";
 export * from "./taskTemplate.schema";
 export * from "./taskVote.schema";
 export * from "./apikey.schema";
+export * from "./oauth.schema";
+export * from "./jwt.schema";
 export * from "./github_pull_request.schema";
 export * from "./blockedUser.schema";
 export * from "./github_branch_link.schema";
@@ -217,18 +219,12 @@ export type BlockedUserWithDetails = blockedUserType & {
 	blockedByUser: UserSummary;
 };
 
-export const {
-	notifications,
-	notificationSettings,
-} = createNotificationSchema({
+export const { notifications, notificationSettings } = createNotificationSchema({
 	recipientId: () => user.id,
 	actorId: () => user.id,
 });
 
-export const {
-	notificationRelations,
-	notificationSettingsRelations,
-} = createNotificationRelations(
+export const { notificationRelations, notificationSettingsRelations } = createNotificationRelations(
 	{ notifications, notificationSettings },
 	{
 		recipientId: () => user.id,
@@ -238,6 +234,6 @@ export const {
 	{
 		recipient: user,
 		actor: user,
-		resourceId: organization
-	},
+		resourceId: organization,
+	}
 );

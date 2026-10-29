@@ -39,6 +39,16 @@ export class TaskNotFoundError extends Error {
 	}
 }
 
+/** A newly added assignee isn't a member of the task's organization. Existing assignees are never re-checked. */
+export class NonMemberAssigneeError extends Error {
+	readonly userIds: string[];
+	constructor(userIds: string[]) {
+		super(`Not members of this organization: ${userIds.join(", ")}`);
+		this.name = "NonMemberAssigneeError";
+		this.userIds = userIds;
+	}
+}
+
 export interface UpdateTaskAssigneesServiceParams {
 	orgId: string;
 	taskId: string;
@@ -77,6 +87,13 @@ export async function updateTaskAssigneesService(params: UpdateTaskAssigneesServ
 	const currentAssigneeIds = existingTask.assignees.map((a) => a.user.id);
 	const incomingAssigneeIds: string[] = assigneeIds ?? [];
 
+	const added = incomingAssigneeIds.filter((id) => !currentAssigneeIds.includes(id));
+	if (added.length) {
+		const memberIds = new Set((await getOrganizationMembers(orgId)).map((m) => m.userId));
+		const nonMembers = added.filter((id) => !memberIds.has(id));
+		if (nonMembers.length) throw new NonMemberAssigneeError(nonMembers);
+	}
+
 	await traceAsync(
 		"task.assignees.update.sync",
 		async () => {
@@ -89,15 +106,15 @@ export async function updateTaskAssigneesService(params: UpdateTaskAssigneesServ
 					const event = await addLogEventTask(taskId, orgId, "assignee_added", null, userId, actorUserId);
 					// Notify the newly assigned user
 					createNotification({
-						"type": "assignee_added",
-						"resourceId": orgId,
-						"recipientId": userId,
-						"actorId": actorUserId,
+						type: "assignee_added",
+						resourceId: orgId,
+						recipientId: userId,
+						actorId: actorUserId,
 						data: {
 							taskId,
 							timelineEventId: event?.id,
-						}
-					})
+						},
+					});
 				}
 			}
 
@@ -122,8 +139,8 @@ export async function updateTaskAssigneesService(params: UpdateTaskAssigneesServ
 						data: {
 							taskId,
 							timelineEventId: event?.id,
-						}
-					})
+						},
+					});
 				}
 			}
 		},

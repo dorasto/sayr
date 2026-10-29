@@ -1,0 +1,12 @@
+{
+	"version": "0.0.1",
+	"configurations": [
+		{
+			"name": "sayr-dev-cloud",
+			"runtimeExecutable": "bash",
+			"runtimeArgs": ["-c", "TURBO_UI=true pnpm dev:cloud"],
+			"port": 3000,
+			"url": "http://admin.app.localhost:3000"
+		}
+	]
+}
