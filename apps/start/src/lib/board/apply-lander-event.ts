@@ -195,7 +195,7 @@ function setTasksStatus(tasks: LanderTask[], taskIds: readonly string[], status:
 }
 
 /** The `{ taskIds, status: "done" }` UPDATE_TASK the release routes send when publishing a release auto-closes its tasks. */
-function readClosedTasksPayload(payload: unknown): { taskIds: string[]; status: "done" } | null {
+export function readClosedTasksPayload(payload: unknown): { taskIds: string[]; status: "done" } | null {
 	if (!isRecord(payload) || payload.status !== "done" || !Array.isArray(payload.taskIds)) return null;
 	return { taskIds: payload.taskIds.filter((id): id is string => typeof id === "string"), status: "done" };
 }
@@ -281,7 +281,7 @@ function applyCategories(
  * `{ taskId, releaseId }` payloads the same event type also carries have no `id`, so
  * they never pass.
  */
-function isReleaseRow(value: unknown): value is schema.releaseType {
+export function isReleaseRow(value: unknown): value is schema.releaseType {
 	return (
 		isRecord(value) &&
 		typeof value.id === "string" &&

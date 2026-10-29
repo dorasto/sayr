@@ -36,7 +36,9 @@ import type { MentionContext } from "@/hooks/useMentionUsers";
 import { useServerEventsSubscription } from "@/hooks/useServerEventsSubscription";
 import { useWSMessageHandler, type WSMessageHandler } from "@/hooks/useWSMessageHandler";
 import { commandActions } from "@/lib/command-store";
+import { isReleaseRow } from "@/lib/board/apply-lander-event";
 import { getReleaseWithTasksAction, updateReleaseAction } from "@/lib/fetches/release";
+import { applyReleaseTaskEvent, readReleasesEvent } from "@/lib/releases/release-page-event";
 import type { ServerEventMessage } from "@/lib/serverEvents";
 import { sidebarActions } from "@/lib/sidebar/sidebar-store";
 import { useToastAction } from "@/lib/util";
@@ -122,42 +124,47 @@ function ReleaseDetailPageContent() {
 		void loadRelease();
 	}, [release?.id, organization.id, setRelease]);
 
+	// Background reload (no loader) after an event that only says "something about this release changed".
+	const reloadRelease = useCallback(async () => {
+		if (!release?.id) return;
+		const result = await getReleaseWithTasksAction(organization.id, release.id);
+		if (result.success && result.data) {
+			setRelease(result.data);
+			setTasks(result.data.tasks);
+		}
+	}, [release?.id, organization.id, setRelease]);
+
+	// No `scope` checks: room broadcasts carry none, and task updates reach this page as INDIVIDUAL
+	// (it's on the `releases` channel, not `tasks`). Payload shapes are validated in release-page-event.ts.
 	const handlers: WSMessageHandler<ServerEventMessage> = {
 		UPDATE_RELEASES: (msg) => {
-			if (msg.scope === "CHANNEL" && "data" in msg) {
-				setReleases(msg.data);
-				// Update current release if it's in the updated list
-				const updatedRelease = (msg.data as schema.releaseType[]).find((r) => r.id === release?.id);
-				if (updatedRelease && release) {
-					// Preserve tasks array and createdBy when updating release metadata
-					setRelease({
-						...release,
-						...updatedRelease,
-						tasks: release.tasks,
-						createdBy: release.createdBy,
-					} as schema.ReleaseWithTasks);
-				}
+			if (!("data" in msg) || !release) return;
+			const data: unknown = msg.data;
+			if (isReleaseRow(data)) {
+				setReleases(
+					releases.some((r) => r.id === data.id)
+						? releases.map((r) => (r.id === data.id ? data : r))
+						: [...releases, data]
+				);
+			}
+			const result = readReleasesEvent(data, release.id, new Set(tasks.map((t) => t.id)));
+			if (result.kind === "release") {
+				// Preserve tasks array and createdBy when updating release metadata
+				setRelease({
+					...release,
+					...result.release,
+					tasks: release.tasks,
+					createdBy: release.createdBy,
+				} as schema.ReleaseWithTasks);
+			} else if (result.kind === "refetch") {
+				void reloadRelease();
 			}
 		},
 		UPDATE_TASK: (msg) => {
-			if (msg.scope === "CHANNEL" && "data" in msg) {
-				const task = msg.data as schema.TaskWithLabels;
-				// If task belongs to this release, update it
-				if (task.releaseId === release?.id) {
-					setTasks((prevTasks) => {
-						const existingIndex = prevTasks.findIndex((t) => t.id === task.id);
-						if (existingIndex >= 0) {
-							const newTasks = [...prevTasks];
-							newTasks[existingIndex] = task;
-							return newTasks;
-						}
-						return [...prevTasks, task];
-					});
-				} else {
-					// Task was removed from this release
-					setTasks((prevTasks) => prevTasks.filter((t) => t.id !== task.id));
-				}
-			}
+			if (!("data" in msg) || !release) return;
+			const data: unknown = msg.data;
+			const releaseId = release.id;
+			setTasks((prevTasks) => applyReleaseTaskEvent(prevTasks, data, releaseId));
 		},
 		UPDATE_RELEASE_STATUS_UPDATES: (msg) => {
 			if ("data" in msg && (msg.data as { releaseId?: string })?.releaseId === release?.id) {
