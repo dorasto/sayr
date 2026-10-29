@@ -2,16 +2,15 @@ import { useMemo } from "react";
 import { resolveGroupingDefinition } from "./config/grouping-registry";
 import {
 	useBoardCapabilities,
-	useBoardData,
+	useBoardEntity,
 	useBoardGroupings,
+	useBoardItemsData,
 	useBoardRenderers,
 } from "./core/board-data";
+import { arrangeBoardItems } from "./core/entity";
 import { resolveBoardState } from "./core/renderers";
-import { applyFilters } from "./filter/filter-config";
-import { sortTasks } from "./filter/sort-config";
 import { useBoardViewState } from "./filter/use-board-view-state";
 import { useBoardSavedViews } from "./saved-views/use-board-saved-views";
-import { BoardBulkActionBar } from "./selection/board-bulk-action-bar";
 import { BoardViewShell } from "./views/board-view-shell";
 
 /**
@@ -21,8 +20,9 @@ import { BoardViewShell } from "./views/board-view-shell";
  * page's own PageHeader.Toolbar (see pages/admin/home/index.tsx), matching
  * every other admin page's TaskFilterDropdown-in-PageHeader.Toolbar
  * pattern — not mounted inside Board itself, which takes no props (its items
- * come from the surrounding BoardProvider via `useBoardData()`) and has no
- * page-chrome opinions.
+ * come from the surrounding BoardProvider via `useBoardItemsData()`) and has no
+ * page-chrome opinions. What the items are (filter fields, completed predicate, sort, rows/cards, bulk bar)
+ * comes from the provider's entity (core/entity.ts; tasks by default).
  *
  * A task hidden by `showCompletedTasks=false` or an active filter condition
  * can still surface as a subtask under a visible parent (or get promoted to
@@ -32,7 +32,8 @@ import { BoardViewShell } from "./views/board-view-shell";
  * receive, not the full unfiltered set.
  */
 export function Board() {
-	const { items: tasks, status, passthrough = false } = useBoardData();
+	const { items, status, passthrough = false } = useBoardItemsData();
+	const entity = useBoardEntity();
 	const { states } = useBoardRenderers();
 	const { canBulk } = useBoardCapabilities();
 	const { views: savedViews } = useBoardSavedViews();
@@ -42,25 +43,30 @@ export function Board() {
 	// so the board's own completed-visibility filter and sort stand aside; user filters still apply.
 	const ownsMembership = resolveGroupingDefinition(groupings, grouping).ownsMembership === true;
 
-	const visibleTasks = useMemo(() => {
-		// The host already filtered/ordered these (see BoardDataSource.passthrough): show them as given.
-		if (passthrough) return tasks;
-		const filtered = applyFilters(tasks, filters);
-		if (ownsMembership) return filtered;
-		const scoped = showCompletedTasks
-			? filtered
-			: filtered.filter((task) => task.status !== "done" && task.status !== "canceled");
-		return sortBy !== "none" ? sortTasks(scoped, sortBy, sortDirection) : scoped;
-	}, [tasks, passthrough, filters, ownsMembership, showCompletedTasks, sortBy, sortDirection]);
+	const visibleItems = useMemo(
+		() =>
+			// The host already filtered/ordered these (see BoardDataSource.passthrough): show them as given.
+			passthrough
+				? items
+				: arrangeBoardItems(entity, items, {
+						filters,
+						showCompleted: showCompletedTasks,
+						sortBy,
+						sortDirection,
+						ownsMembership,
+					}),
+		[entity, items, passthrough, filters, ownsMembership, showCompletedTasks, sortBy, sortDirection]
+	);
 
 	// While the data source loads/failed/has nothing, a page's `renderers.states` replaces the views
 	// (undefined = render the views as usual; the admin source has no status, so it always does).
-	const stateContent = resolveBoardState(status, visibleTasks.length, states);
+	const stateContent = resolveBoardState(status, visibleItems.length, states);
+	const BulkBar = entity.BulkBar;
 
 	return (
 		<>
-			{stateContent !== undefined ? stateContent : <BoardViewShell tasks={visibleTasks} />}
-			{canBulk && <BoardBulkActionBar tasks={visibleTasks} />}
+			{stateContent !== undefined ? stateContent : <BoardViewShell items={visibleItems} />}
+			{canBulk && BulkBar && <BulkBar items={visibleItems} />}
 		</>
 	);
 }

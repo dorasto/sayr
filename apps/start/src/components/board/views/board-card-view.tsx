@@ -1,29 +1,25 @@
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { type ComponentType, useEffect, useId, useMemo, useRef, useState } from "react";
 import { type BoardGroupingOptions, groupTasks } from "../config/groupings";
-import { useBoardData, useBoardGroupings, useBoardRenderers } from "../core/board-data";
-import type { TaskItem } from "../core/board-item";
-import type { BoardCardRenderer } from "../core/renderers";
+import { useBoardEntity, useBoardGroupings, useBoardItemsData } from "../core/board-data";
+import type { BoardItem } from "../core/board-item";
+import type { BoardEntityCardProps } from "../core/entity";
 import { useBoardViewState } from "../filter/use-board-view-state";
-import { BoardCard } from "./board-card";
 import { BoardFooter } from "./board-load-more";
 import { deriveCardLayout, flattenCardGroups, getDefaultCollapsedGroupIds, toggleCollapsedId } from "./card-sections";
 import { GroupHeaderContent } from "./group-header";
 
-/** Renders one task as a card — the same slot as `BoardRenderers.card`. */
-export type CardRenderer = BoardCardRenderer;
-
-/** The default card: the full admin BoardCard with its real field pickers, checkbox and context menu. */
-const DEFAULT_CARD_RENDERER: CardRenderer = BoardCard;
+/** Renders one item as a card — the entity's `Card` (tasks: `renderers.card`, else BoardCard). */
+export type CardRenderer = ComponentType<BoardEntityCardProps<BoardItem>>;
 
 export interface BoardCardViewProps {
 	/** Already filtered/sorted by `Board`. */
-	items: readonly TaskItem[];
-	/** Overrides the card element for this view only. Absent = the provider's `renderers.card`, else BoardCard. */
+	items: readonly BoardItem[];
+	/** Overrides the card element for this view only. Absent = the board entity's `Card`. */
 	renderCard?: CardRenderer;
 }
 
 interface CardGridProps {
-	tasks: readonly TaskItem[];
+	tasks: readonly BoardItem[];
 	Card: CardRenderer;
 }
 
@@ -43,7 +39,7 @@ function CardGrid({ tasks, Card }: CardGridProps) {
 		>
 			{tasks.map((task) => (
 				<li key={task.id} className="grid min-w-0">
-					<Card task={task} variant="grid" />
+					<Card item={task} variant="grid" />
 				</li>
 			))}
 		</ul>
@@ -57,14 +53,14 @@ function CardGrid({ tasks, Card }: CardGridProps) {
  * view (reset when the grouping changes; empty groups start collapsed).
  */
 export function BoardCardView({ items, renderCard }: BoardCardViewProps) {
-	const data = useBoardData();
-	const renderers = useBoardRenderers();
-	const Card = renderCard ?? renderers.card ?? DEFAULT_CARD_RENDERER;
+	const data = useBoardItemsData();
+	const { Card: EntityCard } = useBoardEntity();
+	const Card = renderCard ?? EntityCard;
 	const groupings = useBoardGroupings();
 	const { grouping, showCompletedTasks } = useBoardViewState();
 	const idPrefix = useId();
 
-	const options = useMemo<BoardGroupingOptions>(
+	const options = useMemo<BoardGroupingOptions<BoardItem>>(
 		() => ({
 			categories: data.categories,
 			releases: data.releases,

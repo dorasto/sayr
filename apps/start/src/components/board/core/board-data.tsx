@@ -5,13 +5,13 @@ import {
 	createGroupingRegistry,
 	type GroupingRegistry,
 } from "../config/grouping-registry";
-import { DEFAULT_GROUPING_REGISTRY } from "../config/groupings";
 import type { SavedViewsSource } from "../saved-views/saved-views-source";
 import type { BoardViewDefinition } from "../views/view-registry-model";
 import type { BoardItem, TaskItem } from "./board-item";
 import type { BoardItemActions } from "./board-item-actions";
-import { deriveAssignableUsers, deriveFilterUsers } from "./board-users";
+import { deriveAssignableUsers } from "./board-users";
 import { type BoardCapabilities, resolveCapabilities } from "./capabilities";
+import { type BoardEntity, eraseBoardData, eraseBoardEntity, eraseBoardGroupings, eraseBoardViews } from "./entity";
 import {
 	ALL_FIELDS_EDITABLE,
 	type BoardFieldPermissions,
@@ -22,6 +22,7 @@ import { isPlainLeftClick } from "./open-item";
 import type { BoardRenderers } from "./renderers";
 import { BoardScopeProvider } from "./scope";
 import { type BoardScope, LEGACY_BOARD_SCOPE } from "./scope-config";
+import { TASK_ENTITY } from "./task-entity";
 
 export interface BoardDataStatus {
 	isLoading: boolean;
@@ -101,12 +102,17 @@ export interface BoardDataSource<T extends BoardItem = TaskItem> {
 	openItemOnClick?: boolean;
 }
 
+// One context for every entity: the entity, its data source, views and groupings are type-erased to
+// `BoardItem` on the way in (core/entity.ts says why that is sound). Generic modules read them through
+// `useBoardEntity()` / `useBoardItemsData()`; task-only modules (fields, rows, cards, menus, bulk bar) through
+// the task-typed `useBoardData()`, which refuses to run on another entity's board.
 interface BoardContextValue {
-	data: BoardDataSource;
+	data: BoardDataSource<BoardItem>;
+	entity: BoardEntity<BoardItem>;
 	capabilities: BoardCapabilities;
-	groupings: GroupingRegistry;
-	/** The page's registered views; absent = the default set (read via `useBoardViews()`). */
-	views?: readonly BoardViewDefinition[];
+	groupings: GroupingRegistry<BoardItem>;
+	/** The page's registered views; absent = the entity's, else the default set (read via `useBoardViews()`). */
+	views?: readonly BoardViewDefinition<BoardItem>[];
 	/** The page's presentation slots; absent = the default admin rendering (read via `useBoardRenderers()`). */
 	renderers?: BoardRenderers;
 	/** The saved views offered; absent = the personal views (read via `useBoardSavedViews()`). */
@@ -115,25 +121,30 @@ interface BoardContextValue {
 
 const BoardContext = createContext<BoardContextValue | undefined>(undefined);
 
-interface BoardProviderProps {
-	data: BoardDataSource;
+interface BoardProviderBaseProps<T extends BoardItem> {
+	data: BoardDataSource<T>;
+	/**
+	 * What kind of item this board shows (core/entity.ts). Absent = tasks (`TASK_ENTITY`), which is what every
+	 * task board relies on; required for any other item type. Keep it stable (module-level).
+	 */
+	entity?: BoardEntity<NoInfer<T>>;
 	capabilities: BoardCapabilities;
 	/** View-state scope (persistence, URL sync, saved views). Absent = the legacy admin scope. Keep it stable. */
 	scope?: BoardScope;
 	/**
-	 * Extra grouping definitions (a page's own columns), merged OVER the built-ins by id. Keep the array stable
+	 * Extra grouping definitions (a page's own columns), merged OVER the entity's by id. Keep the array stable
 	 * (module-level or memoised) — a new array each render rebuilds the registry.
 	 */
-	groupings?: readonly BoardGroupingDefinition[];
+	groupings?: readonly BoardGroupingDefinition<NoInfer<T>>[];
 	/**
-	 * The views this board offers (see views/view-registry.tsx). Absent = DEFAULT_BOARD_VIEWS (list, kanban,
-	 * card). Keep the array stable (module-level or memoised).
+	 * The views this board offers (see views/view-registry.tsx). Absent = the entity's views, else
+	 * DEFAULT_BOARD_VIEWS (list, kanban). Keep the array stable (module-level or memoised).
 	 */
-	views?: readonly BoardViewDefinition[];
+	views?: readonly BoardViewDefinition<NoInfer<T>>[];
 	/**
 	 * Presentation slots (row / card / list container / footer / states) replacing the default admin
 	 * rendering — see core/renderers.ts. Absent = BoardRow / BoardCard / BoardLoadMore. Keep it stable
-	 * (module-level or memoised): it is part of the context value.
+	 * (module-level or memoised): it is part of the context value. `row`/`card` apply to the task entity only.
 	 */
 	renderers?: BoardRenderers;
 	/**
@@ -144,13 +155,21 @@ interface BoardProviderProps {
 	children: ReactNode;
 }
 
+/** `entity` may only be left out when the items are tasks. */
+type BoardEntityRequirement<T extends BoardItem> = [T] extends [TaskItem]
+	? unknown
+	: { entity: BoardEntity<NoInfer<T>> };
+
+export type BoardProviderProps<T extends BoardItem> = BoardProviderBaseProps<T> & BoardEntityRequirement<T>;
+
 /**
  * Supplies a board its data and what the viewer may do with it. Callers should pass a
  * memoised `data` (and a stable `capabilities`) — a fresh object per render re-renders
  * every board consumer.
  */
-export function BoardProvider({
+export function BoardProvider<T extends BoardItem = TaskItem>({
 	data,
+	entity,
 	capabilities,
 	scope = LEGACY_BOARD_SCOPE,
 	groupings: extraGroupings,
@@ -158,17 +177,23 @@ export function BoardProvider({
 	renderers,
 	savedViews,
 	children,
-}: BoardProviderProps) {
+}: BoardProviderProps<T>) {
+	const erasedEntity = entity ? eraseBoardEntity(entity) : eraseBoardEntity(TASK_ENTITY);
 	const groupings = useMemo(
-		() =>
-			extraGroupings
-				? createGroupingRegistry(Array.from(DEFAULT_GROUPING_REGISTRY.values()), extraGroupings)
-				: DEFAULT_GROUPING_REGISTRY,
-		[extraGroupings]
+		() => createGroupingRegistry<BoardItem>(erasedEntity.groupings, eraseBoardGroupings(extraGroupings)),
+		[erasedEntity, extraGroupings]
 	);
 	const value = useMemo<BoardContextValue>(
-		() => ({ data, capabilities, groupings, views, renderers, savedViews }),
-		[data, capabilities, groupings, views, renderers, savedViews]
+		() => ({
+			data: eraseBoardData(data),
+			entity: erasedEntity,
+			capabilities,
+			groupings,
+			views: eraseBoardViews(views),
+			renderers,
+			savedViews,
+		}),
+		[data, erasedEntity, capabilities, groupings, views, renderers, savedViews]
 	);
 	return (
 		<BoardContext.Provider value={value}>
@@ -185,16 +210,43 @@ function useBoardContext(): BoardContextValue {
 	return context;
 }
 
+/**
+ * The TASK board's data source — for task-only modules (fields, rows, cards, menus, the bulk bar). Throws on
+ * another entity's board, where the items aren't tasks: generic modules use `useBoardItemsData()`.
+ */
 export function useBoardData(): BoardDataSource {
+	return useBoardEntityData(TASK_ENTITY);
+}
+
+/**
+ * The data source typed for `entity` — for an entity's own components (its rows, cards, drop executor), which
+ * only render on that entity's board. Throws on another entity's board.
+ */
+export function useBoardEntityData<T extends BoardItem>(entity: BoardEntity<T>): BoardDataSource<T> {
+	const { data, entity: active } = useBoardContext();
+	if (active.id !== entity.id) {
+		throw new Error(`This component renders "${entity.id}" items, but the board shows "${active.id}" items`);
+	}
+	// Checked above: the provider pairs the entity with a data source of its own item type (see eraseBoardData).
+	return data as unknown as BoardDataSource<T>;
+}
+
+/** The data source of whatever entity this board shows, items typed as plain `BoardItem`s. */
+export function useBoardItemsData(): BoardDataSource<BoardItem> {
 	return useBoardContext().data;
+}
+
+/** The entity this board shows (type-erased; see core/entity.ts). */
+export function useBoardEntity(): BoardEntity<BoardItem> {
+	return useBoardContext().entity;
 }
 
 export function useBoardCapabilities(): BoardCapabilities {
 	return useBoardContext().capabilities;
 }
 
-/** The grouping registry in force: the built-ins plus whatever the provider was given. */
-export function useBoardGroupings(): GroupingRegistry {
+/** The grouping registry in force: the entity's groupings plus whatever the provider was given. */
+export function useBoardGroupings(): GroupingRegistry<BoardItem> {
 	return useBoardContext().groupings;
 }
 
@@ -202,7 +254,7 @@ export function useBoardGroupings(): GroupingRegistry {
  * The views the provider was given, or undefined when it gave none. Prefer `useBoardViews()` from
  * views/view-registry.tsx, which applies the default set.
  */
-export function useBoardViewsOverride(): readonly BoardViewDefinition[] | undefined {
+export function useBoardViewsOverride(): readonly BoardViewDefinition<BoardItem>[] | undefined {
 	return useBoardContext().views;
 }
 
@@ -320,8 +372,14 @@ export function useBoardAssignableUsers(organizationId: string): readonly schema
 	return useMemo(() => users ?? deriveAssignableUsers(items, organizationId), [users, items, organizationId]);
 }
 
-/** The user list the filter pickers resolve assignee/creator against. */
+const NO_USERS: readonly schema.UserSummary[] = [];
+
+/**
+ * The user list the filter pickers resolve assignee/creator against: the data source's `users`, else what
+ * the entity derives from its items (tasks: assignees/creators), else none.
+ */
 export function useBoardFilterUsers(): readonly schema.UserSummary[] {
-	const { items, users } = useBoardData();
-	return useMemo(() => users ?? deriveFilterUsers(items), [users, items]);
+	const { items, users } = useBoardItemsData();
+	const { deriveUsers } = useBoardEntity();
+	return useMemo(() => users ?? deriveUsers?.(items) ?? NO_USERS, [users, items, deriveUsers]);
 }

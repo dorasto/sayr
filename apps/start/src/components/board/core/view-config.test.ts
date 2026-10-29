@@ -103,6 +103,13 @@ describe("mapStateToViewConfig", () => {
 		const state: TaskViewState = { ...DEFAULT_TASK_VIEW_STATE, viewMode: "card" };
 		expect(mapStateToViewConfig(state, iconColor).mode).toBe("card");
 	});
+
+	it("only stores task sort fields (another entity's sort becomes none)", () => {
+		const release: TaskViewState = { ...DEFAULT_TASK_VIEW_STATE, sortBy: "targetDate" };
+		expect(mapStateToViewConfig(release, iconColor).sortBy).toBe("none");
+		const task: TaskViewState = { ...DEFAULT_TASK_VIEW_STATE, sortBy: "priority" };
+		expect(mapStateToViewConfig(task, iconColor).sortBy).toBe("priority");
+	});
 });
 
 describe("areViewConfigsEqual", () => {

@@ -38,7 +38,8 @@ export const releaseStatusConfig = {
 
 export type ReleaseStatusKey = keyof typeof releaseStatusConfig;
 
-export const RELEASE_STATUS_ORDER: Array<ReleaseStatusKey> = ["planned", "in-progress", "released", "archived"];
+// Defined with the releases board's pure model (no JSX there, so it's testable); re-exported here for callers.
+export { RELEASE_STATUS_ORDER } from "./board/release-board-model";
 
 export const getReleaseStatusConfig = (status: schema.releaseType["status"]) => {
 	return releaseStatusConfig[status as ReleaseStatusKey];

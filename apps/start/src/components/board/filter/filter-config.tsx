@@ -9,15 +9,8 @@ import {
 	IconUser,
 } from "@tabler/icons-react";
 import { PRIORITY_CONFIG, STATUS_CONFIG } from "../config/field-config";
-import type {
-	DateRangeValue,
-	FilterCondition,
-	FilterFieldConfig,
-	FilterOperator,
-	FilterOption,
-	FilterState,
-	FilterValue,
-} from "./types";
+import { applyFilterState, countFieldValues } from "./filter-engine";
+import type { FilterFieldConfig, FilterOption, FilterState } from "./types";
 
 function buildOrgNameMap(tasks: readonly schema.TaskWithLabels[]): Map<string, string> {
 	const map = new Map<string, string>();
@@ -208,6 +201,9 @@ export const FIELD_CONFIGS: FilterFieldConfig[] = [
 		icon: <IconCalendar className="w-4 h-4" />,
 		operators: ["before", "after", "between"],
 		filterDefault: "between",
+		date: true,
+		// Not offered for tasks (kept out of "Add filter" since before the date control existed).
+		addable: false,
 	},
 	{
 		field: "updated_at",
@@ -215,6 +211,9 @@ export const FIELD_CONFIGS: FilterFieldConfig[] = [
 		icon: <IconCalendar className="w-4 h-4" />,
 		operators: ["before", "after", "between"],
 		filterDefault: "between",
+		date: true,
+		// Not offered for tasks (kept out of "Add filter" since before the date control existed).
+		addable: false,
 	},
 	{
 		field: "title",
@@ -235,99 +234,8 @@ export const FIELD_CONFIGS: FilterFieldConfig[] = [
 	},
 ];
 
-export function applyFilters(
-	tasks: readonly schema.TaskWithLabels[],
-	filterState: FilterState
-): readonly schema.TaskWithLabels[] {
-	if (filterState.groups.length === 0) {
-		return tasks;
-	}
-	return tasks.filter((task) => {
-		const groupResults = filterState.groups.map((group) => {
-			const conditionResults = group.conditions.map((condition) => evaluateCondition(task, condition));
-			return group.operator === "AND"
-				? conditionResults.every((result) => result)
-				: conditionResults.some((result) => result);
-		});
-		return filterState.operator === "AND"
-			? groupResults.every((result) => result)
-			: groupResults.some((result) => result);
-	});
-}
-
-function parseDateInput(val: FilterValue): Date | null {
-	if (!val) return null;
-	if (typeof val === "string") return new Date(val);
-	if (Array.isArray(val)) return val.length > 0 ? new Date(val[0] as string) : null;
-	if (typeof val === "object" && "start" in val) return new Date(val.start);
-	return null;
-}
-
-const operatorHandlers: Record<FilterOperator, (raw: unknown, fv: FilterValue) => boolean> = {
-	any: (raw, fv) => {
-		const rawArr = Array.isArray(raw) ? raw : raw == null ? [] : [raw];
-		const sel = Array.isArray(fv) ? fv : fv == null ? [] : [fv];
-		if (sel.length === 0) return true;
-		return sel.some((v) => rawArr.includes(v));
-	},
-	none: (raw, fv) => {
-		const rawArr = Array.isArray(raw) ? raw : raw == null ? [] : [raw];
-		const sel = Array.isArray(fv) ? fv : fv == null ? [] : [fv];
-		if (sel.length === 0) return true;
-		return sel.every((v) => !rawArr.includes(v));
-	},
-	all: (raw, fv) => {
-		const rawArr = Array.isArray(raw) ? raw : raw == null ? [] : [raw];
-		const sel = Array.isArray(fv) ? fv : fv == null ? [] : [fv];
-		if (sel.length === 0) return true;
-		return sel.every((v) => rawArr.includes(v));
-	},
-	exact: (raw, fv) => {
-		const rawArr = Array.isArray(raw) ? raw : raw == null ? [] : [raw];
-		const sel = Array.isArray(fv) ? fv : fv == null ? [] : [fv];
-		if (sel.length === 0) return rawArr.length === 0;
-		if (rawArr.length !== sel.length) return false;
-		return sel.every((v) => rawArr.includes(v));
-	},
-	contains: (raw, fv) =>
-		String(raw || "")
-			.toLowerCase()
-			.includes(String(fv || "").toLowerCase()),
-	not_contains: (raw, fv) => !operatorHandlers.contains(raw, fv),
-	empty: (raw) => {
-		if (raw == null) return true;
-		if (Array.isArray(raw)) return raw.length === 0;
-		if (typeof raw === "string") return raw.trim() === "";
-		return false;
-	},
-	not_empty: (raw, fv) => !operatorHandlers.empty(raw, fv),
-	before: (raw, fv) => {
-		if (!raw || !fv) return false;
-		const rawDate = new Date(raw as string).getTime();
-		const cmpDate = parseDateInput(fv);
-		if (!cmpDate) return false;
-		return rawDate < cmpDate.getTime();
-	},
-	after: (raw, fv) => {
-		if (!raw || !fv) return false;
-		const rawDate = new Date(raw as string).getTime();
-		const cmpDate = parseDateInput(fv);
-		if (!cmpDate) return false;
-		return rawDate > cmpDate.getTime();
-	},
-	between: (raw, fv) => {
-		if (!raw || !fv) return false;
-		if (typeof fv !== "object" || fv === null) return false;
-		const { start, end } = fv as DateRangeValue;
-		if (!start || !end) return false;
-		const d = new Date(raw as string).getTime();
-		const s = new Date(start).getTime();
-		const e = new Date(end).getTime();
-		return d >= Math.min(s, e) && d <= Math.max(s, e);
-	},
-};
-
-function extractFieldValue(task: schema.TaskWithLabels, field: string): unknown {
+/** A task's raw value(s) for a filter field — what the operator handlers compare against. */
+export function extractTaskFieldValue(task: schema.TaskWithLabels, field: string): unknown {
 	switch (field) {
 		case "org":
 			return task.organizationId || null;
@@ -356,11 +264,12 @@ function extractFieldValue(task: schema.TaskWithLabels, field: string): unknown 
 	}
 }
 
-function evaluateCondition(task: schema.TaskWithLabels, condition: FilterCondition): boolean {
-	const raw = extractFieldValue(task, condition.field);
-	const handler = operatorHandlers[condition.operator];
-	if (!handler) return true;
-	return handler(raw, condition.value);
+/** The tasks matching `filterState` — the task entity's filter (see filter-engine.ts for the operators). */
+export function applyFilters(
+	tasks: readonly schema.TaskWithLabels[],
+	filterState: FilterState
+): readonly schema.TaskWithLabels[] {
+	return applyFilterState(tasks, filterState, extractTaskFieldValue);
 }
 
 /**
@@ -369,14 +278,5 @@ function evaluateCondition(task: schema.TaskWithLabels, condition: FilterConditi
  * mergedValues, since a cross-org merged option's count is the sum of its underlying ids').
  */
 export function buildFieldValueCounts(tasks: readonly schema.TaskWithLabels[], field: string): Map<string, number> {
-	const counts = new Map<string, number>();
-	for (const task of tasks) {
-		const raw = extractFieldValue(task, field);
-		const values = Array.isArray(raw) ? raw : raw == null || raw === "" ? [] : [raw];
-		for (const value of values) {
-			const key = String(value);
-			counts.set(key, (counts.get(key) ?? 0) + 1);
-		}
-	}
-	return counts;
+	return countFieldValues(tasks, field, extractTaskFieldValue);
 }

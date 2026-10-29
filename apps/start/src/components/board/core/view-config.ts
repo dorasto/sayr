@@ -1,5 +1,6 @@
 import type { schema } from "@repo/database";
 import { deserializeFilters, serializeFilters } from "../filter/serialization";
+import { isTaskSortField } from "../filter/sort-config";
 import {
 	DEFAULT_TASK_VIEW_STATE,
 	type FilterState,
@@ -111,7 +112,11 @@ export function mapStateToViewConfig(
 		groupBy: viewConfig.grouping,
 		subGroupBy: viewConfig.subGrouping,
 		showCompletedTasks: viewConfig.showCompletedTasks,
-		sortBy: viewConfig.sortBy,
+		// A saved view only stores task sort fields; another entity's sort (never saved today) maps to none.
+		sortBy:
+			viewConfig.sortBy === undefined || viewConfig.sortBy === "none" || isTaskSortField(viewConfig.sortBy)
+				? viewConfig.sortBy
+				: "none",
 		sortDirection: viewConfig.sortDirection,
 		icon: iconColor.icon,
 		color: iconColor.color,

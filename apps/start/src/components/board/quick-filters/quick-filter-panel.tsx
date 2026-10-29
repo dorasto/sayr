@@ -5,16 +5,13 @@ import { Button } from "@repo/ui/components/button";
 import { cn } from "@repo/ui/lib/utils";
 import { getInitials } from "@repo/util";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useBoardData, useBoardFilterUsers } from "../core/board-data";
+import { useBoardEntity, useBoardFilterUsers, useBoardItemsData } from "../core/board-data";
+import { filterEntityItems, scopeCompletedItems } from "../core/entity";
 import { LabelBadge } from "../fields/label-badge";
-import { applyFilters, buildFieldValueCounts, FIELD_CONFIGS } from "../filter/filter-config";
+import { countFieldValues } from "../filter/filter-engine";
 import { toggleFieldValues } from "../filter/multi-select";
 import type { FilterField, FilterOption, FilterState } from "../filter/types";
 import { useBoardViewState } from "../filter/use-board-view-state";
-
-// The multi-value, cross-task "browse and narrow" fields — status/priority are already the
-// board's own primary grouping/columns, so they're not repeated here as a facet.
-const QUICK_FILTER_FIELDS: FilterField[] = ["label", "org", "category", "assignee", "release"];
 
 function excludeField(filters: FilterState, field: FilterField): FilterState {
 	return {
@@ -73,29 +70,38 @@ function edgeFadeMask({ start, end }: ScrollEdges): string | undefined {
  * sorted by count. Clicking a row toggles it into the board's real filter state via the same
  * multi-select condition shape FilterBuilderConditionRow uses, so this and the full filter
  * builder always agree on what's selected.
+ *
+ * The tabs are the board entity's `quickFilterFields` (tasks: label/org/category/assignee/release).
  */
 export function QuickFilterPanel() {
-	const { items: tasks, labels, categories, releases, organizationScope } = useBoardData();
+	const { items: tasks, labels, categories, releases, organizationScope } = useBoardItemsData();
+	const entity = useBoardEntity();
+	const { filterFields } = entity;
 	// A single-org board has no org facet.
-	const quickFilterFields = organizationScope
-		? QUICK_FILTER_FIELDS.filter((field) => field !== "org")
-		: QUICK_FILTER_FIELDS;
+	const quickFilterFields = useMemo(
+		() =>
+			organizationScope ? entity.quickFilterFields.filter((field) => field !== "org") : entity.quickFilterFields,
+		[entity.quickFilterFields, organizationScope]
+	);
 	const { filters, setFilters, showCompletedTasks } = useBoardViewState();
-	const [activeField, setActiveField] = useState<FilterField>(QUICK_FILTER_FIELDS[0] as FilterField);
+	const [activeField, setActiveField] = useState<FilterField | undefined>(entity.quickFilterFields[0]);
 	const { ref: tabStripRef, edges: tabEdges, update: updateTabEdges } = useScrollEdges();
 
 	const users = useBoardFilterUsers();
 
-	const config = FIELD_CONFIGS.find((c) => c.field === activeField);
+	const config = filterFields.find((c) => c.field === activeField);
 
 	const baseTasks = useMemo(() => {
-		const filtered = applyFilters(tasks, excludeField(filters, activeField));
-		return showCompletedTasks
-			? filtered
-			: filtered.filter((task) => task.status !== "done" && task.status !== "canceled");
-	}, [tasks, filters, activeField, showCompletedTasks]);
+		if (!activeField) return [];
+		const filtered = filterEntityItems(entity, tasks, excludeField(filters, activeField));
+		return scopeCompletedItems(entity, filtered, showCompletedTasks);
+	}, [entity, tasks, filters, activeField, showCompletedTasks]);
 
-	const counts = useMemo(() => buildFieldValueCounts(baseTasks, activeField), [baseTasks, activeField]);
+	const counts = useMemo(
+		() =>
+			activeField ? countFieldValues(baseTasks, activeField, entity.extractFilterValue) : new Map<string, number>(),
+		[baseTasks, activeField, entity]
+	);
 
 	const options = useMemo<CountedOption[]>(() => {
 		if (!config?.getOptions) return [];
@@ -117,7 +123,7 @@ export function QuickFilterPanel() {
 			: [];
 
 	const handleToggle = (option: CountedOption) => {
-		if (!config) return;
+		if (!config || !activeField) return;
 		setFilters(toggleFieldValues(filters, activeField, config.filterDefault, option.mergedValues ?? [option.value]));
 	};
 
@@ -133,7 +139,7 @@ export function QuickFilterPanel() {
 				style={{ maskImage: edgeFadeMask(tabEdges), WebkitMaskImage: edgeFadeMask(tabEdges) }}
 			>
 				{quickFilterFields.map((field) => {
-					const fieldConfig = FIELD_CONFIGS.find((c) => c.field === field);
+					const fieldConfig = filterFields.find((c) => c.field === field);
 					if (!fieldConfig) return null;
 					return (
 						<Button

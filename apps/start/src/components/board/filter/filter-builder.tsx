@@ -14,20 +14,24 @@ import {
 } from "@repo/ui/components/tomui/combo-box-unified";
 import { cn } from "@repo/ui/lib/utils";
 import { IconFilter, IconPlus } from "@tabler/icons-react";
-import { useState } from "react";
-import { useBoardOrganizationScope } from "../core/board-data";
+import { useMemo, useState } from "react";
+import { useBoardEntity, useBoardOrganizationScope } from "../core/board-data";
 import { FilterBuilderConditionRow } from "./filter-builder-condition-row";
-import { FIELD_CONFIGS } from "./filter-config";
 import type { FilterCondition, FilterState, FilterValue } from "./types";
 import { useBoardViewState } from "./use-board-view-state";
 
-// Date-range fields (created/updated) need their own start/end UI — a
-// meaningfully separate piece of work, not built yet. Every other field —
-// every multi-select field plus the plain-text "title" field — is fully
-// wired in FilterBuilderConditionRow.
-const ADDABLE_FIELDS = FIELD_CONFIGS.filter((config) => config.field !== "created_at" && config.field !== "updated_at");
-// A single-org board has nothing to filter by org.
-const SINGLE_ORG_ADDABLE_FIELDS = ADDABLE_FIELDS.filter((config) => config.field !== "org");
+/**
+ * The fields "Add filter" offers: the board entity's filter fields minus those marked `addable: false`
+ * (tasks' created/updated dates), and minus `org` on a single-org board (nothing to filter by).
+ */
+function useAddableFilterFields() {
+	const { filterFields } = useBoardEntity();
+	const singleOrg = useBoardOrganizationScope() !== undefined;
+	return useMemo(
+		() => filterFields.filter((config) => config.addable !== false && !(singleOrg && config.field === "org")),
+		[filterFields, singleOrg]
+	);
+}
 
 function updateConditionValue(filters: FilterState, conditionId: string, value: FilterValue): FilterState {
 	return {
@@ -52,7 +56,7 @@ function updateConditionValue(filters: FilterState, conditionId: string, value: 
 export function FilterBuilderContent() {
 	const { filters, setFilters, addFilter, removeFilter, updateFilterOperator, clearFilters } = useBoardViewState();
 	const [addOpen, setAddOpen] = useState(false);
-	const addableFields = useBoardOrganizationScope() ? SINGLE_ORG_ADDABLE_FIELDS : ADDABLE_FIELDS;
+	const addableFields = useAddableFilterFields();
 
 	const conditions: FilterCondition[] = filters.groups[0]?.conditions ?? [];
 	const activeFields = new Set(conditions.map((condition) => condition.field));
@@ -81,6 +85,7 @@ export function FilterBuilderContent() {
 						onOperatorChange={(operator) => updateFilterOperator(condition.id, operator)}
 						onValuesChange={(values) => setFilters(updateConditionValue(filters, condition.id, values))}
 						onTextChange={(value) => setFilters(updateConditionValue(filters, condition.id, value))}
+						onDateChange={(value) => setFilters(updateConditionValue(filters, condition.id, value))}
 						onRemove={() => removeFilter(condition.id)}
 					/>
 				))}

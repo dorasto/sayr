@@ -1,4 +1,4 @@
-import type { ComponentType, ReactNode } from "react";
+import type { ReactNode } from "react";
 import type { BoardItem, TaskItem } from "../core/board-item";
 import { resolveViewMode } from "../core/view-config";
 
@@ -26,8 +26,11 @@ export interface BoardViewDefinition<T extends BoardItem = TaskItem> {
 	label: string;
 	/** The icon in the view picker. */
 	icon: ReactNode;
-	/** Receives the already filtered/sorted items; everything else comes from the board contexts. */
-	component: ComponentType<{ items: readonly T[] }>;
+	/**
+	 * Receives the already filtered/sorted items; everything else comes from the board contexts. A plain function
+	 * component (not `ComponentType`) so a view written for any `BoardItem` is assignable to every entity's list.
+	 */
+	component: (props: { items: readonly T[] }) => ReactNode;
 	supports: BoardViewSupports;
 	/**
 	 * The host should not pad the scroll container around this view (it brings its own edge-to-edge

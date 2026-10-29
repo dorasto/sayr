@@ -7,6 +7,7 @@ import { IconDeviceFloppy } from "@tabler/icons-react";
 import type React from "react";
 import { useState } from "react";
 import { serializeFilters } from "../filter/serialization";
+import { isTaskSortField } from "../filter/sort-config";
 import { useBoardViewState } from "../filter/use-board-view-state";
 import { useBoardSavedViews } from "./use-board-saved-views";
 import { DEFAULT_VIEW_COLOR, DEFAULT_VIEW_ICON, ViewIconColorTrigger } from "./view-icon-color-trigger";
@@ -61,7 +62,8 @@ export function SaveViewPopover({
 					groupBy: grouping,
 					subGroupBy: subGrouping,
 					showCompletedTasks,
-					sortBy,
+					// Saved views only exist on task boards, whose sort fields are all task ones.
+					sortBy: isTaskSortField(sortBy) ? sortBy : "none",
 					sortDirection,
 					icon: iconColor.icon,
 					color: iconColor.color,
