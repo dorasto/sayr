@@ -129,6 +129,7 @@ const CreateReleaseBody = {
 		},
 		color: { type: "string", description: "Hex (#3B82F6) or hsla(217, 91%, 60%, 1). Defaults to blue." },
 		icon: { type: "string", description: 'Icon name. Defaults to "IconRocket".' },
+		leadId: { type: "string", description: "User id of an organization member." },
 	},
 };
 

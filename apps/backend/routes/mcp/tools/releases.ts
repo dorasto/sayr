@@ -122,6 +122,7 @@ export function registerReleaseTools(server: McpServer, claims: McpUserClaims | 
 				releasedAt: z.string().optional().describe('ISO date. Defaults to now when status is "released".'),
 				color: z.string().optional().describe("Hex (#3B82F6) or hsla(217, 91%, 60%, 1). Defaults to blue."),
 				icon: z.string().optional().describe('Icon name. Default "IconRocket".'),
+				leadId: z.string().optional().describe("User id of an organization member (see list_members)."),
 			}),
 		},
 		async ({ org, ...fields }) => {
