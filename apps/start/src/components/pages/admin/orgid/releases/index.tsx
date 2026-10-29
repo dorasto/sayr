@@ -38,6 +38,10 @@ import { sidebarActions } from "@/lib/sidebar/sidebar-store";
 import { OrgSettingsLink } from "../tasks/org-tasks-panel";
 import { CreateReleaseDialog } from "./create-release-dialog";
 import { ReleasesPanelContent } from "./releases-panel";
+import {
+	ReleaseTaskCountsProvider,
+	useReleaseTaskCountsQuery,
+} from "@/components/releases/board/release-task-counts";
 
 const RELEASES_LIST_PANEL_ID = "releases-list-panel";
 
@@ -63,6 +67,8 @@ const NO_CATEGORIES: readonly schema.categoryType[] = [];
 export default function OrganizationReleasesPage() {
 	const { serverEvents } = useLayoutData();
 	const { organization, setOrganization, releases, updateReleases } = useLayoutOrganization();
+	// The cards' progress bars: one grouped count query, refetched on any task or release event this page receives.
+	const { counts: releaseTaskCounts, refresh: refreshReleaseTaskCounts } = useReleaseTaskCountsQuery(organization.id);
 
 	// --- Live updates -----------------------------------------------------------------------------
 	useServerEventsSubscription({
@@ -79,7 +85,11 @@ export default function OrganizationReleasesPage() {
 		UPDATE_RELEASES: (msg) => {
 			const data: unknown = msg.data;
 			updateReleases((prev) => upsertReleaseRow(prev, data));
+			void refreshReleaseTaskCounts();
 		},
+		// Task events reach this page as per-user (INDIVIDUAL) messages; any of them may move a release's counts.
+		CREATE_TASK: () => void refreshReleaseTaskCounts(),
+		UPDATE_TASK: () => void refreshReleaseTaskCounts(),
 		DELETE_RELEASE: (msg) => {
 			const { releaseId } = msg.data;
 			updateReleases((prev) =>
@@ -127,7 +137,9 @@ export default function OrganizationReleasesPage() {
 			capabilities={RELEASE_BOARD_CAPABILITIES}
 			scope={boardScope}
 		>
-			<OrganizationReleasesBoardPage />
+			<ReleaseTaskCountsProvider counts={releaseTaskCounts}>
+				<OrganizationReleasesBoardPage />
+			</ReleaseTaskCountsProvider>
 		</BoardProvider>
 	);
 }

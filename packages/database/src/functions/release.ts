@@ -1,4 +1,4 @@
-import { SQL, and, asc, desc, eq, inArray, isNull, not, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNull, not, or, type SQL, sql } from "drizzle-orm";
 import { db, schema } from "..";
 import { getUsersByIds, userSummaryColumns } from "./index";
 /**
@@ -78,6 +78,43 @@ export async function getReleases(orgId: string, status?: ReleaseStatus): Promis
 }
 
 export type ReleaseStatus = "planned" | "in-progress" | "released" | "archived";
+
+/** One release's task tally: canceled tasks are left out, like the public changelog's progress bar. */
+export interface ReleaseTaskCounts {
+	done: number;
+	inProgress: number;
+	/** Backlog + todo. */
+	planned: number;
+}
+
+/**
+ * Task counts per release for an organization, in one grouped query (for the releases board's progress bars).
+ * Releases with no tasks are absent from the result.
+ *
+ * @param orgId - The organization ID
+ * @returns Counts keyed by release id
+ */
+export async function getReleaseTaskCounts(orgId: string): Promise<Record<string, ReleaseTaskCounts>> {
+	const rows = await db
+		.select({
+			releaseId: schema.task.releaseId,
+			status: schema.task.status,
+			count: sql<number>`count(*)::int`,
+		})
+		.from(schema.task)
+		.where(and(eq(schema.task.organizationId, orgId), not(isNull(schema.task.releaseId))))
+		.groupBy(schema.task.releaseId, schema.task.status);
+
+	const counts: Record<string, ReleaseTaskCounts> = {};
+	for (const row of rows) {
+		if (!row.releaseId || row.status === "canceled") continue;
+		const entry = (counts[row.releaseId] ??= { done: 0, inProgress: 0, planned: 0 });
+		if (row.status === "done") entry.done += row.count;
+		else if (row.status === "in-progress") entry.inProgress += row.count;
+		else entry.planned += row.count;
+	}
+	return counts;
+}
 
 /**
  * Fetches a paginated list of releases for an organization.
