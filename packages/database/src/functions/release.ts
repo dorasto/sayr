@@ -116,6 +116,35 @@ export async function getReleaseTaskCounts(orgId: string): Promise<Record<string
 	return counts;
 }
 
+/** A release's most recent status update: just what an overview needs (its health and when it was posted). */
+export interface ReleaseLatestUpdate {
+	health: "on_track" | "at_risk" | "off_track";
+	createdAt: Date | null;
+}
+
+/**
+ * The latest status update per release for an organization, in one query (DISTINCT ON release). Releases that
+ * never had an update are absent from the result.
+ *
+ * @param orgId - The organization ID
+ * @returns Latest update keyed by release id
+ */
+export async function getReleaseLatestUpdates(orgId: string): Promise<Record<string, ReleaseLatestUpdate>> {
+	const rows = await db
+		.selectDistinctOn([schema.releaseStatusUpdate.releaseId], {
+			releaseId: schema.releaseStatusUpdate.releaseId,
+			health: schema.releaseStatusUpdate.health,
+			createdAt: schema.releaseStatusUpdate.createdAt,
+		})
+		.from(schema.releaseStatusUpdate)
+		.where(eq(schema.releaseStatusUpdate.organizationId, orgId))
+		.orderBy(schema.releaseStatusUpdate.releaseId, desc(schema.releaseStatusUpdate.createdAt));
+
+	const latest: Record<string, ReleaseLatestUpdate> = {};
+	for (const row of rows) latest[row.releaseId] = { health: row.health, createdAt: row.createdAt };
+	return latest;
+}
+
 /**
  * Fetches a paginated list of releases for an organization.
  *
