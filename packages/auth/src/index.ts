@@ -42,6 +42,9 @@ const mcpResource = isProd ? `https://api.${rootUrl}/mcp` : "http://localhost:54
 // handler lives" origin every redirect URI above already assumes in dev.
 const mcpIssuer = `${isProd ? `https://${rootUrl}` : authCallbackUrl}/api/auth`;
 const mcpJwksUrl = `${mcpIssuer}/jwks`;
+// The OAuth login/consent pages live in the admin app, but in prod the auth server is the bare root
+// domain, which serves the marketing site — relative page paths would 404 there.
+const mcpPagesOrigin = isProd ? `https://admin.${rootUrl}` : authCallbackUrl;
 /**
  * Exported so apps/backend's separate-process MCP resource-server route
  * (SAY-31) can verify tokens against the exact same issuer/resource this
@@ -139,8 +142,8 @@ const plugins = [
 				// apps/backend's, on every API request — signs a throwaway `set-auth-jwt` header.
 				jwt({ disableSettingJwtHeader: true }),
 				mcp({
-					loginPage: "/auth/login",
-					consentPage: "/auth/consent",
+					loginPage: `${mcpPagesOrigin}/auth/login`,
+					consentPage: `${mcpPagesOrigin}/auth/consent`,
 					resource: mcpResource,
 					// Reuse the personal-API-key scope vocabulary (tasks.read, tasks.create, ...)
 					// rather than inventing a parallel one for MCP tokens.
