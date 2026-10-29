@@ -10,7 +10,7 @@ import {
 	ComboBoxTrigger,
 } from "@repo/ui/components/tomui/combo-box-unified";
 import { VISIBILITY_CONFIG, type VisibilityValue } from "../config/field-config";
-import { useBoardCapabilities, useBoardItemActions } from "../core/board-data";
+import { useBoardItemActions, useFieldPermissions } from "../core/board-data";
 import { StaticField } from "./static-field";
 
 interface FieldVisibilityProps {
@@ -18,11 +18,11 @@ interface FieldVisibilityProps {
 }
 
 export function FieldVisibility({ task }: FieldVisibilityProps) {
-	const { canEditFields } = useBoardCapabilities();
+	const canEdit = useFieldPermissions(task).visibility;
 	const { execute } = useBoardItemActions(task);
 	const current = VISIBILITY_CONFIG[task.visible];
 
-	if (!canEditFields) {
+	if (!canEdit) {
 		return (
 			<StaticField className="size-4 grid place-items-center shrink-0" title={current.label}>
 				{current.icon("h-3.5 w-3.5")}

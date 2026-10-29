@@ -4,7 +4,9 @@ import type { ServerEventMessage } from "@/lib/serverEvents";
 import { isTaskRecord, readTaskCreatedMessage } from "../task-created-message";
 
 /**
- * Pure event -> state logic for the cross-org board (/home).
+ * Pure event -> state logic for the cross-org board (/home). Nothing in it is /home-specific beyond the
+ * name: any board page holding a `LanderData`-shaped store can feed it from hooks/useBoardServerEvents.ts,
+ * passing the org(s) it shows as `context.organizations` (a single-org board passes a one-entry map).
  *
  * `RootProviderLander` holds the board's data as one `LanderData` value and the
  * SSE subscription (hooks/useLanderServerEventsSubscription.ts) feeds every

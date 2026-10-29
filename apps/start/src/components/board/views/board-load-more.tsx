@@ -1,7 +1,7 @@
 import { Button } from "@repo/ui/components/button";
 import { useEffect, useRef } from "react";
 import { scrollParentOf } from "@/hooks/portal/useScrollIntoViewWhileSettling";
-import { useBoardData, useBoardRenderers } from "../core/board-data";
+import { useBoardItemsData, useBoardRenderers } from "../core/board-data";
 import { getLoadMoreState } from "./card-sections";
 
 /** How far before the end of the scroll area the next page starts loading. */
@@ -16,7 +16,7 @@ const AUTO_LOAD_MARGIN = "600px";
  * scroll container, not the window); the button stays as the fallback and for keyboard users.
  */
 export function BoardLoadMore() {
-	const { pagination } = useBoardData();
+	const { pagination } = useBoardItemsData();
 	const state = getLoadMoreState(pagination);
 	const ref = useRef<HTMLDivElement>(null);
 	const loadMore = pagination?.loadMore;
@@ -63,7 +63,7 @@ export function BoardLoadMore() {
  * never has to re-check `pagination.hasMore`.
  */
 export function BoardFooter() {
-	const { pagination } = useBoardData();
+	const { pagination } = useBoardItemsData();
 	const { footer } = useBoardRenderers();
 	if (!getLoadMoreState(pagination).visible) return null;
 	const Footer = footer ?? BoardLoadMore;

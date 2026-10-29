@@ -8,7 +8,8 @@ import { Link } from "@tanstack/react-router";
 import { OrgHoverCard } from "@/components/hover-cards";
 import { useTaskSelection } from "@/hooks/useTaskSelection";
 import { ORG_KEY_SLOT_CLASS, ROW_LEADING_GUTTER_CLASS } from "../config/field-config";
-import { useBoardCapabilities } from "../core/board-data";
+import { useBoardCapabilities, useBoardOpenItemClick, useBoardOrganizationScope } from "../core/board-data";
+import { useBoardSelectionKey } from "../core/scope";
 import { BoardTaskContextMenu } from "../fields/board-task-context-menu";
 import { FieldAssignee } from "../fields/field-assignee";
 import { FieldCategory } from "../fields/field-category";
@@ -16,7 +17,6 @@ import { FieldLabel } from "../fields/field-label";
 import { FieldPriority } from "../fields/field-priority";
 import { FieldRelease } from "../fields/field-release";
 import { FieldStatus } from "../fields/field-status";
-import { BOARD_TASK_SELECTION_KEY } from "../selection/board-selection-constants";
 
 interface BoardRowProps {
 	task: schema.TaskWithLabels;
@@ -30,8 +30,7 @@ interface BoardRowProps {
 }
 
 /**
- * A single list row — flat, dense, no card/border treatment (matches the
- * existing UnifiedTaskItem list row, not a boxed item). Leads with a
+ * A single list row — flat, dense, no card/border treatment. Leads with a
  * checkbox-gutter (ROW_LEADING_GUTTER_CLASS) aligned with the group header's
  * chevron, wired to the board's own multi-select (see
  * selection/board-selection-constants.ts). Status + priority + task key are
@@ -60,13 +59,20 @@ interface BoardRowProps {
  */
 export function BoardRow({ task, nested = false }: BoardRowProps) {
 	const { canSelect } = useBoardCapabilities();
-	const { isSelected, toggleTask } = useTaskSelection(undefined, BOARD_TASK_SELECTION_KEY);
+	const organizationScope = useBoardOrganizationScope();
+	const selectionKey = useBoardSelectionKey();
+	const { isSelected, toggleTask } = useTaskSelection(undefined, selectionKey);
 	const selected = isSelected(task.id);
+	const openItemClick = useBoardOpenItemClick();
 
+	// A click on a field picker/checkbox never opens the task; a plain click opens it in the host's own
+	// surface when the data source asks for that (BoardDataSource.openItemOnClick), else the link navigates.
 	const handleLinkClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
 		if ((e.target as HTMLElement).closest("[data-no-propagate]")) {
 			e.preventDefault();
+			return;
 		}
+		openItemClick(task, e);
 	};
 
 	return (
@@ -110,7 +116,12 @@ export function BoardRow({ task, nested = false }: BoardRowProps) {
 				)}
 				<FieldStatus task={task} />
 				<FieldPriority task={task} />
-				{task.organization ? (
+				{organizationScope ? (
+					// Single-org board: every row is the same org, so just the key — no avatar/hover card.
+					<span className={cn("shrink-0 text-xs font-medium text-muted-foreground truncate", ORG_KEY_SLOT_CLASS)}>
+						{formatTaskKey(organizationScope.shortId, task.shortId)}
+					</span>
+				) : task.organization ? (
 					<OrgHoverCard organization={task.organization}>
 						<span className={cn("flex items-center gap-1 shrink-0", ORG_KEY_SLOT_CLASS)}>
 							<Avatar className="size-3.5 rounded-sm shrink-0">

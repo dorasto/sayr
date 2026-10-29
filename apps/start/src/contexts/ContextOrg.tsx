@@ -2,7 +2,8 @@
 import type { schema } from "@repo/database";
 import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
 import { useStateManagementKey } from "@repo/ui/hooks/useStateManagement.ts";
-import { createContext, type ReactNode, useContext } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { createContext, type ReactNode, useCallback, useContext } from "react";
 import { useHydration } from "./HydrationContext";
 
 interface ContextType {
@@ -18,6 +19,11 @@ interface ContextType {
 	setIssueTemplates: (newValue: ContextType["issueTemplates"]) => void;
 	releases: schema.releaseType[];
 	setReleases: (newValue: ContextType["releases"]) => void;
+	/**
+	 * Race-free write: `updater` receives the LATEST list in the store (not one captured from a render).
+	 * Return `prev` unchanged to skip the write. Use this for SSE handlers and the releases board.
+	 */
+	updateReleases: (updater: (prev: ContextType["releases"]) => ContextType["releases"]) => void;
 	isMobile: boolean;
 	isMobileHydrated: boolean;
 	permissions: schema.TeamPermissions;
@@ -78,6 +84,17 @@ export function RootProviderOrganization({
 		initialReleases,
 		30000
 	);
+	const queryClient = useQueryClient();
+	// Same query-cache entry useStateManagementKey reads above; setQueryData's functional form hands the
+	// updater the current cached list (the ContextOrgTasks `updateTasks` pattern).
+	const updateReleases = useCallback<ContextType["updateReleases"]>(
+		(updater) => {
+			queryClient.setQueryData<ContextType["releases"]>(["releases", initialOrganization.id], (prev) =>
+				updater(prev ?? [])
+			);
+		},
+		[queryClient, initialOrganization.id]
+	);
 	const { value: permissions } = useStateManagementKey(
 		["permissions", initialOrganization.id],
 		initialPermissions,
@@ -99,6 +116,7 @@ export function RootProviderOrganization({
 				setIssueTemplates,
 				releases,
 				setReleases,
+				updateReleases,
 				isMobile,
 				isMobileHydrated: isHydrated,
 				permissions: permissions!,

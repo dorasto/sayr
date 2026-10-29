@@ -838,7 +838,7 @@ export async function getSubtasksAction(
  * Fetches a task's relations (related/blocking/duplicate, both directions).
  *
  * Needed because list-sourced `TaskWithLabels` objects (e.g. the `tasks` array
- * backing `UnifiedTaskView`) never carry `relations` — only the single-task
+ * backing a board) never carry `relations` — only the single-task
  * fetch behind the main task detail page (`getTaskByShortId`) does. Consumers
  * that render `TaskContextBanner` from a list-sourced task (`TaskDetailCompact`)
  * call this to fill that gap.

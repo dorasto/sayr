@@ -4,6 +4,7 @@ import {
 	type TaskViewCombinedState,
 	type TaskViewState,
 } from "../filter/types";
+import { BOARD_TASK_SELECTION_KEY } from "../selection/board-selection-constants";
 import { DEFAULT_COMBINED_STATE, DEFAULT_FILTER_STATE } from "./view-config";
 
 // Pure half of core/scope.tsx (cache-key derivation, persistence predicates, initial-state merge) —
@@ -11,8 +12,10 @@ import { DEFAULT_COMBINED_STATE, DEFAULT_FILTER_STATE } from "./view-config";
 
 /**
  * How a board's view state (filters + grouping/sort/view mode) is held and persisted:
- * - "url+personal": the signed-in admin board — `?view`/`?filters` URL sync plus saved (personal) views.
- * - "url": `?filters` URL sync only; `?view` is not a saved-view pointer here and no personal views load.
+ * - "url+personal": a signed-in admin board — `?view`/`?filters` URL sync plus saved views. Despite the
+ *   name, the views are whatever the board's saved-views source holds (`useBoardSavedViews()`: personal
+ *   views on /home, the org's shared views on an org tasks page); `?view=<slug|id>` resolves against them.
+ * - "url": `?filters` URL sync only; `?view` is not a saved-view pointer here and no saved views load.
  * - "memory": local state only, keyed by the scope key.
  * - "controlled": the host owns the state (`BoardScope.controlled`); no URL sync, no saved views.
  */
@@ -52,6 +55,11 @@ export function deriveViewStateCacheKey(scopeKey: string): string {
 		: `${LEGACY_VIEW_STATE_CACHE_KEY}:${scopeKey}`;
 }
 
+/** The useTaskSelection cache key a scope's row selection lives under. "home" keeps the board's original global key. */
+export function deriveSelectionCacheKey(scopeKey: string): string {
+	return scopeKey === LEGACY_BOARD_SCOPE_KEY ? BOARD_TASK_SELECTION_KEY : `${BOARD_TASK_SELECTION_KEY}:${scopeKey}`;
+}
+
 /**
  * The persistence a scope actually runs with: "controlled" without a `controlled` handle can't
  * work, so it behaves as "memory" rather than throwing.
@@ -60,12 +68,15 @@ export function resolvePersistence(scope: BoardScope): BoardPersistence {
 	return scope.persistence === "controlled" && !scope.controlled ? "memory" : scope.persistence;
 }
 
-/** Whether the board reads/writes `?filters` (and, with personal views, `?view`). */
+/** Whether the board reads/writes `?filters` (and, with saved views, `?view`). */
 export function syncsUrl(persistence: BoardPersistence): boolean {
 	return persistence === "url+personal" || persistence === "url";
 }
 
-/** Whether saved/personal views are loaded and selectable. */
+/**
+ * Whether saved views (from the board's saved-views source — personal or an org's) are loaded and
+ * selectable, and `?view` is read. The name predates org sources.
+ */
 export function usesPersonalViews(persistence: BoardPersistence): boolean {
 	return persistence === "url+personal";
 }

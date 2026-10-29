@@ -11,7 +11,7 @@ import {
 	ComboBoxTrigger,
 } from "@repo/ui/components/tomui/combo-box-unified";
 import RenderIcon from "@/components/generic/RenderIcon";
-import { useBoardCapabilities, useBoardData, useBoardItemActions } from "../core/board-data";
+import { useBoardData, useBoardItemActions, useFieldPermissions } from "../core/board-data";
 import { StaticField } from "./static-field";
 
 interface FieldCategoryProps {
@@ -28,7 +28,7 @@ interface FieldCategoryProps {
  */
 export function FieldCategory({ task }: FieldCategoryProps) {
 	const { categories } = useBoardData();
-	const { canEditFields } = useBoardCapabilities();
+	const canEdit = useFieldPermissions(task).category;
 	const { execute } = useBoardItemActions(task);
 	const availableCategories = categories.filter((category) => category.organizationId === task.organizationId);
 	const current = availableCategories.find((category) => category.id === task.category);
@@ -44,7 +44,7 @@ export function FieldCategory({ task }: FieldCategoryProps) {
 		</Badge>
 	);
 
-	if (!canEditFields) {
+	if (!canEdit) {
 		return (
 			<StaticField className="shrink-0" title={current.name}>
 				{pill}

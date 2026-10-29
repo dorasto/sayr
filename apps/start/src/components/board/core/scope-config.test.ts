@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { DEFAULT_TASK_VIEW_STATE } from "../filter/types";
 import {
 	type BoardScope,
+	deriveSelectionCacheKey,
 	deriveViewStateCacheKey,
 	isControlledPersistence,
 	LEGACY_BOARD_SCOPE,
@@ -19,6 +20,17 @@ describe("deriveViewStateCacheKey", () => {
 
 	it("namespaces every other scope", () => {
 		expect(deriveViewStateCacheKey("public-feedback")).toBe("board-view-combined:public-feedback");
+	});
+});
+
+describe("deriveSelectionCacheKey", () => {
+	it("keeps the home scope on the board's original selection key", () => {
+		expect(deriveSelectionCacheKey("home")).toBe("board-task-selection");
+	});
+
+	it("gives every other scope its own selection", () => {
+		expect(deriveSelectionCacheKey("org-tasks")).toBe("board-task-selection:org-tasks");
+		expect(deriveSelectionCacheKey("org-tasks")).not.toBe(deriveSelectionCacheKey("release"));
 	});
 });
 

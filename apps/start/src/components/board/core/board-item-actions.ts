@@ -1,4 +1,5 @@
 import type { schema } from "@repo/database";
+import type { BoardRelationType } from "./task-relations";
 
 // A deliberate fork of apps/start/src/components/tasks/actions/types.ts's
 // `FieldUpdatePayload` family: the board may not import from components/tasks/**
@@ -54,4 +55,11 @@ export type BoardFieldUpdatePayload =
 /** What a board row/card/menu can do to the one item it renders. */
 export interface BoardItemActions {
 	execute: (payload: BoardFieldUpdatePayload) => Promise<void>;
+	/**
+	 * Nests the item under `parentId` (null = make it top-level again). Absent = the data source can't (the
+	 * context menu then hides "Parent task").
+	 */
+	setParent?: (parentId: string | null) => Promise<void>;
+	/** Relates the item to `targetId`. Absent = the data source can't (the context menu hides "Add relation"). */
+	addRelation?: (targetId: string, type: BoardRelationType) => Promise<void>;
 }

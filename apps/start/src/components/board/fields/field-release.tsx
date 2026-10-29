@@ -11,7 +11,7 @@ import {
 	ComboBoxTrigger,
 } from "@repo/ui/components/tomui/combo-box-unified";
 import { IconRocket } from "@tabler/icons-react";
-import { useBoardCapabilities, useBoardData, useBoardItemActions } from "../core/board-data";
+import { useBoardData, useBoardItemActions, useFieldPermissions } from "../core/board-data";
 import { StaticField } from "./static-field";
 
 interface FieldReleaseProps {
@@ -26,7 +26,7 @@ interface FieldReleaseProps {
  */
 export function FieldRelease({ task }: FieldReleaseProps) {
 	const { releases } = useBoardData();
-	const { canEditFields } = useBoardCapabilities();
+	const canEdit = useFieldPermissions(task).release;
 	const { execute } = useBoardItemActions(task);
 	const availableReleases = releases.filter((release) => release.organizationId === task.organizationId);
 	const current = availableReleases.find((release) => release.id === task.releaseId);
@@ -40,7 +40,7 @@ export function FieldRelease({ task }: FieldReleaseProps) {
 		</Badge>
 	);
 
-	if (!canEditFields) {
+	if (!canEdit) {
 		return (
 			<StaticField className="shrink-0" title={current.name}>
 				{pill}

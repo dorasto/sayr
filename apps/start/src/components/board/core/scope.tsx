@@ -1,5 +1,5 @@
 import { createContext, type ReactNode, useContext } from "react";
-import { type BoardScope, LEGACY_BOARD_SCOPE } from "./scope-config";
+import { type BoardScope, deriveSelectionCacheKey, LEGACY_BOARD_SCOPE } from "./scope-config";
 
 export type { BoardPersistence, BoardScope, BoardScopeControlled } from "./scope-config";
 export { LEGACY_BOARD_SCOPE } from "./scope-config";
@@ -24,4 +24,9 @@ export function BoardScopeProvider({ scope, children }: BoardScopeProviderProps)
  */
 export function useBoardScope(): BoardScope {
 	return useContext(BoardScopeContext);
+}
+
+/** The useTaskSelection key for the enclosing board — one selection per scope key (see deriveSelectionCacheKey). */
+export function useBoardSelectionKey(): string {
+	return deriveSelectionCacheKey(useBoardScope().key);
 }

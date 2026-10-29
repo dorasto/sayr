@@ -9,6 +9,7 @@ import {
 	getViewCombinedState,
 	mapStateToViewConfig,
 	mapViewConfigToState,
+	resolveScopedGrouping,
 	resolveViewMode,
 } from "./view-config";
 
@@ -102,6 +103,13 @@ describe("mapStateToViewConfig", () => {
 		const state: TaskViewState = { ...DEFAULT_TASK_VIEW_STATE, viewMode: "card" };
 		expect(mapStateToViewConfig(state, iconColor).mode).toBe("card");
 	});
+
+	it("only stores task sort fields (another entity's sort becomes none)", () => {
+		const release: TaskViewState = { ...DEFAULT_TASK_VIEW_STATE, sortBy: "targetDate" };
+		expect(mapStateToViewConfig(release, iconColor).sortBy).toBe("none");
+		const task: TaskViewState = { ...DEFAULT_TASK_VIEW_STATE, sortBy: "priority" };
+		expect(mapStateToViewConfig(task, iconColor).sortBy).toBe("priority");
+	});
 });
 
 describe("areViewConfigsEqual", () => {
@@ -182,5 +190,28 @@ describe("getViewCombinedState", () => {
 
 	it("falls back to the default view state when the row has no config", () => {
 		expect(getViewCombinedState({ ...baseRow, viewConfig: null }).viewConfig).toEqual(DEFAULT_TASK_VIEW_STATE);
+	});
+});
+
+describe("resolveScopedGrouping", () => {
+	it("leaves a cross-org board's grouping alone", () => {
+		expect(resolveScopedGrouping("org", "status", false)).toEqual({ grouping: "org", subGrouping: "status" });
+	});
+
+	it("falls back from org to status on a single-org board", () => {
+		expect(resolveScopedGrouping("org", "none", true)).toEqual({ grouping: "status", subGrouping: "none" });
+		expect(resolveScopedGrouping("org", "priority", true)).toEqual({ grouping: "status", subGrouping: "priority" });
+	});
+
+	it("drops an org sub-grouping, and one that would repeat the fallback primary", () => {
+		expect(resolveScopedGrouping("priority", "org", true)).toEqual({ grouping: "priority", subGrouping: "none" });
+		expect(resolveScopedGrouping("org", "status", true)).toEqual({ grouping: "status", subGrouping: "none" });
+	});
+
+	it("keeps any other single-org grouping as stored", () => {
+		expect(resolveScopedGrouping("category", "assignee", true)).toEqual({
+			grouping: "category",
+			subGrouping: "assignee",
+		});
 	});
 });

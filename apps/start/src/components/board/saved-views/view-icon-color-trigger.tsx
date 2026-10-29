@@ -28,13 +28,11 @@ interface ViewIconColorTriggerProps {
 
 /**
  * Popover trigger showing the current icon tinted by the current color; content stacks
- * ColorPickerCustom over IconPicker — same shape as the org saved-view/category create flow
- * (read-only reference: components/tasks/filter/new-view.tsx and
- * pages/admin/settings/orgId/view-detail.tsx), built fresh here from the three generic
- * primitives (Popover, ColorPickerCustom, IconPicker/RenderIcon) only, no components/tasks/**
- * import. Storage convention: color as an HSLA string, icon as a bare Tabler component name
- * string — matches category/release schema defaults, not the read-only reference's white
- * default (which would be invisible against this app's chrome).
+ * ColorPickerCustom over IconPicker, built from the three generic primitives (Popover,
+ * ColorPickerCustom, IconPicker/RenderIcon); also the name field's icon in the view settings sheet.
+ * Storage convention: color as an HSLA string, icon as a bare Tabler component name string —
+ * matches category/release schema defaults (a white default would be invisible against this
+ * app's chrome).
  */
 export function ViewIconColorTrigger({ value, onChange, className }: ViewIconColorTriggerProps) {
 	const icon = value.icon || DEFAULT_VIEW_ICON;

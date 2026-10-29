@@ -11,7 +11,7 @@ import {
 } from "@repo/ui/components/tomui/combo-box-unified";
 import { cn } from "@repo/ui/lib/utils";
 import { ROW_LEADING_GUTTER_CLASS, STATUS_CONFIG, type StatusValue } from "../config/field-config";
-import { useBoardCapabilities, useBoardItemActions } from "../core/board-data";
+import { useBoardItemActions, useFieldPermissions } from "../core/board-data";
 import { StaticField } from "./static-field";
 
 interface FieldStatusProps {
@@ -21,11 +21,11 @@ interface FieldStatusProps {
 }
 
 export function FieldStatus({ task, label }: FieldStatusProps) {
-	const { canEditFields } = useBoardCapabilities();
+	const canEdit = useFieldPermissions(task).status;
 	const { execute } = useBoardItemActions(task);
 	const current = STATUS_CONFIG[task.status as StatusValue];
 
-	if (!canEditFields) {
+	if (!canEdit) {
 		if (label) {
 			return (
 				<StaticField

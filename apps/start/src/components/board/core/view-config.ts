@@ -1,5 +1,6 @@
 import type { schema } from "@repo/database";
 import { deserializeFilters, serializeFilters } from "../filter/serialization";
+import { isTaskSortField } from "../filter/sort-config";
 import {
 	DEFAULT_TASK_VIEW_STATE,
 	type FilterState,
@@ -46,9 +47,8 @@ export function resolveViewMode(id: string | undefined, availableIds?: readonly 
 }
 
 /**
- * For the legacy org-scoped pages (components/tasks), which only ever offer List and Kanban: a
- * personal view saved with "card" (or anything unknown) is shown as "list" there. Same defensive
- * idea as `isOldGroupingId` in hooks/useTaskViewManager.ts.
+ * For the view settings sheet (saved-views/view-settings-sheet.tsx), which only
+ * offers List and Kanban: a view saved with "card" (or anything unknown) is shown as "list" there.
  */
 export function coerceToLegacyViewMode(mode: string | undefined): "list" | "kanban" {
 	return mode === "kanban" ? "kanban" : "list";
@@ -111,7 +111,11 @@ export function mapStateToViewConfig(
 		groupBy: viewConfig.grouping,
 		subGroupBy: viewConfig.subGrouping,
 		showCompletedTasks: viewConfig.showCompletedTasks,
-		sortBy: viewConfig.sortBy,
+		// A saved view only stores task sort fields; another entity's sort (never saved today) maps to none.
+		sortBy:
+			viewConfig.sortBy === undefined || viewConfig.sortBy === "none" || isTaskSortField(viewConfig.sortBy)
+				? viewConfig.sortBy
+				: "none",
 		sortDirection: viewConfig.sortDirection,
 		icon: iconColor.icon,
 		color: iconColor.color,
@@ -123,4 +127,26 @@ export function getViewCombinedState(view: schema.savedViewType): TaskViewCombin
 	const filters = deserializeFilters(view.filterParams) || DEFAULT_FILTER_STATE;
 	const viewConfig = view.viewConfig ? mapViewConfigToState(view.viewConfig) : DEFAULT_TASK_VIEW_STATE;
 	return { filters, viewConfig };
+}
+
+/** The grouping a single-org board shows in place of `org` (which has nothing to split by there). */
+export const SINGLE_ORG_FALLBACK_GROUPING: TaskGroupingId = "status";
+
+/**
+ * The grouping/sub-grouping a board actually renders, given whether it shows one org only. A saved view
+ * (personal views are cross-org) may be grouped or sub-grouped by `org`, which is meaningless on a single-org
+ * board: the primary falls back to status, the sub-grouping to none, and a sub-grouping that would then just
+ * repeat the fallback primary is dropped too. Only the rendered state changes — the stored view state is untouched, so
+ * the view isn't marked dirty and saving it doesn't rewrite the grouping behind the user's back.
+ */
+export function resolveScopedGrouping(
+	grouping: TaskGroupingId,
+	subGrouping: TaskGroupingId | "none",
+	singleOrg: boolean
+): { grouping: TaskGroupingId; subGrouping: TaskGroupingId | "none" } {
+	if (!singleOrg) return { grouping, subGrouping };
+	const resolvedGrouping = grouping === "org" ? SINGLE_ORG_FALLBACK_GROUPING : grouping;
+	const repeatsFallback = grouping === "org" && subGrouping === resolvedGrouping;
+	const resolvedSubGrouping = subGrouping === "org" || repeatsFallback ? "none" : subGrouping;
+	return { grouping: resolvedGrouping, subGrouping: resolvedSubGrouping };
 }

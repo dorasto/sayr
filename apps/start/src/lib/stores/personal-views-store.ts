@@ -22,6 +22,14 @@ function sortViews(views: schema.savedViewType[]): schema.savedViewType[] {
 	});
 }
 
+/** What `updateView` may change — `updatePersonalViewAction` persists each of these (incl. `slug`). */
+export type PersonalViewUpdates = Partial<{
+	name: string;
+	slug: string;
+	viewConfig: schema.savedViewType["viewConfig"];
+	filterParams: string;
+}>;
+
 export const personalViewsStore = new Store<PersonalViewsStoreState>({
 	views: [],
 	loaded: false,
@@ -49,11 +57,8 @@ export const personalViewsActions = {
 		return created;
 	},
 
-	/** Rename and/or edit viewConfig (icon/color) and/or filterParams in one optimistic call. */
-	updateView: async (
-		viewId: string,
-		updates: Partial<{ name: string; viewConfig: schema.savedViewType["viewConfig"]; filterParams: string }>
-	) => {
+	/** Rename and/or edit slug, viewConfig (icon/color/grouping/…) and/or filterParams in one optimistic call. */
+	updateView: async (viewId: string, updates: PersonalViewUpdates) => {
 		const previous = personalViewsStore.state.views;
 		personalViewsStore.setState((state) => ({
 			...state,

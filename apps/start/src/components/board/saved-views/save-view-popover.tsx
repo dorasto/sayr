@@ -7,8 +7,9 @@ import { IconDeviceFloppy } from "@tabler/icons-react";
 import type React from "react";
 import { useState } from "react";
 import { serializeFilters } from "../filter/serialization";
+import { isTaskSortField } from "../filter/sort-config";
 import { useBoardViewState } from "../filter/use-board-view-state";
-import { usePersonalViews } from "./use-personal-views";
+import { useBoardSavedViews } from "./use-board-saved-views";
 import { DEFAULT_VIEW_COLOR, DEFAULT_VIEW_ICON, ViewIconColorTrigger } from "./view-icon-color-trigger";
 
 const DEFAULT_ICON_COLOR = {
@@ -18,8 +19,7 @@ const DEFAULT_ICON_COLOR = {
 
 // Stops a nested-Popover interaction (trigger click, content click) from
 // bubbling up into an outer overlay (e.g. ActiveViewSwitcher's DropdownMenu)
-// and closing it — same pattern edit-view-popover.tsx already uses for the
-// identical reason (Popover nested inside a Dropdown/ComboBox row).
+// and closing it (Popover nested inside a Dropdown/ComboBox row).
 const stopRowSelect = (event: React.SyntheticEvent) => event.stopPropagation();
 
 interface SaveViewPopoverProps {
@@ -46,7 +46,7 @@ export function SaveViewPopover({
 	const [iconColor, setIconColor] = useState(DEFAULT_ICON_COLOR);
 	const [saving, setSaving] = useState(false);
 	const { filters, grouping, subGrouping, viewMode, showCompletedTasks, sortBy, sortDirection } = useBoardViewState();
-	const { createView } = usePersonalViews();
+	const { create: createView, kind } = useBoardSavedViews();
 
 	const handleSave = async () => {
 		const trimmed = name.trim();
@@ -61,7 +61,8 @@ export function SaveViewPopover({
 					groupBy: grouping,
 					subGroupBy: subGrouping,
 					showCompletedTasks,
-					sortBy,
+					// Saved views only exist on task boards, whose sort fields are all task ones.
+					sortBy: isTaskSortField(sortBy) ? sortBy : "none",
 					sortDirection,
 					icon: iconColor.icon,
 					color: iconColor.color,
@@ -69,7 +70,7 @@ export function SaveViewPopover({
 			});
 			headlessToast.success({
 				title: "View saved",
-				description: `"${trimmed}" added to your views`,
+				description: `"${trimmed}" added to ${kind === "org" ? "the organization's" : "your"} views`,
 			});
 			setName("");
 			setIconColor(DEFAULT_ICON_COLOR);

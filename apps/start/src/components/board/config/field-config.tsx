@@ -16,11 +16,10 @@ import type { ReactNode } from "react";
 // imported by client-rendered picker components, and `schema` is a runtime
 // value pulling in the full Drizzle schema module (which uses
 // `node:crypto` for id defaults) — Vite can't bundle that for the browser.
-// This mirrors why the old system's tasks/shared/config.tsx does the same.
+// tasks/shared/config.tsx does the same for the same reason.
 //
 // StatusIcon/PriorityIcon are generic @repo/ui glyph renderers (no
-// task-domain logic embedded), not part of "the task system" being
-// replaced — reused like any other @repo/ui primitive.
+// task-domain logic embedded) — reused like any other @repo/ui primitive.
 
 export type StatusValue = (typeof schema.statusEnum.enumValues)[number];
 export type PriorityValue = (typeof schema.priorityEnum.enumValues)[number];

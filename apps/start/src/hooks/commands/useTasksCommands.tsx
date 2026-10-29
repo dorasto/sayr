@@ -26,13 +26,13 @@ export function useTasksCommands() {
 							label: "Filter tasks",
 							icon: <IconFilter size={16} className="opacity-60" aria-hidden="true" />,
 							action: () => {
-								// Focus the filter input on the tasks page
+								// Open the board's filter builder (the toolbar's Filter button) once the
+								// palette's close animation is done — same target /home's command uses.
 								commandActions.close();
 								setTimeout(() => {
-									const filterInput = document.querySelector<HTMLInputElement>(
-										'[data-filter-input="true"]',
-									);
-									filterInput?.focus();
+									document
+										.querySelector<HTMLButtonElement>('[data-command-target="filter-builder-trigger"]')
+										?.click();
 								}, 200);
 							},
 							keywords: "search find sort",

@@ -1,4 +1,4 @@
-import { SQL, and, asc, desc, eq, inArray, isNull, not, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNull, not, or, type SQL, sql } from "drizzle-orm";
 import { db, schema } from "..";
 import { getUsersByIds, userSummaryColumns } from "./index";
 /**
@@ -78,6 +78,72 @@ export async function getReleases(orgId: string, status?: ReleaseStatus): Promis
 }
 
 export type ReleaseStatus = "planned" | "in-progress" | "released" | "archived";
+
+/** One release's task tally: canceled tasks are left out, like the public changelog's progress bar. */
+export interface ReleaseTaskCounts {
+	done: number;
+	inProgress: number;
+	/** Backlog + todo. */
+	planned: number;
+}
+
+/**
+ * Task counts per release for an organization, in one grouped query (for the releases board's progress bars).
+ * Releases with no tasks are absent from the result.
+ *
+ * @param orgId - The organization ID
+ * @returns Counts keyed by release id
+ */
+export async function getReleaseTaskCounts(orgId: string): Promise<Record<string, ReleaseTaskCounts>> {
+	const rows = await db
+		.select({
+			releaseId: schema.task.releaseId,
+			status: schema.task.status,
+			count: sql<number>`count(*)::int`,
+		})
+		.from(schema.task)
+		.where(and(eq(schema.task.organizationId, orgId), not(isNull(schema.task.releaseId))))
+		.groupBy(schema.task.releaseId, schema.task.status);
+
+	const counts: Record<string, ReleaseTaskCounts> = {};
+	for (const row of rows) {
+		if (!row.releaseId || row.status === "canceled") continue;
+		const entry = (counts[row.releaseId] ??= { done: 0, inProgress: 0, planned: 0 });
+		if (row.status === "done") entry.done += row.count;
+		else if (row.status === "in-progress") entry.inProgress += row.count;
+		else entry.planned += row.count;
+	}
+	return counts;
+}
+
+/** A release's most recent status update: just what an overview needs (its health and when it was posted). */
+export interface ReleaseLatestUpdate {
+	health: "on_track" | "at_risk" | "off_track";
+	createdAt: Date | null;
+}
+
+/**
+ * The latest status update per release for an organization, in one query (DISTINCT ON release). Releases that
+ * never had an update are absent from the result.
+ *
+ * @param orgId - The organization ID
+ * @returns Latest update keyed by release id
+ */
+export async function getReleaseLatestUpdates(orgId: string): Promise<Record<string, ReleaseLatestUpdate>> {
+	const rows = await db
+		.selectDistinctOn([schema.releaseStatusUpdate.releaseId], {
+			releaseId: schema.releaseStatusUpdate.releaseId,
+			health: schema.releaseStatusUpdate.health,
+			createdAt: schema.releaseStatusUpdate.createdAt,
+		})
+		.from(schema.releaseStatusUpdate)
+		.where(eq(schema.releaseStatusUpdate.organizationId, orgId))
+		.orderBy(schema.releaseStatusUpdate.releaseId, desc(schema.releaseStatusUpdate.createdAt));
+
+	const latest: Record<string, ReleaseLatestUpdate> = {};
+	for (const row of rows) latest[row.releaseId] = { health: row.health, createdAt: row.createdAt };
+	return latest;
+}
 
 /**
  * Fetches a paginated list of releases for an organization.

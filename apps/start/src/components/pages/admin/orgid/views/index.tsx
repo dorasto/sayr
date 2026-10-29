@@ -1,11 +1,4 @@
 "use client";
-import { useLayoutData } from "@/components/admin/shell/context";
-import { PageHeader } from "@/components/generic/PageHeader";
-import RenderIcon from "@/components/generic/RenderIcon";
-import { useLayoutOrganization } from "@/contexts/ContextOrg";
-import { useServerEventsSubscription } from "@/hooks/useServerEventsSubscription";
-import { useWSMessageHandler, type WSMessageHandler } from "@/hooks/useWSMessageHandler";
-import type { ServerEventMessage } from "@/lib/serverEvents";
 import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
 import { Button } from "@repo/ui/components/button";
 import { Tile, TileAction, TileHeader, TileIcon, TileTitle } from "@repo/ui/components/doras-ui/tile";
@@ -14,6 +7,13 @@ import { ensureCdnUrl } from "@repo/util";
 import { IconPlus, IconSettings, IconStack2, IconUsers } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
 import { useEffect } from "react";
+import { useLayoutData } from "@/components/admin/shell/context";
+import { PageHeader } from "@/components/generic/PageHeader";
+import RenderIcon from "@/components/generic/RenderIcon";
+import { useLayoutOrganization } from "@/contexts/ContextOrg";
+import { useServerEventsSubscription } from "@/hooks/useServerEventsSubscription";
+import { useWSMessageHandler, type WSMessageHandler } from "@/hooks/useWSMessageHandler";
+import type { ServerEventMessage } from "@/lib/serverEvents";
 
 export default function OrganizationViewsPage() {
 	const { serverEvents } = useLayoutData();
@@ -122,10 +122,10 @@ export default function OrganizationViewsPage() {
 								</TileHeader>
 							</Link>
 							<TileAction className="p-3">
-								{/* No standalone edit page anymore — editing happens inline from
-								    the tasks page (pencil icon on the saved-view tile in the
-								    panel opens the same SettingsOrganizationViewDetailPage in a
-								    Sheet). This just gets you there with the view applied. */}
+								{/* No standalone edit page anymore — views are edited on the tasks
+								    page in the view settings sheet (the view switcher row's pencil, or
+								    the side panel header's gear for the active view). This just gets
+								    you there with the view applied. */}
 								<Link
 									to="/$orgId/tasks"
 									params={{ orgId: organization.id }}

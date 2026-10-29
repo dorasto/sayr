@@ -1,24 +1,17 @@
 import { Button } from "@repo/ui/components/button";
 import { cn } from "@repo/ui/lib/utils";
-import {
-  IconHome,
-  IconLayoutSidebarRight,
-  IconLayoutSidebarRightFilled,
-} from "@tabler/icons-react";
+import { IconHome, IconLayoutSidebarRight, IconLayoutSidebarRightFilled } from "@tabler/icons-react";
 import { useEffect } from "react";
-import { Board } from "@/components/board/board";
 import { AdminBoardProvider } from "@/components/board/core/admin-board-provider";
 import { FilterBuilder } from "@/components/board/filter/filter-builder";
 import { useBoardViewState } from "@/components/board/filter/use-board-view-state";
+import { BoardScrollArea } from "@/components/board/layout/board-scroll-area";
 import { BoardSidePanelContent } from "@/components/board/layout/board-side-panel";
 import { BoardViewOptions } from "@/components/board/layout/board-view-options";
 import { TaskCountLabel } from "@/components/board/layout/task-count-label";
-import {
-  ActiveViewPanelHeader,
-  ActiveViewPanelPinButton,
-} from "@/components/board/saved-views/active-view-panel-header";
+import { ActiveViewPanelActions, ActiveViewPanelHeader } from "@/components/board/saved-views/active-view-panel-header";
 import { ActiveViewSwitcher } from "@/components/board/saved-views/active-view-switcher";
-import { useActiveBoardView } from "@/components/board/views/view-registry";
+import { ViewSettingsSheet } from "@/components/board/saved-views/view-settings-sheet";
 import { PageHeader } from "@/components/generic/PageHeader";
 import { Page } from "@/components/generic/page";
 import { usePage, usePanel } from "@/components/generic/use-page";
@@ -29,25 +22,6 @@ import { PendingInvitesSection } from "./pending-invites";
 const LANDER_PANEL_ID = "lander-side-panel";
 
 /**
- * The board's scroll container. A full-bleed view (kanban) brings its own edge-to-edge chrome, so the
- * container drops its padding for it; the active view comes from the registry, not a view-id check.
- * Its own component because the registry lives in the surrounding BoardProvider.
- */
-function BoardScrollArea() {
-  const { fullBleed } = useActiveBoardView();
-  return (
-    <div
-      className={cn(
-        "flex-1 min-h-0 overflow-auto px-2 pb-4 w-full",
-        fullBleed && "p-0 pl-2 rounded-xl",
-      )}
-    >
-      <Board />
-    </div>
-  );
-}
-
-/**
  * The new unified cross-org lander (SAY-73 Phase 1). Uses the shared Page +
  * side-panel system (see the page-component skill) rather than a hand-rolled
  * flex split — same as every other admin page with a panel. The header carries
@@ -55,104 +29,96 @@ function BoardScrollArea() {
  * task count, the Filter popover and view options, and the panel holds the
  * quick filters.
  */
-export default function AdminHomePage({
-  pendingInvites,
-}: {
-  pendingInvites: PendingInviteWithOrg[];
-}) {
-  const { clearView } = useBoardViewState();
-  const { setPanelContent, closePanel } = usePage();
-  const panel = usePanel(LANDER_PANEL_ID);
+export default function AdminHomePage({ pendingInvites }: { pendingInvites: PendingInviteWithOrg[] }) {
+	const { clearView } = useBoardViewState();
+	const { setPanelContent, closePanel } = usePage();
+	const panel = usePanel(LANDER_PANEL_ID);
 
-  // BoardSidePanelContent pulls everything it needs from context and the
-  // URL-backed view state itself, so it only needs to be handed to the panel
-  // once — it stays in sync on its own. Gated on isRegistered, not just
-  // mount: Page defers registering the panel to its client-only pass, so a
-  // plain `[]`-effect here would race it and silently no-op.
-  useEffect(() => {
-    if (!panel.isRegistered) return;
-    setPanelContent(LANDER_PANEL_ID, <BoardSidePanelContent />);
-  }, [panel.isRegistered, setPanelContent]);
+	// BoardSidePanelContent pulls everything it needs from context and the
+	// URL-backed view state itself, so it only needs to be handed to the panel
+	// once — it stays in sync on its own. Gated on isRegistered, not just
+	// mount: Page defers registering the panel to its client-only pass, so a
+	// plain `[]`-effect here would race it and silently no-op.
+	useEffect(() => {
+		if (!panel.isRegistered) return;
+		setPanelContent(LANDER_PANEL_ID, <BoardSidePanelContent />);
+	}, [panel.isRegistered, setPanelContent]);
 
-  const header = (
-    <>
-      <PageHeader.Identity
-        actions={
-          <>
-            <Button
-              type="button"
-              onClick={() =>
-                panel.isOpen
-                  ? closePanel(LANDER_PANEL_ID)
-                  : sidebarActions.setOpen(LANDER_PANEL_ID, true)
-              }
-              title={panel.isOpen ? "Close side panel" : "Open side panel"}
-              variant="accent"
-              size={"sm"}
-              className={cn(
-                "gap-2 h-6 w-6 bg-accent border-transparent p-1",
-                !panel.isOpen && "bg-transparent",
-              )}
-            >
-              {panel.isOpen ? (
-                <IconLayoutSidebarRightFilled className="size-4" />
-              ) : (
-                <IconLayoutSidebarRight className="size-4" />
-              )}
-            </Button>
-          </>
-        }
-      >
-        <Button
-          type="button"
-          variant="primary"
-          className="w-fit text-xs p-1 h-auto rounded-lg bg-transparent"
-          size="sm"
-          onClick={() => clearView()}
-        >
-          <IconHome className="size-4" />
-          <span>Home</span>
-        </Button>
-        <span className="text-muted-foreground text-xs">/</span>
-        <ActiveViewSwitcher />
-      </PageHeader.Identity>
-      <PageHeader.Toolbar
-        className="border-b-0"
-        left={<TaskCountLabel />}
-        right={
-          <>
-            <FilterBuilder />
-            <BoardViewOptions />
-          </>
-        }
-      />
-    </>
-  );
+	const header = (
+		<>
+			<PageHeader.Identity
+				actions={
+					<>
+						<Button
+							type="button"
+							onClick={() =>
+								panel.isOpen ? closePanel(LANDER_PANEL_ID) : sidebarActions.setOpen(LANDER_PANEL_ID, true)
+							}
+							title={panel.isOpen ? "Close side panel" : "Open side panel"}
+							variant="accent"
+							size={"sm"}
+							className={cn("gap-2 h-6 w-6 bg-accent border-transparent p-1", !panel.isOpen && "bg-transparent")}
+						>
+							{panel.isOpen ? (
+								<IconLayoutSidebarRightFilled className="size-4" />
+							) : (
+								<IconLayoutSidebarRight className="size-4" />
+							)}
+						</Button>
+					</>
+				}
+			>
+				<Button
+					type="button"
+					variant="primary"
+					className="w-fit text-xs p-1 h-auto rounded-lg bg-transparent"
+					size="sm"
+					onClick={() => clearView()}
+				>
+					<IconHome className="size-4" />
+					<span>Home</span>
+				</Button>
+				<span className="text-muted-foreground text-xs">/</span>
+				<ActiveViewSwitcher />
+			</PageHeader.Identity>
+			<PageHeader.Toolbar
+				className="border-b-0"
+				left={<TaskCountLabel />}
+				right={
+					<>
+						<FilterBuilder />
+						<BoardViewOptions />
+					</>
+				}
+			/>
+		</>
+	);
 
-  return (
-    <AdminBoardProvider>
-      <Page
-        header={header}
-        panels={{
-          right: {
-            id: LANDER_PANEL_ID,
-            header: {
-              icon: <ActiveViewPanelHeader />,
-              actions: <ActiveViewPanelPinButton />,
-              showClose: false,
-            },
-            defaultOpen: true,
-            persistOpenState: false,
-            width: "320px",
-          },
-        }}
-        className="h-full"
-      >
-        <div className="h-full flex flex-col contain-[paint]">
-          <PendingInvitesSection invites={pendingInvites} />
-          <BoardScrollArea />
-        </div>
-      </Page>
-    </AdminBoardProvider>
-  );
+	return (
+		<AdminBoardProvider>
+			<Page
+				header={header}
+				panels={{
+					right: {
+						id: LANDER_PANEL_ID,
+						header: {
+							icon: <ActiveViewPanelHeader />,
+							actions: <ActiveViewPanelActions />,
+							showClose: false,
+						},
+						defaultOpen: true,
+						persistOpenState: false,
+						width: "320px",
+					},
+				}}
+				className="h-full"
+			>
+				<div className="h-full flex flex-col contain-[paint]">
+					<PendingInvitesSection invites={pendingInvites} />
+					<BoardScrollArea />
+				</div>
+			</Page>
+			<ViewSettingsSheet />
+		</AdminBoardProvider>
+	);
 }

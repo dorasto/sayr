@@ -16,7 +16,7 @@ import { cn } from "@repo/ui/lib/utils";
 import { getInitials } from "@repo/util";
 import { IconUserOff } from "@tabler/icons-react";
 import { updateAssigneesToTaskAction } from "@/lib/fetches/task";
-import { useBoardAssignableUsers, useBoardCapabilities, useBoardItemActions } from "../core/board-data";
+import { useBoardAssignableUsers, useBoardItemActions, useFieldPermissions } from "../core/board-data";
 import { StaticField } from "./static-field";
 
 interface FieldAssigneeProps {
@@ -24,7 +24,7 @@ interface FieldAssigneeProps {
 }
 
 export function FieldAssignee({ task }: FieldAssigneeProps) {
-	const { canEditFields } = useBoardCapabilities();
+	const canEdit = useFieldPermissions(task).assignees;
 	const { value: sseClientId } = useStateManagement<string>("sse-clientId", "");
 	const { execute } = useBoardItemActions(task);
 	const availableUsers = useBoardAssignableUsers(task.organizationId);
@@ -43,7 +43,7 @@ export function FieldAssignee({ task }: FieldAssigneeProps) {
 		</Avatar>
 	));
 
-	if (!canEditFields) {
+	if (!canEdit) {
 		return task.assignees.length === 0 ? (
 			<StaticField className="inline-flex size-5 items-center justify-center rounded-full border border-transparent bg-accent text-accent-foreground">
 				<IconUserOff className="h-3 w-3 shrink-0" />

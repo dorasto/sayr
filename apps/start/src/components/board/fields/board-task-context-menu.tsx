@@ -14,11 +14,23 @@ import {
 	ContextMenuSubTrigger,
 	ContextMenuTrigger,
 } from "@repo/ui/components/context-menu";
+import { Input } from "@repo/ui/components/input";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { formatTaskKey } from "@repo/util";
-import { IconCategory, IconExternalLink, IconRocket, IconTag, IconUser } from "@tabler/icons-react";
+import {
+	IconAppWindow,
+	IconArrowUpRight,
+	IconCategory,
+	IconCopy,
+	IconExternalLink,
+	IconGitBranch,
+	IconLink,
+	IconRocket,
+	IconTag,
+	IconUser,
+} from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
-import type { ReactElement } from "react";
+import { type ReactElement, type ReactNode, useMemo, useState } from "react";
 import { updateAssigneesToTaskAction, updateLabelToTaskAction } from "@/lib/fetches/task";
 import {
 	PRIORITY_CONFIG,
@@ -28,7 +40,35 @@ import {
 	VISIBILITY_CONFIG,
 	type VisibilityValue,
 } from "../config/field-config";
-import { useBoardAssignableUsers, useBoardCapabilities, useBoardData, useBoardItemActions } from "../core/board-data";
+import {
+	useBoardAssignableUsers,
+	useBoardCapabilities,
+	useBoardData,
+	useBoardItemActions,
+	useBoardOrganizationScope,
+	useFieldPermissions,
+} from "../core/board-data";
+import type { BoardPermissionField } from "../core/field-permissions";
+import {
+	BOARD_RELATION_TYPES,
+	type BoardRelationType,
+	getEligibleParentTasks,
+	getRelationTargetTasks,
+	matchesTaskSearch,
+} from "../core/task-relations";
+
+// How many candidate tasks a parent/relation picker lists at once — the search narrows it down.
+const TASK_PICKER_LIMIT = 20;
+
+const RELATION_TYPE_ICONS: Record<BoardRelationType, ReactNode> = {
+	blocking: <IconArrowUpRight className="size-3.5 text-destructive" />,
+	related: <IconLink className="size-3.5 text-muted-foreground" />,
+	duplicate: <IconCopy className="size-3.5 text-muted-foreground" />,
+};
+
+// A field the viewer can't edit on this task keeps its submenu row (so the menu's shape doesn't
+// shift between tasks) but disabled.
+const SUB_TRIGGER_CLASS = "gap-3 w-full data-disabled:pointer-events-none data-disabled:opacity-50";
 
 interface BoardTaskContextMenuProps {
 	task: schema.TaskWithLabels;
@@ -43,6 +83,10 @@ interface BoardTaskContextMenuProps {
  * ContextMenuTrigger's render target rather than adding a second wrapping
  * interactive element.
  *
+ * Also: "Open in dialog" when the data source has `openItem`, and "Parent task" / "Add relation"
+ * (candidates = other tasks of the same org, core/task-relations.ts) when its item actions offer
+ * `setParent` / `addRelation` — gated like the other fields by the `parent` field permission.
+ *
  * A pass-through (just `children`) when the board's `canContextMenu` capability is off,
  * so a read-only board's rows/cards carry no menu and no per-row menu hooks.
  */
@@ -53,9 +97,16 @@ export function BoardTaskContextMenu({ task, children }: BoardTaskContextMenuPro
 }
 
 function ActiveBoardTaskContextMenu({ task, children }: BoardTaskContextMenuProps) {
-	const { categories, releases, labels } = useBoardData();
+	const { categories, releases, labels, openItem } = useBoardData();
 	const { value: sseClientId } = useStateManagement<string>("sse-clientId", "");
-	const { execute } = useBoardItemActions(task);
+	const { execute, setParent, addRelation } = useBoardItemActions(task);
+	const fieldPermissions = useFieldPermissions(task);
+	const organizationScope = useBoardOrganizationScope();
+	const orgShortId = task.organization?.shortId ?? organizationScope?.shortId;
+	const subTriggerProps = (field: BoardPermissionField) => ({
+		className: SUB_TRIGGER_CLASS,
+		disabled: !fieldPermissions[field],
+	});
 
 	const availableCategories = categories.filter((category) => category.organizationId === task.organizationId);
 	const availableReleases = releases.filter((release) => release.organizationId === task.organizationId);
@@ -71,8 +122,7 @@ function ActiveBoardTaskContextMenu({ task, children }: BoardTaskContextMenuProp
 			<ContextMenuContent className="w-56">
 				<ContextMenuGroup>
 					<ContextMenuLabel className="truncate">
-						{task.organization ? formatTaskKey(task.organization.shortId, task.shortId) : task.shortId} —{" "}
-						{task.title || "Untitled"}
+						{orgShortId ? formatTaskKey(orgShortId, task.shortId) : task.shortId} — {task.title || "Untitled"}
 					</ContextMenuLabel>
 				</ContextMenuGroup>
 				<ContextMenuSeparator />
@@ -86,12 +136,18 @@ function ActiveBoardTaskContextMenu({ task, children }: BoardTaskContextMenuProp
 						Open task
 					</ContextMenuItem>
 				</Link>
+				{openItem && (
+					<ContextMenuItem className="gap-3 w-full" onClick={() => openItem(task)}>
+						<IconAppWindow className="size-4" />
+						Open in dialog
+					</ContextMenuItem>
+				)}
 
 				<ContextMenuSeparator />
 
 				{/* Status */}
 				<ContextMenuSub>
-					<ContextMenuSubTrigger className="gap-3 w-full">
+					<ContextMenuSubTrigger {...subTriggerProps("status")}>
 						{STATUS_CONFIG[task.status as StatusValue].icon("size-3.5")}
 						Status
 					</ContextMenuSubTrigger>
@@ -130,7 +186,7 @@ function ActiveBoardTaskContextMenu({ task, children }: BoardTaskContextMenuProp
 
 				{/* Priority */}
 				<ContextMenuSub>
-					<ContextMenuSubTrigger className="gap-3 w-full">
+					<ContextMenuSubTrigger {...subTriggerProps("priority")}>
 						{PRIORITY_CONFIG[task.priority as PriorityValue].icon("size-3.5")}
 						Priority
 					</ContextMenuSubTrigger>
@@ -169,7 +225,7 @@ function ActiveBoardTaskContextMenu({ task, children }: BoardTaskContextMenuProp
 
 				{/* Visibility */}
 				<ContextMenuSub>
-					<ContextMenuSubTrigger className="gap-3 w-full">
+					<ContextMenuSubTrigger {...subTriggerProps("visibility")}>
 						{VISIBILITY_CONFIG[task.visible].icon("size-3.5")}
 						Visibility
 					</ContextMenuSubTrigger>
@@ -207,7 +263,7 @@ function ActiveBoardTaskContextMenu({ task, children }: BoardTaskContextMenuProp
 
 				{/* Assignees */}
 				<ContextMenuSub>
-					<ContextMenuSubTrigger className="gap-3 w-full">
+					<ContextMenuSubTrigger {...subTriggerProps("assignees")}>
 						<IconUser className="size-3.5" />
 						Assignees
 					</ContextMenuSubTrigger>
@@ -252,7 +308,7 @@ function ActiveBoardTaskContextMenu({ task, children }: BoardTaskContextMenuProp
 
 				{/* Labels */}
 				<ContextMenuSub>
-					<ContextMenuSubTrigger className="gap-3 w-full">
+					<ContextMenuSubTrigger {...subTriggerProps("labels")}>
 						<IconTag className="size-3.5" />
 						Labels
 					</ContextMenuSubTrigger>
@@ -303,7 +359,7 @@ function ActiveBoardTaskContextMenu({ task, children }: BoardTaskContextMenuProp
 
 				{/* Category */}
 				<ContextMenuSub>
-					<ContextMenuSubTrigger className="gap-3 w-full">
+					<ContextMenuSubTrigger {...subTriggerProps("category")}>
 						<IconCategory className="size-3.5" />
 						Category
 					</ContextMenuSubTrigger>
@@ -345,7 +401,7 @@ function ActiveBoardTaskContextMenu({ task, children }: BoardTaskContextMenuProp
 
 				{/* Release */}
 				<ContextMenuSub>
-					<ContextMenuSubTrigger className="gap-3 w-full">
+					<ContextMenuSubTrigger {...subTriggerProps("release")}>
 						<IconRocket className="size-3.5" />
 						Release
 					</ContextMenuSubTrigger>
@@ -381,7 +437,153 @@ function ActiveBoardTaskContextMenu({ task, children }: BoardTaskContextMenuProp
 						</ContextMenuRadioGroup>
 					</ContextMenuSubContent>
 				</ContextMenuSub>
+
+				{(setParent || addRelation) && <ContextMenuSeparator />}
+
+				{/* Parent task */}
+				{setParent && (
+					<ContextMenuSub>
+						<ContextMenuSubTrigger {...subTriggerProps("parent")}>
+							<IconGitBranch className="size-3.5" />
+							Parent task
+						</ContextMenuSubTrigger>
+						<ContextMenuSubContent className="w-64 max-h-60 overflow-y-auto pt-0">
+							<ParentPicker task={task} orgShortId={orgShortId} onSelect={setParent} />
+						</ContextMenuSubContent>
+					</ContextMenuSub>
+				)}
+
+				{/* Relations */}
+				{addRelation && (
+					<ContextMenuSub>
+						<ContextMenuSubTrigger {...subTriggerProps("parent")}>
+							<IconLink className="size-3.5" />
+							Add relation
+						</ContextMenuSubTrigger>
+						<ContextMenuSubContent className="w-44">
+							{BOARD_RELATION_TYPES.map((relationType) => (
+								<ContextMenuSub key={relationType.value}>
+									<ContextMenuSubTrigger className="gap-3 w-full">
+										{RELATION_TYPE_ICONS[relationType.value]}
+										{relationType.label}
+									</ContextMenuSubTrigger>
+									<ContextMenuSubContent className="w-64 max-h-60 overflow-y-auto pt-0">
+										<RelationTargetPicker
+											task={task}
+											orgShortId={orgShortId}
+											onSelect={(targetId) => addRelation(targetId, relationType.value)}
+										/>
+									</ContextMenuSubContent>
+								</ContextMenuSub>
+							))}
+						</ContextMenuSubContent>
+					</ContextMenuSub>
+				)}
 			</ContextMenuContent>
 		</ContextMenu>
+	);
+}
+
+interface TaskPickerProps {
+	task: schema.TaskWithLabels;
+	orgShortId: string | undefined;
+}
+
+/** The search box pinned to the top of a parent/relation picker submenu. */
+function TaskPickerSearch({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+	return (
+		<div className="sticky top-0 bg-popover z-10 w-full mb-1">
+			<Input
+				variant="ghost"
+				className="w-full p-3 border-b rounded-none"
+				placeholder="Search tasks..."
+				value={value}
+				onChange={(event) => onChange(event.target.value)}
+				// Keep typing out of the menu's own typeahead/keyboard navigation.
+				onKeyDown={(event) => event.stopPropagation()}
+			/>
+		</div>
+	);
+}
+
+/** One candidate task row: status icon, task key, title. */
+function TaskPickerLabel({ task, taskKey }: { task: schema.TaskWithLabels; taskKey: string }) {
+	return (
+		<div className="flex items-center gap-2 truncate">
+			{STATUS_CONFIG[task.status as StatusValue].icon("size-3.5 shrink-0")}
+			<span className="shrink-0 text-muted-foreground">{taskKey}</span>
+			<span className="truncate">{task.title || "Untitled"}</span>
+		</div>
+	);
+}
+
+/**
+ * The candidates matching `search`, capped at TASK_PICKER_LIMIT. Rendered inside a submenu's popup, so the
+ * list is only built while that submenu is open (not once per row on every board render).
+ */
+function useTaskPickerCandidates(candidates: readonly schema.TaskWithLabels[], orgShortId: string | undefined) {
+	const [search, setSearch] = useState("");
+	const keyOf = (candidate: schema.TaskWithLabels) =>
+		orgShortId ? formatTaskKey(orgShortId, candidate.shortId) : String(candidate.shortId ?? "");
+	const visible = candidates
+		.filter((candidate) => matchesTaskSearch(candidate, keyOf(candidate), search))
+		.slice(0, TASK_PICKER_LIMIT);
+	return { search, setSearch, visible, keyOf };
+}
+
+function ParentPicker({
+	task,
+	orgShortId,
+	onSelect,
+}: TaskPickerProps & { onSelect: (parentId: string | null) => void }) {
+	const { items } = useBoardData();
+	const candidates = useMemo(() => getEligibleParentTasks(task, items), [task, items]);
+	const { search, setSearch, visible, keyOf } = useTaskPickerCandidates(candidates, orgShortId);
+
+	return (
+		<>
+			<TaskPickerSearch value={search} onChange={setSearch} />
+			<ContextMenuRadioGroup
+				value={task.parentId ?? "none"}
+				onValueChange={(value) => onSelect(value === "none" ? null : String(value))}
+			>
+				<ContextMenuRadioItem value="none" showDot={false} className="text-muted-foreground">
+					<div className="flex items-center gap-2">
+						<IconGitBranch className="size-3.5" />
+						No parent (top-level)
+					</div>
+				</ContextMenuRadioItem>
+				{visible.map((candidate) => (
+					<ContextMenuRadioItem key={candidate.id} value={candidate.id} showDot={false}>
+						<TaskPickerLabel task={candidate} taskKey={keyOf(candidate)} />
+					</ContextMenuRadioItem>
+				))}
+			</ContextMenuRadioGroup>
+		</>
+	);
+}
+
+function RelationTargetPicker({
+	task,
+	orgShortId,
+	onSelect,
+}: TaskPickerProps & { onSelect: (targetId: string) => void }) {
+	const { items } = useBoardData();
+	const candidates = useMemo(() => getRelationTargetTasks(task, items), [task, items]);
+	const { search, setSearch, visible, keyOf } = useTaskPickerCandidates(candidates, orgShortId);
+
+	return (
+		<>
+			<TaskPickerSearch value={search} onChange={setSearch} />
+			{visible.length > 0 ? (
+				visible.map((candidate) => (
+					<ContextMenuItem key={candidate.id} className="gap-2" onClick={() => onSelect(candidate.id)}>
+						<TaskPickerLabel task={candidate} taskKey={keyOf(candidate)} />
+					</ContextMenuItem>
+				))
+			) : (
+				<ContextMenuItem disabled>No matching tasks</ContextMenuItem>
+			)}
+		</>
 	);
 }

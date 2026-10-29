@@ -12,7 +12,7 @@ import {
 } from "@repo/ui/components/tomui/combo-box-unified";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { updateLabelToTaskAction } from "@/lib/fetches/task";
-import { useBoardCapabilities, useBoardData, useBoardItemActions } from "../core/board-data";
+import { useBoardData, useBoardItemActions, useFieldPermissions } from "../core/board-data";
 import { LabelBadge } from "./label-badge";
 import { StaticField } from "./static-field";
 
@@ -31,7 +31,7 @@ interface FieldLabelProps {
  */
 export function FieldLabel({ task }: FieldLabelProps) {
 	const { labels } = useBoardData();
-	const { canEditFields } = useBoardCapabilities();
+	const canEdit = useFieldPermissions(task).labels;
 	const { value: sseClientId } = useStateManagement<string>("sse-clientId", "");
 	const { execute } = useBoardItemActions(task);
 	const availableLabels = labels.filter((label) => label.organizationId === task.organizationId);
@@ -61,7 +61,7 @@ export function FieldLabel({ task }: FieldLabelProps) {
 		</>
 	);
 
-	if (!canEditFields) {
+	if (!canEdit) {
 		return (
 			<StaticField
 				className="flex items-center gap-1 shrink-0"
