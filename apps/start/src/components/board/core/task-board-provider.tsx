@@ -1,15 +1,18 @@
 // The ONLY file under components/board that imports the older org-scoped task system
 // (`components/tasks/actions/use-task-field-action`, the shared optimistic-update + API-call
-// hook). That import is a deliberate exception to the board's "no components/tasks/**"
-// boundary (see .agents/skills/board/SKILL.md): re-forking the update hook would duplicate
-// the single place task field-update side effects live. Every signed-in page that shows
-// tasks on the board (/home through core/admin-board-provider.tsx, and later the org tasks
-// and release pages) mounts this provider with its own task store, so the exception stays
-// confined to one file.
+// hook, plus the parent/relation payload builders in `components/tasks/actions/{parent,relations}`).
+// Those imports are a deliberate exception to the board's "no components/tasks/**"
+// boundary (see .agents/skills/board/SKILL.md): re-forking them would duplicate the single
+// place task field-update side effects (and their API calls/toasts) live. Every signed-in page
+// that shows tasks on the board (/home through core/admin-board-provider.tsx, the org tasks
+// page and the release page) mounts this provider with its own task store, so the exception
+// stays confined to one file.
 import type { schema } from "@repo/database";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { createContext, type ReactNode, useCallback, useContext, useMemo } from "react";
 import { replaceTask } from "@/lib/board/apply-lander-event";
+import { getParentUpdatePayload } from "../../tasks/actions/parent";
+import { getRelationUpdatePayload } from "../../tasks/actions/relations";
 import { useTaskFieldAction } from "../../tasks/actions/use-task-field-action";
 import type { BoardGroupingDefinition } from "../config/grouping-registry";
 import type { SavedViewsSource } from "../saved-views/saved-views-source";
@@ -19,6 +22,7 @@ import type { BoardItemActions } from "./board-item-actions";
 import type { BoardCapabilities } from "./capabilities";
 import type { BoardRenderers } from "./renderers";
 import type { BoardScope } from "./scope-config";
+import type { BoardRelationType } from "./task-relations";
 
 type Task = schema.TaskWithLabels;
 
@@ -31,6 +35,7 @@ export type TaskListUpdater = (updater: (prev: Task[]) => Task[]) => void;
 interface TaskBoardStore {
 	tasks: Task[];
 	updateTasks: TaskListUpdater;
+	organizationScope?: BoardOrganizationScope;
 }
 
 // Private to this file: what the module-level item-actions hook below reads, so it can stay one
@@ -47,9 +52,11 @@ function useTaskItemActions(task: Task): BoardItemActions {
 	if (store === undefined) {
 		throw new Error("useTaskItemActions must be used within a TaskBoardProvider");
 	}
-	const { tasks, updateTasks } = store;
+	const { tasks, updateTasks, organizationScope } = store;
 	const { value: sseClientId } = useStateManagement<string>("sse-clientId", "");
 	const taskId = task.id;
+	// Only for the toasts' task keys: the single-org pages' tasks carry no `.organization` snapshot.
+	const orgShortId = task.organization?.shortId ?? organizationScope?.shortId;
 
 	// useTaskFieldAction reports every edit as "the whole list, with this one task
 	// swapped", built from the list this row last rendered. Writing that list back
@@ -66,7 +73,21 @@ function useTaskItemActions(task: Task): BoardItemActions {
 		[updateTasks, taskId]
 	);
 
-	return useTaskFieldAction(task, tasks, () => undefined, applyUpdatedTask, sseClientId);
+	const { execute } = useTaskFieldAction(task, tasks, () => undefined, applyUpdatedTask, sseClientId);
+
+	// Parent/relation candidates are always tasks of the same org (core/task-relations.ts), so the
+	// store's list is enough for the payload builders' parent lookup.
+	const setParent = useCallback(
+		(parentId: string | null) => execute(getParentUpdatePayload(task, parentId, tasks, sseClientId, orgShortId)),
+		[execute, task, tasks, sseClientId, orgShortId]
+	);
+	const addRelation = useCallback(
+		(targetId: string, type: BoardRelationType) =>
+			execute(getRelationUpdatePayload(task, targetId, type, tasks, sseClientId, orgShortId)),
+		[execute, task, tasks, sseClientId, orgShortId]
+	);
+
+	return useMemo(() => ({ execute, setParent, addRelation }), [execute, setParent, addRelation]);
 }
 
 export interface TaskBoardProviderProps {
@@ -93,6 +114,10 @@ export interface TaskBoardProviderProps {
 	renderers?: BoardRenderers;
 	/** Saved views offered; absent = personal views. Memoise it. */
 	savedViews?: SavedViewsSource;
+	/** Opens a task in the host's own surface (see BoardDataSource.openItem). Keep it stable. */
+	openItem?: (task: Task) => void;
+	/** With `openItem`: a plain left click on a row/card opens it there instead of following the link. */
+	openItemOnClick?: boolean;
 	children: ReactNode;
 }
 
@@ -118,6 +143,8 @@ export function TaskBoardProvider({
 	groupings,
 	renderers,
 	savedViews,
+	openItem,
+	openItemOnClick,
 	children,
 }: TaskBoardProviderProps) {
 	// The host's updater skips the write when it gets back the SAME array it gave out,
@@ -131,7 +158,10 @@ export function TaskBoardProvider({
 		[updateTasks]
 	);
 
-	const store = useMemo<TaskBoardStore>(() => ({ tasks, updateTasks }), [tasks, updateTasks]);
+	const store = useMemo<TaskBoardStore>(
+		() => ({ tasks, updateTasks, organizationScope }),
+		[tasks, updateTasks, organizationScope]
+	);
 
 	const data = useMemo<BoardDataSource>(
 		() => ({
@@ -145,8 +175,22 @@ export function TaskBoardProvider({
 			organizationScope,
 			permissions,
 			viewerId,
+			openItem,
+			openItemOnClick,
 		}),
-		[tasks, labels, categories, releases, users, updateItems, organizationScope, permissions, viewerId]
+		[
+			tasks,
+			labels,
+			categories,
+			releases,
+			users,
+			updateItems,
+			organizationScope,
+			permissions,
+			viewerId,
+			openItem,
+			openItemOnClick,
+		]
 	);
 
 	return (

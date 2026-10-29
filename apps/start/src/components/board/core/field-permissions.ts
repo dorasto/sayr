@@ -14,7 +14,8 @@ export type BoardPermissionField =
 	| "labels"
 	| "category"
 	| "visibility"
-	| "release";
+	| "release"
+	| "parent";
 
 /** Per-field editability for one task: `true` = the viewer may edit it. */
 export type BoardFieldPermissions = Readonly<Record<BoardPermissionField, boolean>>;
@@ -28,6 +29,7 @@ export const ALL_FIELDS_EDITABLE: BoardFieldPermissions = {
 	category: true,
 	visibility: true,
 	release: true,
+	parent: true,
 };
 
 /** Nothing editable. */
@@ -39,6 +41,7 @@ export const NO_FIELDS_EDITABLE: BoardFieldPermissions = {
 	category: false,
 	visibility: false,
 	release: false,
+	parent: false,
 };
 
 /** The task's own people, which are all the rules look at on the task. */
@@ -55,7 +58,8 @@ type PermissionTask = {
  * - The task's creator and its assignees may edit everything on it.
  * - `admin.administrator` may edit everything.
  * - Otherwise: status <- tasks.changeStatus, priority <- tasks.changePriority, assignees <- tasks.assign,
- *   and labels/category/visibility/release <- tasks.editAny.
+ *   and labels/category/visibility/release/parent <- tasks.editAny (parent covers "set parent" and
+ *   "add relation", as in the old helper).
  */
 export function getBoardFieldPermissions(
 	task: PermissionTask,
@@ -79,6 +83,7 @@ export function getBoardFieldPermissions(
 		category: editAny,
 		visibility: editAny,
 		release: editAny,
+		parent: editAny,
 	};
 }
 
@@ -94,4 +99,34 @@ export function intersectFieldPermissions(all: readonly BoardFieldPermissions[])
 		result[field] = all.every((permissions) => permissions[field]);
 	}
 	return result;
+}
+
+// The task column a drop/field patch writes -> the permission field that guards it. A key not listed
+// here isn't gated per field (only `canEditFields` applies).
+const PATCH_KEY_FIELDS: Readonly<Record<string, BoardPermissionField>> = {
+	status: "status",
+	priority: "priority",
+	assignees: "assignees",
+	labels: "labels",
+	category: "category",
+	visible: "visibility",
+	releaseId: "release",
+	parentId: "parent",
+};
+
+/**
+ * The permission fields a patch (e.g. a grouping's drop patch `{ releaseId }`) would change that the viewer
+ * may NOT edit — empty when the patch is allowed. Used to refuse a drag client-side instead of letting the
+ * server reject it after an optimistic move.
+ */
+export function getForbiddenPatchFields(
+	patch: Readonly<Record<string, unknown>>,
+	permissions: BoardFieldPermissions
+): BoardPermissionField[] {
+	const forbidden: BoardPermissionField[] = [];
+	for (const key of Object.keys(patch)) {
+		const field = PATCH_KEY_FIELDS[key];
+		if (field && !permissions[field] && !forbidden.includes(field)) forbidden.push(field);
+	}
+	return forbidden;
 }

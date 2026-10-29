@@ -1,9 +1,4 @@
-import {
-	areStatesEqual,
-	DEFAULT_COMBINED_STATE,
-	getViewCombinedState,
-	useBoardViewState,
-} from "../filter/use-board-view-state";
+import { areStatesEqual, getViewCombinedState, useBoardViewState } from "../filter/use-board-view-state";
 import { useBoardSavedViews } from "./use-board-saved-views";
 
 /**
@@ -13,7 +8,7 @@ import { useBoardSavedViews } from "./use-board-saved-views";
  */
 export function useActiveView() {
 	const { views } = useBoardSavedViews();
-	const { viewSlug, filters, viewConfig, supportsSavedViews } = useBoardViewState();
+	const { viewSlug, filters, viewConfig, supportsSavedViews, baseState } = useBoardViewState();
 
 	// Scopes without saved views (public/memory/controlled): no active view, never dirty.
 	if (!supportsSavedViews) {
@@ -23,9 +18,10 @@ export function useActiveView() {
 	const activeView = views.find((view) => (view.slug || view.id) === viewSlug);
 	const current = { filters, viewConfig };
 	const isDirtyFromActiveView = !!activeView && !areStatesEqual(current, getViewCombinedState(activeView));
-	// No view selected, but the live state already differs from the blank default — "dirty" here
-	// means "worth offering to save", not "differs from a view".
-	const isDirtyFromBlank = !activeView && !areStatesEqual(current, DEFAULT_COMBINED_STATE);
+	// No view selected, but the live state already differs from what this scope starts from (its
+	// `initial`, else the shared default — what "clear view" returns to) — "dirty" here means "worth
+	// offering to save", not "differs from a view".
+	const isDirtyFromBlank = !activeView && !areStatesEqual(current, baseState);
 
 	return { activeView, isDirtyFromActiveView, isDirty: isDirtyFromActiveView || isDirtyFromBlank };
 }

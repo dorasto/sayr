@@ -8,7 +8,7 @@ import { Link } from "@tanstack/react-router";
 import { OrgHoverCard } from "@/components/hover-cards";
 import { useTaskSelection } from "@/hooks/useTaskSelection";
 import { ORG_KEY_SLOT_CLASS, ROW_LEADING_GUTTER_CLASS } from "../config/field-config";
-import { useBoardCapabilities, useBoardOrganizationScope } from "../core/board-data";
+import { useBoardCapabilities, useBoardOpenItemClick, useBoardOrganizationScope } from "../core/board-data";
 import { useBoardSelectionKey } from "../core/scope";
 import { BoardTaskContextMenu } from "../fields/board-task-context-menu";
 import { FieldAssignee } from "../fields/field-assignee";
@@ -64,11 +64,16 @@ export function BoardRow({ task, nested = false }: BoardRowProps) {
 	const selectionKey = useBoardSelectionKey();
 	const { isSelected, toggleTask } = useTaskSelection(undefined, selectionKey);
 	const selected = isSelected(task.id);
+	const openItemClick = useBoardOpenItemClick();
 
+	// A click on a field picker/checkbox never opens the task; a plain click opens it in the host's own
+	// surface when the data source asks for that (BoardDataSource.openItemOnClick), else the link navigates.
 	const handleLinkClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
 		if ((e.target as HTMLElement).closest("[data-no-propagate]")) {
 			e.preventDefault();
+			return;
 		}
+		openItemClick(task, e);
 	};
 
 	return (

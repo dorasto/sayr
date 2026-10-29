@@ -143,33 +143,24 @@ Used by Home, Settings pages. Just identity zone.
 
 ### Pattern 2: Task list with toolbar (single org)
 
-Used by `orgid/tasks/index.tsx`. Full breadcrumb identity with category/view switcher dropdown, filter toolbar, view controls, and side panel toggle. The task list itself renders through `Page`'s `panels.right` — see the `page-component` skill for the panel toggle pattern (`sidebarActions.setOpen`/`.close`, not the retired `isProjectPanelOpen`).
+Used by `orgid/tasks/index.tsx`, which runs on the shared board (same chrome as `/home` — see the `board` skill), not `UnifiedTaskView`. The page mounts `TaskBoardProvider` (org task store, `organizationScope`, org saved-views source, scope `org:<id>` / `url+personal`) around an inner component, because the header, toolbar and portalled panel all read the board's context. Identity: org avatar+name link (a plain click calls `clearView()`) / `ActiveViewSwitcher presets={...}` ("Your tasks" + one per category); actions `CreateIssueDialog` + panel toggle. Toolbar: `TaskCountLabel` left, `FilterBuilder` + `BoardViewOptions` right. Panel: `panels.right` with header `{ icon: <ActiveViewPanelHeader />, actions: <OrgSettingsLink />, showClose: false }` and body `OrgTasksPanelContent` (count tiles + `QuickFilterPanel`).
 
 ```tsx
-// apps/start/src/components/pages/admin/orgid/tasks/index.tsx
-const panel = usePanel(TASKS_LIST_PANEL_ID);
-
+// apps/start/src/components/pages/admin/orgid/tasks/index.tsx (inner component, inside TaskBoardProvider)
 <Page
   header={header}
-  panels={{ right: { id: TASKS_LIST_PANEL_ID, header: <TasksPanelHeader />, defaultOpen: true, width: "420px" } }}
+  panels={{ right: { id: TASKS_LIST_PANEL_ID, header: { icon: <ActiveViewPanelHeader />, actions: <OrgSettingsLink organizationId={organization.id} />, showClose: false }, defaultOpen: true, width: "420px" } }}
+  className="h-full"
 >
-  {/* header, built above, includes: */}
-  {/* <PageHeader.Identity actions={<CreateIssueDialog ... />}>
-        <Link to="/$orgId/tasks" ...><Button ...><Avatar .../><span>{organization.name}</span></Button></Link>
-        <span className="text-muted-foreground text-xs">/</span>
-        <DropdownMenu>...All tasks, Your tasks, Categories, Custom Views...</DropdownMenu>
+  {/* header: <PageHeader.Identity actions={<><CreateIssueDialog ... /><PanelToggle /></>}>
+        <Link to="/$orgId/tasks" onClick={clearView on plain click}>...org avatar + name...</Link> /
+        <ActiveViewSwitcher presets={presets} />
       </PageHeader.Identity>
-      <PageHeader.Toolbar
-        left={<TaskFilterDropdown tasks={tasks} labels={labels} availableUsers={availableUsers}
-          organizationId={organization.id} views={views} setViews={setViews}
-          categories={categories} releases={releases} />}
-        right={<><Separator orientation="vertical" className="h-5" /><TaskViewDropdown /></>}
-      /> */}
-  <UnifiedTaskView
-    tasks={tasks} setTasks={setTasks} serverEvents={serverEvents}
-    availableUsers={availableUsers} organization={organization}
-    categories={categories} releases={releases} views={views}
-  />
+      <PageHeader.Toolbar className="border-b-0" left={<TaskCountLabel />}
+        right={<><FilterBuilder /><BoardViewOptions /></>} /> */}
+  <div className="h-full flex flex-col contain-[paint]">
+    <BoardScrollArea />
+  </div>
 </Page>
 ```
 

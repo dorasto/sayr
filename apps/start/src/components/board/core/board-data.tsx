@@ -1,16 +1,16 @@
 import type { schema } from "@repo/database";
-import { createContext, type ReactNode, useCallback, useContext, useMemo } from "react";
+import { createContext, type MouseEvent, type ReactNode, useCallback, useContext, useMemo } from "react";
 import {
 	type BoardGroupingDefinition,
 	createGroupingRegistry,
 	type GroupingRegistry,
 } from "../config/grouping-registry";
 import { DEFAULT_GROUPING_REGISTRY } from "../config/groupings";
+import type { SavedViewsSource } from "../saved-views/saved-views-source";
+import type { BoardViewDefinition } from "../views/view-registry-model";
 import type { BoardItem, TaskItem } from "./board-item";
 import type { BoardItemActions } from "./board-item-actions";
 import { deriveAssignableUsers, deriveFilterUsers } from "./board-users";
-import type { SavedViewsSource } from "../saved-views/saved-views-source";
-import type { BoardViewDefinition } from "../views/view-registry-model";
 import { type BoardCapabilities, resolveCapabilities } from "./capabilities";
 import {
 	ALL_FIELDS_EDITABLE,
@@ -18,6 +18,7 @@ import {
 	getBoardFieldPermissions,
 	NO_FIELDS_EDITABLE,
 } from "./field-permissions";
+import { isPlainLeftClick } from "./open-item";
 import type { BoardRenderers } from "./renderers";
 import { BoardScopeProvider } from "./scope";
 import { type BoardScope, LEGACY_BOARD_SCOPE } from "./scope-config";
@@ -88,6 +89,16 @@ export interface BoardDataSource<T extends BoardItem = TaskItem> {
 	permissions?: Readonly<Record<string, schema.TeamPermissions>>;
 	/** The signed-in user's id — creators/assignees may edit their own tasks whatever their permissions. */
 	viewerId?: string;
+	/**
+	 * Opens an item in the host's own surface (e.g. the org tasks page's task dialog). Present = the context
+	 * menu offers "Open in dialog". Keep it stable.
+	 */
+	openItem?: (item: T) => void;
+	/**
+	 * With `openItem`: a plain left click on a row/card calls it instead of following the row's link
+	 * (modifier/middle clicks still open the link — see core/open-item.ts). Absent/false = rows are links.
+	 */
+	openItemOnClick?: boolean;
 }
 
 interface BoardContextValue {
@@ -206,6 +217,32 @@ export function useBoardSavedViewsOverride(): SavedViewsSource | undefined {
 /** The single org this board shows, or undefined on a cross-org board. */
 export function useBoardOrganizationScope(): BoardOrganizationScope | undefined {
 	return useBoardContext().data.organizationScope;
+}
+
+/**
+ * Same as `useBoardOrganizationScope()`, but safe outside a `BoardProvider` (undefined there) — for hooks
+ * that also run above the provider, like `useBoardViewState()` under /home's Cmd+K commands.
+ */
+export function useOptionalBoardOrganizationScope(): BoardOrganizationScope | undefined {
+	return useContext(BoardContext)?.data.organizationScope;
+}
+
+/**
+ * The link click handler for an item's row/card: when the data source opens items itself on click
+ * (`openItem` + `openItemOnClick`), a plain left click calls `openItem` instead of navigating. Returns
+ * whether it took the click over (the link's default was prevented).
+ */
+export function useBoardOpenItemClick(): (item: TaskItem, event: MouseEvent<HTMLAnchorElement>) => boolean {
+	const { openItem, openItemOnClick } = useBoardData();
+	return useCallback(
+		(item: TaskItem, event: MouseEvent<HTMLAnchorElement>) => {
+			if (!openItem || !openItemOnClick || !isPlainLeftClick(event)) return false;
+			event.preventDefault();
+			openItem(item);
+			return true;
+		},
+		[openItem, openItemOnClick]
+	);
 }
 
 /**

@@ -1,4 +1,5 @@
 import type { schema } from "@repo/database";
+import { headlessToast } from "@repo/ui/components/headless-toast";
 import { useEffect, useRef } from "react";
 import {
 	type BoardGroupingContext,
@@ -7,7 +8,8 @@ import {
 	resolveEffectiveSubGrouping,
 	resolveGroupingDefinition,
 } from "../config/grouping-registry";
-import { useBoardData, useBoardGroupings, useBoardItemActions } from "../core/board-data";
+import { useBoardData, useBoardGroupings, useBoardItemActions, useFieldPermissionsResolver } from "../core/board-data";
+import { getForbiddenPatchFields } from "../core/field-permissions";
 import { useBoardViewState } from "../filter/use-board-view-state";
 
 export interface BoardDragMutation {
@@ -53,15 +55,22 @@ interface BoardDragMutationExecutorProps {
 	onHandled: () => void;
 }
 
-/** Executes a drop mutation through the board's normal optimistic field action. */
+/**
+ * Executes a drop mutation through the board's normal optimistic field action. A drop that would change a
+ * field the viewer may not edit on that task (core/field-permissions.ts) is refused here, with a toast,
+ * instead of being sent for the server to reject after an optimistic move.
+ */
 export function BoardDragMutationExecutor({ mutation, onHandled }: BoardDragMutationExecutorProps) {
 	const data = useBoardData();
 	const groupings = useBoardGroupings();
 	const { showCompletedTasks } = useBoardViewState();
 	const { execute } = useBoardItemActions(mutation.task);
+	const resolvePermissions = useFieldPermissionsResolver();
 	// Read at drop time, not a dependency: the optimistic write below changes `data`, and that must not re-run this effect.
 	const dataRef = useRef(data);
 	dataRef.current = data;
+	const resolvePermissionsRef = useRef(resolvePermissions);
+	resolvePermissionsRef.current = resolvePermissions;
 
 	useEffect(() => {
 		const updateData = getDragUpdate(mutation, groupings, {
@@ -70,7 +79,15 @@ export function BoardDragMutationExecutor({ mutation, onHandled }: BoardDragMuta
 			partial: dataRef.current.pagination?.hasMore ?? false,
 			now: new Date(),
 		});
-		if (updateData) {
+		const forbidden = updateData
+			? getForbiddenPatchFields(updateData, resolvePermissionsRef.current(mutation.task))
+			: [];
+		if (forbidden.length > 0) {
+			headlessToast.error({
+				title: "Can't move this task",
+				description: `You don't have permission to change its ${forbidden.join(" and ")}.`,
+			});
+		} else if (updateData) {
 			void execute({
 				kind: "single",
 				field: "grouping",

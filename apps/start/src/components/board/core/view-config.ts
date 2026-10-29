@@ -124,3 +124,25 @@ export function getViewCombinedState(view: schema.savedViewType): TaskViewCombin
 	const viewConfig = view.viewConfig ? mapViewConfigToState(view.viewConfig) : DEFAULT_TASK_VIEW_STATE;
 	return { filters, viewConfig };
 }
+
+/** The grouping a single-org board shows in place of `org` (which has nothing to split by there). */
+export const SINGLE_ORG_FALLBACK_GROUPING: TaskGroupingId = "status";
+
+/**
+ * The grouping/sub-grouping a board actually renders, given whether it shows one org only. A saved view
+ * (personal views are cross-org) may be grouped or sub-grouped by `org`, which is meaningless on a single-org
+ * board: the primary falls back to status, the sub-grouping to none, and a sub-grouping that would then just
+ * repeat the fallback primary is dropped too. Only the rendered state changes — the stored view state is untouched, so
+ * the view isn't marked dirty and saving it doesn't rewrite the grouping behind the user's back.
+ */
+export function resolveScopedGrouping(
+	grouping: TaskGroupingId,
+	subGrouping: TaskGroupingId | "none",
+	singleOrg: boolean
+): { grouping: TaskGroupingId; subGrouping: TaskGroupingId | "none" } {
+	if (!singleOrg) return { grouping, subGrouping };
+	const resolvedGrouping = grouping === "org" ? SINGLE_ORG_FALLBACK_GROUPING : grouping;
+	const repeatsFallback = grouping === "org" && subGrouping === resolvedGrouping;
+	const resolvedSubGrouping = subGrouping === "org" || repeatsFallback ? "none" : subGrouping;
+	return { grouping: resolvedGrouping, subGrouping: resolvedSubGrouping };
+}

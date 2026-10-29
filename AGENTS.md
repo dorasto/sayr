@@ -278,7 +278,7 @@ const result = await traceAsync("operation.name", () => performOperation(), {
 ```
 
 ### PageHeader
-All admin pages must use a consistent `PageHeader` component (`h-11`, sticky, two zones: Identity left + Toolbar right). Task list pages integrate `UnifiedTaskView` which supports both single-org and cross-org modes. See the `page-header` skill for full patterns and props reference.
+All admin pages must use a consistent `PageHeader` component (`h-11`, sticky, two zones: Identity left + Toolbar right). Task list pages (`/home`, an org's tasks page, a release's task list) render the shared board (`components/board/`, see the `board` skill); the older `UnifiedTaskView` system is no longer mounted by any page and is due for removal. See the `page-header` skill for full patterns and props reference.
 
 ### Page / panel layout
 Every page needing a floating side panel (right or left) goes through the shared `Page` component + `IndentDrawer` primitive + a global `sidebar-store` — a portalled drawer that pushes (not covers) main content on desktop, animates open/close, and supports drag-to-resize on desktop. Non-modal by default, but modal by default on mobile (a route can override either way) — a panel also never auto-opens on mobile regardless of `defaultOpen` or persisted state. This replaced an older `PanelWrapper` (`react-resizable-panels` + a `vaul` mobile `Sheet`) — that component is deleted; if you see `PanelWrapper`, `panelDefaultSize`, `isProjectPanelOpen`, or `setProjectPanelOpen` referenced anywhere, it's describing the retired system. See the `page-component` skill for the current one.

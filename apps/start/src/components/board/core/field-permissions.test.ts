@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
 	ALL_FIELDS_EDITABLE,
 	getBoardFieldPermissions,
+	getForbiddenPatchFields,
 	intersectFieldPermissions,
 	NO_FIELDS_EDITABLE,
 } from "./field-permissions";
@@ -76,6 +77,7 @@ describe("getBoardFieldPermissions", () => {
 			category: true,
 			visibility: true,
 			release: true,
+			parent: true,
 		});
 	});
 
@@ -101,5 +103,29 @@ describe("intersectFieldPermissions", () => {
 
 	it("returns the shared full-access constant when every task allows everything", () => {
 		expect(intersectFieldPermissions([ALL_FIELDS_EDITABLE, ALL_FIELDS_EDITABLE])).toBe(ALL_FIELDS_EDITABLE);
+	});
+});
+
+describe("getForbiddenPatchFields", () => {
+	it("allows a patch whose fields are all editable", () => {
+		expect(getForbiddenPatchFields({ status: "done" }, { ...NO_FIELDS_EDITABLE, status: true })).toEqual([]);
+		expect(getForbiddenPatchFields({ releaseId: "r1", priority: "high" }, ALL_FIELDS_EDITABLE)).toEqual([]);
+	});
+
+	it("names each guarded field the viewer can't edit, mapping column names to fields", () => {
+		expect(
+			getForbiddenPatchFields(
+				{ releaseId: null, category: "c1", status: "todo" },
+				{ ...NO_FIELDS_EDITABLE, status: true }
+			)
+		).toEqual(["release", "category"]);
+		expect(getForbiddenPatchFields({ visible: "public", parentId: "p" }, NO_FIELDS_EDITABLE)).toEqual([
+			"visibility",
+			"parent",
+		]);
+	});
+
+	it("ignores keys that aren't permission-gated", () => {
+		expect(getForbiddenPatchFields({ somethingElse: 1 }, NO_FIELDS_EDITABLE)).toEqual([]);
 	});
 });

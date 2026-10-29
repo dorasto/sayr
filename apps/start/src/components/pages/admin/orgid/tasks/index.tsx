@@ -1,524 +1,325 @@
 import type { schema } from "@repo/database";
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "@repo/ui/components/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
 import { Button } from "@repo/ui/components/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@repo/ui/components/dropdown-menu";
-import { Separator } from "@repo/ui/components/separator";
 import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
-import { useStateManagementKey } from "@repo/ui/hooks/useStateManagement.ts";
 import { sendWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
 import { cn } from "@repo/ui/lib/utils";
 import { ensureCdnUrl } from "@repo/util";
-import {
-  IconCheck,
-  IconChevronDown,
-  IconLayoutSidebarRight,
-  IconLayoutSidebarRightFilled,
-  IconStack2,
-  IconUser,
-  IconUsers,
-} from "@tabler/icons-react";
+import { IconLayoutSidebarRight, IconLayoutSidebarRightFilled, IconUsers } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
-import { useCallback, useEffect, useState } from "react";
-import {
-  TasksPanelContent,
-  TasksPanelHeader,
-} from "@/components/admin/panels/tasks";
+import { useStore } from "@tanstack/react-store";
+import { type MouseEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { useLayoutData } from "@/components/admin/shell/context";
+import { ADMIN_CAPABILITIES } from "@/components/board/core/capabilities";
+import { isPlainLeftClick } from "@/components/board/core/open-item";
+import type { BoardScope } from "@/components/board/core/scope-config";
+import { TaskBoardProvider } from "@/components/board/core/task-board-provider";
+import { FilterBuilder } from "@/components/board/filter/filter-builder";
+import { useBoardViewState } from "@/components/board/filter/use-board-view-state";
+import { BoardScrollArea } from "@/components/board/layout/board-scroll-area";
+import { BoardViewOptions } from "@/components/board/layout/board-view-options";
+import { TaskCountLabel } from "@/components/board/layout/task-count-label";
+import { ActiveViewPanelHeader } from "@/components/board/saved-views/active-view-panel-header";
+import { ActiveViewSwitcher } from "@/components/board/saved-views/active-view-switcher";
+import { useOrgSavedViewsSource } from "@/components/board/saved-views/use-org-saved-views";
 import { PageHeader } from "@/components/generic/PageHeader";
 import { Page } from "@/components/generic/page";
-import RenderIcon from "@/components/generic/RenderIcon";
 import { usePage, usePanel } from "@/components/generic/use-page";
-import {
-  serializeFilters,
-  TaskFilterDropdown,
-} from "@/components/tasks/filter";
+import { getTaskFieldPermissions } from "@/components/tasks/shared/task-field-toolbar-types";
 import CreateIssueDialog from "@/components/tasks/task/creator";
-import { TaskViewDropdown, UnifiedTaskView } from "@/components/tasks/views";
+import { TaskDetailDialog } from "@/components/tasks/task/task-detail-dialog";
 import { useLayoutOrganization } from "@/contexts/ContextOrg";
 import { useLayoutTasks } from "@/contexts/ContextOrgTasks";
 import { usePlanLimits } from "@/hooks/usePlanLimits";
 import { useServerEventsSubscription } from "@/hooks/useServerEventsSubscription";
-import {
-  type FilterState,
-  useTaskViewManager,
-} from "@/hooks/useTaskViewManager";
-import {
-  useWSMessageHandler,
-  type WSMessageHandler,
-} from "@/hooks/useWSMessageHandler";
+import { useWSMessageHandler, type WSMessageHandler } from "@/hooks/useWSMessageHandler";
+import { readClosedTasksPayload, replaceTask, upsertTask } from "@/lib/board/apply-lander-event";
 import type { ServerEventMessage } from "@/lib/serverEvents";
 import { sidebarActions } from "@/lib/sidebar/sidebar-store";
+import { userPreferencesStore } from "@/lib/stores/user-preferences-store";
+import { OrgSettingsLink, OrgTasksPanelContent, useOrgTaskPresets } from "./org-tasks-panel";
 
 const TASKS_LIST_PANEL_ID = "tasks-list-panel";
 
+// The org page's tasks never carry the cross-org `.organization` badge, so nothing to attach.
+const NO_ORG_SNAPSHOTS: ReadonlyMap<string, NonNullable<schema.TaskWithLabels["organization"]>> = new Map();
+
+/**
+ * An organization's tasks page, on the shared board (the same system /home uses — see the board skill):
+ * `TaskBoardProvider` over the org's task store, the org's shared saved views in the breadcrumb switcher
+ * (with "Your tasks" and per-category presets), the count tiles + quick filters in the side panel, and
+ * the task dialog when the viewer prefers opening tasks in a dialog.
+ */
 export default function OrganizationTasksHomePage() {
-  const { serverEvents, account } = useLayoutData();
-  const {
-    organization,
-    setOrganization,
-    labels,
-    setLabels,
-    views,
-    setViews,
-    categories,
-    setCategories,
-    releases,
-    issueTemplates,
-    permissions,
-  } = useLayoutOrganization();
-  const { setPanelContent, closePanel } = usePage();
-  const panel = usePanel(TASKS_LIST_PANEL_ID);
-  const {
-    viewMode,
-    filters,
-    viewSlug: selectedViewSlug,
-    selectView,
-    clearView,
-    applyFilter,
-  } = useTaskViewManager(views);
-  const { tasks, setTasks } = useLayoutTasks();
-  const useMobile = useIsMobile();
-  const { canCreateResource, getLimitMessage } = usePlanLimits();
+	const { serverEvents, account } = useLayoutData();
+	const {
+		organization,
+		setOrganization,
+		labels,
+		setLabels,
+		views,
+		setViews,
+		categories,
+		setCategories,
+		releases,
+		permissions,
+	} = useLayoutOrganization();
+	const { tasks, setTasks, updateTasks } = useLayoutTasks();
+	const { canCreateResource, getLimitMessage } = usePlanLimits();
+	const taskOpenMode = useStore(userPreferencesStore, (state) => state.taskOpenMode);
 
-  // Track which task is open in the dialog (for SSE channel switching)
-  const [activeDialogTaskId, setActiveDialogTaskId] = useState<string | null>(
-    null,
-  );
-  const handleActiveDialogTaskChange = useCallback((taskId: string | null) => {
-    setActiveDialogTaskId(taskId);
-  }, []);
+	// The task open in the dialog, by id — the record itself always comes from the live list, so the dialog
+	// follows SSE/board edits and closes if the task disappears.
+	const [dialogTaskId, setDialogTaskId] = useState<string | null>(null);
+	const dialogTask = dialogTaskId ? (tasks.find((task) => task.id === dialogTaskId) ?? null) : null;
+	const openTaskDialog = useCallback((task: schema.TaskWithLabels) => setDialogTaskId(task.id), []);
 
-  // When a task dialog is open, subscribe to task-specific channel so we
-  // receive UPDATE_TASK_COMMENTS. When closed, fall back to the tasks list channel.
-  const sseChannel = activeDialogTaskId
-    ? `task:${activeDialogTaskId}`
-    : "tasks";
+	// --- Live updates -----------------------------------------------------------------------------
+	// While a task dialog is open, subscribe to that task's channel so UPDATE_TASK_COMMENTS arrives;
+	// otherwise the org's tasks list channel.
+	const sseChannel = dialogTaskId ? `task:${dialogTaskId}` : "tasks";
+	useServerEventsSubscription({
+		serverEvents,
+		orgId: organization.id,
+		organization,
+		channel: sseChannel,
+		setOrganization,
+	});
 
-  // Get categories and views from state management (for breadcrumb view switcher)
-  const { value: stateCategories } = useStateManagementKey<
-    schema.categoryType[]
-  >(["categories", organization.id], [], 1);
+	// Task-list handlers write through `updateTasks` (functional, latest list), never a list captured
+	// from a render — an older render's `tasks` would undo whatever changed since.
+	const handlers: WSMessageHandler<ServerEventMessage> = {
+		CREATE_TASK: (msg) => {
+			const created = msg.data;
+			updateTasks((prev) => upsertTask(prev, created, NO_ORG_SNAPSHOTS));
+		},
+		UPDATE_TASK: (msg) => {
+			const data: unknown = msg.data;
+			// Publishing a release closes its tasks in bulk: `{ taskIds, status: "done" }`, not a task record.
+			const closed = readClosedTasksPayload(data);
+			if (closed) {
+				const ids = new Set(closed.taskIds);
+				updateTasks((prev) =>
+					prev.some((task) => ids.has(task.id) && task.status !== closed.status)
+						? prev.map((task) => (ids.has(task.id) ? { ...task, status: closed.status } : task))
+						: prev
+				);
+				return;
+			}
+			const updatedTask = msg.data;
+			if (!updatedTask?.id) return;
+			updateTasks((prev) => replaceTask(prev, updatedTask));
+			// When the task's dialog is open, forward timeline updates so its GlobalTimeline refetches.
+			if (dialogTaskId && updatedTask.id === dialogTaskId) {
+				sendWindowMessage(window, { type: "timeline-update", payload: updatedTask.id }, "*");
+			}
+		},
+		UPDATE_TASK_COMMENTS: (msg) => {
+			if (dialogTaskId && msg.data.id === dialogTaskId) {
+				sendWindowMessage(window, { type: "timeline-update-comment", payload: msg.data.id }, "*");
+			}
+		},
+		// The "tasks" room also receives vote broadcasts (see apps/backend/routes/api/internal/v1/task.ts).
+		UPDATE_TASK_VOTE: (msg) => {
+			const { id, voteCount } = msg.data;
+			updateTasks((prev) =>
+				prev.some((task) => task.id === id && task.voteCount !== voteCount)
+					? prev.map((task) => (task.id === id ? { ...task, voteCount } : task))
+					: prev
+			);
+		},
+		UPDATE_LABELS: (msg) => {
+			if (msg.scope === "INDIVIDUAL" && msg.meta?.orgId === organization.id) {
+				setLabels(msg.data);
+			}
+		},
+		UPDATE_VIEWS: (msg) => {
+			if (msg.scope === "INDIVIDUAL" && msg.meta?.orgId === organization.id) {
+				setViews(msg.data);
+			}
+		},
+		UPDATE_CATEGORIES: (msg) => {
+			if (msg.scope === "INDIVIDUAL" && msg.meta?.orgId === organization.id) {
+				setCategories(msg.data);
+			}
+		},
+	};
+	const handleMessage = useWSMessageHandler<ServerEventMessage>(handlers);
+	useEffect(() => {
+		if (!serverEvents.event) return;
+		serverEvents.event.addEventListener("message", handleMessage);
+		return () => {
+			serverEvents.event?.removeEventListener("message", handleMessage);
+		};
+	}, [serverEvents.event, handleMessage]);
 
-  // "My Assigned" filter for current user
-  const myAssignedFilterState: FilterState = {
-    groups: [
-      {
-        id: "my-assigned-group",
-        operator: "AND",
-        conditions: [
-          {
-            id: `assignee-any-${account?.id}`,
-            field: "assignee",
-            operator: "any",
-            value: account?.id || "",
-          },
-        ],
-      },
-    ],
-    operator: "AND",
-  };
+	// --- Board ------------------------------------------------------------------------------------
+	const users = useMemo(() => organization.members.map((member) => member.user), [organization.members]);
+	const permissionsByOrg = useMemo(() => ({ [organization.id]: permissions }), [organization.id, permissions]);
+	const organizationScope = useMemo(
+		() => ({ id: organization.id, shortId: organization.shortId }),
+		[organization.id, organization.shortId]
+	);
+	// `?view`/`?filters` in the URL, with the org's shared saved views as the views `?view` resolves against.
+	const boardScope = useMemo<BoardScope>(
+		() => ({ key: `org:${organization.id}`, persistence: "url+personal" }),
+		[organization.id]
+	);
+	const savedViews = useOrgSavedViewsSource({
+		organizationId: organization.id,
+		views,
+		setViews,
+		canCreate: canCreateResource("savedViews"),
+		limitMessage: getLimitMessage("savedViews"),
+	});
 
-  // Category filter helper
-  const createCategoryFilter = (categoryId: string): FilterState => ({
-    groups: [
-      {
-        id: `category-${categoryId}-group`,
-        operator: "AND",
-        conditions: [
-          {
-            id: `category-any-${categoryId}`,
-            field: "category",
-            operator: "any",
-            value: categoryId,
-          },
-        ],
-      },
-    ],
-    operator: "AND",
-  });
+	return (
+		<TaskBoardProvider
+			tasks={tasks}
+			updateTasks={updateTasks}
+			labels={labels}
+			categories={categories}
+			releases={releases}
+			users={users}
+			permissions={permissionsByOrg}
+			viewerId={account.id}
+			organizationScope={organizationScope}
+			capabilities={ADMIN_CAPABILITIES}
+			scope={boardScope}
+			savedViews={savedViews}
+			openItem={openTaskDialog}
+			openItemOnClick={taskOpenMode === "dialog"}
+		>
+			<OrganizationTasksBoardPage setTasks={setTasks} />
+			<TaskDetailDialog
+				task={dialogTask}
+				open={dialogTask !== null}
+				onOpenChange={(open) => {
+					if (!open) setDialogTaskId(null);
+				}}
+				tasks={tasks}
+				setTasks={setTasks}
+				labels={labels}
+				categories={categories}
+				releases={releases}
+				organization={organization}
+				fieldPermissions={dialogTask ? getTaskFieldPermissions(dialogTask, account.id, permissions) : undefined}
+			/>
+		</TaskBoardProvider>
+	);
+}
 
-  // Determine active view for breadcrumb display
-  const currentFiltersSerialized = serializeFilters(filters);
-  const isAllTasksActive = filters.groups.length === 0 && !selectedViewSlug;
-  const isMyAssignedActive =
-    currentFiltersSerialized === serializeFilters(myAssignedFilterState);
+/** The page chrome + board; inside the provider because the header/toolbar/panel read the board's state. */
+function OrganizationTasksBoardPage({ setTasks }: { setTasks: (tasks: schema.TaskWithLabels[]) => void }) {
+	const { organization, labels, releases, issueTemplates } = useLayoutOrganization();
+	const { tasks } = useLayoutTasks();
+	const { clearView } = useBoardViewState();
+	const { all: presets } = useOrgTaskPresets();
+	const { setPanelContent, closePanel } = usePage();
+	const panel = usePanel(TASKS_LIST_PANEL_ID);
+	const isMobile = useIsMobile();
 
-  let currentViewName = "All tasks";
-  let CurrentViewIcon = (
-    <IconStack2 className="size-3.5 text-muted-foreground" />
-  );
+	// OrgTasksPanelContent reads everything from the board's context and view state, so it only needs
+	// handing to the panel once. Gated on isRegistered: Page registers the panel in its client-only pass.
+	useEffect(() => {
+		if (!panel.isRegistered) return;
+		setPanelContent(TASKS_LIST_PANEL_ID, <OrgTasksPanelContent />);
+	}, [panel.isRegistered, setPanelContent]);
 
-  if (isMyAssignedActive) {
-    currentViewName = "Your tasks";
-    CurrentViewIcon = <IconUser className="size-3.5 text-muted-foreground" />;
-  } else if (selectedViewSlug) {
-    const view = views.find((v) => (v.slug || v.id) === selectedViewSlug);
-    if (view) {
-      currentViewName = view.name;
-      CurrentViewIcon = (
-        <RenderIcon
-          iconName={view.viewConfig?.icon || "IconStack2"}
-          color={view.viewConfig?.color || undefined}
-          className="size-3.5! [&_svg]:size-3.5! border-0"
-          button
-        />
-      );
-    }
-  } else if (!isAllTasksActive) {
-    const category = stateCategories.find(
-      (c) =>
-        serializeFilters(createCategoryFilter(c.id)) ===
-        currentFiltersSerialized,
-    );
-    if (category) {
-      currentViewName = category.name;
-      CurrentViewIcon = (
-        <RenderIcon
-          iconName={category.icon || "IconCircleFilled"}
-          color={category.color || undefined}
-          className="size-3.5! [&_svg]:size-3.5! border-0"
-          button
-        />
-      );
-    } else {
-      const view = views.find(
-        (v) => v.filterParams === currentFiltersSerialized,
-      );
-      if (view) {
-        currentViewName = view.name;
-        CurrentViewIcon = (
-          <RenderIcon
-            iconName={view.viewConfig?.icon || "IconStack2"}
-            color={view.viewConfig?.color || undefined}
-            className="size-3.5! [&_svg]:size-3.5! border-0"
-            button
-          />
-        );
-      }
-    }
-  }
+	// The org breadcrumb is the page's "all tasks" link: a plain click clears the view in place (writing the
+	// URL directly, like /home's Home button) instead of a same-route navigation; modifier clicks open a tab.
+	const handleOrgClick = (event: MouseEvent<HTMLAnchorElement>) => {
+		if (!isPlainLeftClick(event)) return;
+		event.preventDefault();
+		clearView();
+	};
 
-  // DEBUG: Check releases in parent component
-  // console.log('[OrganizationTasksHomePage] releases:', releases);
-  // console.log('[OrganizationTasksHomePage] releases.length:', releases?.length ?? 'undefined');
+	const header = (
+		<>
+			<PageHeader.Identity
+				actions={
+					<div className="flex items-center gap-2">
+						<CreateIssueDialog
+							organization={organization}
+							tasks={tasks}
+							setTasks={setTasks}
+							_labels={labels}
+							issueTemplates={issueTemplates}
+							releases={releases ?? []}
+						/>
+						<Button
+							type="button"
+							variant="accent"
+							title={panel.isOpen ? "Close side panel" : "Open side panel"}
+							className={cn(
+								"gap-2 h-6 w-fit bg-accent border-transparent p-1",
+								!panel.isOpen && "bg-transparent"
+							)}
+							onClick={() =>
+								panel.isOpen
+									? closePanel(TASKS_LIST_PANEL_ID)
+									: sidebarActions.setOpen(TASKS_LIST_PANEL_ID, true)
+							}
+						>
+							{panel.isOpen ? <IconLayoutSidebarRightFilled /> : <IconLayoutSidebarRight />}
+						</Button>
+					</div>
+				}
+			>
+				{!isMobile && (
+					<>
+						<Link to="/$orgId/tasks" params={{ orgId: organization.id }} onClick={handleOrgClick}>
+							<Button variant="primary" className="w-fit text-xs p-1 h-auto rounded-lg bg-transparent" size="sm">
+								<Avatar className="h-4 w-4">
+									<AvatarImage
+										src={organization.logo ? ensureCdnUrl(organization.logo) : ""}
+										alt={organization.name}
+									/>
+									<AvatarFallback className="rounded-md uppercase text-xs">
+										<IconUsers className="h-4 w-4" />
+									</AvatarFallback>
+								</Avatar>
+								<span>{organization.name}</span>
+							</Button>
+						</Link>
+						<span className="text-muted-foreground text-xs">/</span>
+					</>
+				)}
+				<ActiveViewSwitcher presets={presets} />
+			</PageHeader.Identity>
+			<PageHeader.Toolbar
+				className="border-b-0"
+				left={<TaskCountLabel />}
+				right={
+					<>
+						<FilterBuilder />
+						<BoardViewOptions />
+					</>
+				}
+			/>
+		</>
+	);
 
-  useServerEventsSubscription({
-    serverEvents,
-    orgId: organization.id,
-    organization: organization,
-    channel: sseChannel,
-    setOrganization: setOrganization,
-  });
-  const handlers: WSMessageHandler<ServerEventMessage> = {
-    CREATE_TASK: (msg) => {
-      setTasks([...tasks, msg.data]);
-    },
-    UPDATE_TASK: (msg) => {
-      const updatedTask = msg.data;
-      const updatedTasks = tasks.map((task) =>
-        task.id === updatedTask.id ? updatedTask : task,
-      );
-      setTasks(updatedTasks);
-      // When a task dialog is open, forward timeline updates via window message
-      // so GlobalTimeline inside the dialog can refetch
-      if (activeDialogTaskId && updatedTask.id === activeDialogTaskId) {
-        sendWindowMessage(
-          window,
-          { type: "timeline-update", payload: updatedTask.id },
-          "*",
-        );
-      }
-    },
-    UPDATE_TASK_COMMENTS: async (msg) => {
-      if (activeDialogTaskId && msg.data.id === activeDialogTaskId) {
-        sendWindowMessage(
-          window,
-          { type: "timeline-update-comment", payload: msg.data.id },
-          "*",
-        );
-      }
-    },
-    // This page's "tasks" room now also receives vote broadcasts (previously
-    // only the task-specific room did, so votes never live-updated here — see
-    // apps/backend/routes/api/internal/v1/task.ts's vote broadcast).
-    UPDATE_TASK_VOTE: (msg) => {
-      const { id, voteCount } = msg.data;
-      setTasks(
-        tasks.map((task) => (task.id === id ? { ...task, voteCount } : task)),
-      );
-    },
-    UPDATE_LABELS: (msg) => {
-      if (msg.scope === "INDIVIDUAL" && msg.meta?.orgId === organization.id) {
-        setLabels(msg.data);
-      }
-    },
-    UPDATE_VIEWS: (msg) => {
-      if (msg.scope === "INDIVIDUAL" && msg.meta?.orgId === organization.id) {
-        setViews(msg.data);
-      }
-    },
-    UPDATE_CATEGORIES: (msg) => {
-      if (msg.scope === "INDIVIDUAL" && msg.meta?.orgId === organization.id) {
-        setCategories(msg.data);
-      }
-    },
-  };
-  const handleMessage = useWSMessageHandler<ServerEventMessage>(handlers, {
-    // onUnhandled: (msg) => console.warn("⚠️ [UNHANDLED MESSAGE PROJECT PAGE]", msg),
-  });
-  useEffect(() => {
-    if (!serverEvents.event) return;
-    serverEvents.event.addEventListener("message", handleMessage);
-    // Cleanup on unmount or dependency change
-    return () => {
-      serverEvents.event?.removeEventListener("message", handleMessage);
-    };
-  }, [serverEvents.event, handleMessage]);
-
-  // TasksPanelContent pulls everything it needs from context itself, so it
-  // only needs to be handed to the panel once — it stays in sync on its own.
-  // Gated on isRegistered, not just mount: Page defers registering the
-  // panel to its client-only pass, so a plain `[]`-effect here would race
-  // it and silently no-op.
-  useEffect(() => {
-    if (!panel.isRegistered) return;
-    setPanelContent(TASKS_LIST_PANEL_ID, <TasksPanelContent />);
-  }, [panel.isRegistered, setPanelContent]);
-
-  const availableUsers =
-    organization?.members.map((member) => member.user) || [];
-
-  const header = (
-    <>
-      <PageHeader.Identity
-        actions={
-          <div className="flex items-center gap-2">
-            <CreateIssueDialog
-              organization={organization}
-              tasks={tasks}
-              setTasks={setTasks}
-              _labels={labels}
-              issueTemplates={issueTemplates}
-              releases={releases ?? []}
-            />
-            <Button
-              variant="accent"
-              className={cn(
-                "gap-2 h-6 w-fit bg-accent border-transparent p-1",
-                !panel.isOpen && "bg-transparent",
-              )}
-              onClick={() =>
-                panel.isOpen
-                  ? closePanel(TASKS_LIST_PANEL_ID)
-                  : sidebarActions.setOpen(TASKS_LIST_PANEL_ID, true)
-              }
-            >
-              {panel.isOpen ? (
-                <IconLayoutSidebarRightFilled />
-              ) : (
-                <IconLayoutSidebarRight />
-              )}
-            </Button>
-          </div>
-        }
-      >
-        {!useMobile && (
-          <>
-            <Link to="/$orgId/tasks" params={{ orgId: organization.id }}>
-              <Button
-                variant={"primary"}
-                className="w-fit text-xs p-1 h-auto rounded-lg bg-transparent"
-                size={"sm"}
-              >
-                <Avatar className="h-4 w-4">
-                  <AvatarImage
-                    src={
-                      organization.logo ? ensureCdnUrl(organization.logo) : ""
-                    }
-                    alt={organization.name}
-                  />
-                  <AvatarFallback className="rounded-md uppercase text-xs">
-                    <IconUsers className="h-4 w-4" />
-                  </AvatarFallback>
-                </Avatar>
-                <span>{organization.name}</span>
-              </Button>
-            </Link>
-            <span className="text-muted-foreground text-xs">/</span>
-          </>
-        )}
-        <DropdownMenu>
-          <DropdownMenuTrigger
-            render={
-              <Button
-                variant={"primary"}
-                className="w-fit text-xs p-1 h-auto rounded-lg bg-transparent gap-1 max-w-40"
-                size={"sm"}
-              />
-            }
-          >
-            {CurrentViewIcon}
-            <span className="truncate">{currentViewName}</span>
-            <IconChevronDown className="size-3 text-muted-foreground shrink-0" />
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-56">
-            <DropdownMenuItem onClick={() => clearView()}>
-              <IconStack2 className="size-4 text-muted-foreground" />
-              All tasks
-              {isAllTasksActive && <IconCheck className="ml-auto size-4" />}
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => applyFilter(myAssignedFilterState)}
-            >
-              <IconUser className="size-4 text-muted-foreground" />
-              Your tasks
-              {isMyAssignedActive && <IconCheck className="ml-auto size-4" />}
-            </DropdownMenuItem>
-
-            {stateCategories.length > 0 && (
-              <>
-                <DropdownMenuSeparator />
-                <DropdownMenuLabel>Categories</DropdownMenuLabel>
-                {stateCategories.map((category) => {
-                  const categoryFilter = createCategoryFilter(category.id);
-                  const isActive =
-                    currentFiltersSerialized ===
-                    serializeFilters(categoryFilter);
-                  return (
-                    <DropdownMenuItem
-                      key={category.id}
-                      onClick={() => applyFilter(categoryFilter)}
-                    >
-                      <RenderIcon
-                        iconName={category.icon || "IconCircleFilled"}
-                        color={category.color || undefined}
-                        className="size-4! [&_svg]:size-3! border-0"
-                        button
-                      />
-                      <span>{category.name}</span>
-                      {isActive && <IconCheck className="ml-auto size-4" />}
-                    </DropdownMenuItem>
-                  );
-                })}
-              </>
-            )}
-
-            {views.length > 0 && (
-              <>
-                <DropdownMenuSeparator />
-                <DropdownMenuLabel>Custom Views</DropdownMenuLabel>
-                {views.map((view) => {
-                  const viewSlug = view.slug || view.id;
-                  const isActive = selectedViewSlug === viewSlug;
-                  return (
-                    <DropdownMenuItem
-                      key={view.id}
-                      onClick={() => selectView(view)}
-                    >
-                      <RenderIcon
-                        iconName={view.viewConfig?.icon || "IconStack2"}
-                        color={view.viewConfig?.color || undefined}
-                        className="size-4! [&_svg]:size-3! border-0"
-                        button
-                      />
-                      <span>{view.name}</span>
-                      {isActive && <IconCheck className="ml-auto size-4" />}
-                    </DropdownMenuItem>
-                  );
-                })}
-              </>
-            )}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </PageHeader.Identity>
-      <PageHeader.Toolbar
-        left={
-          <>
-            <TaskFilterDropdown
-              tasks={tasks}
-              labels={labels}
-              availableUsers={availableUsers}
-              organizationId={organization.id}
-              views={views}
-              setViews={setViews}
-              categories={categories}
-              releases={releases}
-              canCreateView={canCreateResource("savedViews")}
-              viewLimitMessage={getLimitMessage("savedViews")}
-            />
-          </>
-        }
-        right={
-          <>
-            <Separator orientation="vertical" className="h-5" />
-            <TaskViewDropdown />
-          </>
-        }
-      />
-    </>
-  );
-
-  return (
-    <Page
-      header={header}
-      panels={{
-        right: {
-          id: TASKS_LIST_PANEL_ID,
-          header: <TasksPanelHeader />,
-          defaultOpen: true,
-          width: "420px",
-        },
-      }}
-    >
-      {/* Outer div uses h-full, NOT flex-1 — its own parent here (Page's
-			    "min-h-0 flex-1 overflow-y-auto" content wrapper) is a plain block
-			    div, not a flex container, so flex-1 on this div is inert and it
-			    silently shrinks to content height instead of filling the available
-			    space (reproduced live: kanban columns stopped ~140px short of the
-			    real bottom). h-full (percentage height) works here because the
-			    parent's own height is still definite via ITS flex-grow ancestor —
-			    percentage height doesn't require an immediate flex parent, only a
-			    definite one. The inner div is exactly the old wrapper (same
-			    overflow-y-auto/relative, which the BulkActionBar inside
-			    UnifiedTaskView anchors its `absolute bottom-4` to), just inset by
-			    the outer padding so it lines up with the panel's own floating inset
-			    instead of running flush to the page edges. No border/bg-card —
-			    group headers (bg-muted) are the visual anchor, task rows stay
-			    transparent against the page background. */}
-      <div className="h-full flex flex-col p-3">
-        <div
-          className={cn(
-            "flex-1 min-h-0 overflow-y-auto flex flex-col relative",
-            viewMode === "kanban" && "px-0",
-          )}
-        >
-          <UnifiedTaskView
-            tasks={tasks}
-            setTasks={setTasks}
-            serverEvents={serverEvents}
-            availableUsers={availableUsers}
-            availableLabels={labels}
-            organization={organization}
-            categories={categories}
-            releases={releases}
-            views={views}
-            onActiveDialogTaskChange={handleActiveDialogTaskChange}
-            permissionsByOrg={{ [organization.id]: permissions }}
-            accountId={account.id}
-          />
-        </div>
-      </div>
-    </Page>
-  );
+	return (
+		<Page
+			header={header}
+			panels={{
+				right: {
+					id: TASKS_LIST_PANEL_ID,
+					header: {
+						icon: <ActiveViewPanelHeader />,
+						actions: <OrgSettingsLink organizationId={organization.id} />,
+						showClose: false,
+					},
+					defaultOpen: true,
+					width: "420px",
+				},
+			}}
+			className="h-full"
+		>
+			<div className="h-full flex flex-col contain-[paint]">
+				<BoardScrollArea />
+			</div>
+		</Page>
+	);
 }

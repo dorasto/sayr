@@ -7,7 +7,7 @@ import { IconChevronUp } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
 import type { MouseEvent, ReactNode } from "react";
 import { useTaskSelection } from "@/hooks/useTaskSelection";
-import { useBoardCapabilities, useBoardOrganizationScope } from "../core/board-data";
+import { useBoardCapabilities, useBoardOpenItemClick, useBoardOrganizationScope } from "../core/board-data";
 import { useBoardSelectionKey } from "../core/scope";
 import { BoardTaskContextMenu } from "../fields/board-task-context-menu";
 import { type BoardField, FieldToolbar } from "../fields/field-toolbar";
@@ -60,19 +60,22 @@ export function BoardCard({
 	const selectionKey = useBoardSelectionKey();
 	const { isSelected, toggleTask } = useTaskSelection(undefined, selectionKey);
 	const selected = isSelected(task.id);
+	const openItemClick = useBoardOpenItemClick();
 	const cardLink: BoardCardLink = link ?? {
 		to: "/$orgId/tasks/$taskShortId",
 		params: { orgId: task.organizationId, taskShortId: (task.shortId ?? task.id).toString() },
 	};
 
 	// The whole card is the link (like BoardRow); clicks on interactive pieces marked `data-no-propagate` (field
-	// pickers, the checkbox, the vote) don't open the task.
+	// pickers, the checkbox, the vote) don't open the task. A host's `onLinkClick` owns the click; otherwise the
+	// data source's `openItem` may take a plain click over (BoardDataSource.openItemOnClick).
 	const handleLinkClick = (event: MouseEvent<HTMLAnchorElement>) => {
 		if ((event.target as HTMLElement).closest("[data-no-propagate]")) {
 			event.preventDefault();
 			return;
 		}
-		onLinkClick?.(event);
+		if (onLinkClick) onLinkClick(event);
+		else openItemClick(task, event);
 	};
 
 	return (
