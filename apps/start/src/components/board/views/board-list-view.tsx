@@ -288,7 +288,7 @@ interface GroupSectionProps {
   isSubGroup?: boolean;
   /** Lifted from BoardListView's dragOverride — @dnd-kit only reports one closest "over" target at a time (a row wins over its own section), so a per-section useDroppable().isOver can't tell "is any row within this group currently the target." This can. */
   isDropTarget?: boolean;
-  /** mt-3 on every section but the first, so stacked groups read as clearly separate — passed in rather than baked in here since "first" is a fact only the list knows. */
+  /** mt-1 on every section but the first — just enough that two tinted headers (e.g. collapsed groups) don't touch; the header itself is the separator. Was mt-3, which read as a stray gap after each group's last row (SAY-94). Passed in rather than baked in here since "first" is a fact only the list knows. */
   className?: string;
   /** The "none" grouping: just the rows, no section header (and so nothing to collapse). */
   hideHeader?: boolean;
@@ -553,7 +553,7 @@ function StaticBoardList({ tasks, flatSubtasks }: BoardListViewProps) {
     <>
       <div>
         {baseGroups.map((group, index) => {
-          const spacing = index > 0 ? "mt-3" : "";
+          const spacing = index > 0 ? "mt-1" : "";
           if (subGrouping === "none") {
             return (
               <StaticGroupSection
@@ -585,7 +585,7 @@ function StaticBoardList({ tasks, flatSubtasks }: BoardListViewProps) {
                     key={subGroup.id}
                     group={subGroup}
                     isSubGroup
-                    className={subIndex > 0 ? "mt-3" : undefined}
+                    className={subIndex > 0 ? "mt-1" : undefined}
                     containRows
                     expanded={!collapsedSections.has(subGroupKey)}
                     onToggleExpanded={() => toggleSection(subGroupKey)}
@@ -772,7 +772,7 @@ function DraggableBoardList({ tasks, flatSubtasks }: BoardListViewProps) {
       >
         <div>
           {groups.map((group, index) => {
-            const spacing = index > 0 ? "mt-3" : "";
+            const spacing = index > 0 ? "mt-1" : "";
             if (subGrouping === "none") {
               const dropTargetId = `board-list-drop:${group.id}`;
               return (
@@ -821,7 +821,7 @@ function DraggableBoardList({ tasks, flatSubtasks }: BoardListViewProps) {
                         dragOverride?.groupId === group.id &&
                         dragOverride.subGroupId === subGroup.id
                       }
-                      className={subIndex > 0 ? "mt-3" : undefined}
+                      className={subIndex > 0 ? "mt-1" : undefined}
                       expanded={!collapsedSections.has(subGroupKey)}
                       onToggleExpanded={() => toggleSection(subGroupKey)}
                     >

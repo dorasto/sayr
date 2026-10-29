@@ -79,7 +79,9 @@ export function BoardRow({ task, nested = false }: BoardRowProps) {
 				}}
 				onClick={handleLinkClick}
 				className={cn(
-					"group flex items-center gap-1.5 px-2 py-1 text-xs hover:bg-accent transition-all rounded-xl",
+					// Fixed h-7, not py-1: with padding the row grew to its tallest field, so
+					// unassigned rows (22px placeholder) sat 2px taller than ones with avatars.
+					"group flex h-7 items-center gap-1.5 px-2 text-xs hover:bg-accent transition-all rounded-xl",
 					selected && "bg-primary/10 hover:bg-primary/10"
 				)}
 			>
