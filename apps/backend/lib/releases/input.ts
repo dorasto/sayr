@@ -210,6 +210,8 @@ export interface CreateReleaseInput {
 	releasedAt?: Date;
 	color: string;
 	icon: string;
+	/** Membership of the organization is checked by the service. */
+	leadId?: string;
 }
 
 export function parseCreateReleaseInput(body: Record<string, unknown>): Validated<CreateReleaseInput> {
@@ -267,9 +269,18 @@ export function parseCreateReleaseInput(body: Record<string, unknown>): Validate
 		icon = parsed.value;
 	}
 
+	// Same rule as parseUpdateReleaseInput; null or absent just means no lead.
+	let leadId: string | undefined;
+	if (body.leadId !== undefined && body.leadId !== null) {
+		if (typeof body.leadId !== "string" || !body.leadId.trim()) {
+			return { ok: false, error: '"leadId" must be a user id.' };
+		}
+		leadId = body.leadId.trim();
+	}
+
 	return {
 		ok: true,
-		value: { name: name.value, slug: slug.value, description, status, targetDate, releasedAt, color, icon },
+		value: { name: name.value, slug: slug.value, description, status, targetDate, releasedAt, color, icon, leadId },
 	};
 }
 

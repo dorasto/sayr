@@ -59,6 +59,10 @@ export async function createReleaseService(params: {
 	});
 	if (existing) throw slugTakenError(input.slug);
 
+	if (input.leadId && !(await isOrganizationMember(orgId, input.leadId))) {
+		throw new ReleaseServiceError("INVALID_LEAD", "The release lead must be a member of this organization.");
+	}
+
 	// Plan-level release limit (cloud free = none; self-hosted limits are enforced by the route).
 	const [organization, [releaseCount]] = await Promise.all([
 		db.query.organization.findFirst({ where: eq(schema.organization.id, orgId), columns: { plan: true } }),
@@ -91,6 +95,7 @@ export async function createReleaseService(params: {
 					releasedAt: releasedAt ?? undefined,
 					color: input.color,
 					icon: input.icon,
+					leadId: input.leadId,
 					createdBy: actorUserId,
 				}),
 			{

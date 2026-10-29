@@ -24,6 +24,7 @@ interface CreateOptions {
 	targetDate?: string;
 	color?: string;
 	icon?: string;
+	lead?: string;
 	json?: boolean;
 }
 
@@ -102,6 +103,7 @@ function tipFlags(org: string | undefined, opts: CreateOptions): TipFlag[] {
 		["--target-date", opts.targetDate],
 		["--color", opts.color],
 		["--icon", opts.icon],
+		["--lead", opts.lead],
 	];
 }
 
@@ -119,6 +121,7 @@ async function createRelease(name: string, orgId: string, opts: CreateOptions): 
 		targetDate,
 		color: opts.color,
 		icon: opts.icon,
+		leadId: opts.lead,
 	};
 
 	const created = await apiRequest<Release>("/releases", { method: "POST", body });
@@ -144,6 +147,7 @@ export function registerCreateCommand(releases: Command): void {
 		.option("--target-date <date>", "Planned ship date, e.g. 2026-10-31")
 		.option("--color <color>", "Badge color as #RRGGBB or hsla(h, s%, l%, 1)")
 		.option("--icon <icon>", "Tabler icon name, e.g. IconRocket")
+		.option("--lead <userId>", "Release lead — a member's user id")
 		.option("--json", "Output raw JSON")
 		.addHelpText("after", GUIDED_HELP)
 		.action(async (name: string | undefined, opts: CreateOptions, command: Command) => {
