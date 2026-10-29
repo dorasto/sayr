@@ -8,8 +8,6 @@ import {
 	createTask,
 	createTaskRelation,
 	db,
-	extractTaskMentions,
-	extractUserMentions,
 	getBlockedUserIds,
 	getCommentReplies,
 	getCommentReplyCountBatch,
@@ -37,7 +35,7 @@ import { getInstallationToken } from "@repo/util/github/auth";
 import { and, desc, eq, ilike, isNull, notInArray, or, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import { emitEvent, type PlatformEventType } from "@/clickhouse";
-import { createNotification, type AppEnv } from "@/index";
+import type { AppEnv } from "@/index";
 import { prosekitJSONToMarkdown } from "@/prosekit/markdown";
 import { resolveMentionLinksForGithub } from "@/prosekit/resolveMentions";
 import {
@@ -58,7 +56,7 @@ import {
 	traceOrgPermissionCheck,
 	tracePublicOrgAccessCheck,
 } from "@/util";
-import { notifyAssignees } from "../../../../lib/tasks/notify";
+import { notifyCommentCreated } from "../../../../lib/tasks/notify";
 import { updateTaskService } from "../../../../lib/tasks/updateTask";
 import {
 	TaskNotFoundError as AssigneesTaskNotFoundError,
@@ -1821,58 +1819,7 @@ apiRouteAdminProjectTask.post("/create-comment", async (c) => {
 		}
 	}
 
-	// Notify assignees and mentioned users about the new comment.
-	// Users who are both assigned AND mentioned only receive one notification (the "comment" type).
-	const assigneeIds = await getTaskAssigneeIds(taskId);
-	const mentionedUserIds = extractUserMentions(content);
-
-	// Send "comment" notifications to all assignees (filtered by actor inside createNotifications)
-	notifyAssignees({ taskId, orgId, actorId, type: "comment" });
-
-	// Send "mention" notifications only to mentioned users who are NOT assignees.
-	// Assignees already receive a "comment" notification above, so skip them to avoid duplicates.
-	const assigneeSet = new Set(assigneeIds);
-	const mentionOnlyUserIds = [...new Set(mentionedUserIds)].filter((id) => !assigneeSet.has(id));
-	if (mentionOnlyUserIds.length > 0) {
-		for (const userId of mentionOnlyUserIds) {
-			try {
-				await createNotification({
-					type: "mention",
-					resourceId: orgId,
-					recipientId: userId,
-					actorId: actorId ?? null,
-					data: {
-						taskId,
-						commentId: newComment?.id,
-					},
-				});
-			} catch {
-				// Notification failures should never break task operations
-			}
-		}
-	}
-
-	// Fire timeline events on any tasks mentioned in the comment.
-	// Each mentioned task gets a "task_mentioned" event pointing back to this task.
-	const mentionedTaskIds = extractTaskMentions(content);
-	if (mentionedTaskIds.length > 0) {
-		await Promise.all(
-			mentionedTaskIds
-				.filter((id) => id !== taskId) // skip self-mentions
-				.map((mentionedTaskId) =>
-					addLogEventTask(
-						mentionedTaskId,
-						orgId,
-						"task_mentioned",
-						null,
-						{ sourceTaskId: taskId },
-						actorId ?? undefined
-					).catch(
-						() => {} // never let timeline failures break comment creation
-					)
-				)
-		);
-	}
+	await notifyCommentCreated({ taskId, orgId, actorId, commentId: newComment?.id, content });
 
 	await traceAsync(
 		"task.comment.create.broadcast",

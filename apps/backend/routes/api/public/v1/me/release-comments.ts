@@ -36,6 +36,7 @@ import {
 	releasePathParam,
 } from "./release-schemas";
 import { parsePaginationParam } from "./schemas";
+import { withResolvedMentions } from "@/prosekit/resolveMarkdownMentions";
 
 const COMMENTS_DEFAULT_LIMIT = 10;
 const COMMENTS_MAX_LIMIT = 50;
@@ -165,6 +166,7 @@ releaseCommentsRoute.post(
 
 		const input = parseCreateCommentInput(body);
 		if (!input.ok) return invalidRequest(c, input.error);
+		input.value = await withResolvedMentions(input.value, guard.orgId);
 
 		let statusUpdateId = input.value.statusUpdateId;
 
@@ -281,6 +283,7 @@ releaseCommentsRoute.patch(
 
 		const input = parseUpdateCommentInput(body);
 		if (!input.ok) return invalidRequest(c, input.error);
+		input.value = await withResolvedMentions(input.value, guard.orgId);
 
 		const updated = await updateReleaseComment(guard.comment.id, input.value);
 		broadcastReleaseCommentsChanged(guard.orgId, guard.release.id, updated.visibility);

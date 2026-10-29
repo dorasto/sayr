@@ -35,8 +35,9 @@ import {
 	RELEASE_VISIBILITIES,
 } from "../../../lib/releases/input";
 import { toMarkdown } from "../../../lib/releases/serialize";
-import { type McpUserClaims, resolveAndRateLimitOrg, toolError, toolJson } from "../context";
+import { MARKDOWN_MENTIONS_HINT, type McpUserClaims, resolveAndRateLimitOrg, toolError, toolJson } from "../context";
 import { findRelease, guard, orgArg, releaseArg, releaseFailure } from "./releases";
+import { withResolvedMentions } from "../../../prosekit/resolveMarkdownMentions";
 
 const COMMENTS_DEFAULT_LIMIT = 10;
 const COMMENTS_MAX_LIMIT = 50;
@@ -165,7 +166,7 @@ export function registerReleaseActivityTools(server: McpServer, claims: McpUserC
 			inputSchema: z.object({
 				org: orgArg,
 				release: releaseArg,
-				content: z.string().min(1).describe("Markdown."),
+				content: z.string().min(1).describe(`Markdown. ${MARKDOWN_MENTIONS_HINT}`),
 				visibility: z
 					.enum(RELEASE_VISIBILITIES)
 					.optional()
@@ -184,6 +185,7 @@ export function registerReleaseActivityTools(server: McpServer, claims: McpUserC
 
 			const input = parseCreateCommentInput(fields);
 			if (!input.ok) return toolError(input.error);
+			input.value = await withResolvedMentions(input.value, g.orgId);
 
 			let statusUpdateId = input.value.statusUpdateId;
 			if (input.value.parentId) {
@@ -225,7 +227,7 @@ export function registerReleaseActivityTools(server: McpServer, claims: McpUserC
 			inputSchema: z.object({
 				org: orgArg,
 				commentId: z.string(),
-				content: z.string().min(1).optional().describe("Markdown."),
+				content: z.string().min(1).optional().describe(`Markdown. ${MARKDOWN_MENTIONS_HINT}`),
 				visibility: z.enum(RELEASE_VISIBILITIES).optional(),
 			}),
 		},
@@ -236,6 +238,7 @@ export function registerReleaseActivityTools(server: McpServer, claims: McpUserC
 
 			const input = parseUpdateCommentInput(fields);
 			if (!input.ok) return toolError(input.error);
+			input.value = await withResolvedMentions(input.value, g.orgId);
 
 			const updated = await updateReleaseComment(g.comment.id, input.value);
 			broadcastReleaseCommentsChanged(g.orgId, g.release.id, updated.visibility);
@@ -296,7 +299,7 @@ export function registerReleaseActivityTools(server: McpServer, claims: McpUserC
 			inputSchema: z.object({
 				org: orgArg,
 				release: releaseArg,
-				content: z.string().optional().describe("Markdown."),
+				content: z.string().optional().describe(`Markdown. ${MARKDOWN_MENTIONS_HINT}`),
 				health: z.enum(RELEASE_HEALTHS).optional().describe('Default "on_track".'),
 				visibility: z
 					.enum(RELEASE_VISIBILITIES)
@@ -314,6 +317,7 @@ export function registerReleaseActivityTools(server: McpServer, claims: McpUserC
 
 			const input = parseCreateStatusUpdateInput(fields);
 			if (!input.ok) return toolError(input.error);
+			input.value = await withResolvedMentions(input.value, g.orgId);
 
 			const update = await createReleaseStatusUpdate({
 				releaseId: release.id,
@@ -338,7 +342,7 @@ export function registerReleaseActivityTools(server: McpServer, claims: McpUserC
 				org: orgArg,
 				release: releaseArg,
 				updateId: z.string().describe("Status update id (see list_release_status_updates)."),
-				content: z.string().optional().describe("Markdown."),
+				content: z.string().optional().describe(`Markdown. ${MARKDOWN_MENTIONS_HINT}`),
 				health: z.enum(RELEASE_HEALTHS).optional(),
 				visibility: z.enum(RELEASE_VISIBILITIES).optional(),
 			}),
@@ -356,6 +360,7 @@ export function registerReleaseActivityTools(server: McpServer, claims: McpUserC
 
 			const input = parseUpdateStatusUpdateInput(fields);
 			if (!input.ok) return toolError(input.error);
+			input.value = await withResolvedMentions(input.value, g.orgId);
 
 			const updated = await updateReleaseStatusUpdate(existing.id, input.value);
 			broadcastReleaseStatusUpdatesChanged(g.orgId, release.id);
