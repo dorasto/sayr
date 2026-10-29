@@ -29,8 +29,8 @@ export const serializeFilters = (state: FilterState): string => {
 };
 
 /**
- * Operators older saved filters may still carry: org saved views were written by the old
- * components/tasks serialiser, whose deserialiser maps these the same way.
+ * Operators older saved filters may still carry (org saved views written by the retired
+ * components/tasks serialiser, which used is/is_not).
  */
 const LEGACY_OPERATOR_ALIASES: Readonly<Record<string, FilterOperator>> = { is: "any", is_not: "none" };
 

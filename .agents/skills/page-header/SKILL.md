@@ -1,6 +1,6 @@
 ---
 name: page-header
-description: Add or modify PageHeader layouts on admin pages, including task view integration and cross-org patterns
+description: Add or modify PageHeader layouts on admin pages, including the board's toolbar controls on task list pages
 metadata:
   audience: developers
   workflow: feature-development
@@ -8,7 +8,7 @@ metadata:
 
 ## What I do
 
-I help you add, modify, or troubleshoot the `PageHeader` component used on every admin page. This includes setting up the identity zone (icon, title, breadcrumbs, actions), the toolbar zone (filters, view controls), and integrating with the task view system (`UnifiedTaskView`, `TaskFilterDropdown`, `TaskViewDropdown`). For the side panel a page's toolbar toggle usually opens, see the `page-component` skill — panels are a separate system (`Page` + `sidebar-store`), not part of `PageHeader` itself.
+I help you add, modify, or troubleshoot the `PageHeader` component used on every admin page. This includes setting up the identity zone (icon, title, breadcrumbs, actions), the toolbar zone (filters, view controls), and wiring the shared board's controls (`FilterBuilder`, `BoardViewOptions`, `TaskCountLabel`, `ActiveViewSwitcher`) into it on task list pages — the board itself is covered by the `board` skill. For the side panel a page's toolbar toggle usually opens, see the `page-component` skill — panels are a separate system (`Page` + `sidebar-store`), not part of `PageHeader` itself.
 
 ## Architecture overview
 
@@ -22,11 +22,10 @@ Every admin page renders a `PageHeader` at the top with a consistent `h-11` heig
 | File | Purpose |
 |------|---------|
 | `apps/start/src/components/generic/PageHeader.tsx` | `PageHeader`, `PageHeader.Identity`, `PageHeader.Toolbar` components |
-| `apps/start/src/components/tasks/views/unified-task-view.tsx` | `UnifiedTaskView` -- renders both list and kanban views with grouping, filtering, drag-and-drop |
-| `apps/start/src/components/tasks/views/unified-task-item.tsx` | `UnifiedTaskItem` -- single task row/card, supports `personal` prop for org badges |
-| `apps/start/src/components/tasks/views/TaskViewDropdown.tsx` | `TaskViewDropdown` -- grouping, sub-grouping, view mode, completed tasks toggle |
-| `apps/start/src/components/tasks/filter/TaskFilterDropdown.tsx` | `TaskFilterDropdown` -- filter badges + filter menu + save view popover |
-| `apps/start/src/hooks/useTaskViewManager.ts` | Shared state for filters, grouping, viewMode via TanStack Store + URL params |
+| `apps/start/src/components/board/filter/filter-builder.tsx` | `FilterBuilder` -- the board's filter popover (toolbar right) |
+| `apps/start/src/components/board/layout/board-view-options.tsx` | `BoardViewOptions` -- view mode, group/sub-group, sort, show completed |
+| `apps/start/src/components/board/layout/task-count-label.tsx` | `TaskCountLabel` -- visible task count (toolbar left) |
+| `apps/start/src/components/board/saved-views/active-view-switcher.tsx` | `ActiveViewSwitcher` -- breadcrumb saved-view switcher (identity zone) |
 
 ## Component API
 
@@ -98,11 +97,11 @@ Zone 2. Fixed height `h-11` with `border-b`. Two usage modes:
 
 ```tsx
 <PageHeader.Toolbar
-  left={<TaskFilterDropdown ... />}
+  left={<TaskCountLabel />}
   right={
     <>
-      <Separator orientation="vertical" className="h-5" />
-      <TaskViewDropdown />
+      <FilterBuilder />
+      <BoardViewOptions />
     </>
   }
 />
@@ -129,21 +128,17 @@ Props:
 
 ### Pattern 1: Simple page (no toolbar)
 
-Used by Home, Settings pages. Just identity zone.
+Used by Settings pages. Just identity zone.
 
 ```tsx
-// apps/start/src/components/pages/admin/home/index.tsx
 <PageHeader>
-  <PageHeader.Identity
-    icon={<IconHome className="size-4" />}
-    title={`Welcome, ${name}`}
-  />
+  <PageHeader.Identity icon={<IconSettings className="size-4" />} title="Settings" />
 </PageHeader>
 ```
 
 ### Pattern 2: Task list with toolbar (single org)
 
-Used by `orgid/tasks/index.tsx`, which runs on the shared board (same chrome as `/home` — see the `board` skill), not `UnifiedTaskView`. The page mounts `TaskBoardProvider` (org task store, `organizationScope`, org saved-views source, scope `org:<id>` / `url+personal`) around an inner component, because the header, toolbar and portalled panel all read the board's context. Identity: org avatar+name link (a plain click calls `clearView()`) / `ActiveViewSwitcher presets={...}` ("Your tasks" + one per category); actions `CreateIssueDialog` + panel toggle. Toolbar: `TaskCountLabel` left, `FilterBuilder` + `BoardViewOptions` right. Panel: `panels.right` with header `{ icon: <ActiveViewPanelHeader />, actions: <OrgSettingsLink />, showClose: false }` and body `OrgTasksPanelContent` (count tiles + `QuickFilterPanel`).
+Used by `orgid/tasks/index.tsx`, which runs on the shared board (same chrome as `/home` — see the `board` skill). The page mounts `TaskBoardProvider` (org task store, `organizationScope`, org saved-views source, scope `org:<id>` / `url+personal`) around an inner component, because the header, toolbar and portalled panel all read the board's context. Identity: org avatar+name link (a plain click calls `clearView()`) / `ActiveViewSwitcher presets={...}` ("Your tasks" + one per category); actions `CreateIssueDialog` + panel toggle. Toolbar: `TaskCountLabel` left, `FilterBuilder` + `BoardViewOptions` right. Panel: `panels.right` with header `{ icon: <ActiveViewPanelHeader />, actions: <OrgSettingsLink />, showClose: false }` and body `OrgTasksPanelContent` (count tiles + `QuickFilterPanel`).
 
 ```tsx
 // apps/start/src/components/pages/admin/orgid/tasks/index.tsx (inner component, inside TaskBoardProvider)
@@ -166,40 +161,9 @@ Used by `orgid/tasks/index.tsx`, which runs on the shared board (same chrome as 
 
 The panel-open/close toggle button (top-right, next to "New task") calls `panel.isOpen ? closePanel(TASKS_LIST_PANEL_ID) : sidebarActions.setOpen(TASKS_LIST_PANEL_ID, true)` — see the `page-component` skill for the full toggle pattern.
 
-### Pattern 3: Cross-org task list (My Tasks)
+### Pattern 3: Cross-org task list (`/home`)
 
-Used by `mine/index.tsx`. Simple identity, filter toolbar (no saved views), no side panel. Uses `UnifiedTaskView` in cross-org mode (`personal` prop, no `organization` prop).
-
-```tsx
-// apps/start/src/components/pages/admin/mine/index.tsx
-<PageHeader>
-  <PageHeader.Identity
-    icon={<IconUser className="size-4" />}
-    title="My Tasks"
-  />
-  <PageHeader.Toolbar
-    left={
-      <TaskFilterDropdown
-        tasks={tasks} labels={labels} availableUsers={availableUsers}
-        categories={categories} releases={releases}
-        // No organizationId, views, or setViews -- cross-org mode
-      />
-    }
-    right={
-      <>
-        <Separator orientation="vertical" className="h-5" />
-        <TaskViewDropdown />
-      </>
-    }
-  />
-</PageHeader>
-<UnifiedTaskView
-  tasks={tasks} setTasks={setTasks} serverEvents={serverEvents}
-  availableUsers={availableUsers} categories={categories}
-  releases={releases} personal
-  // No organization prop -- uses task.organizationId per-call
-/>
-```
+Used by `home/index.tsx`. Mounts `AdminBoardProvider` (every org the user belongs to, personal saved views); identity carries the `ActiveViewSwitcher` breadcrumb, toolbar is `TaskCountLabel` left and `FilterBuilder` + `BoardViewOptions` right — same toolbar as Pattern 2. No `organizationScope`, so the board offers the `org` filter/grouping.
 
 ### Pattern 4: Identity with actions (Inbox)
 
@@ -240,72 +204,6 @@ Used by `orgid/tasks/taskId.tsx`. Identity with breadcrumb children linking back
 
 `formatTaskKey` (from `@repo/util`) renders the org-prefixed key (`SAY-123`, no `#`) — this is the display format everywhere a task identifier is shown (list rows, breadcrumbs, mentions, search, command palette, notifications). Don't render a bare `task.shortId` or a `#`-prefixed value anywhere new; use `formatTaskKey(orgShortId, taskShortId)`. The canonical single-source component for a clickable task identifier badge is `apps/start/src/components/tasks/shared/identifier.tsx` (`GlobalTaskIdentifier`) — prefer it over hand-rolling the breadcrumb span when the context allows a link.
 
-## UnifiedTaskView integration
-
-`UnifiedTaskView` handles both list and kanban rendering. It lives below the `PageHeader` and fills the remaining height.
-
-### Props
-
-| Prop | Type | Required | Description |
-|------|------|----------|-------------|
-| `tasks` | `TaskWithLabels[]` | Yes | Task data |
-| `setTasks` | `(tasks) => void` | Yes | State setter for optimistic updates |
-| `serverEvents` | `ReturnType<typeof useServerEvents>` | Yes | SSE connection for real-time updates (not a raw WebSocket) |
-| `availableUsers` | `userType[]` | Yes | Users for assignee display/selection |
-| `availableLabels` | `labelType[]` | No | Labels for label display/selection |
-| `organization` | `OrganizationWithMembers` | No | When set, uses `organization.id`/`organization.shortId` for all API calls and task-key formatting (single-org mode) |
-| `categories` | `categoryType[]` | Yes | Categories for grouping/filtering |
-| `releases` | `releaseType[]` | No | Releases for grouping/filtering |
-| `views` | `savedViewType[]` | No | Saved views for auto-loading view configs |
-| `compact` | `boolean` | No | Compact rendering (used in release pages) |
-| `forceShowCompleted` | `boolean` | No | Override showCompletedTasks toggle |
-| `personal` | `boolean` | No | When true, shows org badges on each task row (cross-org mode) |
-| `onActiveDialogTaskChange` | `(taskId: string \| null) => void` | No | Fired when the task-detail dialog opens/closes, so the parent can switch its SSE channel |
-| `permissionsByOrg` | `Record<string, TeamPermissions>` | No | Per-org permissions map for cross-org views (e.g. `/mine`) — enables field-level gating when paired with `accountId` |
-| `accountId` | `string` | No | Current user id, required alongside `permissionsByOrg` for field-level gating |
-| `showGroupHeaders` | `boolean` | No, default `true` | Hides `TaskGroupSectionHeader` per group when `false` |
-
-### Single-org vs cross-org mode
-
-**Single-org mode** (org tasks page): Pass `organization` prop. All `updateTaskAction` calls use `organization.id`.
-
-**Cross-org mode** (My Tasks page): Omit `organization` prop. The component uses `getOrgId(taskId)` which looks up `task.organizationId` from the tasks array for each API call. Pass `personal` to show org badges.
-
-### Internal architecture
-
-`UnifiedTaskView` internally manages:
-- `useTaskViewManager(views)` -- shared state for filters, grouping, subGrouping, viewMode, showCompletedTasks
-- `applyFilters(tasks, filters)` -- client-side filtering
-- `applyNestedGrouping(grouping, subGrouping, ...)` -- groups filtered tasks into `NestedTaskGroup[]`
-- List view: `TaskGroupSectionHeader` + `UnifiedTaskItem` with collapsible sections
-- Kanban view: `GridBoardProvider` with drag-and-drop columns/rows
-- SSE (`serverEvents`) handlers for `UPDATE_TASK` and `UPDATE_TASK_COMMENTS`
-
-## TaskFilterDropdown integration
-
-`TaskFilterDropdown` renders filter badges + a filter menu popover. It slots into `PageHeader.Toolbar`'s `left` slot.
-
-### Props
-
-| Prop | Type | Required | Description |
-|------|------|----------|-------------|
-| `tasks` | `TaskWithLabels[]` | Yes | Tasks for deriving filter options |
-| `labels` | `labelType[]` | Yes | Labels for label filter options |
-| `availableUsers` | `userType[]` | Yes | Users for assignee filter options |
-| `categories` | `categoryType[]` | Yes | Categories for category filter options |
-| `releases` | `releaseType[]` | Yes | Releases for release filter options |
-| `organizationId` | `string` | No | When set, enables "Save View" popover |
-| `views` | `savedViewType[]` | No | Saved views for duplicate detection |
-| `setViews` | `(views) => void` | No | Setter for updating views after save |
-
-When `organizationId`, `views`, or `setViews` are omitted (cross-org mode), the "Save View" popover and share URL clipboard button are hidden. Filtering itself works identically.
-
-## TaskViewDropdown
-
-`TaskViewDropdown` has NO org dependencies. It reads/writes shared state from `useTaskViewManager` and can be used anywhere.
-
-Renders controls for: view mode (list/kanban), primary grouping, sub-grouping, show/hide completed tasks.
-
 ## Rules
 
 1. **Every admin page must have a `PageHeader`** at the top of its content area
@@ -313,7 +211,6 @@ Renders controls for: view mode (list/kanban), primary grouping, sub-grouping, s
 3. **Sticky positioning** -- `sticky top-0 z-30` ensures the header stays visible during scroll
 4. **Page container pattern** -- Wrap in `<div className="relative flex flex-col h-full max-h-full overflow-hidden">`, with scrollable content below the header
 5. **Mobile support** -- `PageHeader` auto-adds a `SidebarTrigger` on mobile. No extra work needed.
-6. **Toolbar separator** -- When toolbar has both left and right content, use `<Separator orientation="vertical" className="h-5" />` before the `TaskViewDropdown`
 
 ## When to use me
 
@@ -321,10 +218,9 @@ Use this skill when:
 - Adding a `PageHeader` to a new admin page
 - Modifying the identity zone (changing icon, title, adding breadcrumbs)
 - Adding or modifying toolbar content (filters, view controls, action buttons)
-- Integrating `UnifiedTaskView` with a page (single-org or cross-org)
-- Adding `TaskFilterDropdown` to a page
+- Wiring the board's toolbar controls into a task list page (single-org or cross-org)
 - Troubleshooting layout issues with the header (height, sticky, z-index)
-- Understanding the cross-org (personal/My Tasks) vs single-org pattern
+- Understanding the cross-org (`/home`) vs single-org (org tasks page) pattern
 
 ## What I need from you
 
@@ -333,4 +229,4 @@ Tell me:
 2. **Identity content** -- Simple icon+title, or custom breadcrumbs?
 3. **Actions** -- Any right-side buttons/badges in the identity zone?
 4. **Toolbar** -- Needed? What goes in left vs right?
-5. **Task view** -- Does this page render `UnifiedTaskView`? Single-org or cross-org?
+5. **Task list** -- Does this page render the board? Single-org (`organizationScope`) or cross-org?

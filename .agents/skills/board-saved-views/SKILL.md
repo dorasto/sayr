@@ -58,7 +58,7 @@ Gotchas:
 
 `viewConfig.mode` is `"list" | "kanban" | "card"` (`PersistedViewMode` in `core/view-config.ts`; type-only in `packages/database/schema/saveView.schema.ts`, a jsonb type, no migration). `TaskViewState.viewMode` is typed with it, so a saved view can store `mode: "card"`; admin /home no longer offers Card, so such a view loads as the list. The pure mapping/equality (`mapViewConfigToState`, `mapStateToViewConfig`, `areViewConfigsEqual`, `areStatesEqual`, `getViewCombinedState`) lives in `core/view-config.ts` (unit tested) and is re-exported from `use-board-view-state.ts`; unknown or missing modes resolve to `"list"` (`resolveViewMode`; with a page's available view ids it falls back to `"list"` if offered, else the first). Only ids that pass `isPersistedViewMode` are ever written by `BoardViewOptions`; a page-local view id is never persisted.
 
-**Legacy coercion.** The org-scoped pages never offer Card: `useTaskViewManager.ts` (`viewMode: coerceToLegacyViewMode(config.mode)`) and `settings/orgId/view-detail.tsx` (`toLegacyConfig`) coerce a stored `"card"` (or anything unknown) to `"list"` via `coerceToLegacyViewMode`. Don't widen those pages' view-mode types instead of coercing.
+**Legacy coercion.** The org saved-view settings page never offers Card: `settings/orgId/view-detail.tsx` (`toLegacyConfig`) coerces a stored `"card"` (or anything unknown) to `"list"` via `coerceToLegacyViewMode`. Don't widen that page's view-mode type instead of coercing.
 
 ## Dirty-state detection (`use-board-view-state.ts`)
 

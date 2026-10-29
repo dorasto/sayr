@@ -1,4 +1,4 @@
-// The ONLY file under components/board that imports the older org-scoped task system
+// The ONLY file under components/board that imports components/tasks
 // (`components/tasks/actions/use-task-field-action`, the shared optimistic-update + API-call
 // hook, plus the parent/relation payload builders in `components/tasks/actions/{parent,relations}`).
 // Those imports are a deliberate exception to the board's "no components/tasks/**"

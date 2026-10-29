@@ -30,8 +30,7 @@ interface BoardRowProps {
 }
 
 /**
- * A single list row — flat, dense, no card/border treatment (matches the
- * existing UnifiedTaskItem list row, not a boxed item). Leads with a
+ * A single list row — flat, dense, no card/border treatment. Leads with a
  * checkbox-gutter (ROW_LEADING_GUTTER_CLASS) aligned with the group header's
  * chevron, wired to the board's own multi-select (see
  * selection/board-selection-constants.ts). Status + priority + task key are

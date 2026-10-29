@@ -5,7 +5,7 @@ import type { TaskItem } from "./board-item";
 // those files build JSX options with `@/` imports vitest can't resolve). The writes themselves go through
 // BoardItemActions.setParent/addRelation (core/task-board-provider.tsx). Pure — see task-relations.test.ts.
 
-/** A relation the board can create between two tasks — same values the old system's `RelationType` has. */
+/** A relation the board can create between two tasks — same values as `RelationType` in components/tasks/actions/relations.tsx. */
 export type BoardRelationType = "blocking" | "related" | "duplicate";
 
 export const BOARD_RELATION_TYPES: readonly { value: BoardRelationType; label: string }[] = [

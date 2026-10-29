@@ -74,8 +74,7 @@ interface BoardBulkActionBarProps {
  * that board-row.tsx/board-card.tsx write to, so it just appears/disappears
  * as selection changes with no props/context threaded down for that.
  *
- * The old org-scoped system was single-org, so bulk-assigning one id across
- * every selected task was always safe. Board selections can span multiple
+ * Board selections can span multiple
  * orgs, and label/category/release rows are per-org (two orgs' "Bug" label
  * are different rows with different ids) — bulk-applying one raw id across
  * orgs would silently misapply. Per-field handling:

@@ -1,13 +1,5 @@
 "use client";
 
-import { useLayoutData } from "@/components/admin/shell/context";
-import IconPicker from "@/components/generic/icon-picker";
-import RenderIcon from "@/components/generic/RenderIcon";
-import { useServerEventsSubscription } from "@/hooks/useServerEventsSubscription";
-import { useWSMessageHandler } from "@/hooks/useWSMessageHandler";
-import type { WSMessageHandler } from "@/hooks/useWSMessageHandler";
-import { deleteSavedViewAction, updateSavedViewAction } from "@/lib/fetches/organization";
-import type { ServerEventMessage } from "@/lib/serverEvents";
 import type { schema } from "@repo/database";
 import { Button } from "@repo/ui/components/button";
 import { Tile, TileAction, TileHeader, TileTitle } from "@repo/ui/components/doras-ui/tile";
@@ -47,15 +39,23 @@ import {
 } from "@tabler/icons-react";
 import { useRouter } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { ViewFilterEditor } from "./view-filter-editor";
+import { useLayoutData } from "@/components/admin/shell/context";
+import { TASK_GROUPING_OPTIONS, TASK_GROUPINGS } from "@/components/board/config/grouping-options";
 import { coerceToLegacyViewMode } from "@/components/board/core/view-config";
-import { TASK_GROUPING_OPTIONS, TASK_GROUPINGS } from "@/components/tasks";
-import type { TaskGroupingId } from "@/components/tasks";
-import { TASK_SORT_FIELDS } from "@/components/tasks/filter/sort-config";
-import type { TaskSortField } from "@/components/tasks/filter/sort-config";
+import type { TaskSortField } from "@/components/board/filter/sort-config";
+import { TASK_SORT_FIELDS } from "@/components/board/filter/sort-config";
+import type { TaskGroupingId } from "@/components/board/filter/types";
+import IconPicker from "@/components/generic/icon-picker";
+import RenderIcon from "@/components/generic/RenderIcon";
 import { useLayoutOrganization } from "@/contexts/ContextOrg";
 import { useLayoutTasks } from "@/contexts/ContextOrgTasks";
 import { usePlanLimits } from "@/hooks/usePlanLimits";
+import { useServerEventsSubscription } from "@/hooks/useServerEventsSubscription";
+import type { WSMessageHandler } from "@/hooks/useWSMessageHandler";
+import { useWSMessageHandler } from "@/hooks/useWSMessageHandler";
+import { deleteSavedViewAction, updateSavedViewAction } from "@/lib/fetches/organization";
+import type { ServerEventMessage } from "@/lib/serverEvents";
+import { ViewFilterEditor } from "./view-filter-editor";
 
 const slugify = (text: string) => {
 	return text
@@ -66,6 +66,9 @@ const slugify = (text: string) => {
 		.replace(/[^\w-]+/g, "") // Remove all non-word chars
 		.replace(/--+/g, "-"); // Replace multiple - with single -
 };
+
+// An org saved view is single-org, so grouping by organization is never offered (as on a single-org board).
+const ORG_VIEW_GROUPING_OPTIONS = TASK_GROUPING_OPTIONS.filter((option) => option.id !== "org");
 
 // This page only offers List/Kanban: a "card" mode (board-only) loads as "list".
 function toLegacyConfig(config: NonNullable<schema.savedViewType["viewConfig"]>) {
@@ -214,6 +217,7 @@ export default function SettingsOrganizationViewDetailPage({
 	};
 
 	const availableUsers = organization.members.map((m) => m.user);
+	const organizationScope = { id: organization.id, shortId: organization.shortId };
 	return (
 		<div className="flex flex-col gap-3">
 			<Label variant={"heading"}>General</Label>
@@ -309,6 +313,7 @@ export default function SettingsOrganizationViewDetailPage({
 					<ViewFilterEditor
 						initialFilterParams={filterParams}
 						onChange={setFilterParams}
+						organizationScope={organizationScope}
 						labels={labels}
 						availableUsers={availableUsers}
 						categories={categories}
@@ -385,7 +390,7 @@ export default function SettingsOrganizationViewDetailPage({
 										}))
 									}
 								>
-									{TASK_GROUPING_OPTIONS.map((grouping) => (
+									{ORG_VIEW_GROUPING_OPTIONS.map((grouping) => (
 										<DropdownMenuRadioItem key={grouping.id} value={grouping.id}>
 											{grouping.label}
 										</DropdownMenuRadioItem>
@@ -427,11 +432,13 @@ export default function SettingsOrganizationViewDetailPage({
 									}
 								>
 									<DropdownMenuRadioItem value="none">None</DropdownMenuRadioItem>
-									{TASK_GROUPING_OPTIONS.filter((opt) => opt.id !== viewConfig?.groupBy).map((grouping) => (
-										<DropdownMenuRadioItem key={grouping.id} value={grouping.id}>
-											{grouping.label}
-										</DropdownMenuRadioItem>
-									))}
+									{ORG_VIEW_GROUPING_OPTIONS.filter((opt) => opt.id !== viewConfig?.groupBy).map(
+										(grouping) => (
+											<DropdownMenuRadioItem key={grouping.id} value={grouping.id}>
+												{grouping.label}
+											</DropdownMenuRadioItem>
+										)
+									)}
 								</DropdownMenuRadioGroup>
 							</DropdownMenuContent>
 						</DropdownMenu>

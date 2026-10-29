@@ -1,8 +1,6 @@
 import type { schema } from "@repo/database";
 
-// Board's own copy — field-agnostic (no dependency on FilterField), forked
-// alongside the rest of board/filter/ per the "no imports from
-// components/tasks/**" boundary rather than reused from the old system.
+// Field-agnostic (no dependency on FilterField).
 export type TaskSortField = "priority" | "voteCount" | "createdAt" | "updatedAt" | "status";
 /** The release entity's sort fields (components/releases/release-board-entity.tsx). */
 export type ReleaseSortField = "targetDate" | "releasedAt" | "createdAt" | "name";

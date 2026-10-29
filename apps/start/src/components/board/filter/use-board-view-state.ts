@@ -64,13 +64,8 @@ export {
 /**
  * The board's own combined filter + view-config + URL-sync state hook.
  *
- * Same engineering pattern as apps/start/src/hooks/useTaskViewManager.ts
- * (single combined state, throttled updates, URL sync) but genuinely
- * separate — not a copy of that file — because it needs to merge/evaluate
- * conditions against the board's own FIELD_CONFIGS (which includes "org"),
- * not the org-scoped system's. Reusing useTaskViewManager as-is would have
- * silently broken multi-select merging for the org filter, since its
- * mergeOrAppendCondition looks up field config in the old FILTER_FIELD_CONFIGS.
+ * Single combined state, throttled updates, URL sync; conditions merge/evaluate
+ * against the board's own FIELD_CONFIGS (which include "org").
  *
  * useTasksSearchParams and useStateManagement are genuinely generic
  * (URL/state-sync infra with no field-vocabulary knowledge) and are reused

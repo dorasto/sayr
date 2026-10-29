@@ -4,10 +4,8 @@ import type { BoardItem, TaskItem } from "../core/board-item";
 import type { PersistedViewMode } from "../core/view-config";
 import type { BoardSortField, TaskSortDirection } from "./sort-config";
 
-// Board's own type system — self-contained, no imports from
-// apps/start/src/components/tasks/**. Same field vocabulary as the existing
-// org-scoped system, but with "org" added since the board filters/groups
-// across every org the user belongs to, not just one.
+// Board's filter/grouping type system. Includes "org" since a cross-org
+// board filters/groups across every org the user belongs to.
 
 export type TaskGroupingId = "status" | "assignee" | "priority" | "category" | "release" | "org";
 

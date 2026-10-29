@@ -31,11 +31,9 @@ import { useActiveBoardView, useBoardViews } from "../views/view-registry";
 import { getViewOptionVisibility } from "../views/view-registry-model";
 
 /**
- * Board's own view-options popover — same structure/behavior as the existing
- * org-page TaskViewDropdown (read as a reference, not imported: view mode,
- * group by, sub-group by, sort by + direction, show completed toggle), but
- * driven by useBoardViewState() and board's own grouping options/
- * TASK_SORT_FIELDS so it works across every org in the lander, not one.
+ * Board's view-options popover (view mode, group by, sub-group by, sort by +
+ * direction, show completed toggle), driven by useBoardViewState() and the
+ * board's own grouping options/TASK_SORT_FIELDS.
  */
 export function BoardViewOptions() {
 	const {

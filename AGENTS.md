@@ -278,7 +278,7 @@ const result = await traceAsync("operation.name", () => performOperation(), {
 ```
 
 ### PageHeader
-All admin pages must use a consistent `PageHeader` component (`h-11`, sticky, two zones: Identity left + Toolbar right). Task list pages (`/home`, an org's tasks page, a release's task list) render the shared board (`components/board/`, see the `board` skill); the older `UnifiedTaskView` system is no longer mounted by any page and is due for removal. See the `page-header` skill for full patterns and props reference.
+All admin pages must use a consistent `PageHeader` component (`h-11`, sticky, two zones: Identity left + Toolbar right). Task list pages (`/home`, an org's tasks page, a release's task list) render the shared board (`components/board/`, see the `board` skill). See the `page-header` skill for full patterns and props reference.
 
 ### Page / panel layout
 Every page needing a floating side panel (right or left) goes through the shared `Page` component + `IndentDrawer` primitive + a global `sidebar-store` — a portalled drawer that pushes (not covers) main content on desktop, animates open/close, and supports drag-to-resize on desktop. Non-modal by default, but modal by default on mobile (a route can override either way) — a panel also never auto-opens on mobile regardless of `defaultOpen` or persisted state. This replaced an older `PanelWrapper` (`react-resizable-panels` + a `vaul` mobile `Sheet`) — that component is deleted; if you see `PanelWrapper`, `panelDefaultSize`, `isProjectPanelOpen`, or `setProjectPanelOpen` referenced anywhere, it's describing the retired system. See the `page-component` skill for the current one.
@@ -315,7 +315,7 @@ Before adding a new type, function, component, or utility anywhere in this repo:
 | Skill | Purpose |
 |---|---|
 | `ui-design-system/` | Designing/restyling any UI with Sayr's own components and tokens — component inventory, Button/Label/Tile variants, tokens and type scale, global heading CSS trap, Base UI `render` vs `asChild`, "copy the nearest sibling screen" workflow |
-| `page-header/` | `PageHeader` component (identity + toolbar zones), `UnifiedTaskView` integration, single-org vs cross-org patterns |
+| `page-header/` | `PageHeader` component (identity + toolbar zones), board toolbar controls on task list pages, single-org vs cross-org patterns |
 | `page-component/` | `Page` layout + panel system (`IndentDrawer`, `sidebar-store`) — adding/toggling/resizing a side panel |
 | `public-portal/` | Public org portal (SAY-81): routes, styling rules (admin tokens and `@repo/ui`, no portal design system), `portal/ui` pieces, `lib/portal` logic, shared hooks/query keys, Peek and which pages use which panel, and how Feedback, Activity and Roadmap run on the shared board |
 | `board/` | The reusable board (`apps/start/src/components/board/`) used by `/home`, an org's tasks and releases pages and the public Feedback/Activity/Roadmap — entities (tasks built in, releases second), `BoardProvider` data source + capabilities, view/grouping registries, renderer slots, fields, filtering, layout, command palette |

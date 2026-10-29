@@ -47,9 +47,8 @@ export function resolveViewMode(id: string | undefined, availableIds?: readonly 
 }
 
 /**
- * For the legacy org-scoped pages (components/tasks), which only ever offer List and Kanban: a
- * personal view saved with "card" (or anything unknown) is shown as "list" there. Same defensive
- * idea as `isOldGroupingId` in hooks/useTaskViewManager.ts.
+ * For the org saved-view settings page (pages/admin/settings/orgId/view-detail.tsx), which only
+ * offers List and Kanban: a view saved with "card" (or anything unknown) is shown as "list" there.
  */
 export function coerceToLegacyViewMode(mode: string | undefined): "list" | "kanban" {
 	return mode === "kanban" ? "kanban" : "list";

@@ -193,8 +193,7 @@ function TaskRowWithSubtasks({ task, subtasks }: { task: BoardItem; subtasks: Bo
 // nested under — board-kanban-view.tsx's row/column matrix relies on that
 // same id matching across every column). List view's collapse tracking
 // needs per-parent uniqueness though, so it scopes its own key here rather
-// than touching subGroup.id itself. Same format as the org-scoped system's
-// own getSubGroupCollapseKey, for consistency.
+// than touching subGroup.id itself.
 function getSubGroupCollapseKey(group: BoardTaskGroup, subGroup: BoardTaskGroup): string {
 	return `${group.id}::${subGroup.id}`;
 }
@@ -410,8 +409,7 @@ function useBoardListModel(tasks: readonly BoardItem[], flatSubtasks = false) {
 
 	// Latest baseGroups for use inside the grouping-change effect below,
 	// without making that effect re-fire on every task/filter change (it
-	// should only reset on grouping/subGrouping change) — same indirection
-	// the org-scoped system's own version of this uses.
+	// should only reset on grouping/subGrouping change).
 	const baseGroupsRef = useRef(baseGroups);
 	baseGroupsRef.current = baseGroups;
 

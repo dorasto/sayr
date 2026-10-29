@@ -75,13 +75,11 @@ export interface BoardGroupingOptions<T extends BoardItem = TaskItem> {
 	/**
 	 * When false, the Done/Canceled status groups are dropped from the
 	 * returned array entirely (not left present-but-empty for the UI to
-	 * collapse) — matches the org-scoped system's statusGrouping.group(),
-	 * which does the same .filter() for the identical reason: those two
-	 * statuses ARE "completed", so this toggle is specifically about them,
+	 * collapse): those two statuses ARE "completed", so this toggle is specifically about them,
 	 * not a generic empty-group rule. Applies whenever status is the
 	 * grouping OR the sub-grouping, since both route through this same
 	 * function. Board.tsx already filters completed tasks out of the input
-	 * before grouping, so unlike the old system this doesn't also need to
+	 * before grouping, so this doesn't also need to
 	 * re-filter tasks here — only the two group entries themselves.
 	 */
 	showCompletedTasks?: boolean;
@@ -98,10 +96,8 @@ export interface BoardGroupingOptions<T extends BoardItem = TaskItem> {
 	now?: Date;
 }
 
-// Same theme-token classes the app's existing group-header styling already
-// uses elsewhere (bg-muted/bg-primary/bg-success/bg-destructive) — these are
-// generic Tailwind/theme utility classes, not code imported from the old
-// system. Backlog/todo both read as neutral "not started yet" grays; todo is
+// Generic theme-token classes (bg-muted/bg-primary/bg-success/bg-destructive).
+// Backlog/todo both read as neutral "not started yet" grays; todo is
 // deliberately a shade more present than backlog.
 export const STATUS_TONE_CLASSES: Record<StatusValue, string | undefined> = {
 	backlog: "bg-muted/50",

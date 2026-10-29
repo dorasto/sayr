@@ -17,9 +17,8 @@ import { BoardViewShell } from "./views/board-view-shell";
  * Top-level assembled board component. Applies the filter/sort/completed-
  * visibility state before handing tasks down to BoardViewShell. The
  * FilterBuilder/BoardViewOptions controls that drive this state live in the
- * page's own PageHeader.Toolbar (see pages/admin/home/index.tsx), matching
- * every other admin page's TaskFilterDropdown-in-PageHeader.Toolbar
- * pattern — not mounted inside Board itself, which takes no props (its items
+ * page's own PageHeader.Toolbar (see pages/admin/home/index.tsx) — not
+ * mounted inside Board itself, which takes no props (its items
  * come from the surrounding BoardProvider via `useBoardItemsData()`) and has no
  * page-chrome opinions. What the items are (filter fields, completed predicate, sort, rows/cards, bulk bar)
  * comes from the provider's entity (core/entity.ts; tasks by default).

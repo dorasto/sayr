@@ -11,12 +11,11 @@ const defaultState: TaskSelectionState = { selectedIds: [] };
 
 /**
  * Global task selection state using TanStack Query cache.
- * Shared between PageHeader (select-all checkbox) and UnifiedTaskView (bulk action bar).
+ * Shared between the board's rows/cards and its bulk action bar.
  *
  * @param filteredTaskIds - The current set of visible/filtered task IDs (for select-all logic)
- * @param storageKey - Cache key to scope selection to a particular surface. Defaults to the
- * org-scoped task view's own key; the cross-org board passes its own key ("board-task-selection")
- * so selecting rows on /home doesn't bleed into an org's /tasks page selection or vice versa.
+ * @param storageKey - Cache key to scope selection to a particular surface; each board scope
+ * passes its own (`useBoardSelectionKey()`) so selections on different boards don't bleed together.
  */
 export function useTaskSelection(filteredTaskIds?: string[], storageKey = "task-selection") {
 	const { value, setValue } = useStateManagement<TaskSelectionState>(storageKey, defaultState);
