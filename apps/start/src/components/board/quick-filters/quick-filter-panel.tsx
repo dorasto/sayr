@@ -4,7 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar"
 import { Button } from "@repo/ui/components/button";
 import { cn } from "@repo/ui/lib/utils";
 import { getInitials } from "@repo/util";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useBoardData, useBoardFilterUsers } from "../core/board-data";
 import { LabelBadge } from "../fields/label-badge";
 import { applyFilters, buildFieldValueCounts, FIELD_CONFIGS } from "../filter/filter-config";
@@ -30,6 +30,42 @@ function excludeField(filters: FilterState, field: FilterField): FilterState {
 
 type CountedOption = FilterOption & { count: number };
 
+interface ScrollEdges {
+	/** More content hidden to the left. */
+	start: boolean;
+	/** More content hidden to the right. */
+	end: boolean;
+}
+
+/** Tracks whether a horizontal scroller has hidden content on either side (on scroll and on resize). */
+function useScrollEdges() {
+	const ref = useRef<HTMLDivElement>(null);
+	const [edges, setEdges] = useState<ScrollEdges>({ start: false, end: false });
+	const update = useCallback(() => {
+		const el = ref.current;
+		if (!el) return;
+		const next = { start: el.scrollLeft > 1, end: el.scrollLeft + el.clientWidth < el.scrollWidth - 1 };
+		setEdges((prev) => (prev.start === next.start && prev.end === next.end ? prev : next));
+	}, []);
+	useEffect(() => {
+		const el = ref.current;
+		if (!el) return;
+		update();
+		const observer = new ResizeObserver(update);
+		observer.observe(el);
+		return () => observer.disconnect();
+	}, [update]);
+	return { ref, edges, update };
+}
+
+/** A mask that fades 1.5rem at each edge that has more to scroll to; none when both sides are flush. */
+function edgeFadeMask({ start, end }: ScrollEdges): string | undefined {
+	if (!start && !end) return undefined;
+	const left = start ? "transparent, #000 1.5rem" : "#000";
+	const right = end ? "#000 calc(100% - 1.5rem), transparent" : "#000";
+	return `linear-gradient(to right, ${left}, ${right})`;
+}
+
 /**
  * Linear-style faceted quick filters for the right panel: pick a field, see every value that
  * still has at least one matching task (given every OTHER active filter — not this field's own
@@ -42,6 +78,7 @@ export function QuickFilterPanel() {
 	const { items: tasks, labels, categories, releases } = useBoardData();
 	const { filters, setFilters, showCompletedTasks } = useBoardViewState();
 	const [activeField, setActiveField] = useState<FilterField>(QUICK_FILTER_FIELDS[0] as FilterField);
+	const { ref: tabStripRef, edges: tabEdges, update: updateTabEdges } = useScrollEdges();
 
 	const users = useBoardFilterUsers();
 
@@ -82,7 +119,15 @@ export function QuickFilterPanel() {
 
 	return (
 		<div className="flex flex-col gap-2">
-			<div className="flex items-center gap-1 overflow-x-auto">
+			{/* Compact, scrollbar-less tab strip: the tabs used to be Button's default height (40px) plus an always-visible
+			    10px scrollbar because five tabs overflow the panel. Each edge fades only while there's more to scroll to on
+			    that side (see useScrollEdges), so nothing is ever faded when all the tabs fit. */}
+			<div
+				ref={tabStripRef}
+				onScroll={updateTabEdges}
+				className="scrollbar-hide flex items-center gap-1 overflow-x-auto"
+				style={{ maskImage: edgeFadeMask(tabEdges), WebkitMaskImage: edgeFadeMask(tabEdges) }}
+			>
 				{QUICK_FILTER_FIELDS.map((field) => {
 					const fieldConfig = FIELD_CONFIGS.find((c) => c.field === field);
 					if (!fieldConfig) return null;
@@ -93,7 +138,7 @@ export function QuickFilterPanel() {
 							variant={activeField === field ? "secondary" : "ghost"}
 							onClick={() => setActiveField(field)}
 							className={cn(
-								"shrink-0 rounded-full px-2.5 py-1 text-xs transition-colors",
+								"h-7 shrink-0 rounded-full px-2.5 py-0 text-xs transition-colors",
 								activeField === field
 									? "bg-accent text-accent-foreground"
 									: "text-muted-foreground hover:text-foreground"
