@@ -466,19 +466,24 @@ export function ReleaseFieldToolbar({
 										<Button
 											variant="primary"
 											size="sm"
-											className="border-transparent! bg-transparent rounded-xl cursor-pointer gap-1.5 justify-start text-xs h-auto p-1 w-fit"
+											className="border-transparent! bg-transparent rounded-xl cursor-pointer gap-1.5 justify-start text-xs h-auto p-1 w-fit max-w-full"
 										>
 											{currentLead?.image ? (
-												<Avatar className="h-3 w-3">
+												<Avatar className="h-3 w-3 shrink-0">
 													<AvatarImage src={ensureCdnUrl(currentLead.image)} alt={currentLead.name} />
 													<AvatarFallback className="text-xs">
 														{getInitials(currentLead.name)}
 													</AvatarFallback>
 												</Avatar>
 											) : (
-												<IconUser className="w-3 h-3 text-muted-foreground" />
+												<IconUser className="w-3 h-3 shrink-0 text-muted-foreground" />
 											)}
-											<span className={currentLead ? "text-foreground" : "text-muted-foreground"}>
+											<span
+												className={cn(
+													"truncate",
+													currentLead ? "text-foreground" : "text-muted-foreground"
+												)}
+											>
 												{currentLead ? getDisplayName(currentLead) : "No lead"}
 											</span>
 										</Button>
@@ -511,12 +516,12 @@ export function ReleaseFieldToolbar({
 						) : (
 							<span
 								className={cn(
-									"text-xs flex items-center gap-1.5",
+									"text-xs flex min-w-0 items-center gap-1.5",
 									currentLead ? "text-foreground" : "text-muted-foreground"
 								)}
 							>
-								<IconUser className="w-3 h-3" />
-								{currentLead ? getDisplayName(currentLead) : "No lead"}
+								<IconUser className="w-3 h-3 shrink-0" />
+								<span className="truncate">{currentLead ? getDisplayName(currentLead) : "No lead"}</span>
 							</span>
 						)}
 					</div>

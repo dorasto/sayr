@@ -161,9 +161,9 @@ export function TaskParentSection({
 						</TileTitle>
 					</TileHeader>
 				)}
-				<TileAction>
+				<TileAction className="w-full min-w-0">
 					{task.parent ? (
-						<div className="flex items-center gap-1 group/parent w-full">
+						<div className="flex items-center gap-1 group/parent w-full min-w-0">
 							<Link
 								to="/$orgId/tasks/$taskShortId"
 								params={{
@@ -355,8 +355,8 @@ export function TaskSubtasksSection({
 						</TileTitle>
 					</TileHeader>
 				)}
-				<TileAction>
-					<div className="flex flex-col gap-0.5 w-full">
+				<TileAction className="w-full min-w-0">
+					<div className="flex flex-col gap-0.5 w-full min-w-0">
 						{subtasks.map((subtask) => (
 							<div key={subtask.id} className="flex items-center gap-1 group/subtask w-full">
 								<Link
@@ -545,8 +545,8 @@ export function TaskRelationsSection({
 								</Label>
 							</TileTitle>
 						</TileHeader>
-						<TileAction>
-							<div className="flex flex-col gap-0.5 w-full">
+						<TileAction className="w-full min-w-0">
+							<div className="flex flex-col gap-0.5 w-full min-w-0">
 								{groupRelations.map((relation) => (
 									<div key={relation.id} className="flex items-center gap-1 group/relation w-full">
 										<Link

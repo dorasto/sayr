@@ -87,15 +87,18 @@ export default function GlobalTaskRelease({
 	const renderTriggerContent = () => {
 		if (selectedRelease) {
 			return (
-				<div className={cn("flex items-center gap-2", compact && "max-w-20 text-xs")}>
-					{display.icon}
+				<div className={cn("flex min-w-0 items-center gap-2", compact && "max-w-20 text-xs")}>
+					<span className="flex shrink-0">{display.icon}</span>
 					{compact ? (
 						<span className="truncate font-mono">{selectedRelease.slug}</span>
 					) : (
-						<span className="truncate">
-							{selectedRelease.name}
-							<span className="truncate font-mono">({selectedRelease.slug})</span>
-						</span>
+						<>
+							{/* Name gives way first; the slug (the version) stays readable up to half the row. */}
+							<span className="truncate">{selectedRelease.name}</span>
+							<span className="max-w-1/2 shrink-0 truncate font-mono text-muted-foreground">
+								{selectedRelease.slug}
+							</span>
+						</>
 					)}
 				</div>
 			);
@@ -147,16 +150,16 @@ export default function GlobalTaskRelease({
 			{renderDropdown()}
 		</ComboBox>
 	) : (
-		<div className="flex flex-col gap-3">
+		<div className="flex min-w-0 flex-col gap-3">
 			{showLabel && <Label variant={"subheading"}>Release</Label>}
-			<div className="flex flex-col gap-2">
+			<div className="flex min-w-0 flex-col gap-2">
 				<ComboBox
 					value={selectedRelease?.id || ""}
 					onValueChange={handleReleaseChange}
 					open={open}
 					onOpenChange={setOpen}
 				>
-					<ComboBoxTrigger disabled={!editable} className={className}>
+					<ComboBoxTrigger disabled={!editable} className={cn("max-w-full", className)}>
 						<ComboBoxValue placeholder="Select release">
 							<ReleaseHoverCard
 								release={selectedRelease}
@@ -165,7 +168,7 @@ export default function GlobalTaskRelease({
 								align="center"
 								tasks={selectedRelease ? tasks.filter((t) => t.releaseId === selectedRelease.id) : undefined}
 							>
-								<div>{renderTriggerContent()}</div>
+								<div className="min-w-0">{renderTriggerContent()}</div>
 							</ReleaseHoverCard>
 						</ComboBoxValue>
 						{showChevron && <ComboBoxIcon />}
