@@ -27,6 +27,7 @@ interface PageHeaderProps {
 export function PageHeader({ children, className }: PageHeaderProps) {
   return (
     <div
+      data-slot="page-header"
       className={cn(
         "sticky top-0 z-9999 bg-background shrink-0 flex flex-col w-full",
         className,
@@ -63,6 +64,7 @@ function Identity({
   const isSidebarHidden = sidebar?.open === false;
   return (
     <div
+      data-slot="page-header-identity"
       className={cn(
         "flex items-center gap-2 h-11 px-3 w-full shrink-0 border-b",
         className,
@@ -108,6 +110,7 @@ interface ToolbarProps {
 function Toolbar({ left, right, children, className }: ToolbarProps) {
   return (
     <div
+      data-slot="page-header-toolbar"
       className={cn(
         "flex items-center gap-1 px-2 h-11 shrink-0 border-b md:border-b-0 md:gap-2 md:px-3",
         className,
