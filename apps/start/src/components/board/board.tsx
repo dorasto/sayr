@@ -10,7 +10,7 @@ import { resolveBoardState } from "./core/renderers";
 import { applyFilters } from "./filter/filter-config";
 import { sortTasks } from "./filter/sort-config";
 import { useBoardViewState } from "./filter/use-board-view-state";
-import { usePersonalViews } from "./saved-views/use-personal-views";
+import { useBoardSavedViews } from "./saved-views/use-board-saved-views";
 import { BoardBulkActionBar } from "./selection/board-bulk-action-bar";
 import { BoardViewShell } from "./views/board-view-shell";
 
@@ -35,8 +35,8 @@ export function Board() {
 	const { items: tasks, status, passthrough = false } = useBoardData();
 	const { states } = useBoardRenderers();
 	const { canBulk } = useBoardCapabilities();
-	const { personalViews } = usePersonalViews();
-	const { filters, grouping, showCompletedTasks, sortBy, sortDirection } = useBoardViewState(personalViews);
+	const { views: savedViews } = useBoardSavedViews();
+	const { filters, grouping, showCompletedTasks, sortBy, sortDirection } = useBoardViewState(savedViews);
 	const groupings = useBoardGroupings();
 	// A grouping that owns membership (e.g. a roadmap) decides which items appear and in what order,
 	// so the board's own completed-visibility filter and sort stand aside; user filters still apply.

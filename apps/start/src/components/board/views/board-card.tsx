@@ -7,10 +7,10 @@ import { IconChevronUp } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
 import type { MouseEvent, ReactNode } from "react";
 import { useTaskSelection } from "@/hooks/useTaskSelection";
-import { useBoardCapabilities } from "../core/board-data";
+import { useBoardCapabilities, useBoardOrganizationScope } from "../core/board-data";
+import { useBoardSelectionKey } from "../core/scope";
 import { BoardTaskContextMenu } from "../fields/board-task-context-menu";
 import { type BoardField, FieldToolbar } from "../fields/field-toolbar";
-import { BOARD_TASK_SELECTION_KEY } from "../selection/board-selection-constants";
 
 /** Where the card links: the admin task page (default) or a public post. */
 export type BoardCardLink =
@@ -56,7 +56,9 @@ export function BoardCard({
 	selected: open = false,
 }: BoardCardProps) {
 	const { canSelect } = useBoardCapabilities();
-	const { isSelected, toggleTask } = useTaskSelection(undefined, BOARD_TASK_SELECTION_KEY);
+	const organizationScope = useBoardOrganizationScope();
+	const selectionKey = useBoardSelectionKey();
+	const { isSelected, toggleTask } = useTaskSelection(undefined, selectionKey);
 	const selected = isSelected(task.id);
 	const cardLink: BoardCardLink = link ?? {
 		to: "/$orgId/tasks/$taskShortId",
@@ -98,14 +100,19 @@ export function BoardCard({
 				<div className="flex flex-col gap-1.5">
 					{header === undefined ? (
 						<div className="flex items-center gap-2 pr-5">
-							{task.organization && (
+							{/* A single-org board shows only the key: the org is the same on every card. */}
+							{task.organization && !organizationScope && (
 								<Avatar className="size-4 shrink-0">
 									<AvatarImage src={task.organization.logo ?? undefined} alt={task.organization.name} />
 									<AvatarFallback className="text-[9px]">{getInitials(task.organization.name)}</AvatarFallback>
 								</Avatar>
 							)}
 							<span className="text-xs text-muted-foreground tabular-nums">
-								{task.organization ? formatTaskKey(task.organization.shortId, task.shortId) : task.shortId}
+								{organizationScope
+									? formatTaskKey(organizationScope.shortId, task.shortId)
+									: task.organization
+										? formatTaskKey(task.organization.shortId, task.shortId)
+										: task.shortId}
 							</span>
 						</div>
 					) : (

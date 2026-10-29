@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { useBoardOrganizationScope } from "../core/board-data";
 import type { TaskGroupingId } from "../filter/types";
 import { DEFAULT_GROUPING_REGISTRY } from "./groupings";
 import { resolveGroupingDefinition } from "./grouping-registry";
@@ -23,3 +24,10 @@ export const TASK_GROUPING_OPTIONS: Array<{ id: TaskGroupingId; label: string; i
 export const TASK_GROUPINGS: Record<TaskGroupingId, (typeof TASK_GROUPING_OPTIONS)[number]> = Object.fromEntries(
 	TASK_GROUPING_OPTIONS.map((option) => [option.id, option])
 ) as Record<TaskGroupingId, (typeof TASK_GROUPING_OPTIONS)[number]>;
+
+const SINGLE_ORG_GROUPING_OPTIONS = TASK_GROUPING_OPTIONS.filter((option) => option.id !== "org");
+
+/** The "Group by" menu for the enclosing board: without `org` on a single-org board (one org = one group). */
+export function useTaskGroupingOptions(): typeof TASK_GROUPING_OPTIONS {
+	return useBoardOrganizationScope() ? SINGLE_ORG_GROUPING_OPTIONS : TASK_GROUPING_OPTIONS;
+}

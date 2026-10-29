@@ -3,7 +3,7 @@
 import { IconPin, IconPinFilled, IconStack2 } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
 import { useActiveView } from "./use-active-view";
-import { usePersonalViews } from "./use-personal-views";
+import { useBoardSavedViews } from "./use-board-saved-views";
 import { DEFAULT_VIEW_COLOR, DEFAULT_VIEW_ICON, ViewIconColorTrigger } from "./view-icon-color-trigger";
 
 /**
@@ -18,7 +18,7 @@ import { DEFAULT_VIEW_COLOR, DEFAULT_VIEW_ICON, ViewIconColorTrigger } from "./v
  * chrome on focus, saving on blur (Enter blurs early, Escape reverts).
  */
 export function ActiveViewPanelHeader() {
-	const { updateView } = usePersonalViews();
+	const { update: updateView } = useBoardSavedViews();
 	const { activeView } = useActiveView();
 
 	const [name, setName] = useState(activeView?.name ?? "");
@@ -89,13 +89,14 @@ export function ActiveViewPanelHeader() {
  * Pin/unpin toggle for the panel header's far-right `actions` slot — the panel's own
  * entry point for adding the active view to the Favourites sidebar (favourites-section.tsx),
  * since the breadcrumb ActiveViewSwitcher deliberately doesn't own pin/edit/delete. No-op
- * (renders nothing) with no active view — there's nothing to pin on "All tasks".
+ * (renders nothing) with no active view — there's nothing to pin on "All tasks" — or when the
+ * board's saved-views source has no pinning.
  */
 export function ActiveViewPanelPinButton() {
-	const { togglePin } = usePersonalViews();
+	const { togglePin } = useBoardSavedViews();
 	const { activeView } = useActiveView();
 
-	if (!activeView) return null;
+	if (!activeView || !togglePin) return null;
 
 	return (
 		<button

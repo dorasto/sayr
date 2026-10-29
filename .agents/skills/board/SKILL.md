@@ -8,7 +8,7 @@ metadata:
 
 ## Overview
 
-`apps/start/src/components/board/` is a from-scratch, page-agnostic task board built for SAY-73's unified cross-org lander (`/home`). "From scratch" is a hard boundary, not a suggestion: **zero imports from `apps/start/src/components/tasks/**`**, the older org-scoped `UnifiedTaskView` system. Every forked file (`filter/types.ts`, `filter/operators.ts`, `filter/sort-config.ts`, `config/field-config.tsx`, `config/groupings.tsx`, etc.) says so in its own header comment, with a reason specific to that file — a differing field vocabulary (`"org"` doesn't exist in the old system), a Vite/`node:crypto` bundling constraint, or simply "the old system is retired." **This boundary is convention-only — nothing lints or builds against it.** The one deliberate exception is `core/admin-board-provider.tsx` (see "Data flow"), which imports the shared `useTaskFieldAction` hook; don't assume a future PR can't break the boundary silently.
+`apps/start/src/components/board/` is a from-scratch, page-agnostic task board built for SAY-73's unified cross-org lander (`/home`). "From scratch" is a hard boundary, not a suggestion: **zero imports from `apps/start/src/components/tasks/**`**, the older org-scoped `UnifiedTaskView` system. Every forked file (`filter/types.ts`, `filter/operators.ts`, `filter/sort-config.ts`, `config/field-config.tsx`, `config/groupings.tsx`, etc.) says so in its own header comment, with a reason specific to that file — a differing field vocabulary (`"org"` doesn't exist in the old system), a Vite/`node:crypto` bundling constraint, or simply "the old system is retired." **This boundary is convention-only — nothing lints or builds against it.** The one deliberate exception is `core/task-board-provider.tsx` (see "Data flow"), which imports the shared `useTaskFieldAction` hook; don't assume a future PR can't break the boundary silently.
 
 The board is genuinely page-agnostic: `<Board />` (`board.tsx`) takes **no props** (no `tasks` prop) and reads its items from the surrounding `BoardProvider` via `useBoardData()` (`core/board-data.tsx`). It does not fetch data, and it does not render any page chrome (filter bar, view switcher, save-view button) — those live in the *page's* `PageHeader.Toolbar`, composed from the pieces below. There are three consumers:
 
@@ -29,7 +29,9 @@ Saved/personal views (the store, the breadcrumb switcher / panel header / Favour
 | Capabilities | `core/capabilities.ts` | `BoardCapabilities`, `ADMIN_CAPABILITIES`/`READ_ONLY_CAPABILITIES`, pure `resolveCapabilities`. See "Capabilities" below |
 | Renderers | `core/renderers.ts` | `BoardRenderers {row?, card?, listContainer?, footer?, states?}` — see "Renderer slots" below |
 | View-state scope | `core/scope.tsx`, `core/scope-config.ts`, `core/view-config.ts` | `BoardScope {key, persistence, initial?, controlled?}`, `useBoardScope()`, persisted-mode mapping, `pageLocalGrouping` — see `board-saved-views` |
-| Admin adapter | `core/admin-board-provider.tsx` | `AdminBoardProvider` — the ONLY board file that calls `useLanderData()` and the only one importing `components/tasks` (`useTaskFieldAction`) |
+| Task provider | `core/task-board-provider.tsx` | `TaskBoardProvider` — generic signed-in task board: `{tasks, updateTasks(updater), labels, categories, releases, users?, permissions?, viewerId?, organizationScope?, capabilities, scope?, views?, groupings?, renderers?, savedViews?}`. Builds the `BoardDataSource` and the module-level `useItemActions` (reads tasks/updateTasks from a private context). The ONLY board file importing `components/tasks` (`useTaskFieldAction`) |
+| Admin adapter | `core/admin-board-provider.tsx` | `AdminBoardProvider` — thin `/home` wrapper over `TaskBoardProvider`; the ONLY board file that calls `useLanderData()` (passes `permissionsByOrg` + `useLayoutData().account.id` for field gating) |
+| Field permissions | `core/field-permissions.ts` (pure, tested) | `getBoardFieldPermissions(task, userId, perms)` (port of the old `getTaskFieldPermissions`), `intersectFieldPermissions` (bulk). Hooks in `board-data.tsx`: `useFieldPermissions(task)` / `useFieldPermissionsResolver()` = `canEditFields` AND per-field permission |
 | Entry point | `board.tsx` | Reads `useBoardData()`; applies filters → completed-visibility → sort (one `useMemo`) unless the data is `passthrough` / the grouping `ownsMembership` (see "Data source flags"), resolves `renderers.states`, renders the bulk bar (`canBulk`) in a fragment, delegates to `views/board-view-shell.tsx` |
 | View registry | `views/view-registry.tsx` (+ pure `views/view-registry-model.ts`) | See "View registry" below |
 | View dispatch | `views/board-view-shell.tsx` | Registry lookup via `useActiveBoardView()`; wraps the view in `BoardViewCapabilityScope` so a view with `supports.drag === false` narrows `canDrag` |
@@ -59,7 +61,8 @@ Saved/personal views (the store, the breadcrumb switcher / panel header / Favour
 route loader (getLanderData)          — apps/start/src/routes/(admin)/home/route.tsx
   → RootProviderLander (ContextLander) — tasks/labels/categories/releases/permissionsByOrg; re-seeds from the loader whenever it returns new data
     → AdminHomePage                    — pages/admin/home/index.tsx
-      → AdminBoardProvider             — core/admin-board-provider.tsx, the only reader of useLanderData(); builds the BoardDataSource (items = tasks, updateItems = updateTasks, useItemActions) + ADMIN_CAPABILITIES
+      → AdminBoardProvider             — core/admin-board-provider.tsx, the only reader of useLanderData(); hands tasks/updateTasks/catalog/permissionsByOrg + ADMIN_CAPABILITIES to
+        → TaskBoardProvider            — core/task-board-provider.tsx: builds the BoardDataSource (items = tasks, updateItems, useItemActions)
         → <Board />                    — reads useBoardData().items
           passthrough? → items as given            (host already filtered/ordered)
           else: filters (useBoardViewState)  → applyFilters(tasks, filters)
@@ -83,6 +86,8 @@ Other hosts replace the first four lines with their own `BoardProvider` (the pub
 - A grouping's `ownsMembership` (see "Grouping registry") is the *grouping-level* equivalent: `Board` still applies user filters but skips the completed-visibility filter and sort (the public Roadmap, where the grouping decides which posts appear and in what order). Don't conflate the two: `passthrough` is the data source's claim about `items`; `ownsMembership` is the active grouping's.
 - `status {isLoading,isError,retry}` + `renderers.states` let `Board` show loading/error/empty in place of the views (see "Renderer slots"); `pagination {hasMore,isFetchingMore,loadMore,loadMoreLabel?}` drives the footer and the partial-count "+" below. The admin source supplies neither.
 - `users` absent = derived from `items` (`core/board-users.ts`).
+- `organizationScope {id, shortId}` = a single-org board: rows/cards show the bare `formatTaskKey` (no org avatar/slot), and the `org` grouping (`useTaskGroupingOptions()`), quick-filter tab and filter-builder field are dropped. Absent = cross-org (/home). Read with `useBoardOrganizationScope()`.
+- `permissions` (org id → `TeamPermissions`) + `viewerId` = per-field edit gating (see "Capabilities"). Absent (or no entry for an item's org) = no gating.
 
 `getLanderData` (the route loader) attaches a denormalized `organization: {id,name,slug,shortId,logo}` snapshot onto every task at fetch time (the SSE hook attaches the same shape to tasks it receives live) — the board never does a client-side org lookup. Cross-org visibility is "every task in every org you have access to" (matches `getTasksByOrganizationId`'s own scope, no extra filtering), **not** "assigned to me" — that distinction is what makes the "Assigned to me" quick filter meaningful instead of a no-op.
 
@@ -98,6 +103,10 @@ Handled: task create/update/vote; per-org label/category list replacement (INDIV
 
 A resync (loader re-run) is triggered only by `SSE_RECONNECTED` now — events sent while the stream was down are gone.
 
+Another page subscribes with the generic `useBoardServerEvents({ orgIds, channels, apply, applyWindowMessage?, onResyncNeeded? })` (`hooks/useBoardServerEvents.ts`); `useLanderServerEventsSubscription` is now a thin wrapper over it, and `applyLanderEvent` works for any `LanderData`-shaped store (pass the shown org(s) as `context.organizations`; `toTaskOrganization` is exported from the lander hook).
+
+Row selection lives under a per-scope `useTaskSelection` key: `useBoardSelectionKey()` (`core/scope.tsx` → `deriveSelectionCacheKey`), which maps the `home` scope to the original `BOARD_TASK_SELECTION_KEY` and namespaces every other scope, so selections don't leak between boards.
+
 Local task writes (field pickers, bulk bar, drag) must go through `useBoardData().updateItems?.(prev => …)` (the admin provider maps it to the lander's `updateTasks`; absent on read-only data, so writers no-op) or `useBoardItemActions(task)`, never a list captured from a render — the bulk bar's `tasks` prop is only the *visible* subset, so writing it back would drop every filtered-out task. Local writes are needed at all because edits send the board's `sseClientId`, so the server skips this connection when broadcasting.
 
 ## Capabilities
@@ -107,7 +116,7 @@ Local task writes (field pickers, bulk bar, drag) must go through `useBoardData(
 | Capability | Gates |
 |---|---|
 | `canDrag` | dnd-kit in the list (`DraggableBoardList` vs `StaticBoardList`) and kanban (`GridBoardProvider disabled={!canDrag}`, drop executor not mounted) |
-| `canEditFields` | The `Field*` pickers: off = `StaticField` (visual only) |
+| `canEditFields` | The `Field*` pickers: off = `StaticField` (visual only). Narrowed per task and field by `useFieldPermissions(task)` (data source `permissions`/`viewerId`): a field the viewer can't edit renders `StaticField`, its context-menu submenu is disabled, and the bulk bar disables/hides it unless EVERY selected task allows it. Drag-to-regroup is not permission-gated yet (the server still enforces) |
 | `canSelect` | The row/card selection checkbox |
 | `canContextMenu` | `BoardTaskContextMenu` wrapper: off = renders just its children |
 | `canBulk` | `BoardBulkActionBar`, mounted by `Board` |
@@ -196,7 +205,7 @@ Sort order and group/display order for status are **two intentionally different 
 
 ## Rules
 
-1. **Never import from `apps/start/src/components/tasks/**`** anywhere under `board/` — fork instead, and say why in a header comment like every existing fork does. The sole exception is `core/admin-board-provider.tsx`. Likewise, **only that file may call `useLanderData()`** — everything else reads `useBoardData()` (never `useLanderData()`).
+1. **Never import from `apps/start/src/components/tasks/**`** anywhere under `board/` — fork instead, and say why in a header comment like every existing fork does. The sole exception is `core/task-board-provider.tsx` (`useTaskFieldAction`). Likewise, **only `core/admin-board-provider.tsx` may call `useLanderData()`** — everything else reads `useBoardData()` (never `useLanderData()`).
 2. **`board.tsx` doesn't fetch, takes no props and doesn't render toolbar chrome** — new page-level controls go in the page's `PageHeader.Toolbar`, not inside `Board`; data comes from a `BoardProvider`.
 2a. **Gate behaviour on a capability, not on "which page am I".** A new interactive affordance reads `useBoardCapabilities()` and must degrade to a static/no-op form when off (like `StaticField`); a new view registers its limits in `supports` rather than being special-cased in `BoardViewOptions`/`/home`. Don't add a `viewMode === "…"` check in a host — read the registry (`fullBleed`, `supports`).
 2b. **Presentation differences go through `renderers`/`groupings`/`views` on the provider**, not forks of `BoardRow`/`BoardCard`/the views. Memoise or hoist everything you pass to `BoardProvider` (`data`, `scope`, `views`, `groupings`, `renderers`): they are context values, and a fresh object re-renders every board consumer.
@@ -208,7 +217,7 @@ Sort order and group/display order for status are **two intentionally different 
 
 ## Gotchas
 
-- **Pure modules are split out so vitest can run them**: `apps/start/vitest.config.ts` has no `@/` alias and no jsdom, so logic that wants a test lives in a `.ts` file with relative/type-only imports (`core/{capabilities,renderers,scope-config,view-config,board-users}.ts`, `config/grouping-registry.ts`, `views/{view-registry-model,kanban-model,card-sections}.ts`, each with a `*.test.ts` beside it). Put new derivation logic there, not in the `.tsx` that renders it.
+- **Pure modules are split out so vitest can run them**: `apps/start/vitest.config.ts` has no `@/` alias and no jsdom, so logic that wants a test lives in a `.ts` file with relative/type-only imports (`core/{capabilities,renderers,scope-config,view-config,board-users,field-permissions}.ts`, `filter/serialization.ts`, `config/grouping-registry.ts`, `views/{view-registry-model,kanban-model,card-sections}.ts`, each with a `*.test.ts` beside it). Put new derivation logic there, not in the `.tsx` that renders it.
 - **`field-config.tsx`'s status/priority/visibility values are hardcoded, not read live off `schema.statusEnum.enumValues`.** Deliberate: this file is imported by client-rendered pickers, and the `schema` runtime value pulls in the full Drizzle module (`node:crypto`), which Vite can't bundle for the browser. If a DB enum value is ever added/removed, TypeScript's `Record<StatusValue, ...>` key mismatch is the safety net — there's no runtime check.
 - **The shared `StatusIcon` glyph hardcodes its own color for `done`/`canceled`**, ignoring the caller's `className` for those two — `canceled`'s `textClassName` needs a Tailwind `!` prefix to actually win.
 - **Kanban's grid mode switches `"kanban"` ↔ `"grid"` based on whether sub-grouping is active, or `pageScroll` is set** (`board-kanban-view.tsx`: `"kanban"` only when `subGrouping === "none" && !pageScroll`) — `"kanban"` mode's independent per-column scroll needs `GridBoardCells` as a direct flex child of the provider, which breaks once rows/sub-grouping nests it one level deeper, and needs a bounded height the host must provide (a page that scrolls as a whole, like the roadmap, passes `pageScroll`). Matches the old org-scoped kanban's own equivalent switch.

@@ -8,7 +8,7 @@ import type React from "react";
 import { useState } from "react";
 import { serializeFilters } from "../filter/serialization";
 import { useBoardViewState } from "../filter/use-board-view-state";
-import { usePersonalViews } from "./use-personal-views";
+import { useBoardSavedViews } from "./use-board-saved-views";
 import { DEFAULT_VIEW_COLOR, DEFAULT_VIEW_ICON, ViewIconColorTrigger } from "./view-icon-color-trigger";
 
 const DEFAULT_ICON_COLOR = {
@@ -46,7 +46,7 @@ export function SaveViewPopover({
 	const [iconColor, setIconColor] = useState(DEFAULT_ICON_COLOR);
 	const [saving, setSaving] = useState(false);
 	const { filters, grouping, subGrouping, viewMode, showCompletedTasks, sortBy, sortDirection } = useBoardViewState();
-	const { createView } = usePersonalViews();
+	const { create: createView, kind } = useBoardSavedViews();
 
 	const handleSave = async () => {
 		const trimmed = name.trim();
@@ -69,7 +69,7 @@ export function SaveViewPopover({
 			});
 			headlessToast.success({
 				title: "View saved",
-				description: `"${trimmed}" added to your views`,
+				description: `"${trimmed}" added to ${kind === "org" ? "the organization's" : "your"} views`,
 			});
 			setName("");
 			setIconColor(DEFAULT_ICON_COLOR);

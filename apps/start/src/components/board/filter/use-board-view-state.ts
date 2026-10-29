@@ -79,7 +79,7 @@ export {
  * "url+personal" (global cache key, `?view`/`?filters` URL sync, saved views), unchanged.
  * Other scopes: "url" (`?filters` only), "memory" (local), "controlled" (host-owned state).
  */
-export function useBoardViewState(availableViews?: schema.savedViewType[]) {
+export function useBoardViewState(availableViews?: readonly schema.savedViewType[]) {
 	const scope = useBoardScope();
 	const persistence = resolvePersistence(scope);
 	const urlSync = syncsUrl(persistence);

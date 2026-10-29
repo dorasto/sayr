@@ -27,8 +27,8 @@ import {
 } from "@tabler/icons-react";
 import { useMemo, useState } from "react";
 import {
-  TASK_GROUPING_OPTIONS,
   TASK_GROUPINGS,
+  useTaskGroupingOptions,
 } from "../config/grouping-options";
 import { TASK_SORT_FIELDS, type TaskSortField } from "../filter/sort-config";
 import { useBoardViewState } from "../filter/use-board-view-state";
@@ -41,7 +41,7 @@ import { useActiveBoardView, useBoardViews } from "../views/view-registry";
  * Board's own view-options popover — same structure/behavior as the existing
  * org-page TaskViewDropdown (read as a reference, not imported: view mode,
  * group by, sub-group by, sort by + direction, show completed toggle), but
- * driven by useBoardViewState() and board's own TASK_GROUPING_OPTIONS/
+ * driven by useBoardViewState() and board's own grouping options/
  * TASK_SORT_FIELDS so it works across every org in the lander, not one.
  */
 export function BoardViewOptions() {
@@ -72,7 +72,8 @@ export function BoardViewOptions() {
   const { showViewPicker, showGrouping, showSubGrouping, showSort } =
     getViewOptionVisibility(views, activeView);
 
-  const groupingOptions = useMemo(() => TASK_GROUPING_OPTIONS, []);
+  // Without "org" on a single-org board.
+  const groupingOptions = useTaskGroupingOptions();
 
   const subGroupingOptions = useMemo(
     () => [
@@ -81,9 +82,9 @@ export function BoardViewOptions() {
         label: "None",
         icon: <IconEyeOff className="h-4 w-4" />,
       },
-      ...TASK_GROUPING_OPTIONS.filter((opt) => opt.id !== grouping),
+      ...groupingOptions.filter((opt) => opt.id !== grouping),
     ],
-    [grouping],
+    [groupingOptions, grouping],
   );
 
   // Only persistable view ids can be stored in the view state (a page-local view id never is).

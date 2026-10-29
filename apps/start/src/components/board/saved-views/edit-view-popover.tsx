@@ -6,7 +6,7 @@ import { cn } from "@repo/ui/lib/utils";
 import { IconPencil } from "@tabler/icons-react";
 import type React from "react";
 import { useState } from "react";
-import { usePersonalViews } from "./use-personal-views";
+import { useBoardSavedViews } from "./use-board-saved-views";
 import { DEFAULT_VIEW_COLOR, DEFAULT_VIEW_ICON, ViewIconColorTrigger } from "./view-icon-color-trigger";
 
 const stopRowSelect = (event: React.SyntheticEvent) => event.stopPropagation();
@@ -37,7 +37,7 @@ export function EditViewPopover({ view, triggerClassName }: EditViewPopoverProps
 	const [name, setName] = useState(view.name);
 	const [iconColor, setIconColor] = useState(() => iconColorFromView(view));
 	const [saving, setSaving] = useState(false);
-	const { updateView } = usePersonalViews();
+	const { update: updateView } = useBoardSavedViews();
 
 	const handleOpenChange = (next: boolean) => {
 		if (next) {

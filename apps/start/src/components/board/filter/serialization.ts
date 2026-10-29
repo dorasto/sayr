@@ -28,6 +28,12 @@ export const serializeFilters = (state: FilterState): string => {
 	}
 };
 
+/**
+ * Operators older saved filters may still carry: org saved views were written by the old
+ * components/tasks serialiser, whose deserialiser maps these the same way.
+ */
+const LEGACY_OPERATOR_ALIASES: Readonly<Record<string, FilterOperator>> = { is: "any", is_not: "none" };
+
 export const deserializeFilters = (value: string): FilterState | null => {
 	try {
 		if (!value) return null;
@@ -36,12 +42,15 @@ export const deserializeFilters = (value: string): FilterState | null => {
 		const groups: FilterGroup[] = minimal.map((conditions, gi) => ({
 			id: `group-${gi}`,
 			operator: "AND",
-			conditions: conditions.map(([field, operator, val], ci) => ({
-				id: `${field}-${operator}-${ci}-${Date.now()}`,
-				field: field as FilterField,
-				operator: operator as FilterOperator,
-				value: val as FilterCondition["value"],
-			})),
+			conditions: conditions.map(([field, rawOperator, val], ci) => {
+				const operator = LEGACY_OPERATOR_ALIASES[rawOperator] ?? (rawOperator as FilterOperator);
+				return {
+					id: `${field}-${operator}-${ci}-${Date.now()}`,
+					field: field as FilterField,
+					operator,
+					value: val as FilterCondition["value"],
+				};
+			}),
 		}));
 		return { groups, operator: "AND" };
 	} catch (e) {

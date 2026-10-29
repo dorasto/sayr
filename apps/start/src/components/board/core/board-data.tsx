@@ -1,5 +1,5 @@
 import type { schema } from "@repo/database";
-import { createContext, type ReactNode, useContext, useMemo } from "react";
+import { createContext, type ReactNode, useCallback, useContext, useMemo } from "react";
 import {
 	type BoardGroupingDefinition,
 	createGroupingRegistry,
@@ -9,8 +9,15 @@ import { DEFAULT_GROUPING_REGISTRY } from "../config/groupings";
 import type { BoardItem, TaskItem } from "./board-item";
 import type { BoardItemActions } from "./board-item-actions";
 import { deriveAssignableUsers, deriveFilterUsers } from "./board-users";
+import type { SavedViewsSource } from "../saved-views/saved-views-source";
 import type { BoardViewDefinition } from "../views/view-registry-model";
 import { type BoardCapabilities, resolveCapabilities } from "./capabilities";
+import {
+	ALL_FIELDS_EDITABLE,
+	type BoardFieldPermissions,
+	getBoardFieldPermissions,
+	NO_FIELDS_EDITABLE,
+} from "./field-permissions";
 import type { BoardRenderers } from "./renderers";
 import { BoardScopeProvider } from "./scope";
 import { type BoardScope, LEGACY_BOARD_SCOPE } from "./scope-config";
@@ -19,6 +26,12 @@ export interface BoardDataStatus {
 	isLoading: boolean;
 	isError: boolean;
 	retry: () => void;
+}
+
+/** The one org a single-org board shows (an org's tasks page, a release). */
+export interface BoardOrganizationScope {
+	id: string;
+	shortId: string;
 }
 
 export interface BoardDataPagination {
@@ -62,6 +75,19 @@ export interface BoardDataSource<T extends BoardItem = TaskItem> {
 	 * swapping it between renders would change the hook order.
 	 */
 	useItemActions?: (item: T) => BoardItemActions;
+	/**
+	 * Set = a single-org board: every item belongs to this org. Rows/cards then show the bare task key
+	 * (no org avatar/slot), and the `org` grouping, quick-filter tab and filter field are not offered.
+	 * Absent = cross-org (/home).
+	 */
+	organizationScope?: BoardOrganizationScope;
+	/**
+	 * The viewer's permissions per org id, for per-field edit gating (core/field-permissions.ts). Absent,
+	 * or no entry for an item's org = no gating (only `canEditFields` applies). Needs `viewerId`.
+	 */
+	permissions?: Readonly<Record<string, schema.TeamPermissions>>;
+	/** The signed-in user's id — creators/assignees may edit their own tasks whatever their permissions. */
+	viewerId?: string;
 }
 
 interface BoardContextValue {
@@ -72,6 +98,8 @@ interface BoardContextValue {
 	views?: readonly BoardViewDefinition[];
 	/** The page's presentation slots; absent = the default admin rendering (read via `useBoardRenderers()`). */
 	renderers?: BoardRenderers;
+	/** The saved views offered; absent = the personal views (read via `useBoardSavedViews()`). */
+	savedViews?: SavedViewsSource;
 }
 
 const BoardContext = createContext<BoardContextValue | undefined>(undefined);
@@ -97,6 +125,11 @@ interface BoardProviderProps {
 	 * (module-level or memoised): it is part of the context value.
 	 */
 	renderers?: BoardRenderers;
+	/**
+	 * Where the saved-view UI reads and writes views (saved-views/saved-views-source.ts). Absent = the
+	 * signed-in user's personal views. Memoise it.
+	 */
+	savedViews?: SavedViewsSource;
 	children: ReactNode;
 }
 
@@ -112,6 +145,7 @@ export function BoardProvider({
 	groupings: extraGroupings,
 	views,
 	renderers,
+	savedViews,
 	children,
 }: BoardProviderProps) {
 	const groupings = useMemo(
@@ -122,8 +156,8 @@ export function BoardProvider({
 		[extraGroupings]
 	);
 	const value = useMemo<BoardContextValue>(
-		() => ({ data, capabilities, groupings, views, renderers }),
-		[data, capabilities, groupings, views, renderers]
+		() => ({ data, capabilities, groupings, views, renderers, savedViews }),
+		[data, capabilities, groupings, views, renderers, savedViews]
 	);
 	return (
 		<BoardContext.Provider value={value}>
@@ -159,6 +193,42 @@ export function useBoardGroupings(): GroupingRegistry {
  */
 export function useBoardViewsOverride(): readonly BoardViewDefinition[] | undefined {
 	return useBoardContext().views;
+}
+
+/**
+ * The saved-views source the provider was given, or undefined (also outside any provider). Prefer
+ * `useBoardSavedViews()` from saved-views/use-board-saved-views.ts, which applies the personal default.
+ */
+export function useBoardSavedViewsOverride(): SavedViewsSource | undefined {
+	return useContext(BoardContext)?.savedViews;
+}
+
+/** The single org this board shows, or undefined on a cross-org board. */
+export function useBoardOrganizationScope(): BoardOrganizationScope | undefined {
+	return useBoardContext().data.organizationScope;
+}
+
+/**
+ * A function giving what the viewer may edit on a task: off entirely without `canEditFields`, else
+ * the per-field permissions for the task's org (everything when the data source supplies none). For
+ * callers resolving several tasks at once (the bulk bar); one task = `useFieldPermissions(task)`.
+ */
+export function useFieldPermissionsResolver(): (task: TaskItem) => BoardFieldPermissions {
+	const { permissions, viewerId } = useBoardData();
+	const { canEditFields } = useBoardCapabilities();
+	return useCallback(
+		(task: TaskItem) => {
+			if (!canEditFields) return NO_FIELDS_EDITABLE;
+			if (!permissions) return ALL_FIELDS_EDITABLE;
+			return getBoardFieldPermissions(task, viewerId, permissions[task.organizationId]);
+		},
+		[canEditFields, permissions, viewerId]
+	);
+}
+
+/** What the viewer may edit on `task` — `canEditFields` AND the per-field permissions (see the resolver above). */
+export function useFieldPermissions(task: TaskItem): BoardFieldPermissions {
+	return useFieldPermissionsResolver()(task);
 }
 
 const NO_RENDERERS: BoardRenderers = {};

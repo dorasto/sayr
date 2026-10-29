@@ -33,9 +33,10 @@ import {
 	VISIBILITY_CONFIG,
 	type VisibilityValue,
 } from "../config/field-config";
-import { useBoardData } from "../core/board-data";
+import { useBoardData, useFieldPermissionsResolver } from "../core/board-data";
+import { intersectFieldPermissions } from "../core/field-permissions";
+import { useBoardSelectionKey } from "../core/scope";
 import { LabelBadge } from "../fields/label-badge";
-import { BOARD_TASK_SELECTION_KEY } from "./board-selection-constants";
 
 // The command-palette sub-view id the "More" button drills straight into.
 // Also the id the "Bulk edit N tasks" root item's own subId points at, so
@@ -69,7 +70,7 @@ interface BoardBulkActionBarProps {
  * normal Cmd+K open while a selection is active (same registered commands),
  * not just via the button.
  *
- * Reads the SAME useTaskSelection cache entry (BOARD_TASK_SELECTION_KEY)
+ * Reads the SAME useTaskSelection cache entry (the scope's `useBoardSelectionKey()`)
  * that board-row.tsx/board-card.tsx write to, so it just appears/disappears
  * as selection changes with no props/context threaded down for that.
  *
@@ -88,20 +89,31 @@ interface BoardBulkActionBarProps {
  *   resolveDelta gets the task, not a shared id list).
  * - Category/Release: no cross-org equivalent attempted — hidden entirely
  *   unless every selected task shares one organizationId.
+ *
+ * Every field is also gated on the viewer's per-field permissions
+ * (core/field-permissions.ts) across the WHOLE selection: a field one selected
+ * task doesn't let them edit is disabled (bar) / not offered (Cmd+K) for the batch.
  */
 export function BoardBulkActionBar({ tasks }: BoardBulkActionBarProps) {
 	const { updateItems, categories, releases, labels } = useBoardData();
 	const { value: sseClientId } = useStateManagement<string>("sse-clientId", "");
 	const { runWithToast } = useToastAction();
 	const taskIds = useMemo(() => tasks.map((task) => task.id), [tasks]);
+	const selectionKey = useBoardSelectionKey();
 	const { selectedSet, selectedCount, selectAll, deselectAll, isAllSelected, isIndeterminate } = useTaskSelection(
 		taskIds,
-		BOARD_TASK_SELECTION_KEY
+		selectionKey
 	);
 
 	const selectedTasks = useMemo(() => tasks.filter((task) => selectedSet.has(task.id)), [tasks, selectedSet]);
 	const selectedOrgIds = useMemo(() => new Set(selectedTasks.map((task) => task.organizationId)), [selectedTasks]);
 	const singleOrgId = selectedOrgIds.size === 1 ? [...selectedOrgIds][0] : undefined;
+
+	const resolveFieldPermissions = useFieldPermissionsResolver();
+	const fieldPermissions = useMemo(
+		() => intersectFieldPermissions(selectedTasks.map(resolveFieldPermissions)),
+		[selectedTasks, resolveFieldPermissions]
+	);
 
 	// Intersection, not union — a user must appear (as an assignee on some
 	// already-loaded task) in EVERY selected org, not just one, or bulk-
@@ -470,46 +482,49 @@ export function BoardBulkActionBar({ tasks }: BoardBulkActionBarProps) {
 							label: "Change status to...",
 							icon: <IconListCheck className="size-4 opacity-60" />,
 							subId: "board-bulk-status",
+							show: fieldPermissions.status,
 						},
 						{
 							id: "board-bulk-priority-menu",
 							label: "Change priority to...",
 							icon: <IconFlag className="size-4 opacity-60" />,
 							subId: "board-bulk-priority",
+							show: fieldPermissions.priority,
 						},
 						{
 							id: "board-bulk-visibility-menu",
 							label: "Change visibility to...",
 							icon: VISIBILITY_CONFIG.public.icon("size-4 opacity-60"),
 							subId: "board-bulk-visibility",
+							show: fieldPermissions.visibility,
 						},
 						{
 							id: "board-bulk-assignee-menu",
 							label: "Change assignee...",
 							icon: <IconUser className="size-4 opacity-60" />,
 							subId: "board-bulk-assignee",
-							show: availableUsers.length > 0,
+							show: fieldPermissions.assignees && availableUsers.length > 0,
 						},
 						{
 							id: "board-bulk-label-menu",
 							label: "Change label...",
 							icon: <IconTag className="size-4 opacity-60" />,
 							subId: "board-bulk-label",
-							show: availableLabels.length > 0,
+							show: fieldPermissions.labels && availableLabels.length > 0,
 						},
 						{
 							id: "board-bulk-category-menu",
 							label: "Change category...",
 							icon: <IconCategory className="size-4 opacity-60" />,
 							subId: "board-bulk-category",
-							show: !!singleOrgId && availableCategories.length > 0,
+							show: fieldPermissions.category && !!singleOrgId && availableCategories.length > 0,
 						},
 						{
 							id: "board-bulk-release-menu",
 							label: "Change release...",
 							icon: <IconRocket className="size-4 opacity-60" />,
 							subId: "board-bulk-release",
-							show: !!singleOrgId && availableReleases.length > 0,
+							show: fieldPermissions.release && !!singleOrgId && availableReleases.length > 0,
 						},
 						{
 							id: "board-bulk-deselect",
@@ -537,6 +552,7 @@ export function BoardBulkActionBar({ tasks }: BoardBulkActionBarProps) {
 		availableReleases,
 		labels,
 		singleOrgId,
+		fieldPermissions,
 		sseClientId,
 		deselectAll,
 		applySingleValueUpdate,
@@ -594,6 +610,7 @@ export function BoardBulkActionBar({ tasks }: BoardBulkActionBarProps) {
 					<Separator orientation="vertical" className="h-5" />
 
 					<StatusBulkPicker
+						disabled={!fieldPermissions.status}
 						selectedTasks={selectedTasks}
 						onSelect={(status) =>
 							applySingleValueUpdate(
@@ -609,6 +626,7 @@ export function BoardBulkActionBar({ tasks }: BoardBulkActionBarProps) {
 					/>
 					{availableLabels.length > 0 && (
 						<LabelBulkPicker
+							disabled={!fieldPermissions.labels}
 							availableLabels={availableLabels}
 							selectedTasks={selectedTasks}
 							onSelect={({ addNames, removeNames }) =>
@@ -656,9 +674,11 @@ export function BoardBulkActionBar({ tasks }: BoardBulkActionBarProps) {
 }
 
 function StatusBulkPicker({
+	disabled,
 	selectedTasks,
 	onSelect,
 }: {
+	disabled: boolean;
 	selectedTasks: schema.TaskWithLabels[];
 	onSelect: (status: StatusValue) => void;
 }) {
@@ -667,7 +687,7 @@ function StatusBulkPicker({
 		<Popover open={open} onOpenChange={setOpen}>
 			<PopoverTrigger
 				render={
-					<Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs px-2">
+					<Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs px-2" disabled={disabled}>
 						{STATUS_CONFIG.todo.icon("h-3.5 w-3.5")}
 						<span>Status</span>
 					</Button>
@@ -711,10 +731,12 @@ function StatusBulkPicker({
  * per-task-org id at apply time.
  */
 function LabelBulkPicker({
+	disabled,
 	availableLabels,
 	selectedTasks,
 	onSelect,
 }: {
+	disabled: boolean;
 	availableLabels: schema.labelType[];
 	selectedTasks: schema.TaskWithLabels[];
 	onSelect: (value: { addNames: string[]; removeNames: string[] }) => void;
@@ -786,7 +808,7 @@ function LabelBulkPicker({
 		>
 			<PopoverTrigger
 				render={
-					<Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs px-2">
+					<Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs px-2" disabled={disabled}>
 						<IconTag className="h-3.5 w-3.5" />
 						<span>Labels</span>
 					</Button>

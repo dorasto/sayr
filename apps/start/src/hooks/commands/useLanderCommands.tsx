@@ -6,7 +6,7 @@ import { useMemo } from "react";
 import { useBoardViewState } from "@/components/board/filter/use-board-view-state";
 import { QUICK_FILTERS } from "@/components/board/quick-filters/quick-filter-config";
 import { useActiveView } from "@/components/board/saved-views/use-active-view";
-import { usePersonalViews } from "@/components/board/saved-views/use-personal-views";
+import { useBoardSavedViews } from "@/components/board/saved-views/use-board-saved-views";
 import { commandActions } from "@/lib/command-store";
 import type { CommandMap } from "@/types/command";
 import { useRegisterCommands } from "../useRegisterCommands";
@@ -41,7 +41,7 @@ function handleSaveCurrentView() {
  */
 export function useLanderCommands() {
 	const { data: session } = authClient.useSession();
-	const { personalViews } = usePersonalViews();
+	const { views: personalViews } = useBoardSavedViews();
 	const { selectView, applyFilter } = useBoardViewState();
 	const { isDirty } = useActiveView();
 	const userId = session?.user?.id;

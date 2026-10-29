@@ -15,6 +15,7 @@ import {
 import { cn } from "@repo/ui/lib/utils";
 import { IconFilter, IconPlus } from "@tabler/icons-react";
 import { useState } from "react";
+import { useBoardOrganizationScope } from "../core/board-data";
 import { FilterBuilderConditionRow } from "./filter-builder-condition-row";
 import { FIELD_CONFIGS } from "./filter-config";
 import type { FilterCondition, FilterState, FilterValue } from "./types";
@@ -25,6 +26,8 @@ import { useBoardViewState } from "./use-board-view-state";
 // every multi-select field plus the plain-text "title" field — is fully
 // wired in FilterBuilderConditionRow.
 const ADDABLE_FIELDS = FIELD_CONFIGS.filter((config) => config.field !== "created_at" && config.field !== "updated_at");
+// A single-org board has nothing to filter by org.
+const SINGLE_ORG_ADDABLE_FIELDS = ADDABLE_FIELDS.filter((config) => config.field !== "org");
 
 function updateConditionValue(filters: FilterState, conditionId: string, value: FilterValue): FilterState {
 	return {
@@ -49,13 +52,14 @@ function updateConditionValue(filters: FilterState, conditionId: string, value: 
 export function FilterBuilderContent() {
 	const { filters, setFilters, addFilter, removeFilter, updateFilterOperator, clearFilters } = useBoardViewState();
 	const [addOpen, setAddOpen] = useState(false);
+	const addableFields = useBoardOrganizationScope() ? SINGLE_ORG_ADDABLE_FIELDS : ADDABLE_FIELDS;
 
 	const conditions: FilterCondition[] = filters.groups[0]?.conditions ?? [];
 	const activeFields = new Set(conditions.map((condition) => condition.field));
 
 	const handleAddField = (field: string | null) => {
 		if (!field) return;
-		const config = ADDABLE_FIELDS.find((c) => c.field === field);
+		const config = addableFields.find((c) => c.field === field);
 		if (!config) return;
 		addFilter({
 			id: `filter-${field}-${Date.now()}`,
@@ -97,7 +101,7 @@ export function FilterBuilderContent() {
 						<ComboBoxList>
 							<ComboBoxEmpty>No fields found.</ComboBoxEmpty>
 							<ComboBoxGroup>
-								{ADDABLE_FIELDS.map((config) => (
+								{addableFields.map((config) => (
 									<ComboBoxItem
 										key={config.field}
 										value={config.field}

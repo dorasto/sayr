@@ -19,6 +19,7 @@ import {
 import type React from "react";
 import { useState } from "react";
 import RenderIcon from "@/components/generic/RenderIcon";
+import { areFiltersEqual } from "../core/view-config";
 import { serializeFilters } from "../filter/serialization";
 import {
   mapStateToViewConfig,
@@ -26,8 +27,9 @@ import {
 } from "../filter/use-board-view-state";
 import { EditViewPopover } from "./edit-view-popover";
 import { SaveViewPopover } from "./save-view-popover";
+import type { BoardViewPreset } from "./saved-views-source";
 import { useActiveView } from "./use-active-view";
-import { usePersonalViews } from "./use-personal-views";
+import { useBoardSavedViews } from "./use-board-saved-views";
 import {
   DEFAULT_VIEW_COLOR,
   DEFAULT_VIEW_ICON,
@@ -63,13 +65,37 @@ const ICON_SWATCH_CLASS = "size-5 rounded-md [&_svg]:size-3 shrink-0";
  * Pin/unpin is the one exception, kept in active-view-panel-header.tsx's
  * ActiveViewPanelPinButton (the panel header's own entry point); board-side-panel.tsx no
  * longer has any view listing/edit/delete of its own.
+ *
+ * Views come from the board's saved-views source (`useBoardSavedViews()`: personal views unless the
+ * BoardProvider was given another source). `presets` are fixed filter shortcuts listed under
+ * "All tasks" — not saved views: picking one replaces the filters (leaving any active view), and
+ * one reads as active while no view is selected and the live filters equal its filters.
  */
-export function ActiveViewSwitcher() {
+export function ActiveViewSwitcher({
+  presets,
+}: {
+  presets?: readonly BoardViewPreset[];
+} = {}) {
   const [updating, setUpdating] = useState(false);
-  const { personalViews, updateView, deleteView } = usePersonalViews();
-  const { filters, viewConfig, selectView, resetToSavedView, clearView } =
-    useBoardViewState();
+  const {
+    views: savedViews,
+    update: updateView,
+    remove: deleteView,
+    canCreate = true,
+    limitMessage,
+  } = useBoardSavedViews();
+  const {
+    filters,
+    viewConfig,
+    selectView,
+    resetToSavedView,
+    clearView,
+    applyFilter,
+  } = useBoardViewState();
   const { activeView, isDirtyFromActiveView, isDirty } = useActiveView();
+  const activePreset = activeView
+    ? undefined
+    : presets?.find((preset) => areFiltersEqual(preset.filters, filters));
 
   const handleUpdate = async (event: React.SyntheticEvent) => {
     stopRowSelect(event);
@@ -116,11 +142,19 @@ export function ActiveViewSwitcher() {
             button
             className={ICON_SWATCH_CLASS}
           />
+        ) : activePreset ? (
+          <span className="flex shrink-0 text-muted-foreground [&_svg]:size-3.5">
+            {activePreset.icon}
+          </span>
         ) : (
           <IconStack2 className="size-3.5 text-muted-foreground" />
         )}
         <span className="truncate">
-          {activeView ? activeView.name : "All tasks"}
+          {activeView
+            ? activeView.name
+            : activePreset
+              ? activePreset.label
+              : "All tasks"}
         </span>
         {isDirty && (
           <span
@@ -137,17 +171,29 @@ export function ActiveViewSwitcher() {
       >
         <DropdownMenuItem
           onClick={() => clearView()}
-          className={cn(!activeView && "bg-accent")}
+          className={cn(!activeView && !activePreset && "bg-accent")}
         >
           <IconStack2 className="size-4 text-muted-foreground" />
           All tasks
           {/*{!activeView && <IconCheck className="ml-auto size-4 shrink-0" />}*/}
         </DropdownMenuItem>
-        {personalViews.length > 0 && (
+        {presets?.map((preset) => (
+          <DropdownMenuItem
+            key={preset.id}
+            onClick={() => applyFilter(preset.filters)}
+            className={cn(activePreset?.id === preset.id && "bg-accent")}
+          >
+            <span className="flex shrink-0 text-muted-foreground [&_svg]:size-4">
+              {preset.icon}
+            </span>
+            {preset.label}
+          </DropdownMenuItem>
+        ))}
+        {savedViews.length > 0 && (
           <DropdownMenuSeparator className="bg-border" />
         )}
         <DropdownMenuGroup className={""}>
-          {personalViews.map((view) => {
+          {savedViews.map((view) => {
             const isActive = activeView?.id === view.id;
             const showResetUpdate = isActive && isDirtyFromActiveView;
             return (
@@ -217,11 +263,17 @@ export function ActiveViewSwitcher() {
         {isDirty && (
           <>
             <DropdownMenuSeparator />
-            <SaveViewPopover
-              triggerLabel={activeView ? "Save as new view" : "Save view"}
-              triggerVariant="ghost"
-              triggerClassName="w-full h-auto justify-start gap-2 rounded-xl px-2 py-1.5 text-sm font-normal text-foreground hover:bg-accent hover:text-accent-foreground"
-            />
+            {canCreate ? (
+              <SaveViewPopover
+                triggerLabel={activeView ? "Save as new view" : "Save view"}
+                triggerVariant="ghost"
+                triggerClassName="w-full h-auto justify-start gap-2 rounded-xl px-2 py-1.5 text-sm font-normal text-foreground hover:bg-accent hover:text-accent-foreground"
+              />
+            ) : (
+              <p className="px-2 py-1.5 text-xs text-muted-foreground">
+                {limitMessage ?? "You can't save more views."}
+              </p>
+            )}
           </>
         )}
       </DropdownMenuContent>

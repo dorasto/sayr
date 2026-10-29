@@ -4,6 +4,7 @@ import {
 	type TaskViewCombinedState,
 	type TaskViewState,
 } from "../filter/types";
+import { BOARD_TASK_SELECTION_KEY } from "../selection/board-selection-constants";
 import { DEFAULT_COMBINED_STATE, DEFAULT_FILTER_STATE } from "./view-config";
 
 // Pure half of core/scope.tsx (cache-key derivation, persistence predicates, initial-state merge) —
@@ -50,6 +51,11 @@ export function deriveViewStateCacheKey(scopeKey: string): string {
 	return scopeKey === LEGACY_BOARD_SCOPE_KEY
 		? LEGACY_VIEW_STATE_CACHE_KEY
 		: `${LEGACY_VIEW_STATE_CACHE_KEY}:${scopeKey}`;
+}
+
+/** The useTaskSelection cache key a scope's row selection lives under. "home" keeps the board's original global key. */
+export function deriveSelectionCacheKey(scopeKey: string): string {
+	return scopeKey === LEGACY_BOARD_SCOPE_KEY ? BOARD_TASK_SELECTION_KEY : `${BOARD_TASK_SELECTION_KEY}:${scopeKey}`;
 }
 
 /**

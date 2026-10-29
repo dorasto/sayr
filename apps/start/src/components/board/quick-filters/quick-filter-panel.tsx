@@ -75,7 +75,11 @@ function edgeFadeMask({ start, end }: ScrollEdges): string | undefined {
  * builder always agree on what's selected.
  */
 export function QuickFilterPanel() {
-	const { items: tasks, labels, categories, releases } = useBoardData();
+	const { items: tasks, labels, categories, releases, organizationScope } = useBoardData();
+	// A single-org board has no org facet.
+	const quickFilterFields = organizationScope
+		? QUICK_FILTER_FIELDS.filter((field) => field !== "org")
+		: QUICK_FILTER_FIELDS;
 	const { filters, setFilters, showCompletedTasks } = useBoardViewState();
 	const [activeField, setActiveField] = useState<FilterField>(QUICK_FILTER_FIELDS[0] as FilterField);
 	const { ref: tabStripRef, edges: tabEdges, update: updateTabEdges } = useScrollEdges();
@@ -128,7 +132,7 @@ export function QuickFilterPanel() {
 				className="scrollbar-hide flex items-center gap-1 overflow-x-auto"
 				style={{ maskImage: edgeFadeMask(tabEdges), WebkitMaskImage: edgeFadeMask(tabEdges) }}
 			>
-				{QUICK_FILTER_FIELDS.map((field) => {
+				{quickFilterFields.map((field) => {
 					const fieldConfig = FIELD_CONFIGS.find((c) => c.field === field);
 					if (!fieldConfig) return null;
 					return (

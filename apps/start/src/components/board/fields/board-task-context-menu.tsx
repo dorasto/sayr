@@ -28,7 +28,19 @@ import {
 	VISIBILITY_CONFIG,
 	type VisibilityValue,
 } from "../config/field-config";
-import { useBoardAssignableUsers, useBoardCapabilities, useBoardData, useBoardItemActions } from "../core/board-data";
+import {
+	useBoardAssignableUsers,
+	useBoardCapabilities,
+	useBoardData,
+	useBoardItemActions,
+	useBoardOrganizationScope,
+	useFieldPermissions,
+} from "../core/board-data";
+import type { BoardPermissionField } from "../core/field-permissions";
+
+// A field the viewer can't edit on this task keeps its submenu row (so the menu's shape doesn't
+// shift between tasks) but disabled.
+const SUB_TRIGGER_CLASS = "gap-3 w-full data-disabled:pointer-events-none data-disabled:opacity-50";
 
 interface BoardTaskContextMenuProps {
 	task: schema.TaskWithLabels;
@@ -56,6 +68,13 @@ function ActiveBoardTaskContextMenu({ task, children }: BoardTaskContextMenuProp
 	const { categories, releases, labels } = useBoardData();
 	const { value: sseClientId } = useStateManagement<string>("sse-clientId", "");
 	const { execute } = useBoardItemActions(task);
+	const fieldPermissions = useFieldPermissions(task);
+	const organizationScope = useBoardOrganizationScope();
+	const orgShortId = task.organization?.shortId ?? organizationScope?.shortId;
+	const subTriggerProps = (field: BoardPermissionField) => ({
+		className: SUB_TRIGGER_CLASS,
+		disabled: !fieldPermissions[field],
+	});
 
 	const availableCategories = categories.filter((category) => category.organizationId === task.organizationId);
 	const availableReleases = releases.filter((release) => release.organizationId === task.organizationId);
@@ -71,8 +90,7 @@ function ActiveBoardTaskContextMenu({ task, children }: BoardTaskContextMenuProp
 			<ContextMenuContent className="w-56">
 				<ContextMenuGroup>
 					<ContextMenuLabel className="truncate">
-						{task.organization ? formatTaskKey(task.organization.shortId, task.shortId) : task.shortId} —{" "}
-						{task.title || "Untitled"}
+						{orgShortId ? formatTaskKey(orgShortId, task.shortId) : task.shortId} — {task.title || "Untitled"}
 					</ContextMenuLabel>
 				</ContextMenuGroup>
 				<ContextMenuSeparator />
@@ -91,7 +109,7 @@ function ActiveBoardTaskContextMenu({ task, children }: BoardTaskContextMenuProp
 
 				{/* Status */}
 				<ContextMenuSub>
-					<ContextMenuSubTrigger className="gap-3 w-full">
+					<ContextMenuSubTrigger {...subTriggerProps("status")}>
 						{STATUS_CONFIG[task.status as StatusValue].icon("size-3.5")}
 						Status
 					</ContextMenuSubTrigger>
@@ -130,7 +148,7 @@ function ActiveBoardTaskContextMenu({ task, children }: BoardTaskContextMenuProp
 
 				{/* Priority */}
 				<ContextMenuSub>
-					<ContextMenuSubTrigger className="gap-3 w-full">
+					<ContextMenuSubTrigger {...subTriggerProps("priority")}>
 						{PRIORITY_CONFIG[task.priority as PriorityValue].icon("size-3.5")}
 						Priority
 					</ContextMenuSubTrigger>
@@ -169,7 +187,7 @@ function ActiveBoardTaskContextMenu({ task, children }: BoardTaskContextMenuProp
 
 				{/* Visibility */}
 				<ContextMenuSub>
-					<ContextMenuSubTrigger className="gap-3 w-full">
+					<ContextMenuSubTrigger {...subTriggerProps("visibility")}>
 						{VISIBILITY_CONFIG[task.visible].icon("size-3.5")}
 						Visibility
 					</ContextMenuSubTrigger>
@@ -207,7 +225,7 @@ function ActiveBoardTaskContextMenu({ task, children }: BoardTaskContextMenuProp
 
 				{/* Assignees */}
 				<ContextMenuSub>
-					<ContextMenuSubTrigger className="gap-3 w-full">
+					<ContextMenuSubTrigger {...subTriggerProps("assignees")}>
 						<IconUser className="size-3.5" />
 						Assignees
 					</ContextMenuSubTrigger>
@@ -252,7 +270,7 @@ function ActiveBoardTaskContextMenu({ task, children }: BoardTaskContextMenuProp
 
 				{/* Labels */}
 				<ContextMenuSub>
-					<ContextMenuSubTrigger className="gap-3 w-full">
+					<ContextMenuSubTrigger {...subTriggerProps("labels")}>
 						<IconTag className="size-3.5" />
 						Labels
 					</ContextMenuSubTrigger>
@@ -303,7 +321,7 @@ function ActiveBoardTaskContextMenu({ task, children }: BoardTaskContextMenuProp
 
 				{/* Category */}
 				<ContextMenuSub>
-					<ContextMenuSubTrigger className="gap-3 w-full">
+					<ContextMenuSubTrigger {...subTriggerProps("category")}>
 						<IconCategory className="size-3.5" />
 						Category
 					</ContextMenuSubTrigger>
@@ -345,7 +363,7 @@ function ActiveBoardTaskContextMenu({ task, children }: BoardTaskContextMenuProp
 
 				{/* Release */}
 				<ContextMenuSub>
-					<ContextMenuSubTrigger className="gap-3 w-full">
+					<ContextMenuSubTrigger {...subTriggerProps("release")}>
 						<IconRocket className="size-3.5" />
 						Release
 					</ContextMenuSubTrigger>
