@@ -99,12 +99,18 @@ const markdownSerializer = new MarkdownSerializer(
 			// Handled by table
 		},
 		text: (state, node) => {
+			// Unfilled template prompts ("Answer...") aren't content — leave them out.
+			if (node.marks.some((mark) => mark.type.name === "templatePlaceholder")) return;
 			state.text(node.text || "");
 		},
 		list: (state, node) => {
-			const isOrdered = node.attrs.kind === "ordered";
+			const { kind } = node.attrs;
 			const start = node.attrs.start || 1;
-			state.renderList(node, "  ", (i) => (isOrdered ? `${start + i}. ` : "- "));
+			state.renderList(node, "  ", (i) => {
+				if (kind === "ordered") return `${start + i}. `;
+				if (kind === "task") return node.attrs.checked ? "- [x] " : "- [ ] ";
+				return "- ";
+			});
 		},
 	},
 	{
@@ -113,6 +119,9 @@ const markdownSerializer = new MarkdownSerializer(
 		strike: { open: "~~", close: "~~", mixable: true, expelEnclosingWhitespace: true },
 		code: { open: "`", close: "`", escape: false },
 		underline: { open: "<u>", close: "</u>" },
+		// The text itself is dropped by the `text` serializer above; this entry only
+		// stops MarkdownSerializer throwing on an unsupported mark.
+		templatePlaceholder: { open: "", close: "" },
 		link: {
 			open: "[",
 			close: (_, mark) => {
@@ -123,9 +132,22 @@ const markdownSerializer = new MarkdownSerializer(
 	}
 );
 
+/**
+ * Drops marks this schema doesn't define. nodeFromJSON throws on the first unknown
+ * mark, which turns the whole document into "[Invalid content]" — a mark added to
+ * the editor but not mirrored in ./schema.ts should cost its formatting, not the text.
+ */
+function stripUnknownMarks(node: schema.NodeJSON): schema.NodeJSON {
+	return {
+		...node,
+		...(node.marks && { marks: node.marks.filter((mark) => mark.type in prosekitSchema.marks) }),
+		...(node.content && { content: node.content.map(stripUnknownMarks) }),
+	};
+}
+
 export function prosekitJSONToMarkdown(jsonDoc: schema.NodeJSON): string {
 	try {
-		const node = prosekitSchema.nodeFromJSON(jsonDoc);
+		const node = prosekitSchema.nodeFromJSON(stripUnknownMarks(jsonDoc));
 		return markdownSerializer.serialize(node);
 	} catch (error) {
 		console.error("ProseKit → Markdown conversion failed:", error);

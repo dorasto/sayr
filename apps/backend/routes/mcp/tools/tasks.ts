@@ -14,6 +14,7 @@ import {
 	updateTaskLabelsService,
 } from "../../../lib/tasks/updateTaskLabels";
 import { updateTaskService } from "../../../lib/tasks/updateTask";
+import { prosekitJSONToMarkdown } from "../../../prosekit/markdown";
 import { markdownToProsekitJSON } from "../../../prosekit/parser";
 import { baseTaskWhere } from "../../api/internal/v1/task";
 import { findSSEClientsByUserId, sseBroadcastIndividual, sseBroadcastPublic, sseBroadcastToRoom } from "../../events";
@@ -110,7 +111,8 @@ export function registerTaskTools(server: McpServer, claims: McpUserClaims | nul
 		"get_task",
 		{
 			title: "Get task",
-			description: "Get a single task's full details, including description, labels, assignees, and release.",
+			description:
+				"Get a single task's full details, including its description (as Markdown), labels, assignees, and release.",
 			inputSchema: z.object({
 				org: z.string().describe('Organization slug (e.g. "platform") or id.'),
 				task: z.string().describe('Task short id (the number in SAY-123, e.g. "123") or task id.'),
@@ -136,7 +138,12 @@ export function registerTaskTools(server: McpServer, claims: McpUserClaims | nul
 			const task = await getTaskById(orgId, taskId);
 			if (!task) return toolError(`No task found for "${taskRef}" in this organization.`);
 
-			return toolJson(taskSummary(task));
+			// The full description only here — list_tasks and the mutation tools keep the
+			// slimmer taskSummary so their responses stay small.
+			return toolJson({
+				...taskSummary(task),
+				description: task.description ? prosekitJSONToMarkdown(task.description) : null,
+			});
 		}
 	);
 
