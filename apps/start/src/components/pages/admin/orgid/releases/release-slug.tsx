@@ -259,7 +259,6 @@ function ReleaseDetailPageContent() {
 			RELEASE_CHARTS_PANEL_ID,
 			<div className="flex flex-col gap-3">
 				<ReleaseInfo release={release} />
-				{tasks.length > 0 && <Label>Status</Label>}
 				<ReleaseSidebar
 					tasks={tasks}
 					taskStats={taskStats}

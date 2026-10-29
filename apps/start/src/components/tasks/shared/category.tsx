@@ -123,7 +123,13 @@ export default function GlobalTaskCategory({
 				>
 					<ComboBoxTrigger disabled={!editable} className={className}>
 						<ComboBoxValue placeholder="Select category">
-							<div className={cn("flex items-center gap-2", compact && "max-w-20 text-xs")}>
+							<div
+								className={cn(
+									"flex items-center gap-2",
+									compact && "max-w-20 text-xs",
+									!task.category && "text-muted-foreground"
+								)}
+							>
 								{display.icon}
 								{!compact && <span className="truncate">{display.label}</span>}
 							</div>

@@ -351,6 +351,26 @@ export default function GlobalTaskLabels({
     );
   }
 
+  // No labels: a "No labels" row as the trigger (className goes on it, like the
+  // other sidebar fields' triggers) instead of a bare "+" that says nothing
+  // without a section heading above it.
+  if (task.labels.length === 0) {
+    return (
+      <div className="flex flex-col gap-3">
+        {showLabel && <Label variant={"subheading"}>Labels</Label>}
+        <ComboBox values={currentLabelIds} onValuesChange={handleLabelsChange}>
+          <ComboBoxTrigger disabled={!editable} className={className}>
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <IconTag className="h-4 w-4 opacity-60" />
+              <span>No labels</span>
+            </div>
+          </ComboBoxTrigger>
+          {renderDropdownContent()}
+        </ComboBox>
+      </div>
+    );
+  }
+
   return (
     <div className={cn("flex flex-col gap-3", className)}>
       {showLabel && <Label variant={"subheading"}>Labels</Label>}
