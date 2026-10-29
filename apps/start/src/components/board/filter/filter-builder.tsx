@@ -1,6 +1,5 @@
 "use client";
 
-import { Badge } from "@repo/ui/components/badge";
 import { Button } from "@repo/ui/components/button";
 import {
 	ComboBox,
@@ -12,7 +11,6 @@ import {
 	ComboBoxSearch,
 	ComboBoxTrigger,
 } from "@repo/ui/components/tomui/combo-box-unified";
-import { cn } from "@repo/ui/lib/utils";
 import { IconFilter, IconPlus } from "@tabler/icons-react";
 import { useMemo, useState } from "react";
 import { useBoardEntity, useBoardOrganizationScope } from "../core/board-data";
@@ -136,27 +134,30 @@ export function FilterBuilderContent() {
 	);
 }
 
-/** The filter builder's compact top-bar form — a trigger button + popover wrapping FilterBuilderContent. */
+/**
+ * The filter builder's compact top-bar form — an icon-only trigger (same look as BoardViewOptions' sliders button
+ * beside it, with a small dot while filters are active) + popover wrapping FilterBuilderContent.
+ */
 export function FilterBuilder() {
 	const { filters } = useBoardViewState();
+	const [open, setOpen] = useState(false);
 	const conditions: FilterCondition[] = filters.groups[0]?.conditions ?? [];
 
 	return (
-		<ComboBox>
+		<ComboBox open={open} onOpenChange={setOpen}>
 			<ComboBoxTrigger asChild>
 				<Button
 					type="button"
-					variant="outline"
+					variant={open ? "secondary" : "ghost"}
+					size={"sm"}
 					data-command-target="filter-builder-trigger"
-					className={cn(
-						"h-6 gap-1.5 rounded-full px-2 text-xs shrink-0",
-						conditions.length > 0 && "bg-primary/10 border-primary text-primary hover:bg-primary/10"
-					)}
+					aria-label="Filter"
+					title="Filter"
+					className="relative gap-2 h-6 w-6 p-1"
 				>
-					<IconFilter className="size-3.5" />
-					Filter
+					<IconFilter className="w-4 h-4" />
 					{conditions.length > 0 && (
-						<Badge className="size-4 justify-center p-0 text-[10px]">{conditions.length}</Badge>
+						<span className="absolute top-0.5 right-0.5 size-1.5 rounded-full bg-primary" />
 					)}
 				</Button>
 			</ComboBoxTrigger>

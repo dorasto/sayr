@@ -173,7 +173,10 @@ export function OrgTasksPanelContent() {
 	);
 }
 
-/** The panel header's right-hand action: the org's settings (the old tasks panel header's link). */
+/**
+ * A panel header's right-hand action linking to the org's settings — used by the releases page. (The tasks page's
+ * panel header has the active view's actions instead: `ActiveViewPanelActions`.)
+ */
 export function OrgSettingsLink({ organizationId }: { organizationId: string }) {
 	return (
 		<Link to="/settings/org/$orgId" params={{ orgId: organizationId }} title="Organization settings">

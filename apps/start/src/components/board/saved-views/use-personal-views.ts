@@ -3,7 +3,7 @@
 import type { schema } from "@repo/database";
 import { useStore } from "@tanstack/react-store";
 import { useCallback } from "react";
-import { personalViewsActions, personalViewsStore } from "@/lib/stores/personal-views-store";
+import { type PersonalViewUpdates, personalViewsActions, personalViewsStore } from "@/lib/stores/personal-views-store";
 
 /**
  * Thin adapter over personal-views-store — the store (not ContextLander) is the single
@@ -20,10 +20,7 @@ export function usePersonalViews() {
 	);
 
 	const updateView = useCallback(
-		(
-			viewId: string,
-			updates: Partial<{ name: string; viewConfig: schema.savedViewType["viewConfig"]; filterParams: string }>
-		) => personalViewsActions.updateView(viewId, updates),
+		(viewId: string, updates: PersonalViewUpdates) => personalViewsActions.updateView(viewId, updates),
 		[]
 	);
 

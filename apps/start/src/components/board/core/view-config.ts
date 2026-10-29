@@ -47,7 +47,7 @@ export function resolveViewMode(id: string | undefined, availableIds?: readonly 
 }
 
 /**
- * For the org saved-view settings page (pages/admin/settings/orgId/view-detail.tsx), which only
+ * For the view settings sheet (saved-views/view-settings-sheet.tsx), which only
  * offers List and Kanban: a view saved with "card" (or anything unknown) is shown as "list" there.
  */
 export function coerceToLegacyViewMode(mode: string | undefined): "list" | "kanban" {

@@ -19,9 +19,10 @@ import { useBoardViewState } from "@/components/board/filter/use-board-view-stat
 import { BoardScrollArea } from "@/components/board/layout/board-scroll-area";
 import { BoardViewOptions } from "@/components/board/layout/board-view-options";
 import { TaskCountLabel } from "@/components/board/layout/task-count-label";
-import { ActiveViewPanelHeader } from "@/components/board/saved-views/active-view-panel-header";
+import { ActiveViewPanelActions, ActiveViewPanelHeader } from "@/components/board/saved-views/active-view-panel-header";
 import { ActiveViewSwitcher } from "@/components/board/saved-views/active-view-switcher";
 import { useOrgSavedViewsSource } from "@/components/board/saved-views/use-org-saved-views";
+import { ViewSettingsSheet } from "@/components/board/saved-views/view-settings-sheet";
 import { PageHeader } from "@/components/generic/PageHeader";
 import { Page } from "@/components/generic/page";
 import { usePage, usePanel } from "@/components/generic/use-page";
@@ -37,7 +38,7 @@ import { readClosedTasksPayload, replaceTask, upsertTask } from "@/lib/board/app
 import type { ServerEventMessage } from "@/lib/serverEvents";
 import { sidebarActions } from "@/lib/sidebar/sidebar-store";
 import { userPreferencesStore } from "@/lib/stores/user-preferences-store";
-import { OrgSettingsLink, OrgTasksPanelContent, useOrgTaskPresets } from "./org-tasks-panel";
+import { OrgTasksPanelContent, useOrgTaskPresets } from "./org-tasks-panel";
 
 const TASKS_LIST_PANEL_ID = "tasks-list-panel";
 
@@ -191,6 +192,7 @@ export default function OrganizationTasksHomePage() {
 			openItemOnClick={taskOpenMode === "dialog"}
 		>
 			<OrganizationTasksBoardPage setTasks={setTasks} />
+			<ViewSettingsSheet />
 			<TaskDetailDialog
 				task={dialogTask}
 				open={dialogTask !== null}
@@ -308,7 +310,7 @@ function OrganizationTasksBoardPage({ setTasks }: { setTasks: (tasks: schema.Tas
 					id: TASKS_LIST_PANEL_ID,
 					header: {
 						icon: <ActiveViewPanelHeader />,
-						actions: <OrgSettingsLink organizationId={organization.id} />,
+						actions: <ActiveViewPanelActions />,
 						showClose: false,
 					},
 					defaultOpen: true,

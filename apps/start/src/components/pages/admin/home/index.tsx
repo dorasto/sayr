@@ -9,11 +9,9 @@ import { BoardScrollArea } from "@/components/board/layout/board-scroll-area";
 import { BoardSidePanelContent } from "@/components/board/layout/board-side-panel";
 import { BoardViewOptions } from "@/components/board/layout/board-view-options";
 import { TaskCountLabel } from "@/components/board/layout/task-count-label";
-import {
-	ActiveViewPanelHeader,
-	ActiveViewPanelPinButton,
-} from "@/components/board/saved-views/active-view-panel-header";
+import { ActiveViewPanelActions, ActiveViewPanelHeader } from "@/components/board/saved-views/active-view-panel-header";
 import { ActiveViewSwitcher } from "@/components/board/saved-views/active-view-switcher";
+import { ViewSettingsSheet } from "@/components/board/saved-views/view-settings-sheet";
 import { PageHeader } from "@/components/generic/PageHeader";
 import { Page } from "@/components/generic/page";
 import { usePage, usePanel } from "@/components/generic/use-page";
@@ -105,7 +103,7 @@ export default function AdminHomePage({ pendingInvites }: { pendingInvites: Pend
 						id: LANDER_PANEL_ID,
 						header: {
 							icon: <ActiveViewPanelHeader />,
-							actions: <ActiveViewPanelPinButton />,
+							actions: <ActiveViewPanelActions />,
 							showClose: false,
 						},
 						defaultOpen: true,
@@ -120,6 +118,7 @@ export default function AdminHomePage({ pendingInvites }: { pendingInvites: Pend
 					<BoardScrollArea />
 				</div>
 			</Page>
+			<ViewSettingsSheet />
 		</AdminBoardProvider>
 	);
 }

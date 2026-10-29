@@ -138,13 +138,13 @@ Used by Settings pages. Just identity zone.
 
 ### Pattern 2: Task list with toolbar (single org)
 
-Used by `orgid/tasks/index.tsx`, which runs on the shared board (same chrome as `/home` — see the `board` skill). The page mounts `TaskBoardProvider` (org task store, `organizationScope`, org saved-views source, scope `org:<id>` / `url+personal`) around an inner component, because the header, toolbar and portalled panel all read the board's context. Identity: org avatar+name link (a plain click calls `clearView()`) / `ActiveViewSwitcher presets={...}` ("Your tasks" + one per category); actions `CreateIssueDialog` + panel toggle. Toolbar: `TaskCountLabel` left, `FilterBuilder` + `BoardViewOptions` right. Panel: `panels.right` with header `{ icon: <ActiveViewPanelHeader />, actions: <OrgSettingsLink />, showClose: false }` and body `OrgTasksPanelContent` (count tiles + `QuickFilterPanel`).
+Used by `orgid/tasks/index.tsx`, which runs on the shared board (same chrome as `/home` — see the `board` skill). The page mounts `TaskBoardProvider` (org task store, `organizationScope`, org saved-views source, scope `org:<id>` / `url+personal`) around an inner component, because the header, toolbar and portalled panel all read the board's context. Identity: org avatar+name link (a plain click calls `clearView()`) / `ActiveViewSwitcher presets={...}` ("Your tasks" + one per category); actions `CreateIssueDialog` + panel toggle. Toolbar: `TaskCountLabel` left, `FilterBuilder` + `BoardViewOptions` right. Panel: `panels.right` with header `{ icon: <ActiveViewPanelHeader />, actions: <ActiveViewPanelActions />, showClose: false }` (the gear opens the view settings sheet for the active view; mounted once inside the provider as `<ViewSettingsSheet />`) and body `OrgTasksPanelContent` (count tiles + `QuickFilterPanel`).
 
 ```tsx
 // apps/start/src/components/pages/admin/orgid/tasks/index.tsx (inner component, inside TaskBoardProvider)
 <Page
   header={header}
-  panels={{ right: { id: TASKS_LIST_PANEL_ID, header: { icon: <ActiveViewPanelHeader />, actions: <OrgSettingsLink organizationId={organization.id} />, showClose: false }, defaultOpen: true, width: "420px" } }}
+  panels={{ right: { id: TASKS_LIST_PANEL_ID, header: { icon: <ActiveViewPanelHeader />, actions: <ActiveViewPanelActions />, showClose: false }, defaultOpen: true, width: "420px" } }}
   className="h-full"
 >
   {/* header: <PageHeader.Identity actions={<><CreateIssueDialog ... /><PanelToggle /></>}>

@@ -19,8 +19,7 @@ const DEFAULT_ICON_COLOR = {
 
 // Stops a nested-Popover interaction (trigger click, content click) from
 // bubbling up into an outer overlay (e.g. ActiveViewSwitcher's DropdownMenu)
-// and closing it — same pattern edit-view-popover.tsx already uses for the
-// identical reason (Popover nested inside a Dropdown/ComboBox row).
+// and closing it (Popover nested inside a Dropdown/ComboBox row).
 const stopRowSelect = (event: React.SyntheticEvent) => event.stopPropagation();
 
 interface SaveViewPopoverProps {

@@ -31,7 +31,7 @@ function unwrap(result: SavedViewsResult, fallback: string): schema.savedViewTyp
  * An organization's shared saved views as a `SavedViewsSource` for the board's view UI (switcher, panel
  * header, save/edit popovers). Field mapping:
  * `filterParams` travels as `value`, the slug is derived from the name on create (and kept on rename, so a
- * `?view=<slug>` link keeps working), `logo` is empty. Org views have no pinning (the Favourites sidebar is
+ * `?view=<slug>` link keeps working; only the view settings sheet changes it), `logo` is empty. Org views have no pinning (the Favourites sidebar is
  * personal-only), so there is no `togglePin` and the panel's pin button hides.
  */
 export function useOrgSavedViewsSource({
@@ -65,7 +65,13 @@ export function useOrgSavedViewsSource({
 			const next = unwrap(
 				await updateSavedViewAction(
 					organizationId,
-					{ id: viewId, name: updates.name, value: updates.filterParams, viewConfig: updates.viewConfig },
+					{
+						id: viewId,
+						name: updates.name,
+						slug: updates.slug,
+						value: updates.filterParams,
+						viewConfig: updates.viewConfig,
+					},
 					sseClientId
 				),
 				"Failed to update view"

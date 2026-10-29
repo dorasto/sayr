@@ -16,7 +16,13 @@ export interface SavedViewCreateInput {
 	viewConfig?: SavedViewConfig;
 }
 
-export type SavedViewUpdates = Partial<{ name: string; viewConfig: SavedViewConfig; filterParams: string }>;
+/** `slug` is what `?view=` addresses the view by; both sources persist it (a view without one is addressed by its id). */
+export type SavedViewUpdates = Partial<{
+	name: string;
+	slug: string;
+	viewConfig: SavedViewConfig;
+	filterParams: string;
+}>;
 
 export interface SavedViewsSource {
 	/** Personal views (user-scoped, `organizationId: null`) or one org's shared views. */

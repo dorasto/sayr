@@ -1,10 +1,11 @@
 "use client";
 
-import { IconPin, IconPinFilled, IconStack2 } from "@tabler/icons-react";
+import { IconPin, IconPinFilled, IconSettings, IconStack2 } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
 import { useActiveView } from "./use-active-view";
 import { useBoardSavedViews } from "./use-board-saved-views";
 import { DEFAULT_VIEW_COLOR, DEFAULT_VIEW_ICON, ViewIconColorTrigger } from "./view-icon-color-trigger";
+import { viewSettingsActions } from "./view-settings-store";
 
 /**
  * The right panel's own header content, handed to Page via
@@ -107,5 +108,39 @@ export function ActiveViewPanelPinButton() {
 		>
 			{activeView.pinned ? <IconPinFilled className="size-4" /> : <IconPin className="size-4" />}
 		</button>
+	);
+}
+
+/**
+ * Opens the view settings sheet (view-settings-sheet.tsx) for the active view. Same size/look as the pin
+ * button; renders nothing on "All tasks" or a preset (no saved view to edit).
+ */
+export function ActiveViewPanelSettingsButton() {
+	const { activeView } = useActiveView();
+
+	if (!activeView) return null;
+
+	return (
+		<button
+			type="button"
+			onClick={() => viewSettingsActions.open(activeView.id)}
+			title="View settings"
+			className="rounded p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
+		>
+			<IconSettings className="size-4" />
+		</button>
+	);
+}
+
+/**
+ * The panel header's `actions` slot on a board page with saved views: pin (when the board's saved-views source
+ * supports pinning) + the view settings gear. Both hide when no saved view is active.
+ */
+export function ActiveViewPanelActions() {
+	return (
+		<div className="flex items-center">
+			<ActiveViewPanelPinButton />
+			<ActiveViewPanelSettingsButton />
+		</div>
 	);
 }
