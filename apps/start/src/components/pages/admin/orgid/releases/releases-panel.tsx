@@ -48,9 +48,9 @@ export function ReleasesPanelContent() {
 							<TileHeader>
 								<TileTitle className="flex items-center gap-2">
 									<TileIcon
+										// Muted like the org tasks page's tiles; the status colour stays on the board itself.
 										className={cn(
-											active ? "text-foreground bg-muted-foreground/20" : "text-muted-foreground",
-											config.className
+											active ? "text-foreground bg-muted-foreground/20" : "text-muted-foreground"
 										)}
 									>
 										{config.icon("size-3.5")}

@@ -38,6 +38,14 @@ export const RELEASE_ENTITY_ID = "release";
 
 // --- Groupings ------------------------------------------------------------------------------------
 
+/** Group-header tints, matched to the task statuses' (STATUS_TONE_CLASSES): planned ~ todo, released ~ done. */
+const RELEASE_STATUS_TONE_CLASSES: Record<ReleaseItem["status"], string> = {
+	planned: "bg-muted",
+	"in-progress": "bg-primary/5",
+	released: "bg-success/5",
+	archived: "bg-muted/50",
+};
+
 const releaseStatusGrouping: BoardGroupingDefinition<ReleaseItem> = {
 	id: RELEASE_STATUS_GROUPING_ID,
 	label: "Status",
@@ -53,9 +61,9 @@ const releaseStatusGrouping: BoardGroupingDefinition<ReleaseItem> = {
 					id,
 					label: config.label,
 					items: bucket,
-					// The status colour (config's own classes) on the glyph; `color` tints the list's group header.
 					icon: <span className={config.className}>{config.icon("h-3.5 w-3.5")}</span>,
-					color: config.color,
+					// The same muted theme tints the task status groups use (not the raw status colour).
+					toneClassName: RELEASE_STATUS_TONE_CLASSES[id],
 				};
 			}
 		),

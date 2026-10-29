@@ -1,11 +1,13 @@
 import type { schema } from "@repo/database";
 import { IconArchive, IconChecklist, IconProgress, IconRocket } from "@tabler/icons-react";
 
+// `className` is the status glyph's colour, in theme tokens matching the task statuses' (STATUS_CONFIG):
+// planned reads like todo (neutral), in progress like in progress (primary), released like done (success).
 export const releaseStatusConfig = {
 	planned: {
 		label: "Planned",
 		icon: (className: string) => <IconChecklist className={className} />,
-		className: "[&_svg]:text-blue-500",
+		className: "text-muted-foreground",
 		color: "#3B82F6",
 		hsla: "hsla(217.22, 91.22%, 59.8%, 1)",
 		badgeClassName: "bg-blue-500/10 text-blue-500 border-blue-500/20 hover:bg-blue-500/20",
@@ -21,7 +23,7 @@ export const releaseStatusConfig = {
 	released: {
 		label: "Released",
 		icon: (className: string) => <IconRocket className={className} />,
-		className: "text-green-500",
+		className: "text-success",
 		color: "#10B981",
 		hsla: "hsla(141.43, 99.9%, 59.8%, 1)",
 		badgeClassName: "bg-green-500/10 text-green-500 border-green-500/20 hover:bg-green-500/20",
@@ -29,7 +31,7 @@ export const releaseStatusConfig = {
 	archived: {
 		label: "Archived",
 		icon: (className: string) => <IconArchive className={className} />,
-		className: "text-gray-500",
+		className: "text-muted-foreground/60",
 		color: "#6B7280",
 		hsla: "hsla(220, 8.94%, 46.08%, 1)",
 		badgeClassName: "bg-gray-500/10 text-gray-500 border-gray-500/20 hover:bg-gray-500/20",

@@ -15,7 +15,7 @@ interface ReleasesKanbanCardProps {
 }
 
 /** "Released …", "Due …" (overdue while still open), or nothing set yet. */
-function getReleaseDateLabel(release: schema.releaseType): { text: string; overdue: boolean } {
+export function getReleaseDateLabel(release: schema.releaseType): { text: string; overdue: boolean } {
 	if (release.status === "released" && release.releasedAt) {
 		return { text: `Released ${formatDate(release.releasedAt)}`, overdue: false };
 	}
