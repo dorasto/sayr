@@ -324,6 +324,15 @@ export const prosekitSchema = new Schema({
 			parseDOM: [{ tag: "code" }],
 			toDOM: () => ["code", 0],
 		},
+		// Template prompt text ("Answer...") from task templates — mirrors the
+		// frontend's defineTemplatePlaceholderSpec. Without it, nodeFromJSON throws on
+		// any template-based description and the whole thing serializes to
+		// "[Invalid content]" (GitHub push, /v1 API, MCP get_task).
+		templatePlaceholder: {
+			inclusive: false,
+			parseDOM: [{ tag: "span[data-template-placeholder]" }],
+			toDOM: () => ["span", { "data-template-placeholder": "true", class: "template-placeholder" }, 0],
+		},
 		link: {
 			attrs: {
 				href: { default: "" },
