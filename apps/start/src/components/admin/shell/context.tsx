@@ -1,6 +1,7 @@
 import type { schema } from "@repo/database";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { createContext, type ReactNode, useCallback, useContext, useEffect } from "react";
+import { favouritesActions } from "@/lib/stores/favourites-store";
 import { notificationActions } from "@/lib/stores/notification-store";
 import { personalViewsActions } from "@/lib/stores/personal-views-store";
 import useServerEvents from "@/lib/serverEvents";
@@ -44,13 +45,19 @@ export function RootProvider({
 	// them — /home itself overrides this via hydrate() from its own loader, so no flash there.
 	useEffect(() => {
 		personalViewsActions.refresh();
+		favouritesActions.refresh();
 	}, []);
 
-	// Global WS listener for notification count updates
+	// Global WS listener: notification counts, and org view changes for favourited views
 	const handleNotificationWS = useCallback((event: MessageEvent) => {
 		try {
 			const data = JSON.parse(event.data);
-			if (data.type === "NEW_NOTIFICATION") {
+			if (data.type === "UPDATE_VIEWS") {
+				// An org's shared views changed (renamed, deleted…): keep any favourited ones in the sidebar current.
+				if (data.scope === "INDIVIDUAL" && data.meta?.orgId && Array.isArray(data.data)) {
+					favouritesActions.syncOrgViews(data.meta.orgId, data.data);
+				}
+			} else if (data.type === "NEW_NOTIFICATION") {
 				notificationActions.increment();
 			} else if (data.type === "NOTIFICATION_READ") {
 				if (data.data?.all) {

@@ -31,7 +31,10 @@ export interface SavedViewsSource {
 	create: (input: SavedViewCreateInput) => Promise<unknown>;
 	update: (viewId: string, updates: SavedViewUpdates) => Promise<unknown>;
 	remove: (viewId: string) => Promise<unknown>;
-	/** Pin/unpin (the Favourites sidebar). Absent = the source has no pinning; the pin button hides. */
+	/**
+	 * Pin/unpin in the viewer's own Favourites sidebar (lib/stores/favourites-store.ts — which also says whether a
+	 * view is pinned). Absent = the source has no pinning; the pin button hides.
+	 */
 	togglePin?: (viewId: string) => Promise<unknown>;
 	/** Whether the viewer may save another view (e.g. a plan limit or a missing permission). Absent = true. */
 	canCreate?: boolean;

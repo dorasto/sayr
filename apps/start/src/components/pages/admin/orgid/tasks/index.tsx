@@ -166,8 +166,12 @@ export default function OrganizationTasksHomePage() {
 		() => ({ key: `org:${organization.id}`, persistence: "url+personal" }),
 		[organization.id]
 	);
+	const favouriteOrganization = useMemo(
+		() => ({ id: organization.id, slug: organization.slug, name: organization.name, logo: organization.logo }),
+		[organization.id, organization.slug, organization.name, organization.logo]
+	);
 	const savedViews = useOrgSavedViewsSource({
-		organizationId: organization.id,
+		organization: favouriteOrganization,
 		views,
 		setViews,
 		canCreate: canCreateResource("savedViews"),
