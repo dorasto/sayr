@@ -18,6 +18,7 @@ import { FieldPriority } from "../fields/field-priority";
 import { FieldRelease } from "../fields/field-release";
 import { FieldStatus } from "../fields/field-status";
 import { BoardCardVotes } from "./board-card";
+import { RowChipOverflow } from "./row-chip-overflow";
 
 interface BoardRowProps {
 	task: schema.TaskWithLabels;
@@ -141,36 +142,35 @@ export function BoardRow({ task, nested = false }: BoardRowProps) {
 						{task.shortId}
 					</span>
 				)}
+				{/*
+				 * The title comes first: flex 0 1 auto keeps its full natural width while
+				 * there's room, and the chip slot after it (flex 1 1 0) only gets what's
+				 * left. Chips that don't fit there drop off from the right into "+N"
+				 * (RowChipOverflow); only once no chip fits does the title truncate.
+				 */}
 				<span
 					className={cn(
-						"truncate text-sm text-foreground flex-1 min-w-0 flex items-center",
+						"text-sm text-foreground flex-[0_1_auto] min-w-0 flex items-center",
 						(task.status === "done" || task.status === "canceled") && "text-muted-foreground"
 					)}
 				>
 					{task.visible === "private" && <IconLock className="size-3.5 mr-1 text-primary shrink-0" />}
-					{task.title || "Untitled"}
+					<span className="truncate">{task.title || "Untitled"}</span>
 				</span>
-				{/*
-				 * shrink (not shrink-0) + min-w-0 + overflow-hidden: category/release/
-				 * label pills are unbounded in number and each individually truncates
-				 * its own text, but nothing capped their COMBINED width — on a task
-				 * with several of them, that width was unbounded and rigid (shrink-0),
-				 * which forced the title's flex-1 to collapse toward zero instead.
-				 * max-w caps it at less than half the row so title always keeps the
-				 * majority of the space; overflow-hidden clips whatever doesn't fit
-				 * once shrunk below its natural content width (the flex-shrink default
-				 * alone can't go below a flex item's own content size without it).
-				 */}
-				<div className="flex items-center gap-1 min-w-0 shrink overflow-hidden max-w-[40%]">
-					<FieldCategory task={task} />
-					<FieldRelease task={task} />
-					<FieldLabel task={task} />
-				</div>
-				{/* Fixed width so counts line up down the list; hidden (not removed) at zero so nothing shifts. */}
-				<BoardCardVotes
-					count={task.voteCount ?? 0}
-					className={cn("w-8 justify-end", !task.voteCount && "invisible")}
+				<RowChipOverflow
+					chips={[
+						{ id: "category", node: <FieldCategory task={task} />, valueCount: task.category ? 1 : 0 },
+						{ id: "release", node: <FieldRelease task={task} />, valueCount: task.releaseId ? 1 : 0 },
+						{
+							id: "labels",
+							node: <FieldLabel task={task} />,
+							valueCount: task.labels.length,
+							overflowNode: <FieldLabel task={task} maxVisible={Number.POSITIVE_INFINITY} />,
+						},
+					]}
 				/>
+				{/* Only when the task has votes: no space is held for it otherwise, so narrow rows keep it for the title. */}
+				{!!task.voteCount && <BoardCardVotes count={task.voteCount} />}
 				<div className="shrink-0">
 					<FieldAssignee task={task} />
 				</div>

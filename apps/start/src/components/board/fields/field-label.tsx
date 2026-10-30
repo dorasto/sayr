@@ -20,6 +20,8 @@ const MAX_VISIBLE_LABELS = 2;
 
 interface FieldLabelProps {
 	task: schema.TaskWithLabels;
+	/** Pills shown before the "+N" pill. Default MAX_VISIBLE_LABELS; the row's chip-overflow card passes Infinity to list them all. */
+	maxVisible?: number;
 }
 
 /**
@@ -29,7 +31,7 @@ interface FieldLabelProps {
  * plus a "+N" overflow pill; the whole cluster is one ComboBox trigger, so
  * clicking any of it opens the multi-select label picker.
  */
-export function FieldLabel({ task }: FieldLabelProps) {
+export function FieldLabel({ task, maxVisible = MAX_VISIBLE_LABELS }: FieldLabelProps) {
 	const { labels } = useBoardData();
 	const canEdit = useFieldPermissions(task).labels;
 	const { value: sseClientId } = useStateManagement<string>("sse-clientId", "");
@@ -39,7 +41,7 @@ export function FieldLabel({ task }: FieldLabelProps) {
 
 	if (task.labels.length === 0) return null;
 
-	const visibleLabels = task.labels.slice(0, MAX_VISIBLE_LABELS);
+	const visibleLabels = task.labels.slice(0, maxVisible);
 	const overflowCount = task.labels.length - visibleLabels.length;
 
 	const pills = (
