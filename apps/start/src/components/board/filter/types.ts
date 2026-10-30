@@ -61,8 +61,9 @@ export const DEFAULT_TASK_VIEW_STATE: TaskViewState = {
 	subGrouping: "none",
 	showCompletedTasks: false,
 	viewMode: "list",
-	sortBy: "none",
-	sortDirection: "asc",
+	// Most-voted first by default (SAY-107). Saved views keep the sort they were saved with.
+	sortBy: "voteCount",
+	sortDirection: "desc",
 };
 
 export type FilterOperator =

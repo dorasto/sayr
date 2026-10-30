@@ -145,11 +145,14 @@ export function BoardCard({
 	);
 }
 
-/** The card's read-only vote count. */
-function BoardCardVotes({ count }: { count: number }) {
+/** A task's read-only vote count ("^ 3"): bottom-right on cards, before the assignee on list rows. */
+export function BoardCardVotes({ count, className }: { count: number; className?: string }) {
 	return (
 		<span
-			className="flex h-5 shrink-0 items-center gap-0.5 text-[11px] text-muted-foreground tabular-nums"
+			className={cn(
+				"flex h-5 shrink-0 items-center gap-0.5 text-[11px] text-muted-foreground tabular-nums",
+				className
+			)}
 			title={`${count} ${count === 1 ? "vote" : "votes"}`}
 		>
 			<IconChevronUp className="size-3" aria-hidden />

@@ -17,6 +17,7 @@ import { FieldLabel } from "../fields/field-label";
 import { FieldPriority } from "../fields/field-priority";
 import { FieldRelease } from "../fields/field-release";
 import { FieldStatus } from "../fields/field-status";
+import { BoardCardVotes } from "./board-card";
 
 interface BoardRowProps {
 	task: schema.TaskWithLabels;
@@ -165,6 +166,11 @@ export function BoardRow({ task, nested = false }: BoardRowProps) {
 					<FieldRelease task={task} />
 					<FieldLabel task={task} />
 				</div>
+				{/* Fixed width so counts line up down the list; hidden (not removed) at zero so nothing shifts. */}
+				<BoardCardVotes
+					count={task.voteCount ?? 0}
+					className={cn("w-8 justify-end", !task.voteCount && "invisible")}
+				/>
 				<div className="shrink-0">
 					<FieldAssignee task={task} />
 				</div>

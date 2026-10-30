@@ -113,11 +113,14 @@ describe("mapStateToViewConfig", () => {
 });
 
 describe("areViewConfigsEqual", () => {
+	// An explicit no-sort config: the default sorts by votes (SAY-107).
+	const UNSORTED = { ...DEFAULT_TASK_VIEW_STATE, sortBy: "none" as const, sortDirection: "asc" as const };
+
 	it("is equal for identical configs and treats missing sort as none/asc", () => {
-		expect(areViewConfigsEqual(DEFAULT_TASK_VIEW_STATE, { ...DEFAULT_TASK_VIEW_STATE })).toBe(true);
+		expect(areViewConfigsEqual(UNSORTED, { ...UNSORTED })).toBe(true);
 		expect(
-			areViewConfigsEqual(DEFAULT_TASK_VIEW_STATE, {
-				...DEFAULT_TASK_VIEW_STATE,
+			areViewConfigsEqual(UNSORTED, {
+				...UNSORTED,
 				sortBy: undefined,
 				sortDirection: undefined,
 			})
@@ -125,30 +128,16 @@ describe("areViewConfigsEqual", () => {
 	});
 
 	it("differs on view mode, including card", () => {
-		expect(areViewConfigsEqual(DEFAULT_TASK_VIEW_STATE, { ...DEFAULT_TASK_VIEW_STATE, viewMode: "kanban" })).toBe(
-			false
-		);
-		expect(areViewConfigsEqual(DEFAULT_TASK_VIEW_STATE, { ...DEFAULT_TASK_VIEW_STATE, viewMode: "card" })).toBe(
-			false
-		);
+		expect(areViewConfigsEqual(UNSORTED, { ...UNSORTED, viewMode: "kanban" })).toBe(false);
+		expect(areViewConfigsEqual(UNSORTED, { ...UNSORTED, viewMode: "card" })).toBe(false);
 	});
 
 	it("differs on grouping, sub-grouping, completed and sort", () => {
-		expect(areViewConfigsEqual(DEFAULT_TASK_VIEW_STATE, { ...DEFAULT_TASK_VIEW_STATE, grouping: "priority" })).toBe(
-			false
-		);
-		expect(areViewConfigsEqual(DEFAULT_TASK_VIEW_STATE, { ...DEFAULT_TASK_VIEW_STATE, subGrouping: "status" })).toBe(
-			false
-		);
-		expect(
-			areViewConfigsEqual(DEFAULT_TASK_VIEW_STATE, { ...DEFAULT_TASK_VIEW_STATE, showCompletedTasks: true })
-		).toBe(false);
-		expect(areViewConfigsEqual(DEFAULT_TASK_VIEW_STATE, { ...DEFAULT_TASK_VIEW_STATE, sortBy: "priority" })).toBe(
-			false
-		);
-		expect(areViewConfigsEqual(DEFAULT_TASK_VIEW_STATE, { ...DEFAULT_TASK_VIEW_STATE, sortDirection: "desc" })).toBe(
-			false
-		);
+		expect(areViewConfigsEqual(UNSORTED, { ...UNSORTED, grouping: "priority" })).toBe(false);
+		expect(areViewConfigsEqual(UNSORTED, { ...UNSORTED, subGrouping: "status" })).toBe(false);
+		expect(areViewConfigsEqual(UNSORTED, { ...UNSORTED, showCompletedTasks: true })).toBe(false);
+		expect(areViewConfigsEqual(UNSORTED, { ...UNSORTED, sortBy: "priority" })).toBe(false);
+		expect(areViewConfigsEqual(UNSORTED, { ...UNSORTED, sortDirection: "desc" })).toBe(false);
 	});
 });
 
