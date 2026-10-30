@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { areFiltersEqual } from "../../../../board/core/view-config";
-import { buildAssigneePresetFilters, buildCategoryPresetFilters, countOrgTasks } from "./org-task-presets";
+import { buildAssigneePresetFilters } from "../../../../board/layout/task-overview-model";
+import { buildCategoryPresetFilters, countOrgTasks } from "./org-task-presets";
 
 describe("org task presets", () => {
 	it("builds a single any-match condition per preset", () => {

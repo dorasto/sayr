@@ -1,32 +1,15 @@
 import type { schema } from "@repo/database";
-import type { FilterField, FilterState } from "../../../../board/filter/types";
+import type { FilterState } from "../../../../board/filter/types";
+import { buildPresetFilters } from "../../../../board/layout/task-overview-model";
 
-// Pure half of the org tasks page's fixed filters ("Your tasks", one per category) — shared by the view
+// Pure half of the org tasks page's fixed filters (one per category; "Your tasks" is the shared
+// buildAssigneePresetFilters in board/layout/task-overview-model.ts) — shared by the view
 // switcher's presets and the side panel's tiles so both agree on what "active" means. Relative/type-only
 // imports so vitest can cover it (see org-task-presets.test.ts).
 
-/** One `any`-match condition on `field`; the ids are stable so a preset is the same object shape every render. */
-function singleValueFilter(presetId: string, field: FilterField, value: string): FilterState {
-	return {
-		operator: "AND",
-		groups: [
-			{
-				id: `preset-${presetId}`,
-				operator: "AND",
-				conditions: [{ id: `preset-${presetId}-${field}`, field, operator: "any", value: [value] }],
-			},
-		],
-	};
-}
-
-/** "Your tasks": assigned to `userId`. */
-export function buildAssigneePresetFilters(userId: string): FilterState {
-	return singleValueFilter("assignee", "assignee", userId);
-}
-
 /** One category's tasks. */
 export function buildCategoryPresetFilters(categoryId: string): FilterState {
-	return singleValueFilter(`category-${categoryId}`, "category", categoryId);
+	return buildPresetFilters(`category-${categoryId}`, "category", categoryId);
 }
 
 type CountableTask = Pick<schema.TaskWithLabels, "status" | "category"> & {

@@ -26,8 +26,8 @@ const LANDER_PANEL_ID = "lander-side-panel";
  * side-panel system (see the page-component skill) rather than a hand-rolled
  * flex split — same as every other admin page with a panel. The header carries
  * the breadcrumb view switcher (ActiveViewSwitcher), the toolbar carries the
- * task count, the Filter popover and view options, and the panel holds the
- * quick filters.
+ * task count, the Filter popover and view options, and the panel holds count
+ * tiles (open / yours / per org), the task overview and the quick filters.
  */
 export default function AdminHomePage({ pendingInvites }: { pendingInvites: PendingInviteWithOrg[] }) {
 	const { clearView } = useBoardViewState();

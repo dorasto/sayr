@@ -2,14 +2,20 @@ import { cn } from "@repo/ui/lib/utils";
 
 export interface ProgressSegment {
 	value: number;
-	tone: "ok" | "accent" | "muted";
+	tone: "ok" | "accent" | "neutral" | "muted";
 }
 
 const TONES: Record<ProgressSegment["tone"], string> = {
 	ok: "bg-success",
 	accent: "bg-primary",
+	neutral: "bg-muted-foreground/40",
 	muted: "bg-border",
 };
+
+/** A segment tone's background class — for a legend dot beside the bar. */
+export function progressToneClass(tone: ProgressSegment["tone"]): string {
+	return TONES[tone];
+}
 
 interface SegmentedProgressProps {
 	/** In display order, e.g. done (ok), in progress (accent), planned (muted). Zero-value segments are skipped. */
