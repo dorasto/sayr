@@ -6,6 +6,7 @@ import { Hono } from "hono";
 import { z } from "zod";
 import type { AppEnv } from "@/index";
 import { markdownToProsekitJSON } from "@/prosekit/parser";
+import { resolveMarkdownMentions } from "@/prosekit/resolveMarkdownMentions";
 import { fetchUrlAsText } from "../../../../../lib/ai/fetch-url-text";
 import { checkAiFeatureAccess } from "../../../../../lib/ai/gate";
 import { buildEffectiveSystemPrompt, resolveActiveModel } from "../../../../../lib/ai/model";
@@ -250,7 +251,12 @@ releaseNotesRoute.post("/", async (c) => {
 		}),
 		// Convert the streamed markdown into ProseKit NodeJSON server-side so
 		// the client can drop it straight into the release description editor
-		// without needing its own markdown parser.
-		buildFinalEvent: (outputText) => ({ type: "content", content: markdownToProsekitJSON(outputText) }),
+		// without needing its own markdown parser. Issue keys (SAY-123), @people
+		// and !categories become real mentions, the same as markdown sent through
+		// the MCP / API.
+		buildFinalEvent: async (outputText) => ({
+			type: "content",
+			content: await resolveMarkdownMentions(markdownToProsekitJSON(outputText), orgId),
+		}),
 	});
 });
