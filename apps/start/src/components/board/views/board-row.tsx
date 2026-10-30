@@ -154,7 +154,6 @@ export function BoardRow({ task, nested = false }: BoardRowProps) {
 						(task.status === "done" || task.status === "canceled") && "text-muted-foreground"
 					)}
 				>
-					{task.visible === "private" && <IconLock className="size-3.5 mr-1 text-primary shrink-0" />}
 					<span className="truncate">{task.title || "Untitled"}</span>
 				</span>
 				<RowChipOverflow
@@ -171,6 +170,12 @@ export function BoardRow({ task, nested = false }: BoardRowProps) {
 				/>
 				{/* Only when the task has votes: no space is held for it otherwise, so narrow rows keep it for the title. */}
 				{!!task.voteCount && <BoardCardVotes count={task.voteCount} />}
+				{/* Private marker sits with the right-side meta (SAY-109): never shrinks, and takes no space on public rows. */}
+				{task.visible === "private" && (
+					<span className="flex shrink-0 items-center" title="Private task">
+						<IconLock className="size-3.5 text-primary" aria-label="Private task" />
+					</span>
+				)}
 				<div className="shrink-0">
 					<FieldAssignee task={task} />
 				</div>

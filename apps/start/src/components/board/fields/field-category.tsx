@@ -40,7 +40,7 @@ export function FieldCategory({ task }: FieldCategoryProps) {
 			<span className="flex shrink-0" style={{ color: current.color ?? undefined }}>
 				<RenderIcon iconName={current.icon || "IconCategory"} size={10} raw color={current.color ?? undefined} />
 			</span>
-			<span className="truncate">{current.name}</span>
+			<span className="truncate-cap">{current.name}</span>
 		</Badge>
 	);
 

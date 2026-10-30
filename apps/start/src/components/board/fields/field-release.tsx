@@ -36,7 +36,7 @@ export function FieldRelease({ task }: FieldReleaseProps) {
 	const pill = (
 		<Badge variant="secondary" className="flex h-5 max-w-24 items-center gap-1 px-1.5 text-[11px] font-medium">
 			<IconRocket className="size-2.5 shrink-0" style={{ color: current.color ?? undefined }} />
-			<span className="truncate">{current.name}</span>
+			<span className="truncate-cap">{current.name}</span>
 		</Badge>
 	);
 
