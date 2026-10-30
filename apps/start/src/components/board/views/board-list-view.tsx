@@ -29,6 +29,7 @@ import type { BoardDragMutation } from "../core/entity";
 import { useBoardViewState } from "../filter/use-board-view-state";
 import { BoardFooter } from "./board-load-more";
 import { GroupHeaderContent } from "./group-header";
+import { TaskKeyColumn } from "./task-key-column";
 
 // Entity-agnostic: rows come from the board's entity (`entity.Row`; tasks: `renderers.row`, else BoardRow),
 // nesting from `entity.subItems` (tasks' subtasks; absent = flat), drops from `entity.DropExecutor`.
@@ -529,10 +530,14 @@ function StaticBoardList({ tasks, flatSubtasks }: BoardListViewProps) {
 
 export function BoardListView({ tasks, flatSubtasks }: BoardListViewProps) {
 	const { canDrag } = useBoardCapabilities();
-	return canDrag ? (
-		<DraggableBoardList tasks={tasks} flatSubtasks={flatSubtasks} />
-	) : (
-		<StaticBoardList tasks={tasks} flatSubtasks={flatSubtasks} />
+	return (
+		<TaskKeyColumn items={tasks}>
+			{canDrag ? (
+				<DraggableBoardList tasks={tasks} flatSubtasks={flatSubtasks} />
+			) : (
+				<StaticBoardList tasks={tasks} flatSubtasks={flatSubtasks} />
+			)}
+		</TaskKeyColumn>
 	);
 }
 
