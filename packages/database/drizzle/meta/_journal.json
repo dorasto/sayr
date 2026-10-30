@@ -253,6 +253,13 @@
       "when": 1793204390570,
       "tag": "20261028161950_gigantic_morlun",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1793364408530,
+      "tag": "20261030124648_clear_spot",
+      "breakpoints": true
     }
   ]
 }

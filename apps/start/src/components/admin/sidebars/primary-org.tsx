@@ -1,3 +1,6 @@
+import { useDndContext } from "@dnd-kit/core";
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import type { schema } from "@repo/database";
 import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@repo/ui/components/collapsible";
@@ -15,6 +18,7 @@ import {
 } from "@tabler/icons-react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useState } from "react";
+import { useDragClickSuppression } from "./sortable-sidebar";
 
 // import UpdateOrgDialog from "@/app/components/admin/global/org/management/update/edit-org-dialog"; // TODO: Port this
 // import { useUpdateOrgDialog } from "@/app/hooks/use-update-org-dialog"; // TODO: Port this
@@ -29,6 +33,14 @@ export default function OrgSection({ organization, closeMobileSidebar }: OrgSect
 	const rawPathname = useRouterState({ select: (s) => s.location.pathname });
 	const pathname = rawPathname.length > 1 ? rawPathname.replace(/\/$/, "") : rawPathname;
 	const [collapsibleOpen, setCollapsibleOpen] = useState(pathname.includes(`/${organization.id}`));
+	// Sortable within OrgSortableList (org-sortable-list.tsx): the org's top row is the drag target, the whole
+	// section moves. Every org folds while any org is being dragged, so the rows are all one height and the
+	// list doesn't jump; each reopens to its own state after the drop.
+	const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({
+		id: organization.id,
+	});
+	const { active } = useDndContext();
+	const clickSuppression = useDragClickSuppression();
 	const closeMobileSidebarOnClick = () => {
 		if (isMobile) {
 			closeMobileSidebar();
@@ -37,59 +49,66 @@ export default function OrgSection({ organization, closeMobileSidebar }: OrgSect
 
 	// Organization row with its full nested navigation.
 	const renderCollapsibleView = () => (
-		<>
+		<div
+			ref={setNodeRef}
+			style={{ transform: CSS.Translate.toString(transform), transition }}
+			className={cn(isDragging && "opacity-40")}
+		>
 			<Collapsible
 				key={organization.id}
-				open={collapsibleOpen}
+				open={collapsibleOpen && !active}
 				onOpenChange={setCollapsibleOpen}
 				className={cn("group/collapsible flex flex-col gap-0.5")}
 			>
-				<SidebarMenuItem
-					// key={item.title}
-					isActive={pathname === `/${organization.id}`}
-					className="min-h-auto group/coltrig"
-				>
-					<CollapsibleTrigger
-						render={
-							<button
-								type="button"
-								className="group/trigger relative flex size-6 shrink-0 items-center justify-center rounded-md"
-								aria-label={`Toggle ${organization.name}`}
-							>
-								<IconChevronRight
-									className={cn(
-										"absolute inset-0 size-4 m-auto bg-transparent text-transparent transition-transform duration-200 group-hover/coltrig:bg-sidebar-accent group-hover/coltrig:text-sidebar-foreground",
-										collapsibleOpen && "rotate-90"
-									)}
-								/>
-								<Avatar className="size-4 rounded-md bg-accent transition-none group-hover/coltrig:size-0">
-									<AvatarImage src={organization.logo || ""} alt={organization.name} />
-									<AvatarFallback className="rounded-md text-xs uppercase">
-										<IconUsers className="size-4" />
-									</AvatarFallback>
-								</Avatar>
-							</button>
-						}
-					/>
-					<Link
-						to={`/$orgId`}
-						params={{ orgId: organization.id }}
-						className="min-w-0 flex-1 cursor-pointer"
-						onClick={() => {
-							setCollapsibleOpen(true);
-							closeMobileSidebarOnClick();
-						}}
+				{/* The drag activator: the org's own row, not its Tasks/Views/Releases children. */}
+				<div ref={setActivatorNodeRef} {...attributes} {...listeners} {...clickSuppression}>
+					<SidebarMenuItem
+						// key={item.title}
+						isActive={pathname === `/${organization.id}`}
+						className="min-h-auto group/coltrig"
 					>
-						<SidebarMenuButton size="small" className="w-full">
-							<span className="w-full flex flex-row items-center gap-3">
-								{organization.name}{" "}
-								<span className="">
-									{organization.plan === "pro" && <IconSparkles className="size-4 text-primary" />}
+						<CollapsibleTrigger
+							render={
+								<button
+									type="button"
+									className="group/trigger relative flex size-6 shrink-0 items-center justify-center rounded-md"
+									aria-label={`Toggle ${organization.name}`}
+								>
+									<IconChevronRight
+										className={cn(
+											"absolute inset-0 size-4 m-auto bg-transparent text-transparent transition-transform duration-200 group-hover/coltrig:bg-sidebar-accent group-hover/coltrig:text-sidebar-foreground",
+											collapsibleOpen && "rotate-90"
+										)}
+									/>
+									<Avatar className="size-4 rounded-md bg-accent transition-none group-hover/coltrig:size-0">
+										<AvatarImage src={organization.logo || ""} alt={organization.name} />
+										<AvatarFallback className="rounded-md text-xs uppercase">
+											<IconUsers className="size-4" />
+										</AvatarFallback>
+									</Avatar>
+								</button>
+							}
+						/>
+						<Link
+							to={`/$orgId`}
+							params={{ orgId: organization.id }}
+							className="min-w-0 flex-1 cursor-pointer"
+							onClick={() => {
+								setCollapsibleOpen(true);
+								closeMobileSidebarOnClick();
+							}}
+						>
+							<SidebarMenuButton size="small" className="w-full">
+								<span className="w-full flex flex-row items-center gap-3">
+									{organization.name}{" "}
+									<span className="">
+										{organization.plan === "pro" && <IconSparkles className="size-4 text-primary" />}
+									</span>
 								</span>
-							</span>
-						</SidebarMenuButton>
-					</Link>
-				</SidebarMenuItem>
+							</SidebarMenuButton>
+						</Link>
+					</SidebarMenuItem>
+				</div>
 				<SidebarGroup className={cn("")}>
 					<CollapsibleContent className="flex flex-col gap-0.5 ml-2 pl-2 border-l">
 						<SidebarMenuItem
@@ -163,7 +182,7 @@ export default function OrgSection({ organization, closeMobileSidebar }: OrgSect
 					</CollapsibleContent>
 				</SidebarGroup>
 			</Collapsible>
-		</>
+		</div>
 	);
 
 	return renderCollapsibleView();

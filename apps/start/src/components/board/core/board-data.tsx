@@ -84,6 +84,11 @@ export interface BoardDataSource<T extends BoardItem = TaskItem> {
 	 */
 	organizationScope?: BoardOrganizationScope;
 	/**
+	 * Cross-org boards: the viewer's own order of their organizations (the sidebar's, SAY-104), as org ids.
+	 * The `org` grouping orders its groups by it. Absent = groups in the order their orgs first appear.
+	 */
+	organizationOrder?: readonly string[];
+	/**
 	 * The viewer's permissions per org id, for per-field edit gating (core/field-permissions.ts). Absent,
 	 * or no entry for an item's org = no gating (only `canEditFields` applies). Needs `viewerId`.
 	 */
