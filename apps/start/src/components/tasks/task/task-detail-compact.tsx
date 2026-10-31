@@ -10,9 +10,9 @@ import { useEffect, useState } from "react";
 import { useLayoutData } from "@/components/admin/shell/context";
 import type { MentionContext } from "@/hooks/useMentionUsers";
 import { getTaskRelationsAction } from "@/lib/fetches/task";
-import { cn } from "@/lib/utils";
 import { useToastAction } from "@/lib/util";
-import { getMatchedIntegrations, InlineLabel, TaskFieldToolbar, type FieldPermissions } from "../shared";
+import { cn } from "@/lib/utils";
+import { type FieldPermissions, getMatchedIntegrations, InlineLabel, TaskFieldToolbar } from "../shared";
 import { deriveAvailableUsers, deriveIsProjectAdmin, type TaskDetailOrganization } from "../types";
 import { TaskEditableHeader } from "./editable-header";
 import { AiInsights } from "./task-ai-insights";
@@ -77,7 +77,7 @@ export function TaskDetailCompact({
 		}
 	}, [task.organizationId, resolvedOrg?.shortId, task.id, setMentionContext]);
 
-	// List-sourced tasks (the `tasks` array backing UnifiedTaskView / inbox) never
+	// List-sourced tasks (the `tasks` array backing a board / inbox) never
 	// carry `relations` — only the main task page's single-task fetch does. Fetch
 	// them here so TaskContextBanner's "Related to"/"Blocking"/"Duplicate of" rows
 	// aren't silently empty in this compact/dialog view.

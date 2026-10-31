@@ -12,7 +12,7 @@ import {
 } from "@repo/ui/components/tomui/combo-box-unified";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { updateLabelToTaskAction } from "@/lib/fetches/task";
-import { useBoardCapabilities, useBoardData, useBoardItemActions } from "../core/board-data";
+import { useBoardData, useBoardItemActions, useFieldPermissions } from "../core/board-data";
 import { LabelBadge } from "./label-badge";
 import { StaticField } from "./static-field";
 
@@ -20,6 +20,8 @@ const MAX_VISIBLE_LABELS = 2;
 
 interface FieldLabelProps {
 	task: schema.TaskWithLabels;
+	/** Pills shown before the "+N" pill. Default MAX_VISIBLE_LABELS; the row's chip-overflow card passes Infinity to list them all. */
+	maxVisible?: number;
 }
 
 /**
@@ -29,9 +31,9 @@ interface FieldLabelProps {
  * plus a "+N" overflow pill; the whole cluster is one ComboBox trigger, so
  * clicking any of it opens the multi-select label picker.
  */
-export function FieldLabel({ task }: FieldLabelProps) {
+export function FieldLabel({ task, maxVisible = MAX_VISIBLE_LABELS }: FieldLabelProps) {
 	const { labels } = useBoardData();
-	const { canEditFields } = useBoardCapabilities();
+	const canEdit = useFieldPermissions(task).labels;
 	const { value: sseClientId } = useStateManagement<string>("sse-clientId", "");
 	const { execute } = useBoardItemActions(task);
 	const availableLabels = labels.filter((label) => label.organizationId === task.organizationId);
@@ -39,7 +41,7 @@ export function FieldLabel({ task }: FieldLabelProps) {
 
 	if (task.labels.length === 0) return null;
 
-	const visibleLabels = task.labels.slice(0, MAX_VISIBLE_LABELS);
+	const visibleLabels = task.labels.slice(0, maxVisible);
 	const overflowCount = task.labels.length - visibleLabels.length;
 
 	const pills = (
@@ -61,7 +63,7 @@ export function FieldLabel({ task }: FieldLabelProps) {
 		</>
 	);
 
-	if (!canEditFields) {
+	if (!canEdit) {
 		return (
 			<StaticField
 				className="flex items-center gap-1 shrink-0"

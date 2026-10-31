@@ -15,16 +15,18 @@ import {
 import { getInitials } from "@repo/util";
 import { IconX } from "@tabler/icons-react";
 import { useState } from "react";
-import { useBoardData, useBoardFilterUsers } from "../core/board-data";
-import { FIELD_CONFIGS } from "./filter-config";
+import { useBoardEntity, useBoardFilterUsers, useBoardItemsData } from "../core/board-data";
+import { buildDateFilterValue, readDateRange, toDateInputValue } from "./date-value";
 import { getOperatorLabel } from "./operators";
-import type { FilterCondition, FilterOperator } from "./types";
+import type { FilterCondition, FilterOperator, FilterValue } from "./types";
 
 interface FilterBuilderConditionRowProps {
 	condition: FilterCondition;
 	onOperatorChange: (operator: FilterOperator) => void;
 	onValuesChange: (values: string[]) => void;
 	onTextChange: (value: string) => void;
+	/** A date field's value changed (a day for before/after, a `{start, end}` range for between). */
+	onDateChange: (value: FilterValue) => void;
 	onRemove: () => void;
 }
 
@@ -32,21 +34,23 @@ interface FilterBuilderConditionRowProps {
  * One active filter condition — field label, an operator picker (only shown
  * when the field allows more than one), and a value control. Multi-select
  * fields (everything with FIELD_CONFIGS' getOptions) get a checkbox-style
- * ComboBox; "title" gets a plain text input. Date fields (created/updated)
- * aren't addable yet — see filter-builder.tsx's ADDABLE_FIELDS — so there's
- * no date-range control here.
+ * ComboBox; "title" gets a plain text input; a `date` field gets a day picker
+ * (before/after) or two (between) — see date-value.ts for how days are stored.
+ * The field configs come from the board's entity.
  */
 export function FilterBuilderConditionRow({
 	condition,
 	onOperatorChange,
 	onValuesChange,
 	onTextChange,
+	onDateChange,
 	onRemove,
 }: FilterBuilderConditionRowProps) {
-	const { items: tasks, labels, categories, releases } = useBoardData();
+	const { items: tasks, labels, categories, releases } = useBoardItemsData();
+	const { filterFields } = useBoardEntity();
 	const [search, setSearch] = useState("");
 
-	const config = FIELD_CONFIGS.find((c) => c.field === condition.field);
+	const config = filterFields.find((c) => c.field === condition.field);
 	const needsValue = condition.operator !== "empty" && condition.operator !== "not_empty";
 
 	// Assignee/creator both resolve against "every user seen across the
@@ -107,12 +111,14 @@ export function FilterBuilderConditionRow({
 					</ComboBoxContent>
 				</ComboBox>
 			)}
-			{needsValue && config.field === "title" ? (
+			{needsValue && config.date ? (
+				<DateConditionInputs condition={condition} onDateChange={onDateChange} />
+			) : needsValue && config.field === "title" ? (
 				<Input
 					type="text"
 					value={typeof condition.value === "string" ? condition.value : ""}
 					onChange={(event) => onTextChange(event.target.value)}
-					placeholder="Search title..."
+					placeholder={`Search ${config.label.toLowerCase()}...`}
 					className="h-6 min-w-0 flex-1 px-2 text-xs"
 				/>
 			) : needsValue && config.getOptions ? (
@@ -217,6 +223,50 @@ export function FilterBuilderConditionRow({
 			>
 				<IconX className="size-3.5" />
 			</button>
+		</div>
+	);
+}
+
+/** A date condition's value control: one day for before/after, a start and an end day for between. */
+function DateConditionInputs({
+	condition,
+	onDateChange,
+}: {
+	condition: FilterCondition;
+	onDateChange: (value: FilterValue) => void;
+}) {
+	const { start, end } = readDateRange(condition.value);
+	const change = (part: "start" | "end", input: string) =>
+		onDateChange(buildDateFilterValue(condition.operator, condition.value, part, input));
+
+	if (condition.operator !== "between") {
+		return (
+			<Input
+				type="date"
+				aria-label="Date"
+				value={toDateInputValue(start)}
+				onChange={(event) => change("start", event.target.value)}
+				className="h-6 min-w-0 flex-1 px-1.5 text-xs"
+			/>
+		);
+	}
+	return (
+		<div className="flex flex-1 min-w-0 items-center gap-1">
+			<Input
+				type="date"
+				aria-label="From"
+				value={toDateInputValue(start)}
+				onChange={(event) => change("start", event.target.value)}
+				className="h-6 min-w-0 flex-1 px-1.5 text-xs"
+			/>
+			<span className="text-xs text-muted-foreground shrink-0">–</span>
+			<Input
+				type="date"
+				aria-label="To"
+				value={toDateInputValue(end)}
+				onChange={(event) => change("end", event.target.value)}
+				className="h-6 min-w-0 flex-1 px-1.5 text-xs"
+			/>
 		</div>
 	);
 }

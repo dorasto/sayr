@@ -63,7 +63,7 @@ sayr comment create 123 "Deploy finished successfully." --json
 | `--visibility <visibility>` | `public` (the default) or `internal`, which only organization members can see |
 | `--json`                    | Print the result as JSON                                                      |
 
-The content is Markdown, converted on the server. It needs the `tasks.comment` scope.
+The content is Markdown, converted on the server. Task keys (`SAY-12`), `@username`, and `!Category` become mentions, as they do in the editor, and a mentioned member is notified. It needs the `tasks.comment` scope.
 
 The CLI posts top-level task comments only. You can read a thread with `comment replies`, but there's no option to reply to a task comment. Release comments do support replies: see [`--reply-to`](/docs/cli/releases#release-comments).
 

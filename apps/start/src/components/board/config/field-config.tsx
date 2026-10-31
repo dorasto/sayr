@@ -16,11 +16,10 @@ import type { ReactNode } from "react";
 // imported by client-rendered picker components, and `schema` is a runtime
 // value pulling in the full Drizzle schema module (which uses
 // `node:crypto` for id defaults) — Vite can't bundle that for the browser.
-// This mirrors why the old system's tasks/shared/config.tsx does the same.
+// tasks/shared/config.tsx does the same for the same reason.
 //
 // StatusIcon/PriorityIcon are generic @repo/ui glyph renderers (no
-// task-domain logic embedded), not part of "the task system" being
-// replaced — reused like any other @repo/ui primitive.
+// task-domain logic embedded) — reused like any other @repo/ui primitive.
 
 export type StatusValue = (typeof schema.statusEnum.enumValues)[number];
 export type PriorityValue = (typeof schema.priorityEnum.enumValues)[number];
@@ -114,4 +113,7 @@ export const VISIBILITY_CONFIG: Record<VisibilityValue, FieldPresentation> = Obj
 // drift out of alignment with each other. Single source of truth, imported
 // wherever a row/header needs to size or space one of these columns.
 export const ROW_LEADING_GUTTER_CLASS = "w-3.5";
-export const ORG_KEY_SLOT_CLASS = "w-20";
+/** CSS variable a list sets to its widest task key (views/task-key-column.tsx, SAY-110). */
+export const TASK_KEY_COLUMN_VAR = "--board-task-key-w";
+/** The org+key slot: the list's measured key width, or 5rem outside a measured list (e.g. a drag overlay). */
+export const ORG_KEY_SLOT_CLASS = "w-[var(--board-task-key-w,5rem)]";

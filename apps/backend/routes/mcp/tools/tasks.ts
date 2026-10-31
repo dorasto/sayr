@@ -14,11 +14,13 @@ import {
 	updateTaskLabelsService,
 } from "../../../lib/tasks/updateTaskLabels";
 import { updateTaskService } from "../../../lib/tasks/updateTask";
+import { prosekitJSONToMarkdown } from "../../../prosekit/markdown";
 import { markdownToProsekitJSON } from "../../../prosekit/parser";
+import { resolveMarkdownMentions } from "../../../prosekit/resolveMarkdownMentions";
 import { baseTaskWhere } from "../../api/internal/v1/task";
 import { findSSEClientsByUserId, sseBroadcastIndividual, sseBroadcastPublic, sseBroadcastToRoom } from "../../events";
 import type { ServerEventBaseMessage } from "../../events/types";
-import { type McpUserClaims, resolveAndRateLimitOrg, toolError, toolJson } from "../context";
+import { MARKDOWN_MENTIONS_HINT, type McpUserClaims, resolveAndRateLimitOrg, toolError, toolJson } from "../context";
 
 /** Mirrors tasks.ts's own create-broadcast block — keeps browsers in sync regardless of which surface created the task. */
 async function broadcastTaskCreated(orgId: string, taskWithData: Awaited<ReturnType<typeof getTaskById>>) {
@@ -110,7 +112,8 @@ export function registerTaskTools(server: McpServer, claims: McpUserClaims | nul
 		"get_task",
 		{
 			title: "Get task",
-			description: "Get a single task's full details, including description, labels, assignees, and release.",
+			description:
+				"Get a single task's full details, including its description (as Markdown), labels, assignees, and release.",
 			inputSchema: z.object({
 				org: z.string().describe('Organization slug (e.g. "platform") or id.'),
 				task: z.string().describe('Task short id (the number in SAY-123, e.g. "123") or task id.'),
@@ -136,7 +139,12 @@ export function registerTaskTools(server: McpServer, claims: McpUserClaims | nul
 			const task = await getTaskById(orgId, taskId);
 			if (!task) return toolError(`No task found for "${taskRef}" in this organization.`);
 
-			return toolJson(taskSummary(task));
+			// The full description only here — list_tasks and the mutation tools keep the
+			// slimmer taskSummary so their responses stay small.
+			return toolJson({
+				...taskSummary(task),
+				description: task.description ? prosekitJSONToMarkdown(task.description) : null,
+			});
 		}
 	);
 
@@ -148,7 +156,7 @@ export function registerTaskTools(server: McpServer, claims: McpUserClaims | nul
 			inputSchema: z.object({
 				org: z.string().describe('Organization slug (e.g. "platform") or id.'),
 				title: z.string().min(1),
-				description: z.string().optional().describe("Markdown description."),
+				description: z.string().optional().describe(`Markdown description. ${MARKDOWN_MENTIONS_HINT}`),
 				status: z.enum(["backlog", "todo", "in-progress", "done", "canceled"]).optional(),
 				priority: z.enum(["none", "low", "medium", "high", "urgent"]).optional(),
 			}),
@@ -167,7 +175,9 @@ export function registerTaskTools(server: McpServer, claims: McpUserClaims | nul
 				);
 			}
 
-			const descriptionProsekit = description ? markdownToProsekitJSON(description) : undefined;
+			const descriptionProsekit = description
+				? await resolveMarkdownMentions(markdownToProsekitJSON(description), orgId)
+				: undefined;
 			const task = await createTask(
 				orgId,
 				{ title, description: descriptionProsekit, status, priority, visible: "public", parentId: null },
@@ -202,7 +212,7 @@ export function registerTaskTools(server: McpServer, claims: McpUserClaims | nul
 				org: z.string().describe('Organization slug (e.g. "platform") or id.'),
 				task: z.string().describe('Task short id (the number in SAY-123, e.g. "123") or task id.'),
 				title: z.string().optional(),
-				description: z.string().optional().describe("Markdown description."),
+				description: z.string().optional().describe(`Markdown description. ${MARKDOWN_MENTIONS_HINT}`),
 				status: z.enum(["backlog", "todo", "in-progress", "done", "canceled"]).optional(),
 				priority: z.enum(["none", "low", "medium", "high", "urgent"]).optional(),
 				category: z.string().nullable().optional().describe("A category id, or null to clear it."),
@@ -261,7 +271,9 @@ export function registerTaskTools(server: McpServer, claims: McpUserClaims | nul
 			}
 
 			const updates: Record<string, unknown> = { ...rest };
-			if (description !== undefined) updates.description = markdownToProsekitJSON(description);
+			if (description !== undefined) {
+				updates.description = await resolveMarkdownMentions(markdownToProsekitJSON(description), orgId);
+			}
 			// The update service silently drops foreign-org ids; resolve here so the agent gets a real error.
 			if (rest.releaseId) {
 				const releaseId = await resolveReleaseId(orgId, rest.releaseId);

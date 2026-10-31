@@ -1,10 +1,14 @@
 "use client";
 
-import { IconPin, IconPinFilled, IconStack2 } from "@tabler/icons-react";
+import { headlessToast } from "@repo/ui/components/headless-toast";
+import { IconPin, IconPinFilled, IconSettings, IconStack2 } from "@tabler/icons-react";
+import { useStore } from "@tanstack/react-store";
 import { useEffect, useState } from "react";
+import { favouritesStore, isViewFavourite } from "@/lib/stores/favourites-store";
 import { useActiveView } from "./use-active-view";
-import { usePersonalViews } from "./use-personal-views";
+import { useBoardSavedViews } from "./use-board-saved-views";
 import { DEFAULT_VIEW_COLOR, DEFAULT_VIEW_ICON, ViewIconColorTrigger } from "./view-icon-color-trigger";
+import { viewSettingsActions } from "./view-settings-store";
 
 /**
  * The right panel's own header content, handed to Page via
@@ -18,7 +22,7 @@ import { DEFAULT_VIEW_COLOR, DEFAULT_VIEW_ICON, ViewIconColorTrigger } from "./v
  * chrome on focus, saving on blur (Enter blurs early, Escape reverts).
  */
 export function ActiveViewPanelHeader() {
-	const { updateView } = usePersonalViews();
+	const { update: updateView } = useBoardSavedViews();
 	const { activeView } = useActiveView();
 
 	const [name, setName] = useState(activeView?.name ?? "");
@@ -89,10 +93,37 @@ export function ActiveViewPanelHeader() {
  * Pin/unpin toggle for the panel header's far-right `actions` slot — the panel's own
  * entry point for adding the active view to the Favourites sidebar (favourites-section.tsx),
  * since the breadcrumb ActiveViewSwitcher deliberately doesn't own pin/edit/delete. No-op
- * (renders nothing) with no active view — there's nothing to pin on "All tasks".
+ * (renders nothing) with no active view — there's nothing to pin on "All tasks" — or when the
+ * board's saved-views source has no pinning.
  */
 export function ActiveViewPanelPinButton() {
-	const { togglePin } = usePersonalViews();
+	const { togglePin } = useBoardSavedViews();
+	const { activeView } = useActiveView();
+	const pinned = useStore(favouritesStore, (state) => !!activeView && isViewFavourite(state, activeView.id));
+
+	if (!activeView || !togglePin) return null;
+
+	return (
+		<button
+			type="button"
+			onClick={() =>
+				togglePin(activeView.id).catch(() =>
+					headlessToast({ title: pinned ? "Couldn't unpin the view" : "Couldn't pin the view", variant: "error" })
+				)
+			}
+			title={pinned ? "Unpin from sidebar" : "Pin to sidebar"}
+			className="rounded p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
+		>
+			{pinned ? <IconPinFilled className="size-4" /> : <IconPin className="size-4" />}
+		</button>
+	);
+}
+
+/**
+ * Opens the view settings sheet (view-settings-sheet.tsx) for the active view. Same size/look as the pin
+ * button; renders nothing on "All tasks" or a preset (no saved view to edit).
+ */
+export function ActiveViewPanelSettingsButton() {
 	const { activeView } = useActiveView();
 
 	if (!activeView) return null;
@@ -100,11 +131,24 @@ export function ActiveViewPanelPinButton() {
 	return (
 		<button
 			type="button"
-			onClick={() => togglePin(activeView.id)}
-			title={activeView.pinned ? "Unpin from sidebar" : "Pin to sidebar"}
+			onClick={() => viewSettingsActions.open(activeView.id)}
+			title="View settings"
 			className="rounded p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
 		>
-			{activeView.pinned ? <IconPinFilled className="size-4" /> : <IconPin className="size-4" />}
+			<IconSettings className="size-4" />
 		</button>
+	);
+}
+
+/**
+ * The panel header's `actions` slot on a board page with saved views: pin (when the board's saved-views source
+ * supports pinning) + the view settings gear. Both hide when no saved view is active.
+ */
+export function ActiveViewPanelActions() {
+	return (
+		<div className="flex items-center">
+			<ActiveViewPanelPinButton />
+			<ActiveViewPanelSettingsButton />
+		</div>
 	);
 }

@@ -52,3 +52,7 @@ export function toolError(message: string) {
 export function toolJson(data: unknown) {
 	return { content: [{ type: "text" as const, text: JSON.stringify(data, null, 2) }] };
 }
+
+/** Appended to every Markdown parameter's description — see prosekit/resolveMarkdownMentions.ts. */
+export const MARKDOWN_MENTIONS_HINT =
+	'Task keys ("SAY-12"), "@username" and "!Category name" for this organization\'s tasks, members and categories become mentions.';

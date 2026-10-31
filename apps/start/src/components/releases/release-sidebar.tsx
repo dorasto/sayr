@@ -5,9 +5,9 @@ import { Tile, TileDescription, TileHeader, TileIcon, TileTitle } from "@repo/ui
 import { IconChartBar, IconCheckbox, IconTrendingUp, IconUsers } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
 import { type ReactNode, useCallback, useMemo } from "react";
+import { serializeFilters } from "@/components/board/filter/serialization";
+import type { FilterState } from "@/components/board/filter/types";
 import { type AreaChartSeries, SimpleAreaChart, TaskAssigneeChart, TaskPriorityBar } from "@/components/charts";
-import { serializeFilters } from "@/components/tasks/filter/serialization";
-import type { FilterState } from "@/components/tasks/filter/types";
 import { ReleaseStats } from "./release-stats";
 
 interface ReleaseSidebarProps {

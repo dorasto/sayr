@@ -60,11 +60,12 @@ sayr releases create "v1.2.0" --target-date 2026-10-31 --status in-progress
 | `--target-date <date>`     | Planned ship date, such as `2026-10-31` or `2026-10-31T09:00:00Z` |
 | `--color <color>`          | Badge color as `#RRGGBB` or `hsla(h, s%, l%, 1)`                  |
 | `--icon <icon>`            | A Tabler icon name, such as `IconRocket`                          |
+| `--lead <userId>`          | Release lead (a member's user id)                                 |
 | `--json`                   | Print the created release as JSON                                 |
 
 `releases create` prints the release's name and slug. Use that slug for `--release` and for every other `<release>` argument. A date without a time is stored as midnight UTC.
 
-The name is required, except at a terminal: leave it out and [guided mode](/docs/cli/guided-mode#creating-a-release) asks for the name, status, and an optional target date, then offers a slug, description, and colour. `sayr releases create --help` shows `<name>` because scripts and agents have to pass one. `--icon` is flag-only.
+The name is required, except at a terminal: leave it out and [guided mode](/docs/cli/guided-mode#creating-a-release) asks for the name, status, and an optional target date, then offers a slug, description, and colour. `sayr releases create --help` shows `<name>` because scripts and agents have to pass one. `--icon` and `--lead` are flag-only.
 
 ## Update a release
 

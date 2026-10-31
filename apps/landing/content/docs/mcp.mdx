@@ -181,6 +181,8 @@ To add a task to a release, use `update_task` with the release's slug or id as `
 
 Every tool except `whoami` and `list_organizations` takes an `org` argument (an organization's slug or id), so one connection can act across every organization you belong to — the agent names which org each call targets. Descriptions and comments are written and returned as Markdown.
 
+Mentions work in that Markdown the same way they do in the editor. A task key such as `SAY-12` (or `#SAY-12`), `@username`, and `!Category name` (or its slug, `!category-name`) become task, member, and category mentions, as long as they match a task, member, or category in that organization. Anything that doesn't match stays as plain text, and so does anything inside code or links. Mentions come back out of `get_task` and `list_comments` in the same form, so an agent can read a description, edit it, and write it back without losing them. Mentioning someone in a new comment notifies them, just like in the app.
+
 ## Permissions
 
 MCP access reuses the exact same scope vocabulary and permission model as [personal access tokens](/docs/cli/authentication#scopes): during consent, you approve a specific set of scopes (`tasks.read`, `tasks.create`, `tasks.comment`, and so on), and from then on every call is checked twice — does the connection hold the scope, **and** do your teams in that organization currently allow it. A connection can never do more than you can yourself: if your team can't edit other people's tasks or manage labels, neither can your agent, even with every scope approved. Member, team, and billing management are never reachable this way, whatever scopes were granted.

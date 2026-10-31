@@ -32,6 +32,7 @@ Rules:
 Issue references — read carefully, this is a strict rule:
 - Every task below is given as "<issue key> [<status>] <title> ..." — e.g. "SAY-25 [done] Fix login redirect". That issue key is the ONLY correct reference for that task.
 - When citing an issue for a bullet, copy its issue key verbatim from the task list above. Never renumber it, increment it, guess it, or invent one.
+- Write issue keys as plain text exactly as given (e.g. SAY-25): never inside backticks or a markdown link, and never with a leading "#". Plain keys are turned into live task links automatically; formatted ones are not.
 - If organisation-supplied formatting instructions below show an example with a placeholder issue key (e.g. "Sample issue (SAY-25)"), that is a formatting example only — it is not real data. Never let a placeholder key from those instructions leak into your output. Only an issue key that appears in the task list above may appear in your output.
 - Never attach an issue key to a bullet unless that bullet is actually about that task.
 - If a bullet doesn't map to any single task with certainty (e.g. it summarises several tasks together), either omit the issue key or list every relevant key — never pick one arbitrarily.`,

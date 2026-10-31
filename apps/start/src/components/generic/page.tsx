@@ -26,6 +26,22 @@ import type {
 } from "@/lib/sidebar/sidebar-store";
 import { sidebarActions, sidebarStore } from "@/lib/sidebar/sidebar-store";
 
+// Desktop gap between a drawer and a PageHeader that ends in its bordered
+// Identity row. IndentDrawer's Viewport pads only the sides and bottom
+// (md:px-3 md:pb-3), so the drawer starts flush against whatever sits above
+// its region. Under a PageHeader.Toolbar that reads fine — the toolbar has no
+// bottom border on desktop and its own whitespace separates the two (e.g.
+// /home, where the drawer lines up with the board's first row) — but with no
+// toolbar the drawer's top edge sat right on the Identity row's border-b (task
+// and release pages). Pure CSS via :has() on the `group/page` root rather than
+// a React "has toolbar" flag, so there's no first-paint shift. The max-h cap
+// keeps a `fitContent` drawer from overflowing the bottom inset by the same
+// amount. Each class has to be a complete literal for Tailwind's scanner.
+const PANEL_GAP_BELOW_BARE_HEADER_CLASS = [
+  "md:group-[:has(>[data-slot=page-header]_[data-slot=page-header-identity]):not(:has(>[data-slot=page-header]_[data-slot=page-header-toolbar]))]/page:mt-3",
+  "md:group-[:has(>[data-slot=page-header]_[data-slot=page-header-identity]):not(:has(>[data-slot=page-header]_[data-slot=page-header-toolbar]))]/page:max-h-[calc(100%-0.75rem)]",
+];
+
 // Helper to check if a header is a PanelHeaderConfig object rather than a
 // plain React node. Panel state headers are always PanelHeaderConfig, so
 // we can't rely on a specific key like `title` being present — an empty
@@ -302,10 +318,17 @@ export function PanelContent({
                 className={classNames?.header}
               />
             )}
-            {/* key forces remount when switching items */}
+            {/* key forces remount when switching items. overflow-x-hidden on
+			    both content divs: overflow-y-auto alone computes overflow-x to
+			    auto too, so one field that fails to truncate (a missing
+			    min-w-0 somewhere in its flex chain) scrolls the whole drawer
+			    sideways. This is only the backstop; fix the field itself. */}
             <div
               key={lastTriggerId}
-              className={cn("flex-1 overflow-y-auto p-2", classNames?.content)}
+              className={cn(
+                "flex-1 overflow-y-auto overflow-x-hidden p-2",
+                classNames?.content,
+              )}
             >
               {tabs.find((t) => t.id === currentTab)?.content ?? <div />}
             </div>
@@ -340,7 +363,10 @@ export function PanelContent({
                 )
               ))}
             <div
-              className={cn("flex-1 overflow-y-auto p-2", classNames?.content)}
+              className={cn(
+                "flex-1 overflow-y-auto overflow-x-hidden p-2",
+                classNames?.content,
+              )}
             >
               {content || <div />}
             </div>
@@ -709,7 +735,10 @@ export function Page({
               minWidth={panels.right.minWidth}
               maxWidth={panels.right.maxWidth}
               fitContent={panels.right.fitContent}
-              className={rightClassNames?.popup}
+              className={cn(
+                PANEL_GAP_BELOW_BARE_HEADER_CLASS,
+                rightClassNames?.popup,
+              )}
             >
               <PanelContent
                 key={rightLastTriggerId}
@@ -769,7 +798,10 @@ export function Page({
               minWidth={panels.left.minWidth}
               maxWidth={panels.left.maxWidth}
               fitContent={panels.left.fitContent}
-              className={leftClassNames?.popup}
+              className={cn(
+                PANEL_GAP_BELOW_BARE_HEADER_CLASS,
+                leftClassNames?.popup,
+              )}
             >
               <PanelContent
                 key={leftLastTriggerId}
@@ -789,7 +821,7 @@ export function Page({
     <div
       ref={setPageRootContainer}
       className={cn(
-        "relative flex h-full w-full flex-col overflow-hidden",
+        "group/page relative flex h-full w-full flex-col overflow-hidden",
         className,
       )}
     >

@@ -1,12 +1,11 @@
 import type { schema } from "@repo/database";
 import type { ReactNode } from "react";
+import type { BoardItem, TaskItem } from "../core/board-item";
 import type { PersistedViewMode } from "../core/view-config";
-import type { TaskSortDirection, TaskSortField } from "./sort-config";
+import type { BoardSortField, TaskSortDirection } from "./sort-config";
 
-// Board's own type system — self-contained, no imports from
-// apps/start/src/components/tasks/**. Same field vocabulary as the existing
-// org-scoped system, but with "org" added since the board filters/groups
-// across every org the user belongs to, not just one.
+// Board's filter/grouping type system. Includes "org" since a cross-org
+// board filters/groups across every org the user belongs to.
 
 export type TaskGroupingId = "status" | "assignee" | "priority" | "category" | "release" | "org";
 
@@ -43,8 +42,11 @@ export interface TaskViewState {
 	subGrouping?: TaskGroupingId | "none";
 	showCompletedTasks: boolean;
 	viewMode: PersistedViewMode;
-	/** Undefined/"none" means no explicit sort — tasks stay in fetch order. */
-	sortBy?: TaskSortField | "none";
+	/**
+	 * Undefined/"none" means no explicit sort — items stay in fetch order. Any entity's sort field (a release
+	 * board sorts by target date); only task fields are ever written into a saved view (`mapStateToViewConfig`).
+	 */
+	sortBy?: BoardSortField | "none";
 	sortDirection?: TaskSortDirection;
 }
 
@@ -59,8 +61,9 @@ export const DEFAULT_TASK_VIEW_STATE: TaskViewState = {
 	subGrouping: "none",
 	showCompletedTasks: false,
 	viewMode: "list",
-	sortBy: "none",
-	sortDirection: "asc",
+	// Most-voted first by default (SAY-107). Saved views keep the sort they were saved with.
+	sortBy: "voteCount",
+	sortDirection: "desc",
 };
 
 export type FilterOperator =
@@ -87,7 +90,11 @@ export type FilterField =
 	| "title"
 	| "category"
 	| "release"
-	| "org";
+	| "org"
+	// Release-entity fields (see components/releases/board/release-board-entity.tsx).
+	| "lead"
+	| "target_date"
+	| "released_at";
 
 export interface DateRangeValue {
 	start: string;
@@ -130,19 +137,24 @@ export interface FilterOption {
 	visible?: schema.labelType["visible"];
 }
 
-export interface FilterFieldConfig {
+/** One filterable field. `T` is the entity whose items `getOptions` derives values from (tasks by default). */
+export interface FilterFieldConfig<T extends BoardItem = TaskItem> {
 	field: FilterField;
 	label: string;
 	icon?: ReactNode;
 	operators: FilterOperator[]; // Allowed operators
 	filterDefault: FilterOperator; // Default operator when user adds a condition
 	multi?: boolean; // If true, value may become string[] for (any, all, none, exact)
+	/** A date field: the filter builder renders a date (before/after) or date-range (between) control. */
+	date?: boolean;
+	/** False = evaluated (URL/saved views may carry it) but not offered by the filter builder's "Add filter". */
+	addable?: boolean;
 	empty?: string; // Human label for empty option
 	// UserSummary (id/name/image), not the full userType — the board never
 	// loads full user records (no email etc.), only whatever's embedded on
 	// already-loaded tasks (assignees/createdBy).
 	getOptions?: (
-		tasks: readonly schema.TaskWithLabels[],
+		items: readonly T[],
 		labels: readonly schema.labelType[],
 		users: readonly schema.UserSummary[],
 		subSearch: string,

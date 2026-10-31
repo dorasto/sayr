@@ -289,6 +289,7 @@ export interface CreateReleaseInput {
 	targetDate?: string;
 	color?: string;
 	icon?: string;
+	leadId?: string;
 }
 
 /** `null` clears `targetDate`, `releasedAt` and `leadId`. */

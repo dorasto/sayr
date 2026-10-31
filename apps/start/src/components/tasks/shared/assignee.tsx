@@ -73,9 +73,9 @@ export default function GlobalTaskAssignees({
 	const { execute } = useTaskFieldAction(
 		task,
 		tasks,
-		setSelectedTask ?? (() => { }),
-		setTasks ?? (() => { }),
-		sseClientId,
+		setSelectedTask ?? (() => {}),
+		setTasks ?? (() => {}),
+		sseClientId
 	);
 
 	// Get current selected assignee IDs
@@ -190,7 +190,7 @@ export default function GlobalTaskAssignees({
 	}
 
 	return (
-		<div className="flex flex-col gap-3">
+		<div className="flex min-w-0 flex-col gap-3">
 			{showLabel && <Label variant={"subheading"}>Assigned</Label>}
 			<div className="flex flex-wrap gap-1">
 				{task.assignees.map((assignee) => (
@@ -211,9 +211,10 @@ export default function GlobalTaskAssignees({
 					{currentAssigneeIds.length === 0 ? (
 						<ComboBoxTrigger disabled={!editable} className={className}>
 							<ComboBoxValue placeholder="Status">
+								{/* "Unassigned", not display.label's "None": this row has no heading saying what's empty. */}
 								<div className="flex items-center gap-2 text-muted-foreground">
 									{display.icon}
-									<span>{display.label}</span>
+									<span>Unassigned</span>
 								</div>
 							</ComboBoxValue>
 							{showChevron && <ComboBoxIcon />}
@@ -250,13 +251,13 @@ export function RenderAssignee({
 			key={assignee.id}
 			variant="primary"
 			className={cn(
-				"justify-start group/assignee relative h-auto py-1 bg-transparent border-transparent px-1",
+				"justify-start group/assignee relative h-auto max-w-full py-1 bg-transparent border-transparent px-1",
 				showRemove && "pr-6",
 				className
 			)}
 			onClick={onClick ? (e) => onClick(e, assignee.id) : undefined}
 		>
-			<Avatar className="h-4 w-4">
+			<Avatar className="h-4 w-4 shrink-0">
 				<AvatarImage src={assignee.image || undefined} alt={assignee.name} />
 				<AvatarFallback className="text-xs">
 					{assignee.name

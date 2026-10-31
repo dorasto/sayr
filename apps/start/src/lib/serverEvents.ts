@@ -253,13 +253,11 @@ export type ServerEventMessage =
 	// What the backend actually sends as `data` (apps/backend/lib/releases/broadcast.ts,
 	// routes/api/internal/v1/release.ts, lib/tasks/updateTask.ts): the release ROW (created / updated /
 	// published), `{ releaseId }` (labels, pull requests) or `{ taskId, releaseId }` (a task moved between
-	// releases). It's declared as an array only because two org release pages read it that way, behind a
-	// `scope === "CHANNEL"` check that never matches over SSE (room broadcasts carry no `scope`) — so the
-	// declared type stays until those pages are touched. The board reads it as `unknown` and validates
-	// (lib/board/apply-lander-event.ts).
+	// releases). Hence `unknown`: every reader validates — the board (lib/board/apply-lander-event.ts), the
+	// org release page and releases list (lib/releases/release-page-event.ts).
 	| (BaseMessage & {
 			type: "UPDATE_RELEASES";
-			data: schema.releaseType[];
+			data: unknown;
 	  })
 	| (BaseMessage & {
 			type: "DELETE_RELEASE";

@@ -51,7 +51,7 @@ export function getCategoryDisplay(
 ): FieldDisplay {
 	const cat = categories.find((c) => c.id === task.category);
 	return {
-		label: cat?.name ?? "None",
+		label: cat?.name ?? "No category",
 		icon: cat ? (
 			<RenderIcon
 				iconName={cat.icon || "IconCircleFilled"}

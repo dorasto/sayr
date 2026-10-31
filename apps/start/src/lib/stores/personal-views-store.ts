@@ -5,22 +5,30 @@ import {
 	deletePersonalViewAction,
 	getPersonalViewsAction,
 	reorderPersonalViewsAction,
-	togglePersonalViewPinAction,
 	updatePersonalViewAction,
 } from "@/lib/serverFunctions/personalViews";
+import { favouritesActions } from "./favourites-store";
 
 export interface PersonalViewsStoreState {
 	views: schema.savedViewType[];
 	loaded: boolean;
 }
 
-/** Matches getPersonalViews' own DB ordering (pinned first, then by position). */
+/**
+ * Matches getPersonalViews' own DB ordering (by position). Pinning isn't part of a view any more: the sidebar's
+ * Favourites are their own store (favourites-store.ts, SAY-104).
+ */
 function sortViews(views: schema.savedViewType[]): schema.savedViewType[] {
-	return [...views].sort((a, b) => {
-		if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
-		return a.position - b.position;
-	});
+	return [...views].sort((a, b) => a.position - b.position);
 }
+
+/** What `updateView` may change — `updatePersonalViewAction` persists each of these (incl. `slug`). */
+export type PersonalViewUpdates = Partial<{
+	name: string;
+	slug: string;
+	viewConfig: schema.savedViewType["viewConfig"];
+	filterParams: string;
+}>;
 
 export const personalViewsStore = new Store<PersonalViewsStoreState>({
 	views: [],
@@ -49,20 +57,20 @@ export const personalViewsActions = {
 		return created;
 	},
 
-	/** Rename and/or edit viewConfig (icon/color) and/or filterParams in one optimistic call. */
-	updateView: async (
-		viewId: string,
-		updates: Partial<{ name: string; viewConfig: schema.savedViewType["viewConfig"]; filterParams: string }>
-	) => {
+	/** Rename and/or edit slug, viewConfig (icon/color/grouping/…) and/or filterParams in one optimistic call. */
+	updateView: async (viewId: string, updates: PersonalViewUpdates) => {
 		const previous = personalViewsStore.state.views;
 		personalViewsStore.setState((state) => ({
 			...state,
 			views: sortViews(state.views.map((view) => (view.id === viewId ? { ...view, ...updates } : view))),
 		}));
+		favouritesActions.patchView(viewId, updates);
 		try {
 			await updatePersonalViewAction({ data: { viewId, updates } });
 		} catch (error) {
 			personalViewsStore.setState((state) => ({ ...state, views: previous }));
+			const view = previous.find((v) => v.id === viewId);
+			if (view) favouritesActions.patchView(viewId, view);
 			throw error;
 		}
 	},
@@ -72,35 +80,14 @@ export const personalViewsActions = {
 		personalViewsStore.setState((state) => ({ ...state, views: state.views.filter((view) => view.id !== viewId) }));
 		try {
 			await deletePersonalViewAction({ data: { viewId } });
+			favouritesActions.dropView(viewId);
 		} catch (error) {
 			personalViewsStore.setState((state) => ({ ...state, views: previous }));
 			throw error;
 		}
 	},
 
-	togglePin: async (viewId: string) => {
-		const previous = personalViewsStore.state.views;
-		const view = previous.find((v) => v.id === viewId);
-		if (!view) return;
-		const nextPinned = !view.pinned;
-		personalViewsStore.setState((state) => ({
-			...state,
-			views: sortViews(state.views.map((v) => (v.id === viewId ? { ...v, pinned: nextPinned } : v))),
-		}));
-		try {
-			await togglePersonalViewPinAction({ data: { viewId, pinned: nextPinned } });
-		} catch (error) {
-			personalViewsStore.setState((state) => ({ ...state, views: previous }));
-			throw error;
-		}
-	},
-
-	/**
-	 * Partial-list-safe reorder: rewrites `position` only for the ids given (e.g. just the
-	 * pinned subset from the Favourites sidebar), leaving every other view's position alone,
-	 * then re-sorts the full array. Positions only need to be monotonic within their own
-	 * pinned/unpinned bucket, since getPersonalViews orders by pinned first.
-	 */
+	/** Partial-list-safe reorder: rewrites `position` only for the ids given, then re-sorts the full array. */
 	reorder: async (orderedIds: string[]) => {
 		const previous = personalViewsStore.state.views;
 		const positionById = new Map(orderedIds.map((id, index) => [id, index]));

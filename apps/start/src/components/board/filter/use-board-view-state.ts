@@ -4,6 +4,7 @@ import type { schema } from "@repo/database";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useTasksSearchParams } from "@/hooks/useTasksSearchParams";
+import { useOptionalBoardOrganizationScope } from "../core/board-data";
 import { useBoardScope } from "../core/scope";
 import {
 	deriveViewStateCacheKey,
@@ -22,6 +23,7 @@ import {
 	getViewCombinedState,
 	mapStateToViewConfig,
 	type PersistedViewMode,
+	resolveScopedGrouping,
 } from "../core/view-config";
 import { mergeOrAppendCondition, toggleMultiValue as toggleValueHelper, updateConditionOperator } from "./multi-select";
 import { deserializeFilters, serializeFilters } from "./serialization";
@@ -62,13 +64,8 @@ export {
 /**
  * The board's own combined filter + view-config + URL-sync state hook.
  *
- * Same engineering pattern as apps/start/src/hooks/useTaskViewManager.ts
- * (single combined state, throttled updates, URL sync) but genuinely
- * separate — not a copy of that file — because it needs to merge/evaluate
- * conditions against the board's own FIELD_CONFIGS (which includes "org"),
- * not the org-scoped system's. Reusing useTaskViewManager as-is would have
- * silently broken multi-select merging for the org filter, since its
- * mergeOrAppendCondition looks up field config in the old FILTER_FIELD_CONFIGS.
+ * Single combined state, throttled updates, URL sync; conditions merge/evaluate
+ * against the board's own FIELD_CONFIGS (which include "org").
  *
  * useTasksSearchParams and useStateManagement are genuinely generic
  * (URL/state-sync infra with no field-vocabulary knowledge) and are reused
@@ -77,9 +74,11 @@ export {
  * Where state lives is decided by the enclosing board scope (core/scope.tsx), not by arguments —
  * ~15 callers invoke this with none. With no scope mounted it is the legacy admin scope:
  * "url+personal" (global cache key, `?view`/`?filters` URL sync, saved views), unchanged.
+ * `availableViews` is the saved views `?view` resolves against: whatever the board's saved-views
+ * source holds (`useBoardSavedViews()` — personal views, or an org's), which `Board` passes in.
  * Other scopes: "url" (`?filters` only), "memory" (local), "controlled" (host-owned state).
  */
-export function useBoardViewState(availableViews?: schema.savedViewType[]) {
+export function useBoardViewState(availableViews?: readonly schema.savedViewType[]) {
 	const scope = useBoardScope();
 	const persistence = resolvePersistence(scope);
 	const urlSync = syncsUrl(persistence);
@@ -144,8 +143,14 @@ export function useBoardViewState(availableViews?: schema.savedViewType[]) {
 	const filters = useMemo(() => state.filters, [state.filters]);
 	const viewConfig = useMemo(() => state.viewConfig, [state.viewConfig]);
 
-	const grouping = viewConfig.grouping;
-	const subGrouping = viewConfig.subGrouping ?? "none";
+	// What the views render. A single-org board can't group by org (a cross-org personal view may ask for it),
+	// so that falls back here — `viewConfig` itself keeps the stored value, so the view doesn't read as dirty.
+	const singleOrg = useOptionalBoardOrganizationScope() !== undefined;
+	const { grouping, subGrouping } = resolveScopedGrouping(
+		viewConfig.grouping,
+		viewConfig.subGrouping ?? "none",
+		singleOrg
+	);
 	const viewMode = viewConfig.viewMode;
 	const showCompletedTasks = viewConfig.showCompletedTasks;
 	const sortBy = viewConfig.sortBy ?? "none";
@@ -448,6 +453,8 @@ export function useBoardViewState(availableViews?: schema.savedViewType[]) {
 		setSortDirection,
 		isHandlingAction,
 		persistence,
+		/** What this scope starts from and `clearView` returns to (the scope's `initial`, else the shared default). */
+		baseState,
 		/** False outside "url+personal": saved-view UI/derived state (active view, dirty dot) must stay empty. */
 		supportsSavedViews: personalViews,
 	};

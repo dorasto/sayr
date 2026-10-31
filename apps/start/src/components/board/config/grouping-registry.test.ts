@@ -177,6 +177,16 @@ describe("bucketByOrg", () => {
 		expect(buckets[1]?.isKnownOrg).toBe(false);
 		expect(buckets[1]?.items.map((item) => item.id)).toEqual(["2"]);
 	});
+
+	it("follows the viewer's org order when given, with unlisted orgs after in first-seen order", () => {
+		const orgC = { id: "o-c", name: "Cee", logo: null };
+		const items = [
+			{ id: "1", organizationId: "o-c", organization: orgC },
+			{ id: "2", organizationId: "o-b", organization: orgB },
+			{ id: "3", organizationId: "o-a", organization: orgA },
+		];
+		expect(bucketByOrg(items, ["o-a", "o-b"]).map((bucket) => bucket.id)).toEqual(["o-a", "o-b", "o-c"]);
+	});
 });
 
 describe("drop patches", () => {

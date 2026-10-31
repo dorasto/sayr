@@ -3,7 +3,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar"
 import { Badge } from "@repo/ui/components/badge";
 import { Button } from "@repo/ui/components/button";
 import { Calendar } from "@repo/ui/components/calendar";
-import { Tile, TileAction, TileHeader, TileTitle } from "@repo/ui/components/doras-ui/tile";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -466,19 +465,24 @@ export function ReleaseFieldToolbar({
 										<Button
 											variant="primary"
 											size="sm"
-											className="border-transparent! bg-transparent rounded-xl cursor-pointer gap-1.5 justify-start text-xs h-auto p-1 w-fit"
+											className="border-transparent! bg-transparent rounded-xl cursor-pointer gap-1.5 justify-start text-xs h-auto p-1 w-fit max-w-full"
 										>
 											{currentLead?.image ? (
-												<Avatar className="h-3 w-3">
+												<Avatar className="h-3 w-3 shrink-0">
 													<AvatarImage src={ensureCdnUrl(currentLead.image)} alt={currentLead.name} />
 													<AvatarFallback className="text-xs">
 														{getInitials(currentLead.name)}
 													</AvatarFallback>
 												</Avatar>
 											) : (
-												<IconUser className="w-3 h-3 text-muted-foreground" />
+												<IconUser className="w-3 h-3 shrink-0 text-muted-foreground" />
 											)}
-											<span className={currentLead ? "text-foreground" : "text-muted-foreground"}>
+											<span
+												className={cn(
+													"truncate",
+													currentLead ? "text-foreground" : "text-muted-foreground"
+												)}
+											>
 												{currentLead ? getDisplayName(currentLead) : "No lead"}
 											</span>
 										</Button>
@@ -511,12 +515,12 @@ export function ReleaseFieldToolbar({
 						) : (
 							<span
 								className={cn(
-									"text-xs flex items-center gap-1.5",
+									"text-xs flex min-w-0 items-center gap-1.5",
 									currentLead ? "text-foreground" : "text-muted-foreground"
 								)}
 							>
-								<IconUser className="w-3 h-3" />
-								{currentLead ? getDisplayName(currentLead) : "No lead"}
+								<IconUser className="w-3 h-3 shrink-0" />
+								<span className="truncate">{currentLead ? getDisplayName(currentLead) : "No lead"}</span>
 							</span>
 						)}
 					</div>
@@ -604,97 +608,88 @@ export function ReleaseFieldToolbar({
 
 				{/* GitHub PR */}
 				{showField("githubPR") && (
-					<Tile className="md:w-full items-start p-0 flex-col gap-1" variant={"transparent"}>
-						<TileHeader>
-							<TileTitle asChild>
-								<Label variant={"description"} className="text-xs">
-									Linked PR
-								</Label>
-							</TileTitle>
-						</TileHeader>
-						<TileAction>
-							{editable ? (
-								<div className="relative group/pr-link flex items-center gap-1 w-full">
-									<GithubPRPicker
-										variant="sidebar"
-										organizationId={organization.id}
-										releaseId={release.id}
-										linkedPR={releaseWithTasks?.githubPullRequests?.[0] || null}
-										onLinkPR={handleGithubPRChange}
-										disabled={(releaseWithTasks?.githubPullRequests?.length ?? 0) >= 1}
-										customTrigger={(() => {
-											const linkedPR = releaseWithTasks?.githubPullRequests?.[0];
-											const parsed = linkedPR?.prUrl ? parseGithubPrUrl(linkedPR.prUrl) : null;
-											return (
-												<Button
-													variant="primary"
-													size="sm"
-													className={cn(
-														"border-transparent! bg-transparent rounded-xl cursor-pointer gap-1.5 justify-start text-xs h-auto p-1 w-fit",
-														linkedPR ? "text-foreground" : "text-muted-foreground"
-													)}
-												>
-													<IconGitPullRequest className="w-3 h-3" />
-													{linkedPR
-														? parsed
-															? `${parsed.pr_org}/${parsed.pr_repo}#${parsed.pr_number}`
-															: `PR #${linkedPR.prNumber}`
-														: "Link GitHub PR"}
-
-													<Badge
-														variant="secondary"
-														className={cn(
-															"h-4 text-xs capitalize",
-															linkedPR?.state === "open" ? "text-success" : "text-muted-foreground",
-															!linkedPR && "hidden"
-														)}
-													>
-														{linkedPR?.state}
-													</Badge>
-													{linkedPR?.merged && (
-														<Badge variant="secondary" className="h-4 text-xs text-primary">
-															Merged
-														</Badge>
-													)}
-												</Button>
-											);
-										})()}
-									/>
-									{releaseWithTasks?.githubPullRequests?.[0]?.prUrl && (
-										<a
-											href={releaseWithTasks.githubPullRequests[0].prUrl}
-											target="_blank"
-											rel="noopener noreferrer"
-											className="opacity-0 group-hover/pr-link:opacity-100 transition-opacity"
-											onClick={(e) => e.stopPropagation()}
-										>
-											<Button variant="ghost" size="sm" className="h-[26px] aspect-square p-0 rounded-xl">
-												<IconExternalLink className="h-3.5 w-3.5" />
-											</Button>
-										</a>
-									)}
-								</div>
-							) : (
-								<span
-									className={cn(
-										"text-xs flex items-center gap-1.5",
-										releaseWithTasks?.githubPullRequests?.[0] ? "text-foreground" : "text-muted-foreground"
-									)}
-								>
-									<IconGitPullRequest className="w-3 h-3" />
-									{(() => {
+					<div className="flex flex-col gap-1.5">
+						{editable ? (
+							<div className="relative group/pr-link flex items-center gap-1 w-full">
+								<GithubPRPicker
+									variant="sidebar"
+									organizationId={organization.id}
+									releaseId={release.id}
+									linkedPR={releaseWithTasks?.githubPullRequests?.[0] || null}
+									onLinkPR={handleGithubPRChange}
+									disabled={(releaseWithTasks?.githubPullRequests?.length ?? 0) >= 1}
+									customTrigger={(() => {
 										const linkedPR = releaseWithTasks?.githubPullRequests?.[0];
 										const parsed = linkedPR?.prUrl ? parseGithubPrUrl(linkedPR.prUrl) : null;
-										return linkedPR
-											? parsed
-												? `${parsed.pr_org}/${parsed.pr_repo}#${parsed.pr_number}`
-												: `PR #${linkedPR.prNumber}`
-											: "Connect a GitHub PR";
+										return (
+											<Button
+												variant="primary"
+												size="sm"
+												className={cn(
+													"border-transparent! bg-transparent rounded-xl cursor-pointer gap-1.5 justify-start text-xs h-auto p-1 w-fit",
+													linkedPR ? "text-foreground" : "text-muted-foreground"
+												)}
+											>
+												<IconGitPullRequest className="w-3 h-3" />
+												{linkedPR
+													? parsed
+														? `${parsed.pr_org}/${parsed.pr_repo}#${parsed.pr_number}`
+														: `PR #${linkedPR.prNumber}`
+													: "Link GitHub PR"}
+
+												<Badge
+													variant="secondary"
+													className={cn(
+														"h-4 text-xs capitalize",
+														linkedPR?.state === "open" ? "text-success" : "text-muted-foreground",
+														!linkedPR && "hidden"
+													)}
+												>
+													{linkedPR?.state}
+												</Badge>
+												{linkedPR?.merged && (
+													<Badge variant="secondary" className="h-4 text-xs text-primary">
+														Merged
+													</Badge>
+												)}
+											</Button>
+										);
 									})()}
-								</span>
-							)}
-						</TileAction>
-					</Tile>
+								/>
+								{releaseWithTasks?.githubPullRequests?.[0]?.prUrl && (
+									<a
+										href={releaseWithTasks.githubPullRequests[0].prUrl}
+										target="_blank"
+										rel="noopener noreferrer"
+										className="opacity-0 group-hover/pr-link:opacity-100 transition-opacity"
+										onClick={(e) => e.stopPropagation()}
+									>
+										<Button variant="ghost" size="sm" className="h-[26px] aspect-square p-0 rounded-xl">
+											<IconExternalLink className="h-3.5 w-3.5" />
+										</Button>
+									</a>
+								)}
+							</div>
+						) : (
+							<span
+								className={cn(
+									"text-xs flex items-center gap-1.5",
+									releaseWithTasks?.githubPullRequests?.[0] ? "text-foreground" : "text-muted-foreground"
+								)}
+							>
+								<IconGitPullRequest className="w-3 h-3" />
+								{(() => {
+									const linkedPR = releaseWithTasks?.githubPullRequests?.[0];
+									const parsed = linkedPR?.prUrl ? parseGithubPrUrl(linkedPR.prUrl) : null;
+									return linkedPR
+										? parsed
+											? `${parsed.pr_org}/${parsed.pr_repo}#${parsed.pr_number}`
+											: `PR #${linkedPR.prNumber}`
+										: "Connect a GitHub PR";
+								})()}
+							</span>
+						)}
+					</div>
 				)}
 			</div>
 		);

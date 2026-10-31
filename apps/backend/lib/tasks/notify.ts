@@ -1,4 +1,6 @@
 import {
+	addLogEventTask,
+	extractTaskMentions,
 	extractUserMentions,
 	getOrganizationMembers,
 	getTaskAssigneeIds,
@@ -84,4 +86,68 @@ export async function notifyMentions(params: {
 	} catch {
 		// Notification failures should never break task operations
 	}
+}
+
+/**
+ * Side effects of a new task comment: a "comment" notification to the task's assignees, a "mention"
+ * notification to mentioned users who aren't assignees (one notification each, never both), and a
+ * "task_mentioned" timeline event on every other task the comment mentions.
+ *
+ * Moved verbatim out of the internal `/create-comment` route so the MCP `create_comment` tool and
+ * `POST /v1/me/tasks/:id/comments` run exactly the same rules (SAY-101) instead of skipping them.
+ */
+export async function notifyCommentCreated(params: {
+	taskId: string;
+	orgId: string;
+	actorId: string | null | undefined;
+	commentId: string | undefined;
+	content: schema.NodeJSON | null | undefined;
+}) {
+	const { taskId, orgId, actorId, commentId, content } = params;
+
+	// Notify assignees and mentioned users about the new comment.
+	// Users who are both assigned AND mentioned only receive one notification (the "comment" type).
+	const assigneeIds = await getTaskAssigneeIds(taskId);
+	const mentionedUserIds = extractUserMentions(content);
+
+	// Send "comment" notifications to all assignees (filtered by actor inside createNotifications)
+	notifyAssignees({ taskId, orgId, actorId: actorId ?? undefined, type: "comment" });
+
+	// Send "mention" notifications only to mentioned users who are NOT assignees.
+	// Assignees already receive a "comment" notification above, so skip them to avoid duplicates.
+	const assigneeSet = new Set(assigneeIds);
+	const mentionOnlyUserIds = [...new Set(mentionedUserIds)].filter((id) => !assigneeSet.has(id));
+	for (const userId of mentionOnlyUserIds) {
+		try {
+			await createNotification({
+				type: "mention",
+				resourceId: orgId,
+				recipientId: userId,
+				actorId: actorId ?? null,
+				data: { taskId, commentId },
+			});
+		} catch {
+			// Notification failures should never break task operations
+		}
+	}
+
+	// Fire timeline events on any tasks mentioned in the comment.
+	// Each mentioned task gets a "task_mentioned" event pointing back to this task.
+	const mentionedTaskIds = extractTaskMentions(content);
+	await Promise.all(
+		mentionedTaskIds
+			.filter((id) => id !== taskId) // skip self-mentions
+			.map((mentionedTaskId) =>
+				addLogEventTask(
+					mentionedTaskId,
+					orgId,
+					"task_mentioned",
+					null,
+					{ sourceTaskId: taskId },
+					actorId ?? undefined
+				).catch(
+					() => {} // never let timeline failures break comment creation
+				)
+			)
+	);
 }

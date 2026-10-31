@@ -22,7 +22,7 @@ export function LabelBadge({ label, className, showName = true }: LabelBadgeProp
 	return (
 		<span className={cn("inline-flex min-w-0 items-center gap-1", className)}>
 			<span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: label.color ?? "#9CA3AF" }} />
-			{showName && <span className="truncate">{label.name}</span>}
+			{showName && <span className="truncate-cap">{label.name}</span>}
 			{label.visible === "private" && <IconLock className="size-3 shrink-0 text-muted-foreground" />}
 		</span>
 	);

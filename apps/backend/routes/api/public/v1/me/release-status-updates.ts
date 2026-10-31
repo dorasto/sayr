@@ -29,6 +29,7 @@ import {
 	ReleaseStatusUpdateSchema,
 	releasePathParam,
 } from "./release-schemas";
+import { withResolvedMentions } from "@/prosekit/resolveMarkdownMentions";
 
 export const releaseStatusUpdatesRoute = new Hono<AppEnv>();
 
@@ -120,6 +121,7 @@ releaseStatusUpdatesRoute.post(
 
 		const input = parseCreateStatusUpdateInput(body);
 		if (!input.ok) return invalidRequest(c, input.error);
+		input.value = await withResolvedMentions(input.value, guard.orgId);
 
 		const update = await createReleaseStatusUpdate({
 			releaseId: guard.release.id,
@@ -170,6 +172,7 @@ releaseStatusUpdatesRoute.patch(
 
 		const input = parseUpdateStatusUpdateInput(body);
 		if (!input.ok) return invalidRequest(c, input.error);
+		input.value = await withResolvedMentions(input.value, guard.orgId);
 
 		const updated = await updateReleaseStatusUpdate(existing.id, input.value);
 		broadcastReleaseStatusUpdatesChanged(guard.orgId, guard.release.id);

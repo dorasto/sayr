@@ -233,6 +233,21 @@
     .scrollbar-hide::-webkit-scrollbar {
         display: none; /* Safari and Chrome */
     }
+    /*
+     * `truncate` for short labels in small pills (board chips): trims the text box to the
+     * capital letters so names sit optically centred (and level with an icon beside them)
+     * instead of riding high on the font's descender space. Overflow is clipped sideways
+     * only, so descenders (g, p, y) still show; the ellipsis still works. Browsers without
+     * `text-box` (Firefox for now) just get a normal truncate.
+     */
+    .truncate-cap {
+        min-width: 0;
+        overflow-x: clip;
+        overflow-y: visible;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        text-box: trim-both cap alphabetic;
+    }
 }
 
 .w-color-interactive {

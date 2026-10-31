@@ -8,7 +8,8 @@ import { Link } from "@tanstack/react-router";
 import { OrgHoverCard } from "@/components/hover-cards";
 import { useTaskSelection } from "@/hooks/useTaskSelection";
 import { ORG_KEY_SLOT_CLASS, ROW_LEADING_GUTTER_CLASS } from "../config/field-config";
-import { useBoardCapabilities } from "../core/board-data";
+import { useBoardCapabilities, useBoardOpenItemClick, useBoardOrganizationScope } from "../core/board-data";
+import { useBoardSelectionKey } from "../core/scope";
 import { BoardTaskContextMenu } from "../fields/board-task-context-menu";
 import { FieldAssignee } from "../fields/field-assignee";
 import { FieldCategory } from "../fields/field-category";
@@ -16,7 +17,8 @@ import { FieldLabel } from "../fields/field-label";
 import { FieldPriority } from "../fields/field-priority";
 import { FieldRelease } from "../fields/field-release";
 import { FieldStatus } from "../fields/field-status";
-import { BOARD_TASK_SELECTION_KEY } from "../selection/board-selection-constants";
+import { BoardCardVotes } from "./board-card";
+import { RowChipOverflow } from "./row-chip-overflow";
 
 interface BoardRowProps {
 	task: schema.TaskWithLabels;
@@ -30,8 +32,7 @@ interface BoardRowProps {
 }
 
 /**
- * A single list row — flat, dense, no card/border treatment (matches the
- * existing UnifiedTaskItem list row, not a boxed item). Leads with a
+ * A single list row — flat, dense, no card/border treatment. Leads with a
  * checkbox-gutter (ROW_LEADING_GUTTER_CLASS) aligned with the group header's
  * chevron, wired to the board's own multi-select (see
  * selection/board-selection-constants.ts). Status + priority + task key are
@@ -60,13 +61,20 @@ interface BoardRowProps {
  */
 export function BoardRow({ task, nested = false }: BoardRowProps) {
 	const { canSelect } = useBoardCapabilities();
-	const { isSelected, toggleTask } = useTaskSelection(undefined, BOARD_TASK_SELECTION_KEY);
+	const organizationScope = useBoardOrganizationScope();
+	const selectionKey = useBoardSelectionKey();
+	const { isSelected, toggleTask } = useTaskSelection(undefined, selectionKey);
 	const selected = isSelected(task.id);
+	const openItemClick = useBoardOpenItemClick();
 
+	// A click on a field picker/checkbox never opens the task; a plain click opens it in the host's own
+	// surface when the data source asks for that (BoardDataSource.openItemOnClick), else the link navigates.
 	const handleLinkClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
 		if ((e.target as HTMLElement).closest("[data-no-propagate]")) {
 			e.preventDefault();
+			return;
 		}
+		openItemClick(task, e);
 	};
 
 	return (
@@ -79,7 +87,9 @@ export function BoardRow({ task, nested = false }: BoardRowProps) {
 				}}
 				onClick={handleLinkClick}
 				className={cn(
-					"group flex items-center gap-1.5 px-2 py-1 text-xs hover:bg-accent transition-all rounded-xl",
+					// Fixed h-7, not py-1: with padding the row grew to its tallest field, so
+					// unassigned rows (22px placeholder) sat 2px taller than ones with avatars.
+					"group flex h-7 items-center gap-1.5 px-2 text-xs hover:bg-accent transition-all rounded-xl",
 					selected && "bg-primary/10 hover:bg-primary/10"
 				)}
 			>
@@ -108,7 +118,12 @@ export function BoardRow({ task, nested = false }: BoardRowProps) {
 				)}
 				<FieldStatus task={task} />
 				<FieldPriority task={task} />
-				{task.organization ? (
+				{organizationScope ? (
+					// Single-org board: every row is the same org, so just the key — no avatar/hover card.
+					<span className={cn("shrink-0 text-xs font-medium text-muted-foreground truncate", ORG_KEY_SLOT_CLASS)}>
+						{formatTaskKey(organizationScope.shortId, task.shortId)}
+					</span>
+				) : task.organization ? (
 					<OrgHoverCard organization={task.organization}>
 						<span className={cn("flex items-center gap-1 shrink-0", ORG_KEY_SLOT_CLASS)}>
 							<Avatar className="size-3.5 rounded-sm shrink-0">
@@ -127,31 +142,40 @@ export function BoardRow({ task, nested = false }: BoardRowProps) {
 						{task.shortId}
 					</span>
 				)}
+				{/*
+				 * The title comes first: flex 0 1 auto keeps its full natural width while
+				 * there's room, and the chip slot after it (flex 1 1 0) only gets what's
+				 * left. Chips that don't fit there drop off from the right into "+N"
+				 * (RowChipOverflow); only once no chip fits does the title truncate.
+				 */}
 				<span
 					className={cn(
-						"truncate text-sm text-foreground flex-1 min-w-0 flex items-center",
+						"text-sm text-foreground flex-[0_1_auto] min-w-0 flex items-center",
 						(task.status === "done" || task.status === "canceled") && "text-muted-foreground"
 					)}
 				>
-					{task.visible === "private" && <IconLock className="size-3.5 mr-1 text-primary shrink-0" />}
-					{task.title || "Untitled"}
+					<span className="truncate">{task.title || "Untitled"}</span>
 				</span>
-				{/*
-				 * shrink (not shrink-0) + min-w-0 + overflow-hidden: category/release/
-				 * label pills are unbounded in number and each individually truncates
-				 * its own text, but nothing capped their COMBINED width — on a task
-				 * with several of them, that width was unbounded and rigid (shrink-0),
-				 * which forced the title's flex-1 to collapse toward zero instead.
-				 * max-w caps it at less than half the row so title always keeps the
-				 * majority of the space; overflow-hidden clips whatever doesn't fit
-				 * once shrunk below its natural content width (the flex-shrink default
-				 * alone can't go below a flex item's own content size without it).
-				 */}
-				<div className="flex items-center gap-1 min-w-0 shrink overflow-hidden max-w-[40%]">
-					<FieldCategory task={task} />
-					<FieldRelease task={task} />
-					<FieldLabel task={task} />
-				</div>
+				<RowChipOverflow
+					chips={[
+						{ id: "category", node: <FieldCategory task={task} />, valueCount: task.category ? 1 : 0 },
+						{ id: "release", node: <FieldRelease task={task} />, valueCount: task.releaseId ? 1 : 0 },
+						{
+							id: "labels",
+							node: <FieldLabel task={task} />,
+							valueCount: task.labels.length,
+							overflowNode: <FieldLabel task={task} maxVisible={Number.POSITIVE_INFINITY} />,
+						},
+					]}
+				/>
+				{/* Only when the task has votes: no space is held for it otherwise, so narrow rows keep it for the title. */}
+				{!!task.voteCount && <BoardCardVotes count={task.voteCount} />}
+				{/* Private marker sits with the right-side meta (SAY-109): never shrinks, and takes no space on public rows. */}
+				{task.visible === "private" && (
+					<span className="flex shrink-0 items-center" title="Private task">
+						<IconLock className="size-3.5 text-primary" aria-label="Private task" />
+					</span>
+				)}
 				<div className="shrink-0">
 					<FieldAssignee task={task} />
 				</div>

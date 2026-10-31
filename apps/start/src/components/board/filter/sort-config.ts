@@ -1,10 +1,36 @@
 import type { schema } from "@repo/database";
 
-// Board's own copy — field-agnostic (no dependency on FilterField), forked
-// alongside the rest of board/filter/ per the "no imports from
-// components/tasks/**" boundary rather than reused from the old system.
+// Field-agnostic (no dependency on FilterField).
 export type TaskSortField = "priority" | "voteCount" | "createdAt" | "updatedAt" | "status";
+/** The release entity's sort fields (components/releases/release-board-entity.tsx). */
+export type ReleaseSortField = "targetDate" | "releasedAt" | "createdAt" | "name";
+/** Any entity's sort field — what the view state's `sortBy` may hold. */
+export type BoardSortField = TaskSortField | ReleaseSortField;
 export type TaskSortDirection = "asc" | "desc";
+
+/** One "Sort by" menu entry an entity offers. */
+export interface BoardSortFieldOption {
+	id: BoardSortField;
+	label: string;
+}
+
+const TASK_SORT_FIELD_IDS: ReadonlySet<string> = new Set<TaskSortField>([
+	"priority",
+	"voteCount",
+	"createdAt",
+	"updatedAt",
+	"status",
+]);
+
+/** Whether `value` is a task sort field — the only ones a saved view's `viewConfig.sortBy` can store. */
+export function isTaskSortField(value: string | undefined): value is TaskSortField {
+	return value !== undefined && TASK_SORT_FIELD_IDS.has(value);
+}
+
+/** Milliseconds for a nullable date (null/absent = 0, so undated items sort first ascending). */
+export function dateValue(value: Date | string | null | undefined): number {
+	return value ? new Date(value).getTime() : 0;
+}
 
 export const TASK_SORT_FIELDS: Array<{ id: TaskSortField; label: string }> = [
 	{ id: "priority", label: "Priority" },
@@ -39,7 +65,7 @@ export const STATUS_ORDER: Record<string, number> = {
  */
 export function sortTasks(
 	tasks: readonly schema.TaskWithLabels[],
-	sortBy: TaskSortField | undefined,
+	sortBy: BoardSortField | undefined,
 	sortDirection: TaskSortDirection = "asc"
 ): readonly schema.TaskWithLabels[] {
 	if (!sortBy) return tasks;
@@ -54,13 +80,9 @@ export function sortTasks(
 			case "voteCount":
 				return (a.voteCount ?? 0) - (b.voteCount ?? 0);
 			case "createdAt":
-				return (
-					(a.createdAt ? new Date(a.createdAt).getTime() : 0) - (b.createdAt ? new Date(b.createdAt).getTime() : 0)
-				);
+				return dateValue(a.createdAt) - dateValue(b.createdAt);
 			case "updatedAt":
-				return (
-					(a.updatedAt ? new Date(a.updatedAt).getTime() : 0) - (b.updatedAt ? new Date(b.updatedAt).getTime() : 0)
-				);
+				return dateValue(a.updatedAt) - dateValue(b.updatedAt);
 			default:
 				return 0;
 		}

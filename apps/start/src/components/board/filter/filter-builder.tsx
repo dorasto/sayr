@@ -1,6 +1,5 @@
 "use client";
 
-import { Badge } from "@repo/ui/components/badge";
 import { Button } from "@repo/ui/components/button";
 import {
 	ComboBox,
@@ -12,19 +11,25 @@ import {
 	ComboBoxSearch,
 	ComboBoxTrigger,
 } from "@repo/ui/components/tomui/combo-box-unified";
-import { cn } from "@repo/ui/lib/utils";
 import { IconFilter, IconPlus } from "@tabler/icons-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { useBoardEntity, useBoardOrganizationScope } from "../core/board-data";
 import { FilterBuilderConditionRow } from "./filter-builder-condition-row";
-import { FIELD_CONFIGS } from "./filter-config";
 import type { FilterCondition, FilterState, FilterValue } from "./types";
 import { useBoardViewState } from "./use-board-view-state";
 
-// Date-range fields (created/updated) need their own start/end UI — a
-// meaningfully separate piece of work, not built yet. Every other field —
-// every multi-select field plus the plain-text "title" field — is fully
-// wired in FilterBuilderConditionRow.
-const ADDABLE_FIELDS = FIELD_CONFIGS.filter((config) => config.field !== "created_at" && config.field !== "updated_at");
+/**
+ * The fields "Add filter" offers: the board entity's filter fields minus those marked `addable: false`
+ * (tasks' created/updated dates), and minus `org` on a single-org board (nothing to filter by).
+ */
+function useAddableFilterFields() {
+	const { filterFields } = useBoardEntity();
+	const singleOrg = useBoardOrganizationScope() !== undefined;
+	return useMemo(
+		() => filterFields.filter((config) => config.addable !== false && !(singleOrg && config.field === "org")),
+		[filterFields, singleOrg]
+	);
+}
 
 function updateConditionValue(filters: FilterState, conditionId: string, value: FilterValue): FilterState {
 	return {
@@ -49,13 +54,14 @@ function updateConditionValue(filters: FilterState, conditionId: string, value: 
 export function FilterBuilderContent() {
 	const { filters, setFilters, addFilter, removeFilter, updateFilterOperator, clearFilters } = useBoardViewState();
 	const [addOpen, setAddOpen] = useState(false);
+	const addableFields = useAddableFilterFields();
 
 	const conditions: FilterCondition[] = filters.groups[0]?.conditions ?? [];
 	const activeFields = new Set(conditions.map((condition) => condition.field));
 
 	const handleAddField = (field: string | null) => {
 		if (!field) return;
-		const config = ADDABLE_FIELDS.find((c) => c.field === field);
+		const config = addableFields.find((c) => c.field === field);
 		if (!config) return;
 		addFilter({
 			id: `filter-${field}-${Date.now()}`,
@@ -77,6 +83,7 @@ export function FilterBuilderContent() {
 						onOperatorChange={(operator) => updateFilterOperator(condition.id, operator)}
 						onValuesChange={(values) => setFilters(updateConditionValue(filters, condition.id, values))}
 						onTextChange={(value) => setFilters(updateConditionValue(filters, condition.id, value))}
+						onDateChange={(value) => setFilters(updateConditionValue(filters, condition.id, value))}
 						onRemove={() => removeFilter(condition.id)}
 					/>
 				))}
@@ -97,7 +104,7 @@ export function FilterBuilderContent() {
 						<ComboBoxList>
 							<ComboBoxEmpty>No fields found.</ComboBoxEmpty>
 							<ComboBoxGroup>
-								{ADDABLE_FIELDS.map((config) => (
+								{addableFields.map((config) => (
 									<ComboBoxItem
 										key={config.field}
 										value={config.field}
@@ -127,27 +134,30 @@ export function FilterBuilderContent() {
 	);
 }
 
-/** The filter builder's compact top-bar form — a trigger button + popover wrapping FilterBuilderContent. */
+/**
+ * The filter builder's compact top-bar form — an icon-only trigger (same look as BoardViewOptions' sliders button
+ * beside it, with a small dot while filters are active) + popover wrapping FilterBuilderContent.
+ */
 export function FilterBuilder() {
 	const { filters } = useBoardViewState();
+	const [open, setOpen] = useState(false);
 	const conditions: FilterCondition[] = filters.groups[0]?.conditions ?? [];
 
 	return (
-		<ComboBox>
+		<ComboBox open={open} onOpenChange={setOpen}>
 			<ComboBoxTrigger asChild>
 				<Button
 					type="button"
-					variant="outline"
+					variant={open ? "secondary" : "ghost"}
+					size={"sm"}
 					data-command-target="filter-builder-trigger"
-					className={cn(
-						"h-6 gap-1.5 rounded-full px-2 text-xs shrink-0",
-						conditions.length > 0 && "bg-primary/10 border-primary text-primary hover:bg-primary/10"
-					)}
+					aria-label="Filter"
+					title="Filter"
+					className="relative gap-2 h-6 w-6 p-1"
 				>
-					<IconFilter className="size-3.5" />
-					Filter
+					<IconFilter className="w-4 h-4" />
 					{conditions.length > 0 && (
-						<Badge className="size-4 justify-center p-0 text-[10px]">{conditions.length}</Badge>
+						<span className="absolute top-0.5 right-0.5 size-1.5 rounded-full bg-primary" />
 					)}
 				</Button>
 			</ComboBoxTrigger>

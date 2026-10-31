@@ -1,4 +1,4 @@
-import { getOrganizations, type schema } from "@repo/database";
+import { getOrganizations, getSavedViewsForOrganizations, type schema } from "@repo/database";
 import { isAiEnabled } from "@repo/edition";
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
@@ -26,7 +26,13 @@ export const getUserOrganizations = createServerFn({ method: "GET" }).handler(as
 		// Identity comes from the session, never from client input (server fns are publicly callable).
 		const account = await requireAccount();
 		const organizations = await getOrganizations(account.id);
-		return { account, organizations };
+		// Each org's shared views, for the sidebar's org sections (SAY-104), grouped by org id.
+		const views = await getSavedViewsForOrganizations(organizations.map((org) => org.id));
+		const orgViews: Record<string, schema.savedViewType[]> = {};
+		for (const view of views) {
+			if (view.organizationId) (orgViews[view.organizationId] ??= []).push(view);
+		}
+		return { account, organizations, orgViews };
 	} catch (error) {
 		console.error("🚨 Error fetching organizations:", error);
 		if (error && typeof error === "object" && "redirect" in error) {
@@ -150,11 +156,11 @@ export const Route = createFileRoute("/(admin)")({
 // --- COMPONENT ---
 
 function AdminLayout() {
-	const { account, organizations, aiEnabled } = Route.useLoaderData();
+	const { account, organizations, orgViews, aiEnabled } = Route.useLoaderData();
 
 	return (
 		<div className="flex h-dvh max-h-dvh flex-row bg-sidebar overflow-hidden">
-			<RootProvider account={account} organizations={organizations} aiEnabled={aiEnabled}>
+			<RootProvider account={account} organizations={organizations} orgViews={orgViews} aiEnabled={aiEnabled}>
 				<PostHogUserSync user={account ? { id: account.id, email: account.email, name: account.name } : null} />
 				<NavigationTracker />
 				<GlobalCommandRegistrar />

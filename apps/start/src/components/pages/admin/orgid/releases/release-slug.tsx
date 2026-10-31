@@ -17,6 +17,14 @@ import {
 import { Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLayoutData } from "@/components/admin/shell/context";
+import { Board } from "@/components/board/board";
+import { NONE_GROUPING_ID } from "@/components/board/config/grouping-registry";
+import type { BoardCapabilities } from "@/components/board/core/capabilities";
+import type { BoardScope } from "@/components/board/core/scope-config";
+import { TaskBoardProvider, type TaskListUpdater } from "@/components/board/core/task-board-provider";
+import { pageLocalGrouping } from "@/components/board/core/view-config";
+import { LIST_VIEW } from "@/components/board/views/view-registry";
+import type { BoardViewDefinition } from "@/components/board/views/view-registry-model";
 import { PageHeader } from "@/components/generic/PageHeader";
 import { Page } from "@/components/generic/page";
 import RenderIcon from "@/components/generic/RenderIcon";
@@ -28,7 +36,6 @@ import { ReleaseHeader } from "@/components/releases/release-header";
 import { ReleaseInfo } from "@/components/releases/release-info";
 import { ReleaseSidebar } from "@/components/releases/release-sidebar";
 import { ReleaseStatusUpdatesFeed } from "@/components/releases/release-status-updates-feed";
-import { UnifiedTaskView } from "@/components/tasks/views/unified-task-view";
 import { useLayoutOrganization } from "@/contexts/ContextOrg";
 import { LayoutReleaseProvider, useLayoutRelease } from "@/contexts/ContextOrgRelease";
 import { useReleaseCommands } from "@/hooks/commands/useReleaseCommands";
@@ -37,6 +44,7 @@ import { useServerEventsSubscription } from "@/hooks/useServerEventsSubscription
 import { useWSMessageHandler, type WSMessageHandler } from "@/hooks/useWSMessageHandler";
 import { commandActions } from "@/lib/command-store";
 import { getReleaseWithTasksAction, updateReleaseAction } from "@/lib/fetches/release";
+import { applyReleaseTaskEvent, readReleasesEvent, upsertReleaseRow } from "@/lib/releases/release-page-event";
 import type { ServerEventMessage } from "@/lib/serverEvents";
 import { sidebarActions } from "@/lib/sidebar/sidebar-store";
 import { useToastAction } from "@/lib/util";
@@ -47,12 +55,44 @@ interface ReleaseDetailPageProps {
 
 const RELEASE_CHARTS_PANEL_ID = "release-charts-panel";
 
+// The release's tasks: inline field edits and the right-click menu, but no drag, selection or saved views.
+const RELEASE_BOARD_CAPABILITIES: BoardCapabilities = {
+	canDrag: false,
+	canEditFields: true,
+	canSelect: false,
+	canContextMenu: true,
+	canBulk: false,
+	canSavedViews: false,
+};
+const RELEASE_BOARD_VIEWS: readonly BoardViewDefinition[] = [LIST_VIEW];
+
 function ReleaseDetailPageContent() {
 	const { serverEvents, account } = useLayoutData();
-	const { organization, setOrganization, categories, releases, setReleases } = useLayoutOrganization();
+	const { organization, setOrganization, labels, categories, releases, setReleases, permissions } =
+		useLayoutOrganization();
 	const { release, setRelease } = useLayoutRelease();
 
 	const [tasks, setTasks] = useState<schema.TaskWithLabels[]>([]);
+	const updateTasks = useCallback<TaskListUpdater>((updater) => setTasks(updater), []);
+	const permissionsByOrg = useMemo(() => ({ [organization.id]: permissions }), [organization.id, permissions]);
+	const organizationScope = useMemo(
+		() => ({ id: organization.id, shortId: organization.shortId }),
+		[organization.id, organization.shortId]
+	);
+	// One flat list ordered by status (no group headers), every task shown, as the release page always has.
+	const boardScope = useMemo<BoardScope>(
+		() => ({
+			key: `release:${release?.id}`,
+			persistence: "memory",
+			initial: {
+				grouping: pageLocalGrouping(NONE_GROUPING_ID),
+				showCompletedTasks: true,
+				sortBy: "status",
+				sortDirection: "asc",
+			},
+		}),
+		[release?.id]
+	);
 	const [loading, setLoading] = useState(true);
 	const [statusUpdatesRefreshKey, setStatusUpdatesRefreshKey] = useState(0);
 	const [commentsRefreshKey, setCommentsRefreshKey] = useState(0);
@@ -122,42 +162,42 @@ function ReleaseDetailPageContent() {
 		void loadRelease();
 	}, [release?.id, organization.id, setRelease]);
 
+	// Background reload (no loader) after an event that only says "something about this release changed".
+	const reloadRelease = useCallback(async () => {
+		if (!release?.id) return;
+		const result = await getReleaseWithTasksAction(organization.id, release.id);
+		if (result.success && result.data) {
+			setRelease(result.data);
+			setTasks(result.data.tasks);
+		}
+	}, [release?.id, organization.id, setRelease]);
+
+	// No `scope` checks: room broadcasts carry none, and task updates reach this page as INDIVIDUAL
+	// (it's on the `releases` channel, not `tasks`). Payload shapes are validated in release-page-event.ts.
 	const handlers: WSMessageHandler<ServerEventMessage> = {
 		UPDATE_RELEASES: (msg) => {
-			if (msg.scope === "CHANNEL" && "data" in msg) {
-				setReleases(msg.data);
-				// Update current release if it's in the updated list
-				const updatedRelease = (msg.data as schema.releaseType[]).find((r) => r.id === release?.id);
-				if (updatedRelease && release) {
-					// Preserve tasks array and createdBy when updating release metadata
-					setRelease({
-						...release,
-						...updatedRelease,
-						tasks: release.tasks,
-						createdBy: release.createdBy,
-					} as schema.ReleaseWithTasks);
-				}
+			if (!("data" in msg) || !release) return;
+			const data: unknown = msg.data;
+			const nextReleases = upsertReleaseRow(releases, data);
+			if (nextReleases !== releases) setReleases(nextReleases);
+			const result = readReleasesEvent(data, release.id, new Set(tasks.map((t) => t.id)));
+			if (result.kind === "release") {
+				// Preserve tasks array and createdBy when updating release metadata
+				setRelease({
+					...release,
+					...result.release,
+					tasks: release.tasks,
+					createdBy: release.createdBy,
+				} as schema.ReleaseWithTasks);
+			} else if (result.kind === "refetch") {
+				void reloadRelease();
 			}
 		},
 		UPDATE_TASK: (msg) => {
-			if (msg.scope === "CHANNEL" && "data" in msg) {
-				const task = msg.data as schema.TaskWithLabels;
-				// If task belongs to this release, update it
-				if (task.releaseId === release?.id) {
-					setTasks((prevTasks) => {
-						const existingIndex = prevTasks.findIndex((t) => t.id === task.id);
-						if (existingIndex >= 0) {
-							const newTasks = [...prevTasks];
-							newTasks[existingIndex] = task;
-							return newTasks;
-						}
-						return [...prevTasks, task];
-					});
-				} else {
-					// Task was removed from this release
-					setTasks((prevTasks) => prevTasks.filter((t) => t.id !== task.id));
-				}
-			}
+			if (!("data" in msg) || !release) return;
+			const data: unknown = msg.data;
+			const releaseId = release.id;
+			setTasks((prevTasks) => applyReleaseTaskEvent(prevTasks, data, releaseId));
 		},
 		UPDATE_RELEASE_STATUS_UPDATES: (msg) => {
 			if ("data" in msg && (msg.data as { releaseId?: string })?.releaseId === release?.id) {
@@ -259,7 +299,6 @@ function ReleaseDetailPageContent() {
 			RELEASE_CHARTS_PANEL_ID,
 			<div className="flex flex-col gap-3">
 				<ReleaseInfo release={release} />
-				{tasks.length > 0 && <Label>Status</Label>}
 				<ReleaseSidebar
 					tasks={tasks}
 					taskStats={taskStats}
@@ -348,17 +387,7 @@ function ReleaseDetailPageContent() {
 								</Button>
 							</Link>
 							<span className="text-muted-foreground text-xs">/</span>
-							<Link
-								to="/$orgId/releases"
-								params={{ orgId: organization.id }}
-								search={{
-									status: undefined,
-									targetDateFrom: undefined,
-									targetDateTo: undefined,
-									releasedFrom: undefined,
-									releasedTo: undefined,
-								}}
-							>
+							<Link to="/$orgId/releases" params={{ orgId: organization.id }}>
 								<Button
 									variant={"ghost"}
 									className="w-fit text-xs p-1 h-auto rounded-lg bg-transparent"
@@ -436,20 +465,22 @@ function ReleaseDetailPageContent() {
 						</Button>
 					</div>
 
-					<UnifiedTaskView
+					<TaskBoardProvider
 						tasks={tasks}
-						setTasks={setTasks}
-						serverEvents={serverEvents}
-						availableUsers={availableUsers}
-						organization={organization}
+						updateTasks={updateTasks}
+						labels={labels}
 						categories={categories}
 						releases={releases}
-						compact={true}
-						forceShowCompleted={true}
-						className="h-auto overflow-visible"
-						overviewLayout={true}
-						showGroupHeaders={false}
-					/>
+						users={availableUsers}
+						permissions={permissionsByOrg}
+						viewerId={account?.id}
+						organizationScope={organizationScope}
+						capabilities={RELEASE_BOARD_CAPABILITIES}
+						scope={boardScope}
+						views={RELEASE_BOARD_VIEWS}
+					>
+						<Board />
+					</TaskBoardProvider>
 				</div>
 				<Separator />
 				<div className="rounded-xl overflow-clip p-3 flex flex-col gap-2">

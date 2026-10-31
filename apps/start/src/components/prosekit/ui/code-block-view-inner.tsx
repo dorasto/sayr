@@ -33,17 +33,19 @@ export default function CodeBlockView(props: ReactNodeViewProps) {
 			{props.view.editable && (
 				<div className="relative mx-2 top-3.5 h-0 select-none overflow-visible text-xs" contentEditable={false}>
 					<Popover open={open} onOpenChange={setOpen}>
-						<PopoverTrigger asChild>
-							<Button
-								variant="ghost"
-								role="combobox"
-								aria-expanded={open}
-								className="h-6 w-auto justify-between gap-2 px-2 text-xs font-normal opacity-0 hover:opacity-80 [div[data-node-view-root]:hover_&]:opacity-50 hover:[div[data-node-view-root]:hover_&]:opacity-80 transition-opacity"
-							>
-								{currentLanguage ? currentLanguage.name : "Plain Text"}
-								<ChevronsUpDown className="ml-2 h-3 w-3 shrink-0 opacity-50" />
-							</Button>
-						</PopoverTrigger>
+						<PopoverTrigger
+							render={
+								<Button
+									variant="ghost"
+									role="combobox"
+									aria-expanded={open}
+									className="h-6 w-auto justify-between gap-2 px-2 text-xs font-normal opacity-0 hover:opacity-80 [div[data-node-view-root]:hover_&]:opacity-50 hover:[div[data-node-view-root]:hover_&]:opacity-80 transition-opacity"
+								>
+									{currentLanguage ? currentLanguage.name : "Plain Text"}
+									<ChevronsUpDown className="ml-2 h-3 w-3 shrink-0 opacity-50" />
+								</Button>
+							}
+						/>
 						<PopoverContent className="w-[200px] p-0 max-h-[300px] overflow-hidden">
 							<Command>
 								<CommandInput placeholder="Search language..." className="h-9" />

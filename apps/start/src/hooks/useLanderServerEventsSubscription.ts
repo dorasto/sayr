@@ -1,18 +1,15 @@
 import type { schema } from "@repo/database";
-import { onWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
 import { ensureCdnUrl } from "@repo/util";
-import { useEffect, useMemo } from "react";
+import { useMemo } from "react";
 import { useLayoutData } from "@/components/admin/shell/context";
 import { useLanderData } from "@/contexts/ContextLander";
 import {
 	applyLanderEvent,
 	applyLanderWindowMessage,
-	isSseReconnectedMessage,
 	type LanderTaskOrganization,
 } from "@/lib/board/apply-lander-event";
 import type { ServerEventMessage } from "@/lib/serverEvents";
-import { useServerEventsSubscription } from "./useServerEventsSubscription";
-import { useWSMessageHandler, type WSMessageHandler } from "./useWSMessageHandler";
+import { useBoardServerEvents } from "./useBoardServerEvents";
 
 /**
  * The channels the board joins in every org over its one connection: `tasks` (task events) and
@@ -24,7 +21,7 @@ import { useWSMessageHandler, type WSMessageHandler } from "./useWSMessageHandle
 const LANDER_CHANNELS = ["tasks", "releases"];
 
 /** The same `task.organization` badge shape getLanderData attaches to every task at load time. */
-function toTaskOrganization(org: schema.OrganizationWithMembers): LanderTaskOrganization {
+export function toTaskOrganization(org: schema.OrganizationWithMembers): LanderTaskOrganization {
 	return {
 		id: org.id,
 		name: org.name,
@@ -44,8 +41,10 @@ function toTaskOrganization(org: schema.OrganizationWithMembers): LanderTaskOrga
  * (LANDER_CHANNELS); more entities can join the board by adding a channel here and
  * a case in the reducer.
  *
- * Deliberately thin: which events matter and what they do to the data is all in
- * lib/board/apply-lander-event.ts (pure, unit-tested). Each event is applied as a
+ * Deliberately thin: the subscription/listener plumbing is the generic
+ * useBoardServerEvents (hooks/useBoardServerEvents.ts, which any other board page can
+ * use with its own orgs/channels/apply), and which events matter and what they do to
+ * the data is all in lib/board/apply-lander-event.ts (pure, unit-tested). Each event is applied as a
  * functional store update, so events arriving before a re-render can't overwrite
  * one another. Covers what the org pages handle on the same subscriptions — tasks
  * (create/update/vote), labels/categories and releases — minus UPDATE_VIEWS
@@ -62,7 +61,7 @@ function toTaskOrganization(org: schema.OrganizationWithMembers): LanderTaskOrga
  *    board re-fetches its loader (`onResyncNeeded`, wired to a router invalidation by the route).
  */
 export function useLanderServerEventsSubscription({ onResyncNeeded }: { onResyncNeeded: () => void }) {
-	const { serverEvents, organizations } = useLayoutData();
+	const { organizations } = useLayoutData();
 	const { updateLanderData } = useLanderData();
 
 	const orgIds = useMemo(() => organizations.map((org) => org.id), [organizations]);
@@ -70,62 +69,14 @@ export function useLanderServerEventsSubscription({ onResyncNeeded }: { onResync
 		() => new Map(organizations.map((org) => [org.id, toTaskOrganization(org)])),
 		[organizations]
 	);
-	// undefined (not []) when there's nothing to subscribe to, so
-	// useServerEventsSubscription's own "nothing changed" check treats a
-	// zero-org account the same as never having called connect() at all,
-	// rather than issuing a channel-without-any-org request.
-	const activeOrgIds = orgIds.length > 0 ? orgIds : undefined;
 
-	useServerEventsSubscription({
-		serverEvents,
-		channel: activeOrgIds ? LANDER_CHANNELS : undefined,
-		orgIds: activeOrgIds,
+	useBoardServerEvents({
+		orgIds,
+		channels: LANDER_CHANNELS,
+		apply: (msg: ServerEventMessage) =>
+			updateLanderData((prev) => applyLanderEvent(prev, msg, { organizations: organizationSnapshots })),
+		applyWindowMessage: (message) =>
+			updateLanderData((prev) => applyLanderWindowMessage(prev, message, { organizations: organizationSnapshots })),
+		onResyncNeeded,
 	});
-
-	const applyEvent = (msg: ServerEventMessage) => {
-		updateLanderData((prev) => applyLanderEvent(prev, msg, { organizations: organizationSnapshots }));
-	};
-
-	const handlers: WSMessageHandler<ServerEventMessage> = {
-		CREATE_TASK: applyEvent,
-		UPDATE_TASK: applyEvent,
-		UPDATE_TASK_VOTE: applyEvent,
-		UPDATE_LABELS: applyEvent,
-		UPDATE_CATEGORIES: applyEvent,
-		UPDATE_RELEASES: applyEvent,
-		DELETE_RELEASE: applyEvent,
-	};
-
-	// useWSMessageHandler keeps `handleMessage` referentially stable and reads the latest
-	// `handlers` through a ref, so the listener below is attached once per EventSource.
-	const handleMessage = useWSMessageHandler<ServerEventMessage>(handlers);
-
-	useEffect(() => {
-		if (!serverEvents.event) return;
-		serverEvents.event.addEventListener("message", handleMessage);
-		return () => {
-			serverEvents.event?.removeEventListener("message", handleMessage);
-		};
-	}, [serverEvents.event, handleMessage]);
-
-	// A signal, no data — accepted from any origin, like every other SSE_RECONNECTED listener.
-	useEffect(
-		() =>
-			onWindowMessage<unknown>("*", (message) => {
-				if (isSseReconnectedMessage(message)) onResyncNeeded();
-			}),
-		[onResyncNeeded]
-	);
-
-	// This one carries task data, so it is same-origin only: unlike SSE (server-authenticated, room-scoped), a
-	// window message can be posted by any page that holds a reference to this window.
-	useEffect(
-		() =>
-			onWindowMessage<unknown>(window.location.origin, (message) => {
-				updateLanderData((prev) =>
-					applyLanderWindowMessage(prev, message, { organizations: organizationSnapshots })
-				);
-			}),
-		[updateLanderData, organizationSnapshots]
-	);
 }

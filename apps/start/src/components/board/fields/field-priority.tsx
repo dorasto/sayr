@@ -11,7 +11,7 @@ import {
 } from "@repo/ui/components/tomui/combo-box-unified";
 import { cn } from "@repo/ui/lib/utils";
 import { PRIORITY_CONFIG, type PriorityValue, ROW_LEADING_GUTTER_CLASS } from "../config/field-config";
-import { useBoardCapabilities, useBoardItemActions } from "../core/board-data";
+import { useBoardItemActions, useFieldPermissions } from "../core/board-data";
 import { StaticField } from "./static-field";
 
 interface FieldPriorityProps {
@@ -19,11 +19,11 @@ interface FieldPriorityProps {
 }
 
 export function FieldPriority({ task }: FieldPriorityProps) {
-	const { canEditFields } = useBoardCapabilities();
+	const canEdit = useFieldPermissions(task).priority;
 	const { execute } = useBoardItemActions(task);
 	const current = PRIORITY_CONFIG[task.priority as PriorityValue];
 
-	if (!canEditFields) {
+	if (!canEdit) {
 		return (
 			<StaticField
 				className={cn(ROW_LEADING_GUTTER_CLASS, "h-3.5 grid place-items-center shrink-0")}

@@ -78,7 +78,39 @@ export async function getOrganizations(
 			};
 		});
 
-	return result;
+	// Step 5: the user's own order (member.position, set by reorderOrganizations); orgs never re-ordered
+	// follow, in the order they were joined.
+	const membershipByOrg = new Map(memberships.map((m) => [m.organizationId, m]));
+	return result.sort((a, b) => compareMemberships(membershipByOrg.get(a.id), membershipByOrg.get(b.id)));
+}
+
+type MembershipOrder = Pick<typeof schema.member.$inferSelect, "position" | "createdAt">;
+
+/** Positioned memberships first (ascending), then unpositioned ones by join date. */
+function compareMemberships(a: MembershipOrder | undefined, b: MembershipOrder | undefined): number {
+	const posA = a?.position ?? null;
+	const posB = b?.position ?? null;
+	if (posA !== null && posB !== null && posA !== posB) return posA - posB;
+	if (posA !== null && posB === null) return -1;
+	if (posA === null && posB !== null) return 1;
+	return (a?.createdAt?.getTime() ?? 0) - (b?.createdAt?.getTime() ?? 0);
+}
+
+/**
+ * Saves the user's sidebar order of their organizations: each org in `orderedOrgIds` gets its index as
+ * `member.position`, in one statement. Scoped to the user's own memberships, so ids of orgs they don't
+ * belong to are ignored.
+ */
+export async function reorderOrganizations(userId: string, orderedOrgIds: string[]): Promise<void> {
+	if (orderedOrgIds.length === 0) return;
+	const cases = sql.join(
+		orderedOrgIds.map((orgId, index) => sql`when ${schema.member.organizationId} = ${orgId} then ${index}`),
+		sql` `
+	);
+	await db
+		.update(schema.member)
+		.set({ position: sql`(case ${cases} end)::integer` })
+		.where(and(eq(schema.member.userId, userId), inArray(schema.member.organizationId, orderedOrgIds)));
 }
 
 /**

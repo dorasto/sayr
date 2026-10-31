@@ -32,6 +32,7 @@ import {
 	ReleaseSchema,
 	releasePathParam,
 } from "./release-schemas";
+import { withResolvedMentions } from "@/prosekit/resolveMarkdownMentions";
 
 export const releasesRoute = new Hono<AppEnv>();
 
@@ -129,6 +130,7 @@ const CreateReleaseBody = {
 		},
 		color: { type: "string", description: "Hex (#3B82F6) or hsla(217, 91%, 60%, 1). Defaults to blue." },
 		icon: { type: "string", description: 'Icon name. Defaults to "IconRocket".' },
+		leadId: { type: "string", description: "User id of an organization member." },
 	},
 };
 
@@ -166,6 +168,7 @@ releasesRoute.post(
 
 		const input = parseCreateReleaseInput(body);
 		if (!input.ok) return invalidRequest(c, input.error);
+		input.value = await withResolvedMentions(input.value, guard.orgId);
 
 		// Instance-wide limit for self-hosted editions. The per-organization plan
 		// limit (cloud) is checked in the service.
@@ -248,6 +251,7 @@ releasesRoute.patch(
 
 		const input = parseUpdateReleaseInput(body);
 		if (!input.ok) return invalidRequest(c, input.error);
+		input.value = await withResolvedMentions(input.value, guard.orgId);
 
 		try {
 			const release = await updateReleaseService({ orgId: guard.orgId, release: guard.release, input: input.value });

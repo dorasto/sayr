@@ -1,13 +1,13 @@
-import { useLayoutData } from "@/components/admin/shell/context";
-import { useLayoutOrganizationSettings } from "@/contexts/ContextOrgSettings";
-import { useServerEventsSubscription } from "@/hooks/useServerEventsSubscription";
-import { useWSMessageHandler, WSMessageHandler } from "@/hooks/useWSMessageHandler";
-import type { ServerEventMessage } from "@/lib/serverEvents";
 import { Button } from "@repo/ui/components/button";
 import { Tile, TileAction, TileDescription, TileHeader, TileIcon, TileTitle } from "@repo/ui/components/doras-ui/tile";
 import { IconSettings, IconStack2 } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
 import { useEffect } from "react";
+import { useLayoutData } from "@/components/admin/shell/context";
+import { useLayoutOrganizationSettings } from "@/contexts/ContextOrgSettings";
+import { useServerEventsSubscription } from "@/hooks/useServerEventsSubscription";
+import { useWSMessageHandler, type WSMessageHandler } from "@/hooks/useWSMessageHandler";
+import type { ServerEventMessage } from "@/lib/serverEvents";
 
 export default function SettingsOrganizationViewsPage() {
 	const { serverEvents } = useLayoutData();
@@ -23,7 +23,7 @@ export default function SettingsOrganizationViewsPage() {
 
 	const handlers: WSMessageHandler<ServerEventMessage> = {
 		UPDATE_VIEWS: (msg) => {
-			if (msg.scope === "CHANNEL") {
+			if (msg.scope === "INDIVIDUAL" && msg.meta?.orgId === organization.id) {
 				setViews(msg.data);
 			}
 		},
@@ -45,10 +45,10 @@ export default function SettingsOrganizationViewsPage() {
 
 	return (
 		<div className="flex flex-col gap-2">
-			{/* No standalone edit page anymore — editing happens inline from the
-			    tasks page (pencil icon on the saved-view tile in the panel opens
-			    SettingsOrganizationViewDetailPage in a Sheet). This just gets you
-			    there with the view applied. */}
+			{/* No standalone edit page anymore — views are edited on the tasks
+			    page in the view settings sheet (the view switcher row's pencil, or
+			    the side panel header's gear for the active view). This just gets
+			    you there with the view applied. */}
 			{views.map((view) => (
 				<Link
 					key={view.id}
