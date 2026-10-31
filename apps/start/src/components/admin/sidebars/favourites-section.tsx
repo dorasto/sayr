@@ -15,19 +15,15 @@ import { useTasksSearchParams } from "@/hooks/useTasksSearchParams";
 import { type FavouriteWithTarget, favouritesActions, favouritesStore } from "@/lib/stores/favourites-store";
 import { SidebarGroupToggle } from "./sidebar-group-toggle";
 import { reorderIds, useDragClickSuppression, useSidebarSortSensors } from "./sortable-sidebar";
+import { favouriteTarget, markSidebarClick, sidebarItemId, useActiveSidebarItem } from "./use-active-sidebar-item";
 
 const DEFAULT_VIEW_ICON = "IconBookmark";
 // Matches view-icon-color-trigger.tsx's own DEFAULT_VIEW_COLOR — duplicated locally the same
 // way DEFAULT_VIEW_ICON above already is, rather than importing from board/** into the sidebar.
 const DEFAULT_VIEW_COLOR = "hsla(38, 92%, 50%, 1)";
 
-const VIEW_ICON_SWATCH_CLASS = "size-5 rounded-md [&_svg]:size-3 shrink-0";
-
-/** The page a favourite opens: /home for a personal view, the org's tasks page for an org view. */
-function favouriteTarget(favourite: FavouriteWithTarget): { pathname: string; slug: string } {
-	const slug = favourite.view.slug || favourite.view.id;
-	return { pathname: favourite.organization ? `/${favourite.organization.id}/tasks` : "/home", slug };
-}
+// Same size as the org sections' view icons, so every row's label starts at the same x.
+const VIEW_ICON_SWATCH_CLASS = "size-4 rounded-[5px] [&_svg]:size-2.5 shrink-0";
 
 function useViewNavigate(currentPathname: string) {
 	const { setSearchParams } = useTasksSearchParams();
@@ -72,7 +68,7 @@ function FavouriteRow({
 			/>
 			{organization && (
 				// The org's logo in the swatch's corner, so two orgs' same-named views can be told apart at a glance.
-				<Avatar className="absolute right-0 bottom-0 size-2.5 rounded-none rounded-tl-[3px]">
+				<Avatar className="absolute right-0 bottom-0 size-2 rounded-none rounded-tl-[2px]">
 					<AvatarImage src={organization.logo ?? undefined} alt={organization.name} />
 					<AvatarFallback className="rounded-none text-[5px]">{getInitials(organization.name)}</AvatarFallback>
 				</Avatar>
@@ -96,7 +92,10 @@ function FavouriteRow({
 				<Link
 					to={target.pathname}
 					search={{ view: target.slug }}
-					onClick={(event) => navigate(target, event)}
+					onClick={(event) => {
+						markSidebarClick(sidebarItemId.favourite(favourite.id));
+						navigate(target, event);
+					}}
 					className="min-w-0 flex-1"
 				>
 					<SidebarMenuButton
@@ -149,11 +148,8 @@ export function FavouritesSection() {
 	const pathname = useRouterState({
 		select: (state) => state.location.pathname,
 	});
-	const search = useRouterState({
-		select: (state) => state.location.search,
-	}) as Record<string, unknown>;
 	const normalizedPathname = pathname.length > 1 ? pathname.replace(/\/$/, "") : pathname;
-	const activeViewSlug = search.view as string | undefined;
+	const activeItemId = useActiveSidebarItem();
 
 	const favourites = useStore(favouritesStore, (state) => state.favourites);
 	const [favouritesOpen, setFavouritesOpen] = useState(true);
@@ -180,17 +176,14 @@ export function FavouritesSection() {
 			<DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
 				<SortableContext items={favourites.map((favourite) => favourite.id)} strategy={verticalListSortingStrategy}>
 					<SidebarMenu className="gap-0.5">
-						{favourites.map((favourite) => {
-							const target = favouriteTarget(favourite);
-							return (
-								<FavouriteRow
-									key={favourite.id}
-									favourite={favourite}
-									isActive={normalizedPathname === target.pathname && activeViewSlug === target.slug}
-									currentPathname={normalizedPathname}
-								/>
-							);
-						})}
+						{favourites.map((favourite) => (
+							<FavouriteRow
+								key={favourite.id}
+								favourite={favourite}
+								isActive={activeItemId === sidebarItemId.favourite(favourite.id)}
+								currentPathname={normalizedPathname}
+							/>
+						))}
 					</SidebarMenu>
 				</SortableContext>
 			</DndContext>

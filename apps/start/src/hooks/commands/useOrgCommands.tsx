@@ -66,7 +66,7 @@ export function useOrgCommands() {
 									<IconArrowRight size={14} className="opacity-40" aria-hidden="true" />
 								) : undefined,
 							action:
-								views.length === 0 ? () => navigate({ to: "/$orgId/views", params: { orgId } }) : undefined,
+								views.length === 0 ? () => navigate({ to: "/$orgId/tasks", params: { orgId } }) : undefined,
 						},
 						{
 							id: `org-go-releases-${orgId}`,

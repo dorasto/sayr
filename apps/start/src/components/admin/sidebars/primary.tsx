@@ -35,6 +35,7 @@ import { notificationStore } from "@/lib/stores/notification-store";
 import { FavouritesSection } from "./favourites-section";
 import { OrgSortableList } from "./org-sortable-list";
 import { SidebarGroupToggle } from "./sidebar-group-toggle";
+import { markSidebarClick, sidebarItemId, useActiveSidebarItem } from "./use-active-sidebar-item";
 import UserDropdown from "./user-dropdown";
 export function PrimarySidebar() {
 	const sidebarId = "primary-sidebar";
@@ -46,6 +47,7 @@ export function PrimarySidebar() {
 	const sidebar = useStore(sidebarStore, (state) => state.sidebars[sidebarId]);
 	const isSidebarOpen = sidebar ? sidebar.open || sidebar.overlayOpen === true : true;
 	const inboxCount = useStore(notificationStore, (state) => state.unreadCount);
+	const activeItemId = useActiveSidebarItem();
 	const [organizationsOpen, setOrganizationsOpen] = useState(true);
 	const closeMobileSidebar = () => {
 		if (isMobile) {
@@ -54,7 +56,7 @@ export function PrimarySidebar() {
 	};
 	return (
 		<Sidebar id={sidebarId} collapsible resizable keyboardShortcut="b" className="">
-			<SidebarHeader className="pt-3.5">
+			<SidebarHeader className="pt-3.5 pb-0">
 				{heading.map((section) => (
 					<SidebarMenu
 						key={section.title}
@@ -62,7 +64,8 @@ export function PrimarySidebar() {
 						// className="gap-0.5"
 					>
 						{section.items.map((item) => {
-							const isActive = pathname === item.url;
+							const itemId = sidebarItemId.nav(item.url);
+							const isActive = activeItemId === itemId;
 							const IconComponent = isActive && item.activeIcon ? item.activeIcon : item.icon;
 
 							return (
@@ -71,7 +74,8 @@ export function PrimarySidebar() {
 										className=""
 										to={item.url}
 										onClick={(event) => {
-											if (item.url !== "/home" || !isActive) return;
+											markSidebarClick(itemId);
+											if (item.url !== "/home" || pathname !== item.url) return;
 											// Already on /home — a bare <Link to="/home"> with no search prop
 											// doesn't clear existing params (e.g. a saved view's ?view=... or
 											// leftover ?filters=...), so clicking "Dashboard" while a favourite
@@ -114,74 +118,70 @@ export function PrimarySidebar() {
 					</SidebarMenu>
 				))}
 			</SidebarHeader>
-			<SidebarContent className="pt-0">
-				{navigation.map((section) => (
-					<SidebarGroup key={section.title}>
-						{section.title === "Overview" ? null : <SidebarGroupLabel>{section.title}</SidebarGroupLabel>}
-						<SidebarMenu className="gap-0.5">
-							{section.items.map((item) => {
-								const isActive = pathname === item.url;
-								const IconComponent = isActive && item.activeIcon ? item.activeIcon : item.icon;
+			{/* Same 12px section gap above Inbox (pt-3, after the header's Dashboard) and above Organizations (gap-3); Inbox + Favourites flow as rows. */}
+			<SidebarContent className="flex flex-col gap-3 pt-3">
+				<div className="flex flex-col gap-0.5">
+					{navigation.map((section) => (
+						<SidebarGroup key={section.title}>
+							{section.title === "Overview" ? null : <SidebarGroupLabel>{section.title}</SidebarGroupLabel>}
+							<SidebarMenu className="gap-0.5">
+								{section.items.map((item) => {
+									const itemId = sidebarItemId.nav(item.url);
+									const isActive = activeItemId === itemId;
+									const IconComponent = isActive && item.activeIcon ? item.activeIcon : item.icon;
 
-								return (
-									<SidebarMenuItem className="min-h-auto" key={item.title} isActive={isActive}>
-										<Link to={item.url} className="w-full">
-											<SidebarMenuButton
-												size="small"
-												icon={<IconComponent size={16} />}
-												tooltip={item.title}
-											>
-												<span>{item.title}</span>
-											</SidebarMenuButton>
-										</Link>
-										{item.title === "Inbox" && inboxCount > 0 && (
-											<SidebarMenuSub className="h-3 max-h-3">
-												<SidebarSubmenuItem className="h-3 max-h-3">
-													{inboxCount > 99 ? "99+" : inboxCount}
-												</SidebarSubmenuItem>
-											</SidebarMenuSub>
-										)}
-									</SidebarMenuItem>
-								);
-							})}
-						</SidebarMenu>
-					</SidebarGroup>
-				))}
-				<FavouritesSection />
-				<SidebarGroup>
-					{(() => {
-						const orgList = (
-							<SidebarMenu className={cn("org-sidebar-menu", isSidebarOpen && "gap-0.5")}>
-								<OrgSortableList closeMobileSidebar={closeMobileSidebar}>
-									<SidebarMenuItem className="min-h-auto">
-										<CreateOrganizationDialog
-											trigger={
+									return (
+										<SidebarMenuItem className="min-h-auto" key={item.title} isActive={isActive}>
+											<Link to={item.url} className="w-full" onClick={() => markSidebarClick(itemId)}>
 												<SidebarMenuButton
 													size="small"
-													tooltip="Create Organization"
-													icon={<IconPlus size={16} />}
+													icon={<IconComponent size={16} />}
+													tooltip={item.title}
 												>
-													<span>Create</span>
+													<span>{item.title}</span>
 												</SidebarMenuButton>
-											}
-										/>
-									</SidebarMenuItem>
-								</OrgSortableList>
+											</Link>
+											{item.title === "Inbox" && inboxCount > 0 && (
+												<SidebarMenuSub className="h-3 max-h-3">
+													<SidebarSubmenuItem className="h-3 max-h-3">
+														{inboxCount > 99 ? "99+" : inboxCount}
+													</SidebarSubmenuItem>
+												</SidebarMenuSub>
+											)}
+										</SidebarMenuItem>
+									);
+								})}
 							</SidebarMenu>
-						);
-						return isSidebarOpen ? (
-							<SidebarGroupToggle
-								label="Organizations"
-								icon={<IconBuilding size={16} />}
-								open={organizationsOpen}
-								onOpenChange={setOrganizationsOpen}
-							>
-								{orgList}
-							</SidebarGroupToggle>
-						) : (
-							orgList
-						);
-					})()}
+						</SidebarGroup>
+					))}
+					<FavouritesSection />
+				</div>
+				{/* Each org is its own section (primary-org.tsx) inside the collapsible Organizations group. */}
+				<SidebarGroup>
+					<SidebarGroupToggle
+						label="Organizations"
+						icon={<IconBuilding size={16} />}
+						open={organizationsOpen}
+						onOpenChange={setOrganizationsOpen}
+					>
+						<SidebarMenu className="org-sidebar-menu gap-0.5">
+							<OrgSortableList closeMobileSidebar={closeMobileSidebar}>
+								<SidebarMenuItem className="min-h-auto">
+									<CreateOrganizationDialog
+										trigger={
+											<SidebarMenuButton
+												size="small"
+												tooltip="New organization"
+												icon={<IconPlus size={16} />}
+											>
+												<span>New organization</span>
+											</SidebarMenuButton>
+										}
+									/>
+								</SidebarMenuItem>
+							</OrgSortableList>
+						</SidebarMenu>
+					</SidebarGroupToggle>
 				</SidebarGroup>
 			</SidebarContent>
 			<SidebarFooter className="border-t-transparent">

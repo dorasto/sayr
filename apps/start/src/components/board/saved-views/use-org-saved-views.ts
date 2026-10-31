@@ -4,6 +4,7 @@ import type { schema } from "@repo/database";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { generateSlug } from "@repo/util";
 import { useCallback, useMemo } from "react";
+import { useLayoutData } from "@/components/admin/shell/context";
 import { createSavedViewAction, deleteSavedViewAction, updateSavedViewAction } from "@/lib/fetches/organization";
 import { type FavouriteOrganization, favouritesActions } from "@/lib/stores/favourites-store";
 import type { SavedViewCreateInput, SavedViewsSource, SavedViewUpdates } from "./saved-views-source";
@@ -47,12 +48,15 @@ export function useOrgSavedViewsSource({
 	const { value: sseClientId } = useStateManagement<string>("sse-clientId", "");
 	const organizationId = organization.id;
 
+	const { setOrgViews: setSidebarOrgViews } = useLayoutData();
+	// Every new list also goes to the sidebar's org section and the viewer's favourites, so both stay current.
 	const setViews = useCallback(
 		(next: schema.savedViewType[]) => {
 			setOrgViews(next);
+			setSidebarOrgViews(organizationId, next);
 			favouritesActions.syncOrgViews(organizationId, next);
 		},
-		[organizationId, setOrgViews]
+		[organizationId, setOrgViews, setSidebarOrgViews]
 	);
 
 	const togglePin = useCallback(

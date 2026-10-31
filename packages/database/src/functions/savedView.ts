@@ -145,3 +145,17 @@ export async function reorderPersonalViews(userId: string, orderedIds: string[])
 		)
 	);
 }
+
+/**
+ * Every shared saved view of the given organizations, in each org's own order — the primary sidebar lists them
+ * under each org (SAY-104). Callers pass orgs the user may see (getOrganizations' result).
+ *
+ * @param orgIds - The organizations whose views to load.
+ */
+export async function getSavedViewsForOrganizations(orgIds: string[]): Promise<schema.savedViewType[]> {
+	if (orgIds.length === 0) return [];
+	return await db.query.savedView.findMany({
+		where: (view, { inArray }) => inArray(view.organizationId, orgIds),
+		orderBy: (view, { asc }) => [asc(view.position), asc(view.createdAt)],
+	});
+}
