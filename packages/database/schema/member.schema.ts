@@ -55,10 +55,7 @@ export const team = table(
 			.timestamp("updated_at")
 			.notNull()
 			.$defaultFn(() => new Date()),
-		isSystem: v
-			.boolean("is_system")
-			.notNull()
-			.default(false),
+		isSystem: v.boolean("is_system").notNull().default(false),
 	},
 	(t) => [v.index("idx_team_org_name").on(t.organizationId, t.name)]
 );
@@ -83,6 +80,9 @@ export const member = table(
 		createdAt: v.timestamp("created_at").$defaultFn(() => new Date()),
 		seatAssignedId: v.text("seat_assigned_id"), // for Polar seat management
 		seatAssigned: v.boolean("seat_assigned").notNull().default(false), // whether this member has been assigned a seat in Polar
+		// Where this org sits in the member's own sidebar (SAY-104). Null = never re-ordered: sorts after
+		// positioned orgs, by join date (see getOrganizations).
+		position: v.integer("position"),
 	},
 	(t) => [v.unique("unq_member_org_user").on(t.userId, t.organizationId)]
 );

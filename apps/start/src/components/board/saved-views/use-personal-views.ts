@@ -3,6 +3,7 @@
 import type { schema } from "@repo/database";
 import { useStore } from "@tanstack/react-store";
 import { useCallback } from "react";
+import { favouritesActions } from "@/lib/stores/favourites-store";
 import { type PersonalViewUpdates, personalViewsActions, personalViewsStore } from "@/lib/stores/personal-views-store";
 
 /**
@@ -26,7 +27,11 @@ export function usePersonalViews() {
 
 	const deleteView = useCallback((viewId: string) => personalViewsActions.remove(viewId), []);
 
-	const togglePin = useCallback((viewId: string) => personalViewsActions.togglePin(viewId), []);
+	// Pinning is the Favourites store's (SAY-104); a personal view is favourited with no org.
+	const togglePin = useCallback(async (viewId: string) => {
+		const view = personalViewsStore.state.views.find((v) => v.id === viewId);
+		if (view) await favouritesActions.toggleView(view, null);
+	}, []);
 
 	const reorder = useCallback((orderedIds: string[]) => personalViewsActions.reorder(orderedIds), []);
 

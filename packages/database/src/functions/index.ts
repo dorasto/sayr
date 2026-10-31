@@ -11,6 +11,7 @@ export * from "./integrations";
 export * from "./user";
 export * from "./github";
 export * from "./savedView";
+export * from "./favourite";
 
 /**
  * Standard columns for user summary in Drizzle relation queries.

@@ -1,7 +1,10 @@
 "use client";
 
+import { headlessToast } from "@repo/ui/components/headless-toast";
 import { IconPin, IconPinFilled, IconSettings, IconStack2 } from "@tabler/icons-react";
+import { useStore } from "@tanstack/react-store";
 import { useEffect, useState } from "react";
+import { favouritesStore, isViewFavourite } from "@/lib/stores/favourites-store";
 import { useActiveView } from "./use-active-view";
 import { useBoardSavedViews } from "./use-board-saved-views";
 import { DEFAULT_VIEW_COLOR, DEFAULT_VIEW_ICON, ViewIconColorTrigger } from "./view-icon-color-trigger";
@@ -96,17 +99,22 @@ export function ActiveViewPanelHeader() {
 export function ActiveViewPanelPinButton() {
 	const { togglePin } = useBoardSavedViews();
 	const { activeView } = useActiveView();
+	const pinned = useStore(favouritesStore, (state) => !!activeView && isViewFavourite(state, activeView.id));
 
 	if (!activeView || !togglePin) return null;
 
 	return (
 		<button
 			type="button"
-			onClick={() => togglePin(activeView.id)}
-			title={activeView.pinned ? "Unpin from sidebar" : "Pin to sidebar"}
+			onClick={() =>
+				togglePin(activeView.id).catch(() =>
+					headlessToast({ title: pinned ? "Couldn't unpin the view" : "Couldn't pin the view", variant: "error" })
+				)
+			}
+			title={pinned ? "Unpin from sidebar" : "Pin to sidebar"}
 			className="rounded p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
 		>
-			{activeView.pinned ? <IconPinFilled className="size-4" /> : <IconPin className="size-4" />}
+			{pinned ? <IconPinFilled className="size-4" /> : <IconPin className="size-4" />}
 		</button>
 	);
 }

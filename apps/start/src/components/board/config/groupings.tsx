@@ -199,8 +199,8 @@ const orgGrouping: BoardGroupingDefinition = {
 	label: "Organization",
 	icon: <IconBuilding className="h-4 w-4" />,
 	persistable: true,
-	group: (items) =>
-		bucketByOrg(items).map(({ id, label, items: bucket, logo, isKnownOrg }) => ({
+	group: (items, { data }) =>
+		bucketByOrg(items, data.organizationOrder).map(({ id, label, items: bucket, logo, isKnownOrg }) => ({
 			id,
 			label,
 			items: bucket,

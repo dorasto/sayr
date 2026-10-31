@@ -46,7 +46,6 @@ import { Route as adminOrgIdReleasesIndexRouteImport } from './routes/(admin)/$o
 import { Route as adminOrgIdReleasesReleaseSlugRouteImport } from './routes/(admin)/$orgId/releases/$releaseSlug'
 import { Route as adminOrgIdTasksIndexRouteImport } from './routes/(admin)/$orgId/tasks/index'
 import { Route as adminOrgIdTasksTaskShortIdRouteRouteImport } from './routes/(admin)/$orgId/tasks/$taskShortId/route'
-import { Route as adminOrgIdViewsIndexRouteImport } from './routes/(admin)/$orgId/views/index'
 import { Route as adminConsoleConnectionsIndexRouteImport } from './routes/(admin)/console/connections/index'
 import { Route as adminConsoleOrganizationsOrgIdRouteImport } from './routes/(admin)/console/organizations/$orgId'
 import { Route as adminConsoleUsersUserIdRouteImport } from './routes/(admin)/console/users/$userId'
@@ -263,11 +262,6 @@ const adminOrgIdTasksTaskShortIdRouteRoute =
     path: '/$taskShortId',
     getParentRoute: () => adminOrgIdTasksRouteRoute,
   } as any)
-const adminOrgIdViewsIndexRoute = adminOrgIdViewsIndexRouteImport.update({
-  id: '/views/',
-  path: '/views/',
-  getParentRoute: () => adminOrgIdRouteRoute,
-} as any)
 const adminConsoleConnectionsIndexRoute =
   adminConsoleConnectionsIndexRouteImport.update({
     id: '/console/connections/',
@@ -473,7 +467,6 @@ export interface FileRoutesByFullPath {
   '/console/users/$userId': typeof adminConsoleUsersUserIdRoute
   '/$orgId/releases/': typeof adminOrgIdReleasesIndexRoute
   '/$orgId/tasks/': typeof adminOrgIdTasksIndexRoute
-  '/$orgId/views/': typeof adminOrgIdViewsIndexRoute
   '/console/connections/': typeof adminConsoleConnectionsIndexRoute
   '/settings/api-keys/': typeof adminSettingsApiKeysIndexRoute
   '/settings/connections/': typeof adminSettingsConnectionsIndexRoute
@@ -530,7 +523,6 @@ export interface FileRoutesByTo {
   '/console/users/$userId': typeof adminConsoleUsersUserIdRoute
   '/$orgId/releases': typeof adminOrgIdReleasesIndexRoute
   '/$orgId/tasks': typeof adminOrgIdTasksIndexRoute
-  '/$orgId/views': typeof adminOrgIdViewsIndexRoute
   '/console/connections': typeof adminConsoleConnectionsIndexRoute
   '/settings/api-keys': typeof adminSettingsApiKeysIndexRoute
   '/settings/connections': typeof adminSettingsConnectionsIndexRoute
@@ -599,7 +591,6 @@ export interface FileRoutesById {
   '/(admin)/console/users/$userId': typeof adminConsoleUsersUserIdRoute
   '/(admin)/$orgId/releases/': typeof adminOrgIdReleasesIndexRoute
   '/(admin)/$orgId/tasks/': typeof adminOrgIdTasksIndexRoute
-  '/(admin)/$orgId/views/': typeof adminOrgIdViewsIndexRoute
   '/(admin)/console/connections/': typeof adminConsoleConnectionsIndexRoute
   '/(admin)/settings/api-keys/': typeof adminSettingsApiKeysIndexRoute
   '/(admin)/settings/connections/': typeof adminSettingsConnectionsIndexRoute
@@ -668,7 +659,6 @@ export interface FileRouteTypes {
     | '/console/users/$userId'
     | '/$orgId/releases/'
     | '/$orgId/tasks/'
-    | '/$orgId/views/'
     | '/console/connections/'
     | '/settings/api-keys/'
     | '/settings/connections/'
@@ -725,7 +715,6 @@ export interface FileRouteTypes {
     | '/console/users/$userId'
     | '/$orgId/releases'
     | '/$orgId/tasks'
-    | '/$orgId/views'
     | '/console/connections'
     | '/settings/api-keys'
     | '/settings/connections'
@@ -793,7 +782,6 @@ export interface FileRouteTypes {
     | '/(admin)/console/users/$userId'
     | '/(admin)/$orgId/releases/'
     | '/(admin)/$orgId/tasks/'
-    | '/(admin)/$orgId/views/'
     | '/(admin)/console/connections/'
     | '/(admin)/settings/api-keys/'
     | '/(admin)/settings/connections/'
@@ -1103,13 +1091,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof adminOrgIdTasksTaskShortIdRouteRouteImport
       parentRoute: typeof adminOrgIdTasksRouteRoute
     }
-    '/(admin)/$orgId/views/': {
-      id: '/(admin)/$orgId/views/'
-      path: '/views'
-      fullPath: '/$orgId/views/'
-      preLoaderRoute: typeof adminOrgIdViewsIndexRouteImport
-      parentRoute: typeof adminOrgIdRouteRoute
-    }
     '/(admin)/console/connections/': {
       id: '/(admin)/console/connections/'
       path: '/console/connections'
@@ -1342,7 +1323,6 @@ interface adminOrgIdRouteRouteChildren {
   adminOrgIdIndexRoute: typeof adminOrgIdIndexRoute
   adminOrgIdReleasesReleaseSlugRoute: typeof adminOrgIdReleasesReleaseSlugRoute
   adminOrgIdReleasesIndexRoute: typeof adminOrgIdReleasesIndexRoute
-  adminOrgIdViewsIndexRoute: typeof adminOrgIdViewsIndexRoute
 }
 
 const adminOrgIdRouteRouteChildren: adminOrgIdRouteRouteChildren = {
@@ -1350,7 +1330,6 @@ const adminOrgIdRouteRouteChildren: adminOrgIdRouteRouteChildren = {
   adminOrgIdIndexRoute: adminOrgIdIndexRoute,
   adminOrgIdReleasesReleaseSlugRoute: adminOrgIdReleasesReleaseSlugRoute,
   adminOrgIdReleasesIndexRoute: adminOrgIdReleasesIndexRoute,
-  adminOrgIdViewsIndexRoute: adminOrgIdViewsIndexRoute,
 }
 
 const adminOrgIdRouteRouteWithChildren = adminOrgIdRouteRoute._addFileChildren(

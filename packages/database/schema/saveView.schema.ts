@@ -39,6 +39,8 @@ export const savedView = table(
 			groupBy: "status",
 			showCompletedTasks: true,
 		}),
+		// Deprecated (SAY-104): pins live in the `favourite` table now, which the migration copied these into.
+		// Nothing reads or writes this any more; drop it in a later migration.
 		pinned: v.boolean("pinned").notNull().default(false),
 		position: v.integer("position").notNull().default(0),
 		createdAt: v.timestamp("created_at").$defaultFn(() => new Date()),

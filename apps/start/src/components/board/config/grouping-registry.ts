@@ -245,18 +245,26 @@ export interface OrgBucket<T> extends LabelledBucket<T> {
 }
 
 /**
- * One bucket per organization present on the items (first-seen order). Items missing their `organization`
+ * One bucket per organization present on the items, in `orgOrder` (the viewer's own org order) when given;
+ * orgs missing from it, or every org without it, follow in first-seen order. Items missing their `organization`
  * snapshot land in a trailing "No organization" bucket, which exists only when it has items.
  */
 export function bucketByOrg<T extends { organizationId: string; organization?: OrgSnapshot | null }>(
-	items: readonly T[]
+	items: readonly T[],
+	orgOrder?: readonly string[]
 ): OrgBucket<T>[] {
 	const orgs = new Map<string, OrgSnapshot>();
 	for (const item of items) {
 		if (item.organization) orgs.set(item.organization.id, item.organization);
 	}
+	const rank = new Map(orgOrder?.map((id, index) => [id, index]));
+	const unranked = rank.size;
+	// Array.prototype.sort is stable, so unranked orgs keep their first-seen order at the end.
+	const ordered = Array.from(orgs.values()).sort(
+		(a, b) => (rank.get(a.id) ?? unranked) - (rank.get(b.id) ?? unranked)
+	);
 
-	const known: OrgBucket<T>[] = Array.from(orgs.values()).map((org) => ({
+	const known: OrgBucket<T>[] = ordered.map((org) => ({
 		id: org.id,
 		label: org.name,
 		items: items.filter((item) => item.organizationId === org.id),

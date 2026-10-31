@@ -4,11 +4,14 @@ import type { schema } from "@repo/database";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { generateSlug } from "@repo/util";
 import { useCallback, useMemo } from "react";
+import { useLayoutData } from "@/components/admin/shell/context";
 import { createSavedViewAction, deleteSavedViewAction, updateSavedViewAction } from "@/lib/fetches/organization";
+import { type FavouriteOrganization, favouritesActions } from "@/lib/stores/favourites-store";
 import type { SavedViewCreateInput, SavedViewsSource, SavedViewUpdates } from "./saved-views-source";
 
 interface OrgSavedViewsOptions {
-	organizationId: string;
+	/** The org whose views these are; favourited views carry it so the sidebar can badge and link them. */
+	organization: FavouriteOrganization;
 	/** The org's live saved views (e.g. `useLayoutOrganization().views`). */
 	views: readonly schema.savedViewType[];
 	/** Replaces the org's view list — every endpoint answers with the org's full updated list. */
@@ -31,17 +34,38 @@ function unwrap(result: SavedViewsResult, fallback: string): schema.savedViewTyp
  * An organization's shared saved views as a `SavedViewsSource` for the board's view UI (switcher, panel
  * header, save/edit popovers). Field mapping:
  * `filterParams` travels as `value`, the slug is derived from the name on create (and kept on rename, so a
- * `?view=<slug>` link keeps working; only the view settings sheet changes it), `logo` is empty. Org views have no pinning (the Favourites sidebar is
- * personal-only), so there is no `togglePin` and the panel's pin button hides.
+ * `?view=<slug>` link keeps working; only the view settings sheet changes it), `logo` is empty. Pinning adds the view to
+ * the viewer's own Favourites (favourites-store.ts) — it never changes the shared view — and every change to the
+ * org's list is mirrored there so favourited views stay current.
  */
 export function useOrgSavedViewsSource({
-	organizationId,
+	organization,
 	views,
-	setViews,
+	setViews: setOrgViews,
 	canCreate,
 	limitMessage,
 }: OrgSavedViewsOptions): SavedViewsSource {
 	const { value: sseClientId } = useStateManagement<string>("sse-clientId", "");
+	const organizationId = organization.id;
+
+	const { setOrgViews: setSidebarOrgViews } = useLayoutData();
+	// Every new list also goes to the sidebar's org section and the viewer's favourites, so both stay current.
+	const setViews = useCallback(
+		(next: schema.savedViewType[]) => {
+			setOrgViews(next);
+			setSidebarOrgViews(organizationId, next);
+			favouritesActions.syncOrgViews(organizationId, next);
+		},
+		[organizationId, setOrgViews, setSidebarOrgViews]
+	);
+
+	const togglePin = useCallback(
+		async (viewId: string) => {
+			const view = views.find((v) => v.id === viewId);
+			if (view) await favouritesActions.toggleView(view, organization);
+		},
+		[views, organization]
+	);
 
 	const create = useCallback(
 		async (input: SavedViewCreateInput) => {
@@ -93,7 +117,7 @@ export function useOrgSavedViewsSource({
 	);
 
 	return useMemo<SavedViewsSource>(
-		() => ({ kind: "org", views, create, update, remove, canCreate, limitMessage }),
-		[views, create, update, remove, canCreate, limitMessage]
+		() => ({ kind: "org", views, create, update, remove, togglePin, canCreate, limitMessage }),
+		[views, create, update, remove, togglePin, canCreate, limitMessage]
 	);
 }

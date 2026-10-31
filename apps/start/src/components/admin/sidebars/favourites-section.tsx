@@ -1,251 +1,192 @@
 import type { DragEndEvent } from "@dnd-kit/core";
-import {
-  closestCenter,
-  DndContext,
-  MouseSensor,
-  TouchSensor,
-  useSensor,
-  useSensors,
-} from "@dnd-kit/core";
-import {
-  arrayMove,
-  SortableContext,
-  useSortable,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
+import { closestCenter, DndContext } from "@dnd-kit/core";
+import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import type { schema } from "@repo/database";
-import {
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-} from "@repo/ui/components/doras-ui/sidebar";
+import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
+import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@repo/ui/components/doras-ui/sidebar";
 import { cn } from "@repo/ui/lib/utils";
+import { getInitials } from "@repo/util";
 import { IconBookmark, IconPinnedOff } from "@tabler/icons-react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useStore } from "@tanstack/react-store";
-import type React from "react";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import RenderIcon from "@/components/generic/RenderIcon";
 import { useTasksSearchParams } from "@/hooks/useTasksSearchParams";
-import {
-  personalViewsActions,
-  personalViewsStore,
-} from "@/lib/stores/personal-views-store";
+import { type FavouriteWithTarget, favouritesActions, favouritesStore } from "@/lib/stores/favourites-store";
 import { SidebarGroupToggle } from "./sidebar-group-toggle";
-
-// Same activation distance the row's own MouseSensor uses below — dnd-kit's built-in
-// click-suppression-after-a-real-drag (a document-level capture-phase click listener,
-// armed once its sensor's own activationConstraint.distance is exceeded) turned out not to
-// reliably reach a real, same-page TanStack Router `<Link>` nested this deep, so this row
-// tracks the same distance itself and suppresses the click directly — see the capture-phase
-// handlers below.
-const DRAG_CLICK_SUPPRESS_DISTANCE = 8;
+import { reorderIds, useDragClickSuppression, useSidebarSortSensors } from "./sortable-sidebar";
+import { favouriteTarget, markSidebarClick, sidebarItemId, useActiveSidebarItem } from "./use-active-sidebar-item";
 
 const DEFAULT_VIEW_ICON = "IconBookmark";
 // Matches view-icon-color-trigger.tsx's own DEFAULT_VIEW_COLOR — duplicated locally the same
 // way DEFAULT_VIEW_ICON above already is, rather than importing from board/** into the sidebar.
 const DEFAULT_VIEW_COLOR = "hsla(38, 92%, 50%, 1)";
 
-const VIEW_ICON_SWATCH_CLASS = "size-5 rounded-md [&_svg]:size-3 shrink-0";
+// Same size as the org sections' view icons, so every row's label starts at the same x.
+const VIEW_ICON_SWATCH_CLASS = "size-4 rounded-[5px] [&_svg]:size-2.5 shrink-0";
 
-function useViewNavigate(isOnHomePage: boolean) {
-  const { setSearchParams } = useTasksSearchParams();
-  return (targetSlug: string, event: { preventDefault: () => void }) => {
-    if (!isOnHomePage) return;
-    // Already on /home — write the URL directly instead of a full router navigation.
-    // TanStack Router's navigate() pipeline is async even for a same-route, search-only
-    // change, and racing it against rapid clicks left the URL and the actually-applied
-    // view/panel out of sync until an unrelated re-render happened to catch up. This
-    // mirrors exactly what useBoardViewState's own selectView() already does for the same
-    // reason.
-    event.preventDefault();
-    setSearchParams({ view: targetSlug, filters: null, category: null });
-  };
+function useViewNavigate(currentPathname: string) {
+	const { setSearchParams } = useTasksSearchParams();
+	return (target: { pathname: string; slug: string }, event: { preventDefault: () => void }) => {
+		if (currentPathname !== target.pathname) return;
+		// Already on the view's page — write the URL directly instead of a full router navigation.
+		// TanStack Router's navigate() pipeline is async even for a same-route, search-only
+		// change, and racing it against rapid clicks left the URL and the actually-applied
+		// view/panel out of sync until an unrelated re-render happened to catch up. This
+		// mirrors exactly what useBoardViewState's own selectView() already does for the same
+		// reason.
+		event.preventDefault();
+		setSearchParams({ view: target.slug, filters: null, category: null });
+	};
 }
 
 function FavouriteRow({
-  view,
-  isActive,
-  isOnHomePage,
+	favourite,
+	isActive,
+	currentPathname,
 }: {
-  view: schema.savedViewType;
-  isActive: boolean;
-  isOnHomePage: boolean;
+	favourite: FavouriteWithTarget;
+	isActive: boolean;
+	currentPathname: string;
 }) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: view.id });
-  const navigate = useViewNavigate(isOnHomePage);
-  const targetSlug = view.slug || view.id;
+	const { view, organization } = favourite;
+	const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+		id: favourite.id,
+	});
+	const navigate = useViewNavigate(currentPathname);
+	const target = favouriteTarget(favourite);
+	const clickSuppression = useDragClickSuppression();
 
-  // Recorded on pointerdown (capture phase, so it runs before dnd-kit's own listener spread
-  // via {...listeners} below), checked on click (also capture phase, so a suppressed click
-  // never even reaches the Link's own bubble-phase onClick). Plain refs, not React state —
-  // both handlers fire synchronously within the same native gesture, so there's no render/
-  // re-render race to worry about, unlike gating this off dnd-kit's own isDragging/active
-  // state (which only updates via React state on the *next* render).
-  const pointerDownPos = useRef<{ x: number; y: number } | null>(null);
+	const icon = (
+		// Clipped to the swatch, so the org's logo tucks into its corner rather than sticking out of it.
+		<span className="relative flex shrink-0 overflow-hidden rounded-md">
+			<RenderIcon
+				iconName={view.viewConfig?.icon || DEFAULT_VIEW_ICON}
+				color={view.viewConfig?.color || DEFAULT_VIEW_COLOR}
+				button
+				className={VIEW_ICON_SWATCH_CLASS}
+			/>
+			{organization && (
+				// The org's logo in the swatch's corner, so two orgs' same-named views can be told apart at a glance.
+				<Avatar className="absolute right-0 bottom-0 size-2 rounded-none rounded-tl-[2px]">
+					<AvatarImage src={organization.logo ?? undefined} alt={organization.name} />
+					<AvatarFallback className="rounded-none text-[5px]">{getInitials(organization.name)}</AvatarFallback>
+				</Avatar>
+			)}
+		</span>
+	);
 
-  const handlePointerDownCapture = (event: React.PointerEvent) => {
-    pointerDownPos.current = { x: event.clientX, y: event.clientY };
-  };
-
-  const handleClickCapture = (event: React.MouseEvent) => {
-    const start = pointerDownPos.current;
-    pointerDownPos.current = null;
-    if (!start) return;
-    const moved =
-      Math.abs(event.clientX - start.x) > DRAG_CLICK_SUPPRESS_DISTANCE ||
-      Math.abs(event.clientY - start.y) > DRAG_CLICK_SUPPRESS_DISTANCE;
-    if (moved) {
-      event.preventDefault();
-      event.stopPropagation();
-    }
-  };
-
-  return (
-    <SidebarMenuItem isActive={isActive} className="min-h-auto group/fav">
-      <div
-        ref={setNodeRef}
-        style={{ transform: CSS.Transform.toString(transform), transition }}
-        {...attributes}
-        {...listeners}
-        onPointerDownCapture={handlePointerDownCapture}
-        onClickCapture={handleClickCapture}
-        className={cn(
-          "flex items-center w-full gap-0.5 touch-none cursor-grab active:cursor-grabbing",
-          isDragging && "opacity-50",
-        )}
-      >
-        <Link
-          to="/home"
-          search={{ view: targetSlug }}
-          onClick={(event) => navigate(targetSlug, event)}
-          className="min-w-0 flex-1"
-        >
-          <SidebarMenuButton
-            size="small"
-            tooltip={view.name}
-            icon={
-              <RenderIcon
-                iconName={view.viewConfig?.icon || DEFAULT_VIEW_ICON}
-                color={view.viewConfig?.color || DEFAULT_VIEW_COLOR}
-                button
-                className={VIEW_ICON_SWATCH_CLASS}
-              />
-            }
-          >
-            <span>{view.name}</span>
-          </SidebarMenuButton>
-        </Link>
-        <button
-          type="button"
-          onPointerDown={(event) => event.stopPropagation()}
-          onClick={(event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            personalViewsActions.togglePin(view.id);
-          }}
-          title="Unpin"
-          className="shrink-0 cursor-pointer text-transparent group-hover/fav:text-muted-foreground hover:text-foreground"
-        >
-          <IconPinnedOff className="size-3.5" />
-        </button>
-      </div>
-    </SidebarMenuItem>
-  );
+	return (
+		<SidebarMenuItem isActive={isActive} className="min-h-auto group/fav">
+			<div
+				ref={setNodeRef}
+				style={{ transform: CSS.Transform.toString(transform), transition }}
+				{...attributes}
+				{...listeners}
+				{...clickSuppression}
+				className={cn(
+					"flex items-center w-full touch-none cursor-grab active:cursor-grabbing",
+					isDragging && "opacity-50"
+				)}
+			>
+				<Link
+					to={target.pathname}
+					search={{ view: target.slug }}
+					onClick={(event) => {
+						markSidebarClick(sidebarItemId.favourite(favourite.id));
+						navigate(target, event);
+					}}
+					className="min-w-0 flex-1"
+				>
+					<SidebarMenuButton
+						size="small"
+						tooltip={organization ? `${view.name} · ${organization.name}` : view.name}
+						icon={icon}
+					>
+						{/* The org slug sits at the far right and gives way first: it shrinks to nothing before the view name truncates. */}
+						<span className="flex w-full min-w-0 items-baseline gap-1.5">
+							<span className="min-w-0 truncate">{view.name}</span>
+							{organization && (
+								<span className="ml-auto min-w-0 shrink-[9999] truncate text-xs text-muted-foreground">
+									{organization.slug}
+								</span>
+							)}
+						</span>
+					</SidebarMenuButton>
+				</Link>
+				<button
+					type="button"
+					onPointerDown={(event) => event.stopPropagation()}
+					onClick={(event) => {
+						event.preventDefault();
+						event.stopPropagation();
+						favouritesActions.toggleView(view, organization);
+					}}
+					title="Unpin"
+					// Takes no width until the row is hovered (or it's focused), then grows in and nudges the
+					// slug left to make room — same transition-all as the row's own hover colours.
+					className="flex w-0 shrink-0 cursor-pointer items-center justify-end overflow-hidden text-muted-foreground opacity-0 transition-all hover:text-foreground focus-visible:w-5 focus-visible:opacity-100 group-hover/fav:w-5 group-hover/fav:opacity-100"
+				>
+					<IconPinnedOff className="size-3.5 shrink-0" />
+				</button>
+			</div>
+		</SidebarMenuItem>
+	);
 }
 
 /**
- * Pinned personal views, rendered above the Organizations group — the sidebar half of
- * pinning a saved view from /home (see board/saved-views/*). Reads the same global
- * personal-views-store the /home page itself uses, so pin/unpin/reorder/rename there
- * shows up here immediately with no separate fetch. Hidden entirely when nothing is
- * pinned, matching how Organizations always has content but this optionally doesn't.
+ * The user's Favourites, rendered above the Organizations group: their pinned saved views — personal views and
+ * org views in one list, in their own order (SAY-104). Pinning happens from a board's panel header; this is
+ * where favourites are reordered (drag, shared with the Organizations list via sortable-sidebar.ts) and
+ * unpinned. Reads the global favourites-store, so changes anywhere show up here at once. Hidden entirely when
+ * nothing is pinned.
  *
- * A SidebarGroupToggle (collapse/expand, no page of its own) wraps the
- * draggable list. The whole row is the drag target (no dedicated handle) — a distance-based
- * MouseSensor means dnd-kit only starts tracking a reorder past 8px of movement;
- * FavouriteRow separately suppresses the click that same gesture would otherwise leave
- * behind on its own Link (see its own doc comment for why). TouchSensor uses a delay
- * instead of distance (a press-and-hold, not a press-and-move) since touch scrolling
- * already uses movement — same two-sensor split grid-board.tsx's drag-and-drop uses for
- * the identical reason.
+ * Personal views open on /home; org views on their org's tasks page, with the org's logo badged on the view's
+ * icon and its slug after the name.
  */
 export function FavouritesSection() {
-  const pathname = useRouterState({
-    select: (state) => state.location.pathname,
-  });
-  const search = useRouterState({
-    select: (state) => state.location.search,
-  }) as Record<string, unknown>;
-  const normalizedPathname =
-    pathname.length > 1 ? pathname.replace(/\/$/, "") : pathname;
-  const isOnHomePage = normalizedPathname === "/home";
-  const activeViewSlug = isOnHomePage
-    ? (search.view as string | undefined)
-    : undefined;
+	const pathname = useRouterState({
+		select: (state) => state.location.pathname,
+	});
+	const normalizedPathname = pathname.length > 1 ? pathname.replace(/\/$/, "") : pathname;
+	const activeItemId = useActiveSidebarItem();
 
-  const pinnedViews = useStore(personalViewsStore, (state) =>
-    state.views.filter((view) => view.pinned),
-  );
-  const [favouritesOpen, setFavouritesOpen] = useState(true);
+	const favourites = useStore(favouritesStore, (state) => state.favourites);
+	const [favouritesOpen, setFavouritesOpen] = useState(true);
+	const sensors = useSidebarSortSensors();
 
-  const sensors = useSensors(
-    useSensor(MouseSensor, { activationConstraint: { distance: 8 } }),
-    useSensor(TouchSensor, {
-      activationConstraint: { delay: 250, tolerance: 5 },
-    }),
-  );
+	const handleDragEnd = (event: DragEndEvent) => {
+		const reordered = reorderIds(
+			favourites.map((favourite) => favourite.id),
+			event.active.id,
+			event.over?.id
+		);
+		if (reordered) favouritesActions.reorder(reordered);
+	};
 
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
+	if (favourites.length === 0) return null;
 
-    const oldIndex = pinnedViews.findIndex((view) => view.id === active.id);
-    const newIndex = pinnedViews.findIndex((view) => view.id === over.id);
-    if (oldIndex === -1 || newIndex === -1) return;
-
-    const reordered = arrayMove(pinnedViews, oldIndex, newIndex);
-    personalViewsActions.reorder(reordered.map((view) => view.id));
-  };
-
-  if (pinnedViews.length === 0) return null;
-
-  return (
-    <SidebarGroupToggle
-      label="Favourites"
-      icon={<IconBookmark size={16} />}
-      open={favouritesOpen}
-      onOpenChange={setFavouritesOpen}
-    >
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragEnd={handleDragEnd}
-      >
-        <SortableContext
-          items={pinnedViews.map((view) => view.id)}
-          strategy={verticalListSortingStrategy}
-        >
-          <SidebarMenu className="gap-0.5">
-            {pinnedViews.map((view) => (
-              <FavouriteRow
-                key={view.id}
-                view={view}
-                isActive={activeViewSlug === (view.slug || view.id)}
-                isOnHomePage={isOnHomePage}
-              />
-            ))}
-          </SidebarMenu>
-        </SortableContext>
-      </DndContext>
-    </SidebarGroupToggle>
-  );
+	return (
+		<SidebarGroupToggle
+			label="Favourites"
+			icon={<IconBookmark size={16} />}
+			open={favouritesOpen}
+			onOpenChange={setFavouritesOpen}
+		>
+			<DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+				<SortableContext items={favourites.map((favourite) => favourite.id)} strategy={verticalListSortingStrategy}>
+					<SidebarMenu className="gap-0.5">
+						{favourites.map((favourite) => (
+							<FavouriteRow
+								key={favourite.id}
+								favourite={favourite}
+								isActive={activeItemId === sidebarItemId.favourite(favourite.id)}
+								currentPathname={normalizedPathname}
+							/>
+						))}
+					</SidebarMenu>
+				</SortableContext>
+			</DndContext>
+		</SidebarGroupToggle>
+	);
 }

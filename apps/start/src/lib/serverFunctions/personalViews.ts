@@ -3,7 +3,6 @@ import {
 	deletePersonalView,
 	getPersonalViews,
 	reorderPersonalViews,
-	togglePersonalViewPin,
 	updatePersonalView,
 } from "@repo/database";
 import type { schema } from "@repo/database";
@@ -57,7 +56,6 @@ export const updatePersonalViewAction = createServerFn({ method: "POST" })
 				viewConfig: schema.savedViewType["viewConfig"];
 				slug: string;
 				logo: string;
-				pinned: boolean;
 			}>;
 		}) => data
 	)
@@ -66,14 +64,13 @@ export const updatePersonalViewAction = createServerFn({ method: "POST" })
 		// The input type isn't enforced at runtime and updatePersonalView spreads its argument into
 		// the UPDATE, so copy only the allowed columns — otherwise a caller could rewrite
 		// createdById/organizationId/position and move the row out of their personal scope.
-		const { name, filterParams, viewConfig, slug, logo, pinned } = data.updates ?? {};
+		const { name, filterParams, viewConfig, slug, logo } = data.updates ?? {};
 		const updates: Parameters<typeof updatePersonalView>[2] = {};
 		if (typeof name === "string") updates.name = name;
 		if (typeof filterParams === "string") updates.filterParams = filterParams;
 		if (viewConfig !== undefined) updates.viewConfig = viewConfig;
 		if (typeof slug === "string") updates.slug = slug;
 		if (typeof logo === "string") updates.logo = logo;
-		if (typeof pinned === "boolean") updates.pinned = pinned;
 		return updatePersonalView(account.id, data.viewId, updates);
 	});
 
@@ -83,13 +80,6 @@ export const deletePersonalViewAction = createServerFn({ method: "POST" })
 		const { account } = await getAccess();
 		await deletePersonalView(account.id, data.viewId);
 		return { success: true };
-	});
-
-export const togglePersonalViewPinAction = createServerFn({ method: "POST" })
-	.validator((data: { viewId: string; pinned: boolean }) => data)
-	.handler(async ({ data }) => {
-		const { account } = await getAccess();
-		return togglePersonalViewPin(account.id, data.viewId, data.pinned);
 	});
 
 export const reorderPersonalViewsAction = createServerFn({ method: "POST" })

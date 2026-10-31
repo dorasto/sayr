@@ -2,8 +2,8 @@ import { and, eq, isNull } from "drizzle-orm";
 import { db, schema } from "..";
 
 /**
- * Fetches all personal (cross-org) saved views owned by a user, pinned first
- * then by explicit position.
+ * Fetches all personal (cross-org) saved views owned by a user, by explicit position.
+ * (Which of them are pinned lives in the `favourite` table — see ./favourite.ts.)
  *
  * A personal view is a `saved_view` row with `organizationId: null` — distinct
  * from org-scoped views, which always have a concrete `organizationId` and are
@@ -14,7 +14,7 @@ import { db, schema } from "..";
 export async function getPersonalViews(userId: string): Promise<schema.savedViewType[]> {
 	return await db.query.savedView.findMany({
 		where: (view) => and(isNull(view.organizationId), eq(view.createdById, userId)),
-		orderBy: (view, { desc, asc }) => [desc(view.pinned), asc(view.position)],
+		orderBy: (view, { asc }) => [asc(view.position)],
 	});
 }
 
@@ -77,7 +77,6 @@ export async function updatePersonalView(
 		viewConfig: schema.savedViewType["viewConfig"];
 		slug: string;
 		logo: string;
-		pinned: boolean;
 	}>
 ): Promise<schema.savedViewType> {
 	const [view] = await db
@@ -123,21 +122,6 @@ export async function deletePersonalView(userId: string, viewId: string): Promis
 }
 
 /**
- * Toggles the pinned state of a personal saved view.
- *
- * @param userId - The owning user's ID.
- * @param viewId - The view's ID.
- * @param pinned - The new pinned state.
- */
-export async function togglePersonalViewPin(
-	userId: string,
-	viewId: string,
-	pinned: boolean
-): Promise<schema.savedViewType> {
-	return updatePersonalView(userId, viewId, { pinned });
-}
-
-/**
  * Rewrites the `position` of every personal view in `orderedIds` to match its
  * index in the array. Cheap batch rewrite — fine at the scale of a single
  * user's personal view list; no fractional-index scheme needed.
@@ -160,4 +144,18 @@ export async function reorderPersonalViews(userId: string, orderedIds: string[])
 				)
 		)
 	);
+}
+
+/**
+ * Every shared saved view of the given organizations, in each org's own order — the primary sidebar lists them
+ * under each org (SAY-104). Callers pass orgs the user may see (getOrganizations' result).
+ *
+ * @param orgIds - The organizations whose views to load.
+ */
+export async function getSavedViewsForOrganizations(orgIds: string[]): Promise<schema.savedViewType[]> {
+	if (orgIds.length === 0) return [];
+	return await db.query.savedView.findMany({
+		where: (view, { inArray }) => inArray(view.organizationId, orgIds),
+		orderBy: (view, { asc }) => [asc(view.position), asc(view.createdAt)],
+	});
 }

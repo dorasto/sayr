@@ -106,6 +106,8 @@ export interface TaskBoardProviderProps {
 	viewerId?: string;
 	/** Set on a single-org board (see BoardDataSource.organizationScope). */
 	organizationScope?: BoardOrganizationScope;
+	/** Cross-org boards: the viewer's org order, as ids (see BoardDataSource.organizationOrder). */
+	organizationOrder?: readonly string[];
 	capabilities: BoardCapabilities;
 	/** View-state scope; absent = the legacy /home scope. Keep it stable. */
 	scope?: BoardScope;
@@ -137,6 +139,7 @@ export function TaskBoardProvider({
 	permissions,
 	viewerId,
 	organizationScope,
+	organizationOrder,
 	capabilities,
 	scope,
 	views,
@@ -173,6 +176,7 @@ export function TaskBoardProvider({
 			updateItems,
 			useItemActions: useTaskItemActions,
 			organizationScope,
+			organizationOrder,
 			permissions,
 			viewerId,
 			openItem,
@@ -186,6 +190,7 @@ export function TaskBoardProvider({
 			users,
 			updateItems,
 			organizationScope,
+			organizationOrder,
 			permissions,
 			viewerId,
 			openItem,
