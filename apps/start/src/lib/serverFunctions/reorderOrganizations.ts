@@ -1,6 +1,6 @@
 import { reorderOrganizations } from "@repo/database";
 import { createServerFn } from "@tanstack/react-start";
-import { getAccess } from "@/lib/serverFunctions";
+import { requireAccount } from "@/getAccess";
 
 // Saves the caller's sidebar order of their organizations (SAY-104). Same direct-serverFn-to-DB shape as
 // personalViews.ts: the only authorization is "these are the caller's own memberships", which
@@ -8,7 +8,7 @@ import { getAccess } from "@/lib/serverFunctions";
 export const reorderOrganizationsAction = createServerFn({ method: "POST" })
 	.validator((data: { orderedOrgIds: string[] }) => data)
 	.handler(async ({ data }) => {
-		const { account } = await getAccess();
+		const account = await requireAccount();
 		await reorderOrganizations(account.id, data.orderedOrgIds);
 		return { success: true };
 	});

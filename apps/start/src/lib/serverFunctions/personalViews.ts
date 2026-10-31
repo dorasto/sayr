@@ -7,15 +7,18 @@ import {
 } from "@repo/database";
 import type { schema } from "@repo/database";
 import { createServerFn } from "@tanstack/react-start";
-import { getAccess } from "@/lib/serverFunctions";
+import { requireAccount } from "@/getAccess";
 
 // Personal-view CRUD — direct-serverFn-to-DB, same shape as getLanderData/
 // getMyTasks, not the apps/backend REST hop org saved-views go through
 // (that layer exists for traceOrgPermissionCheck/plan-limit checks that
 // don't apply here — a personal view's only authorization check is "does
 // this row belong to the caller", already enforced inside each DB function
-// via createdById + isNull(organizationId)). getAccess() re-verifies the
-// session on every call rather than trusting a client-supplied userId.
+// via createdById + isNull(organizationId)). requireAccount() re-verifies the
+// session on every call rather than trusting a client-supplied userId. It must
+// be the plain function from @/getAccess, not lib/serverFunctions.ts' getAccess:
+// that one is itself a server function, and calling a server function from
+// inside another fails in production builds ("Server function info not found").
 //
 // Moved here from apps/start/src/routes/(admin)/home/route.tsx: these are
 // now consumed by a globally-mounted store (personal-views-store.ts, read
@@ -27,7 +30,7 @@ import { getAccess } from "@/lib/serverFunctions";
 // existing multi-consumer convention (getConsoleData.ts, etc.).
 
 export const getPersonalViewsAction = createServerFn({ method: "GET" }).handler(async () => {
-	const { account } = await getAccess();
+	const account = await requireAccount();
 	return getPersonalViews(account.id);
 });
 
@@ -42,7 +45,7 @@ export const createPersonalViewAction = createServerFn({ method: "POST" })
 		}) => data
 	)
 	.handler(async ({ data }) => {
-		const { account } = await getAccess();
+		const account = await requireAccount();
 		return createPersonalView(account.id, data);
 	});
 
@@ -60,7 +63,7 @@ export const updatePersonalViewAction = createServerFn({ method: "POST" })
 		}) => data
 	)
 	.handler(async ({ data }) => {
-		const { account } = await getAccess();
+		const account = await requireAccount();
 		// The input type isn't enforced at runtime and updatePersonalView spreads its argument into
 		// the UPDATE, so copy only the allowed columns — otherwise a caller could rewrite
 		// createdById/organizationId/position and move the row out of their personal scope.
@@ -77,7 +80,7 @@ export const updatePersonalViewAction = createServerFn({ method: "POST" })
 export const deletePersonalViewAction = createServerFn({ method: "POST" })
 	.validator((data: { viewId: string }) => data)
 	.handler(async ({ data }) => {
-		const { account } = await getAccess();
+		const account = await requireAccount();
 		await deletePersonalView(account.id, data.viewId);
 		return { success: true };
 	});
@@ -85,7 +88,7 @@ export const deletePersonalViewAction = createServerFn({ method: "POST" })
 export const reorderPersonalViewsAction = createServerFn({ method: "POST" })
 	.validator((data: { orderedIds: string[] }) => data)
 	.handler(async ({ data }) => {
-		const { account } = await getAccess();
+		const account = await requireAccount();
 		await reorderPersonalViews(account.id, data.orderedIds);
 		return { success: true };
 	});
