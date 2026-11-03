@@ -14,8 +14,8 @@ import { isMultiline } from "@/components/shared/comments/comment-input";
 import { usePublicOrganizationLayout } from "@/contexts/publicContextOrg";
 import type { MentionContext } from "@/hooks/useMentionUsers";
 import { CreateTaskCommentAction } from "@/lib/fetches/task";
-import { publicCommentsKey } from "./usePostComments";
 import { useCanAct } from "./useCanAct";
+import { publicCommentsKey } from "./usePostComments";
 
 const Editor = lazy(() => import("@/components/prosekit/editor"));
 

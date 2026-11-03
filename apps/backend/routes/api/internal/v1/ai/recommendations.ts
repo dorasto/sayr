@@ -17,8 +17,8 @@ import { eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { z } from "zod";
 import type { AppEnv } from "@/index";
-import { checkAiFeatureAccess } from "../../../../../lib/ai/gate";
 import { buildTimelineLine } from "../../../../../lib/ai/format-timeline";
+import { checkAiFeatureAccess } from "../../../../../lib/ai/gate";
 import { runAiStructuredFeature } from "../../../../../lib/ai/structured-runner";
 import { errorResponse } from "../../../../../responses";
 

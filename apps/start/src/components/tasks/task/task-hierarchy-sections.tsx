@@ -1,29 +1,7 @@
-import { useState, useEffect, useCallback } from "react";
 import type { schema } from "@repo/database";
+import { Button } from "@repo/ui/components/button";
 import { Tile, TileAction } from "@repo/ui/components/doras-ui/tile";
 import { Label } from "@repo/ui/components/label";
-import { Button } from "@repo/ui/components/button";
-import { sendWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
-import {
-	IconArrowUpRight,
-	IconLink,
-	IconCopy,
-	IconPlus,
-	IconX,
-	IconForbid,
-	IconForbidFilled,
-} from "@tabler/icons-react";
-import { Link } from "@tanstack/react-router";
-import TaskPicker, { TaskPickerItem } from "../shared/task-picker";
-import {
-	setTaskParentAction,
-	removeTaskParentAction,
-	getSubtasksAction,
-	createTaskRelationAction,
-	removeTaskRelationAction,
-} from "@/lib/fetches/task";
-import type { OrgTaskSearchResult } from "@/lib/fetches/searchTasks";
-import type { useToastAction } from "@/lib/util";
 import {
 	ComboBox,
 	ComboBoxContent,
@@ -32,6 +10,28 @@ import {
 	ComboBoxList,
 	ComboBoxTrigger,
 } from "@repo/ui/components/tomui/combo-box-unified";
+import { sendWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
+import {
+	IconArrowUpRight,
+	IconCopy,
+	IconForbid,
+	IconForbidFilled,
+	IconLink,
+	IconPlus,
+	IconX,
+} from "@tabler/icons-react";
+import { Link } from "@tanstack/react-router";
+import { useCallback, useEffect, useState } from "react";
+import type { OrgTaskSearchResult } from "@/lib/fetches/searchTasks";
+import {
+	createTaskRelationAction,
+	getSubtasksAction,
+	removeTaskParentAction,
+	removeTaskRelationAction,
+	setTaskParentAction,
+} from "@/lib/fetches/task";
+import type { useToastAction } from "@/lib/util";
+import TaskPicker, { TaskPickerItem } from "../shared/task-picker";
 
 /**
  * Shared className for clickable task items in sidebar hierarchy sections.

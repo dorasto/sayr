@@ -16,20 +16,20 @@
  * they signal that something is loading rather than decorate.
  */
 @media (prefers-reduced-motion: reduce) {
-    .portal .animate-pulse {
-        animation: none;
-    }
-    .portal .animate-in,
-    .portal .animate-out {
-        animation-duration: 0.01ms !important;
-    }
-    .portal,
-    .portal *,
-    .portal *::before,
-    .portal *::after {
-        transition-duration: 0.01ms !important;
-        scroll-behavior: auto !important;
-    }
+	.portal .animate-pulse {
+		animation: none;
+	}
+	.portal .animate-in,
+	.portal .animate-out {
+		animation-duration: 0.01ms !important;
+	}
+	.portal,
+	.portal *,
+	.portal *::before,
+	.portal *::after {
+		transition-duration: 0.01ms !important;
+		scroll-behavior: auto !important;
+	}
 }
 
 /*
@@ -40,23 +40,23 @@
 
 /* Template editor mode: dashed primary underline with subtle background */
 [data-template-editor] .template-placeholder {
-    border-bottom: 2px dashed var(--color-border);
-    color: var(--color-muted-foreground);
-    border-radius: 2px;
-    padding-bottom: 1px;
+	border-bottom: 2px dashed var(--color-border);
+	color: var(--color-muted-foreground);
+	border-radius: 2px;
+	padding-bottom: 1px;
 }
 
 /* Consumer mode (using a template): dashed muted underline, clickable */
 [data-has-template] .template-placeholder {
-    border-bottom: 2px dashed oklch(0.556 0 0 / 0.3);
-    color: oklch(0.556 0 0 / 0.7);
-    font-style: italic;
-    cursor: pointer;
-    border-radius: 2px;
-    padding-bottom: 1px;
-    transition:
-        border-color 0.15s,
-        background-color 0.15s;
+	border-bottom: 2px dashed oklch(0.556 0 0 / 0.3);
+	color: oklch(0.556 0 0 / 0.7);
+	font-style: italic;
+	cursor: pointer;
+	border-radius: 2px;
+	padding-bottom: 1px;
+	transition:
+		border-color 0.15s,
+		background-color 0.15s;
 }
 
 [data-has-template] .template-placeholder:hover {
@@ -71,9 +71,8 @@
 }
 
 /* Readonly / default: subtle dashed underline */
-.ProseMirror:not([data-template-editor]):not([data-has-template])
-    .template-placeholder {
-    border-bottom: 2px dashed oklch(0.556 0 0 / 0.2);
-    color: oklch(0.556 0 0 / 0.5);
-    font-style: italic;
+.ProseMirror:not([data-template-editor]):not([data-has-template]) .template-placeholder {
+	border-bottom: 2px dashed oklch(0.556 0 0 / 0.2);
+	color: oklch(0.556 0 0 / 0.5);
+	font-style: italic;
 }

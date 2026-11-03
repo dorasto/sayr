@@ -201,9 +201,9 @@ export default function InboxPage() {
 				const updatedTasks = tasks.map((task) =>
 					task.id === id && task.organizationId === msg.meta?.orgId
 						? {
-							...task,
-							voteCount,
-						}
+								...task,
+								voteCount,
+							}
 						: task
 				);
 				setTasks(updatedTasks);

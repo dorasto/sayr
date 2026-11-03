@@ -23,30 +23,34 @@ export async function getInstallationToken(installationId: number): Promise<stri
 	return res.data.token;
 }
 
-export async function getInstallationDetailsWithRepos(github: {
-	id: string;
-	createdAt: Date;
-	updatedAt: Date;
-	installationId: number;
-
-	user:
-	| {
+export async function getInstallationDetailsWithRepos(
+	github: {
 		id: string;
-		name: string;
-		email: string;
-		emailVerified: boolean;
-		image: string | null;
 		createdAt: Date;
 		updatedAt: Date;
-		role: string | null;
-		banned: boolean | null;
-		banReason: string | null;
-		banExpires: Date | null;
-		displayName?: string | null;
-	}
-	| undefined
-	| null;
-}, orgId: string, repositories: any[]) {
+		installationId: number;
+
+		user:
+			| {
+					id: string;
+					name: string;
+					email: string;
+					emailVerified: boolean;
+					image: string | null;
+					createdAt: Date;
+					updatedAt: Date;
+					role: string | null;
+					banned: boolean | null;
+					banReason: string | null;
+					banExpires: Date | null;
+					displayName?: string | null;
+			  }
+			| undefined
+			| null;
+	},
+	orgId: string,
+	repositories: any[]
+) {
 	// App‑level auth to fetch metadata
 	const appOctokit = new Octokit({ auth: createAppJWT() });
 	// biome-ignore lint/suspicious/noExplicitAny: <will fix later>
@@ -61,11 +65,7 @@ export async function getInstallationDetailsWithRepos(github: {
 	// Build a set of existing repo IDs (DB), ignoring same org
 	const existingRepoIds = new Set(
 		repositories
-			.filter(
-				(repo) =>
-					repo.installationId === install.id &&
-					repo.organizationId !== orgId
-			)
+			.filter((repo) => repo.installationId === install.id && repo.organizationId !== orgId)
 			.map((repo) => repo.repoId)
 	);
 	// biome-ignore lint/suspicious/noExplicitAny: <will fix later>
@@ -82,9 +82,7 @@ export async function getInstallationDetailsWithRepos(github: {
 		page++;
 	}
 	// Remove repos that already exist in DB
-	const filteredRepos = allRepos.filter(
-		(r) => !existingRepoIds.has(r.id)
-	);
+	const filteredRepos = allRepos.filter((r) => !existingRepoIds.has(r.id));
 	return {
 		installationId: install.id,
 		installDate: install.created_at,

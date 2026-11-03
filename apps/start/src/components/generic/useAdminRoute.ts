@@ -22,7 +22,8 @@ export function useAdminRoute() {
 	const isTaskPage = /^\/[^/]+\/tasks\/[^/]+$/.test(pathname) && !/^\/(?:console|mine|settings)\b/.test(pathname);
 
 	// /:orgId/releases/:slug
-	const isReleasePage = /^\/[^/]+\/releases\/[^/]+$/.test(pathname) && !/^\/(?:console|mine|settings)\b/.test(pathname);
+	const isReleasePage =
+		/^\/[^/]+\/releases\/[^/]+$/.test(pathname) && !/^\/(?:console|mine|settings)\b/.test(pathname);
 
 	return {
 		isMinePage,

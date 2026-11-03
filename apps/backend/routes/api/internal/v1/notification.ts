@@ -1,16 +1,11 @@
-import {
-	NotificationHelper,
-	db,
-	schema,
-	userSummaryColumns
-} from "@repo/database";
+import { db, NotificationHelper, schema, userSummaryColumns } from "@repo/database";
+import { createTraceAsync } from "@repo/opentelemetry/trace";
+import { ensureCdnUrl } from "@repo/util";
+import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import type { AppEnv } from "@/index";
-import { createTraceAsync } from "@repo/opentelemetry/trace";
-import type { WSBaseMessage } from "@/routes/ws/types";
 import { sseBroadcastByUserId } from "@/routes/events";
-import { and, eq, inArray, isNull, sql } from "drizzle-orm";
-import { ensureCdnUrl } from "@repo/util";
+import type { WSBaseMessage } from "@/routes/ws/types";
 
 export const apiRouteAdminNotification = new Hono<AppEnv>();
 
@@ -103,71 +98,64 @@ apiRouteAdminNotification.get("/", async (c) => {
 					},
 				},
 				limit,
-				page
-			})
+				page,
+			});
 			const uniqueTaskIds = [
 				...new Set(
-					results.notifications
-						.map(
-							(notification: any) =>
-								(notification.data as { taskId?: string } | null | undefined)
-									?.taskId
-						)
+					results.notifications.map(
+						(notification: any) => (notification.data as { taskId?: string } | null | undefined)?.taskId
+					)
 				),
 			] as string[];
 
 			const tasks =
 				uniqueTaskIds.length > 0
 					? await db.query.task.findMany({
-						where: () =>
-							inArray(schema.task.id, uniqueTaskIds),
-						columns: {
-							id: true,
-							shortId: true,
-							status: true,
-							priority: true
-						}
-					})
+							where: () => inArray(schema.task.id, uniqueTaskIds),
+							columns: {
+								id: true,
+								shortId: true,
+								status: true,
+								priority: true,
+							},
+						})
 					: [];
 			const tasksById = new Map(tasks.map((task) => [task.id, task]));
-			const notificationsData = results.notifications.map(
-				({ resourceId, ...notification }: any) => {
-					const data = notification.data as
-						| { taskId?: string }
-						| null
-						| undefined;
+			const notificationsData = results.notifications.map(({ resourceId, ...notification }: any) => {
+				const data = notification.data as { taskId?: string } | null | undefined;
 
-					const task = data?.taskId ? tasksById.get(data.taskId) : undefined;
+				const task = data?.taskId ? tasksById.get(data.taskId) : undefined;
 
-					return {
-						...notification,
-						task,
-						organization: resourceId
-							? {
+				return {
+					...notification,
+					task,
+					organization: resourceId
+						? {
 								...resourceId,
-								logo: resourceId.logo
-									? ensureCdnUrl(resourceId.logo)
-									: null,
+								logo: resourceId.logo ? ensureCdnUrl(resourceId.logo) : null,
 							}
-							: undefined,
-						unread:
-							notification.delivered && notification.readAt === null,
-					};
-				},
-			);
+						: undefined,
+					unread: notification.delivered && notification.readAt === null,
+				};
+			});
 			return {
 				notifications: notificationsData,
 				unreadCount: results.unreadCount,
 				paginated: results.paginated,
-			}
+			};
 		},
 		{
 			description: "Fetching user notifications",
 			data: { userId: session.userId, limit, page },
-		},
+		}
 	);
 
-	return c.json({ success: true, items: notificationsData.notifications, unreadCount: notificationsData.unreadCount, pagination: notificationsData.paginated });
+	return c.json({
+		success: true,
+		items: notificationsData.notifications,
+		unreadCount: notificationsData.unreadCount,
+		pagination: notificationsData.paginated,
+	});
 });
 
 apiRouteAdminNotification.get("/unread-count", async (c) => {
@@ -182,14 +170,19 @@ apiRouteAdminNotification.get("/unread-count", async (c) => {
 
 	const count = await traceAsync(
 		"notifications.unread_count",
-		() => db.$count(schema.notifications, and(
-			eq(schema.notifications.recipientId, session.userId),
-			eq(schema.notifications.delivered, true),
-			isNull(schema.notifications.readAt),)),
+		() =>
+			db.$count(
+				schema.notifications,
+				and(
+					eq(schema.notifications.recipientId, session.userId),
+					eq(schema.notifications.delivered, true),
+					isNull(schema.notifications.readAt)
+				)
+			),
 		{
 			description: "Fetching unread notification count",
 			data: { userId: session.userId },
-		},
+		}
 	);
 
 	return c.json({ success: true, data: { count } });
@@ -212,7 +205,7 @@ apiRouteAdminNotification.patch("/:id/read", async (c) => {
 		{
 			description: "Marking notification as read",
 			data: { notificationId, userId: session.userId },
-		},
+		}
 	);
 
 	if (!updated) {
@@ -247,7 +240,7 @@ apiRouteAdminNotification.patch("/read-all", async (c) => {
 		{
 			description: "Marking all notifications as read",
 			data: { userId: session.userId, organizationId },
-		},
+		}
 	);
 
 	// Broadcast to user's other tabs/sessions
@@ -274,16 +267,13 @@ apiRouteAdminNotification.patch("/read-by-task/:taskId", async (c) => {
 	const markedCount = await traceAsync(
 		"notifications.mark_read_by_task",
 		async () => {
-			const conditions = [
-				sql`${schema.notifications.data}->>'taskId' = ${taskId}`,
-			];
-			return await NotificationHelper.markReadByData({ recipientId: session.userId, conditions })
-
+			const conditions = [sql`${schema.notifications.data}->>'taskId' = ${taskId}`];
+			return await NotificationHelper.markReadByData({ recipientId: session.userId, conditions });
 		},
 		{
 			description: "Marking notifications read by task",
 			data: { userId: session.userId, taskId },
-		},
+		}
 	);
 
 	sseBroadcastByUserId(session.userId, "", "", {

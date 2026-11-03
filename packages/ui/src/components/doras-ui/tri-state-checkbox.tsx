@@ -25,7 +25,7 @@ const TriStateCheckbox = React.forwardRef<HTMLButtonElement, TriStateCheckboxPro
 				className={cn(
 					"flex items-center justify-center size-4 p-0.5 shrink-0 rounded-md border cursor-pointer",
 					(state === "all" || state === "some") && "bg-secondary text-primary-foreground",
-					className,
+					className
 				)}
 				{...props}
 			>
@@ -33,7 +33,7 @@ const TriStateCheckbox = React.forwardRef<HTMLButtonElement, TriStateCheckboxPro
 				{state === "some" && <IconMinus className="size-4" />}
 			</button>
 		);
-	},
+	}
 );
 TriStateCheckbox.displayName = "TriStateCheckbox";
 

@@ -1,5 +1,5 @@
+import type { OrgAiRateLimit, OrgAiSettings, OrganizationSettings, TeamPermissions } from "@repo/database";
 import type { UserWithRole } from "better-auth/plugins";
-import type { OrganizationSettings, TeamPermissions, OrgAiSettings, OrgAiRateLimit } from "@repo/database";
 
 const API_URL = import.meta.env.VITE_APP_ENV === "development" ? "/backend-api/internal" : "/api/internal";
 
@@ -115,9 +115,7 @@ export type ConsoleUserDetail = {
 /**
  * Fetches a paginated, filterable list of users for the admin console.
  */
-export async function getConsoleUsers(
-	params?: ConsoleUsersParams,
-): Promise<{
+export async function getConsoleUsers(params?: ConsoleUsersParams): Promise<{
 	success: boolean;
 	data: ConsoleUser[];
 	pagination?: ConsolePaginationMeta;
@@ -151,7 +149,7 @@ export async function getConsoleUsers(
  * Fetches detailed information about a single user for the admin console.
  */
 export async function getConsoleUser(
-	userId: string,
+	userId: string
 ): Promise<{ success: boolean; data?: ConsoleUserDetail; error?: string }> {
 	const res = await fetch(`${API_URL}/v1/console/users/${userId}`, {
 		method: "GET",
@@ -174,7 +172,7 @@ export async function getConsoleUser(
  */
 export async function consoleSetUserRoleAction(
 	userId: string,
-	role: "admin" | "user",
+	role: "admin" | "user"
 ): Promise<{ success: boolean; data: UserWithRole; error?: string }> {
 	const payload = {
 		userId: userId,
@@ -278,9 +276,7 @@ export type ConsoleOrgDetail = {
 /**
  * Fetches a paginated, filterable list of organizations for the admin console.
  */
-export async function getConsoleOrgs(
-	params?: ConsoleOrgsParams,
-): Promise<{
+export async function getConsoleOrgs(params?: ConsoleOrgsParams): Promise<{
 	success: boolean;
 	data: ConsoleOrg[];
 	pagination?: ConsolePaginationMeta;
@@ -302,9 +298,13 @@ export async function getConsoleOrgs(
 		credentials: "include",
 	});
 
-	const json = await readJsonSafe(res) as Record<string, unknown> | null;
+	const json = (await readJsonSafe(res)) as Record<string, unknown> | null;
 	if (!res.ok) {
-		return { success: false, data: [], error: (json as { error?: string } | null)?.error || "Failed to fetch organizations" };
+		return {
+			success: false,
+			data: [],
+			error: (json as { error?: string } | null)?.error || "Failed to fetch organizations",
+		};
 	}
 	return json as { success: boolean; data: ConsoleOrg[]; pagination?: ConsolePaginationMeta; error?: string };
 }
@@ -313,14 +313,14 @@ export async function getConsoleOrgs(
  * Fetches detailed information about a single organization for the admin console.
  */
 export async function getConsoleOrg(
-	orgId: string,
+	orgId: string
 ): Promise<{ success: boolean; data?: ConsoleOrgDetail; error?: string }> {
 	const res = await fetch(`${API_URL}/v1/console/organizations/${orgId}`, {
 		method: "GET",
 		credentials: "include",
 	});
 
-	const json = await readJsonSafe(res) as Record<string, unknown> | null;
+	const json = (await readJsonSafe(res)) as Record<string, unknown> | null;
 	if (!res.ok) {
 		return { success: false, error: (json as { error?: string } | null)?.error || "Failed to fetch organization" };
 	}
@@ -367,7 +367,7 @@ export type ConsoleAiMonthlySummary = {
  */
 export async function getConsoleOrgAiUsage(
 	orgId: string,
-	days: number,
+	days: number
 ): Promise<{
 	success: boolean;
 	data?: { rows: ConsoleAiUsageRow[]; monthlySummary: ConsoleAiMonthlySummary[] };
@@ -378,11 +378,15 @@ export async function getConsoleOrgAiUsage(
 		credentials: "include",
 	});
 
-	const json = await readJsonSafe(res) as Record<string, unknown> | null;
+	const json = (await readJsonSafe(res)) as Record<string, unknown> | null;
 	if (!res.ok) {
 		return { success: false, error: (json as { error?: string } | null)?.error || "Failed to fetch AI usage" };
 	}
-	return json as { success: boolean; data?: { rows: ConsoleAiUsageRow[]; monthlySummary: ConsoleAiMonthlySummary[] }; error?: string };
+	return json as {
+		success: boolean;
+		data?: { rows: ConsoleAiUsageRow[]; monthlySummary: ConsoleAiMonthlySummary[] };
+		error?: string;
+	};
 }
 
 // ──────────────────────────────────────────────
@@ -413,7 +417,7 @@ export async function getConsoleOrgsAiSummary(): Promise<ConsoleOrgAiSummary[]> 
 		// Propagate auth or server errors so callers are aware of the problem.
 		if (res.status === 204 || res.status === 404) return [];
 		if (!res.ok) throw new Error(`AI summary fetch failed: ${res.status}`);
-		const json = await readJsonSafe(res) as { data?: ConsoleOrgAiSummary[] } | null;
+		const json = (await readJsonSafe(res)) as { data?: ConsoleOrgAiSummary[] } | null;
 		return json?.data ?? [];
 	} catch {
 		return [];
@@ -451,7 +455,7 @@ export async function getConsoleOrgsMrrSummary(): Promise<ConsoleOrgMrrSummary[]
 		// Propagate auth or server errors so callers are aware of the problem.
 		if (res.status === 204 || res.status === 404) return [];
 		if (!res.ok) throw new Error(`MRR summary fetch failed: ${res.status}`);
-		const json = await readJsonSafe(res) as { data?: ConsoleOrgMrrSummary[] } | null;
+		const json = (await readJsonSafe(res)) as { data?: ConsoleOrgMrrSummary[] } | null;
 		return json?.data ?? [];
 	} catch {
 		return [];
@@ -486,7 +490,7 @@ export type OrgAiSettingsPatch = {
  */
 export async function updateConsoleOrgAiSettings(
 	orgId: string,
-	patch: OrgAiSettingsPatch,
+	patch: OrgAiSettingsPatch
 ): Promise<{ success: boolean; data?: { ai: OrgAiSettings }; error?: string }> {
 	const res = await fetch(`${API_URL}/v1/console/organizations/${orgId}/ai-settings`, {
 		method: "PATCH",
@@ -495,7 +499,7 @@ export async function updateConsoleOrgAiSettings(
 		body: JSON.stringify(patch),
 	});
 
-	const json = await readJsonSafe(res) as Record<string, unknown> | null;
+	const json = (await readJsonSafe(res)) as Record<string, unknown> | null;
 	if (!res.ok) {
 		return { success: false, error: (json as { error?: string } | null)?.error || "Failed to update AI settings" };
 	}

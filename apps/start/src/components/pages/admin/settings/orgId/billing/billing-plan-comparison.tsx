@@ -2,13 +2,10 @@ import { Badge } from "@repo/ui/components/badge";
 import { Button } from "@repo/ui/components/button";
 import { cn } from "@repo/ui/lib/utils";
 import { IconCheck, IconX } from "@tabler/icons-react";
-import { PLANS } from "./billing-data";
 import { useLayoutOrganizationSettings } from "@/contexts/ContextOrgSettings";
+import { PLANS } from "./billing-data";
 
-const API_URL =
-	import.meta.env.VITE_APP_ENV === "development"
-		? "/backend-api/internal"
-		: "/api/internal";
+const API_URL = import.meta.env.VITE_APP_ENV === "development" ? "/backend-api/internal" : "/api/internal";
 
 export function BillingPlanComparison() {
 	const { organization } = useLayoutOrganizationSettings();
@@ -27,7 +24,7 @@ export function BillingPlanComparison() {
 							key={plan.id}
 							className={cn(
 								"rounded-lg border p-4 flex flex-col gap-4",
-								isCurrent && "border-primary/30 bg-primary/5",
+								isCurrent && "border-primary/30 bg-primary/5"
 							)}
 						>
 							<div className="flex flex-col gap-1">
@@ -56,7 +53,7 @@ export function BillingPlanComparison() {
 										<span
 											className={cn(
 												"text-xs",
-												feature.included ? "text-muted-foreground" : "text-muted-foreground/40",
+												feature.included ? "text-muted-foreground" : "text-muted-foreground/40"
 											)}
 										>
 											{feature.name}

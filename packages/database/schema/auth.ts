@@ -1,6 +1,6 @@
+import { relations } from "drizzle-orm";
 import * as v from "drizzle-orm/pg-core";
 import { pgTable as table } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
 
 // --------------------
 // User

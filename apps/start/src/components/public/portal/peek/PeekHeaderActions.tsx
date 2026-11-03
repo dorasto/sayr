@@ -13,61 +13,58 @@ import { usePeek } from "./peek-context";
  * leaves the post (clears `?task`, back to the overview), the same X position the overview's native button has.
  */
 export function PeekHeaderActions() {
-  const { organization } = usePublicOrganizationLayout();
-  const { shortId, closePost } = usePeek();
-  const postPublicUrl = usePostPublicUrl();
+	const { organization } = usePublicOrganizationLayout();
+	const { shortId, closePost } = usePeek();
+	const postPublicUrl = usePostPublicUrl();
 
-  const copyLink = async () => {
-    if (shortId === null) return;
-    const url = postPublicUrl(organization.slug, shortId);
-    try {
-      await navigator.clipboard.writeText(url);
-      headlessToast.success({ title: "Link copied" });
-    } catch {
-      headlessToast.error({ title: "Could not copy the link" });
-    }
-  };
+	const copyLink = async () => {
+		if (shortId === null) return;
+		const url = postPublicUrl(organization.slug, shortId);
+		try {
+			await navigator.clipboard.writeText(url);
+			headlessToast.success({ title: "Link copied" });
+		} catch {
+			headlessToast.error({ title: "Could not copy the link" });
+		}
+	};
 
-  return (
-    <>
-      {shortId !== null && (
-        <>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={copyLink}
-            aria-label="Copy link"
-            title="Copy link"
-            tooltipText="Copy URL"
-            tooltipSide="top"
-            className="h-6 w-6 gap-2 p-1"
-          >
-            <IconLink aria-hidden />
-          </Button>
-          <Link
-            to="/orgs/$orgSlug/$shortId"
-            params={{ orgSlug: organization.slug, shortId: String(shortId) }}
-            className={cn(
-              buttonVariants({ variant: "ghost", size: "sm" }),
-              "h-6 w-6 gap-2 p-1",
-            )}
-          >
-            <IconArrowUpRight aria-hidden />
-          </Link>
-        </>
-      )}
-      <Button
-        type="button"
-        variant="ghost"
-        size="sm"
-        onClick={closePost}
-        aria-label="Close post"
-        title="Close post"
-        className="h-6 w-6 gap-2 p-1"
-      >
-        <IconX />
-      </Button>
-    </>
-  );
+	return (
+		<>
+			{shortId !== null && (
+				<>
+					<Button
+						type="button"
+						variant="ghost"
+						size="sm"
+						onClick={copyLink}
+						aria-label="Copy link"
+						title="Copy link"
+						tooltipText="Copy URL"
+						tooltipSide="top"
+						className="h-6 w-6 gap-2 p-1"
+					>
+						<IconLink aria-hidden />
+					</Button>
+					<Link
+						to="/orgs/$orgSlug/$shortId"
+						params={{ orgSlug: organization.slug, shortId: String(shortId) }}
+						className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "h-6 w-6 gap-2 p-1")}
+					>
+						<IconArrowUpRight aria-hidden />
+					</Link>
+				</>
+			)}
+			<Button
+				type="button"
+				variant="ghost"
+				size="sm"
+				onClick={closePost}
+				aria-label="Close post"
+				title="Close post"
+				className="h-6 w-6 gap-2 p-1"
+			>
+				<IconX />
+			</Button>
+		</>
+	);
 }

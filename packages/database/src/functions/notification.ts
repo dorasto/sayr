@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
+import type { NodeJSON } from "../../schema";
 import { db, schema } from "..";
-import { NodeJSON } from "../../schema";
 /**
  * Gets the assignee user IDs for a task.
  * Used internally to determine who should receive notifications.

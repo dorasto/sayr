@@ -1,13 +1,13 @@
-import UserTable from "@/components/console/user-table";
-import OrgTable from "@/components/console/org-table";
-import { SystemApiKeys } from "@/components/console/system-api-keys";
-import { SubWrapper } from "@/components/generic/wrapper";
-import { getConsoleUsersServer, getConsoleOrgsServer } from "@/lib/serverFunctions/getConsoleData";
+import { Button } from "@repo/ui/components/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@repo/ui/components/tabs";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useState } from "react";
-import { Button } from "@repo/ui/components/button";
+import OrgTable from "@/components/console/org-table";
+import { SystemApiKeys } from "@/components/console/system-api-keys";
+import UserTable from "@/components/console/user-table";
+import { SubWrapper } from "@/components/generic/wrapper";
+import { getConsoleOrgsServer, getConsoleUsersServer } from "@/lib/serverFunctions/getConsoleData";
 import { seo } from "@/seo";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@repo/ui/components/tabs";
 
 const isCloud = import.meta.env.VITE_SAYR_EDITION === "cloud";
 
@@ -33,12 +33,7 @@ function SnapshotTriggerButton() {
 	};
 
 	return (
-		<Button
-			variant="outline"
-			size="sm"
-			onClick={trigger}
-			disabled={state === "loading"}
-		>
+		<Button variant="outline" size="sm" onClick={trigger} disabled={state === "loading"}>
 			{state === "loading" && "Snapshotting..."}
 			{state === "done" && "Snapshot saved!"}
 			{state === "error" && "Failed — retry?"}
@@ -91,11 +86,7 @@ function RouteComponent() {
 		<SubWrapper
 			title="Console"
 			description="Manage platform users and system settings"
-			topContent={
-				<div className="flex items-center gap-2">
-					{isCloud && <SnapshotTriggerButton />}
-				</div>
-			}
+			topContent={<div className="flex items-center gap-2">{isCloud && <SnapshotTriggerButton />}</div>}
 		>
 			<Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
 				<TabsList>
@@ -116,4 +107,3 @@ function RouteComponent() {
 		</SubWrapper>
 	);
 }
-

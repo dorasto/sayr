@@ -2,8 +2,8 @@ import "prosekit/basic/style.css";
 import "prosekit/basic/typography.css";
 import "prosekit/extensions/commit/style.css";
 
-import { createEditor, union, type NodeJSON } from "prosekit/core";
-import { defineCommitViewer, type Commit } from "prosekit/extensions/commit";
+import { createEditor, type NodeJSON, union } from "prosekit/core";
+import { type Commit, defineCommitViewer } from "prosekit/extensions/commit";
 import { defineReadonly } from "prosekit/extensions/readonly";
 import { ReplaceStep } from "prosekit/pm/transform";
 import { ProseKit } from "prosekit/react";

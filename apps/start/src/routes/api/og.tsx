@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import satori from "satori";
 import React from "react";
+import satori from "satori";
 import sharp from "sharp";
 import { statusConfig } from "@/components/tasks/shared/config";
 import { readCappedBody, safeFetch } from "@/lib/safe-fetch";

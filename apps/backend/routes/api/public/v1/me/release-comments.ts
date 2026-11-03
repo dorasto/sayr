@@ -11,6 +11,7 @@ import { and, eq } from "drizzle-orm";
 import { Hono } from "hono";
 import z from "zod";
 import type { AppEnv } from "@/index";
+import { withResolvedMentions } from "@/prosekit/resolveMarkdownMentions";
 import { broadcastReleaseCommentsChanged } from "../../../../../lib/releases/broadcast";
 import {
 	parseCreateCommentInput,
@@ -36,7 +37,6 @@ import {
 	releasePathParam,
 } from "./release-schemas";
 import { parsePaginationParam } from "./schemas";
-import { withResolvedMentions } from "@/prosekit/resolveMarkdownMentions";
 
 const COMMENTS_DEFAULT_LIMIT = 10;
 const COMMENTS_MAX_LIMIT = 50;

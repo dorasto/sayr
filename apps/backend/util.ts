@@ -1,10 +1,10 @@
-import { canPublicAccessOrg, db, hasOrgPermission, schema } from "@repo/database";
-import { createTraceAsync, type TraceAsync as type_TraceAsync } from "@repo/opentelemetry/trace";
-import { and, eq, count } from "drizzle-orm";
 import { createHash } from "node:crypto";
-import { account } from "../../packages/database/schema/auth";
+import { canPublicAccessOrg, db, hasOrgPermission, schema } from "@repo/database";
 import { type Edition, getEdition, getEffectiveLimits, isCloud } from "@repo/edition";
-import { RecordWideError } from "./tracing/wideEvent";
+import { createTraceAsync, type TraceAsync as type_TraceAsync } from "@repo/opentelemetry/trace";
+import { and, count, eq } from "drizzle-orm";
+import { account } from "../../packages/database/schema/auth";
+import type { RecordWideError } from "./tracing/wideEvent";
 
 export async function getOrganization(orgId: string, userId: string): Promise<{ id: string } | null> {
 	// Check if the user is a member of this org

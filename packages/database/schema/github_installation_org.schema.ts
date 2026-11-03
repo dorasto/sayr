@@ -29,23 +29,27 @@ export const githubInstallationOrg = table(
 			.references(() => organization.id, { onDelete: "cascade" }),
 
 		/** The user who linked this installation to the org */
-		userId: v
-			.text("user_id")
-			.references(() => user.id, { onDelete: "set null" }),
+		userId: v.text("user_id").references(() => user.id, { onDelete: "set null" }),
 
 		/** Timestamps */
 		createdAt: v.timestamp("created_at").defaultNow().notNull(),
 	},
 	(t) => [
 		/** Prevent the same installation from being linked to the same org twice */
-		v.uniqueIndex("uq_github_installation_org").on(t.installationId, t.organizationId),
+		v
+			.uniqueIndex("uq_github_installation_org")
+			.on(t.installationId, t.organizationId),
 
 		/** Look up all orgs for a given installation */
-		v.index("idx_github_installation_org_installation").on(t.installationId),
+		v
+			.index("idx_github_installation_org_installation")
+			.on(t.installationId),
 
 		/** Look up all installations for a given org */
-		v.index("idx_github_installation_org_org").on(t.organizationId),
-	],
+		v
+			.index("idx_github_installation_org_org")
+			.on(t.organizationId),
+	]
 );
 
 /** Type helpers */

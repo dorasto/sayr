@@ -15,9 +15,9 @@ import { useStore } from "@tanstack/react-store";
 import * as React from "react";
 import { useCommandRegistry } from "@/hooks/use-command-registry";
 import { useCommandSearch } from "@/hooks/useCommandSearch";
-import { commandActions, commandStore } from "@/lib/command-store";
-import { searchOrgTasks, type OrgTaskSearchResult } from "@/lib/fetches/searchTasks";
 import { assignToggleMeta, taskStatusIcon } from "@/lib/command-item-helpers";
+import { commandActions, commandStore } from "@/lib/command-store";
+import { type OrgTaskSearchResult, searchOrgTasks } from "@/lib/fetches/searchTasks";
 import type { CommandGroup as CommandGroupType, CommandItem as CommandItemType } from "@/types/command";
 
 // ---------------------------------------------------------------------------

@@ -1,9 +1,5 @@
 import type { schema } from "@repo/database";
-import {
-	Avatar,
-	AvatarFallback,
-	AvatarImage,
-} from "@repo/ui/components/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
 import { Button } from "@repo/ui/components/button";
 import { cn } from "@repo/ui/lib/utils";
 import {
@@ -18,8 +14,8 @@ import {
 } from "@tabler/icons-react";
 import RenderIcon from "@/components/generic/RenderIcon";
 import type { OrgTaskSearchResult } from "@/lib/fetches/searchTasks";
+import type { priorityConfig, statusConfig } from "./config";
 import type { FieldConfig } from "./task-field-toolbar-types";
-import type { statusConfig, priorityConfig } from "./config";
 import { TaskPickerItem } from "./task-picker";
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -39,11 +35,7 @@ interface StatusTriggerData {
 
 export function creatorStatusTrigger(cfg: FieldConfig, data: StatusTriggerData) {
 	return (
-		<Button
-			variant={"primary"}
-			className={cn("w-fit text-xs h-7", cfg.className)}
-			size={"sm"}
-		>
+		<Button variant={"primary"} className={cn("w-fit text-xs h-7", cfg.className)} size={"sm"}>
 			{data.statusCfg?.icon(`h-3.5 w-3.5 ${data.statusCfg?.className || ""}`)}
 			{!cfg.iconOnly && (data.statusCfg?.label || "Status")}
 		</Button>
@@ -56,11 +48,7 @@ interface PriorityTriggerData {
 
 export function creatorPriorityTrigger(cfg: FieldConfig, data: PriorityTriggerData) {
 	return (
-		<Button
-			variant={"primary"}
-			className={cn("w-fit text-xs h-7", cfg.className)}
-			size={"sm"}
-		>
+		<Button variant={"primary"} className={cn("w-fit text-xs h-7", cfg.className)} size={"sm"}>
 			{data.priorityCfg?.icon(`h-3.5 w-3.5 ${data.priorityCfg?.className || ""}`)}
 			{!cfg.iconOnly && (data.priorityCfg?.label || "Priority")}
 		</Button>
@@ -70,11 +58,7 @@ export function creatorPriorityTrigger(cfg: FieldConfig, data: PriorityTriggerDa
 export function creatorLabelsTrigger(cfg: FieldConfig, selectedLabels: schema.TaskWithLabels["labels"]) {
 	const labels = selectedLabels ?? [];
 	return (
-		<Button
-			variant={"primary"}
-			className={cn("w-fit text-xs h-7 line-clamp-1", cfg.className)}
-			size={"sm"}
-		>
+		<Button variant={"primary"} className={cn("w-fit text-xs h-7 line-clamp-1", cfg.className)} size={"sm"}>
 			{labels.length > 1 ? (
 				<div className="flex items-center gap-2">
 					<div className="flex -space-x-1">
@@ -91,10 +75,7 @@ export function creatorLabelsTrigger(cfg: FieldConfig, selectedLabels: schema.Ta
 			) : labels.length === 1 ? (
 				<div className="flex items-center">
 					<span
-						className={cn(
-							"h-2 w-2 shrink-0 rounded-full",
-							!cfg.iconOnly && "mr-2",
-						)}
+						className={cn("h-2 w-2 shrink-0 rounded-full", !cfg.iconOnly && "mr-2")}
 						style={{ backgroundColor: labels[0]?.color || "#cccccc" }}
 					/>
 					{!cfg.iconOnly && <span>{labels[0]?.name}</span>}
@@ -112,23 +93,13 @@ export function creatorLabelsTrigger(cfg: FieldConfig, selectedLabels: schema.Ta
 export function creatorAssigneesTrigger(cfg: FieldConfig, selectedAssignees: schema.TaskWithLabels["assignees"]) {
 	const assignees = selectedAssignees ?? [];
 	return (
-		<Button
-			variant={"primary"}
-			className={cn("w-fit text-xs h-7 line-clamp-1", cfg.className)}
-			size={"sm"}
-		>
+		<Button variant={"primary"} className={cn("w-fit text-xs h-7 line-clamp-1", cfg.className)} size={"sm"}>
 			{assignees.length > 1 ? (
 				<div className="flex items-center gap-2">
 					<div className="flex -space-x-1">
 						{assignees.map((assignee) => (
-							<Avatar
-								key={assignee.id}
-								className="h-4 w-4 border border-background"
-							>
-								<AvatarImage
-									src={assignee.image || undefined}
-									alt={assignee.name}
-								/>
+							<Avatar key={assignee.id} className="h-4 w-4 border border-background">
+								<AvatarImage src={assignee.image || undefined} alt={assignee.name} />
 								<AvatarFallback className="text-[8px]">
 									{assignee.name
 										.split(" ")
@@ -145,10 +116,7 @@ export function creatorAssigneesTrigger(cfg: FieldConfig, selectedAssignees: sch
 			) : assignees.length === 1 ? (
 				<div className="flex items-center">
 					<Avatar className={cn("h-4 w-4", !cfg.iconOnly && "mr-2")}>
-						<AvatarImage
-							src={assignees[0]?.image || undefined}
-							alt={assignees[0]?.name}
-						/>
+						<AvatarImage src={assignees[0]?.image || undefined} alt={assignees[0]?.name} />
 						<AvatarFallback className="text-[8px]">
 							{assignees[0]?.name
 								.split(" ")
@@ -162,9 +130,7 @@ export function creatorAssigneesTrigger(cfg: FieldConfig, selectedAssignees: sch
 				</div>
 			) : (
 				<span className="flex items-center gap-2">
-					<IconUserPlus
-						className={cn("h-3.5 w-3.5", !cfg.iconOnly && "mr-1")}
-					/>
+					<IconUserPlus className={cn("h-3.5 w-3.5", !cfg.iconOnly && "mr-1")} />
 					{!cfg.iconOnly && "Assignees"}
 				</span>
 			)}
@@ -174,19 +140,12 @@ export function creatorAssigneesTrigger(cfg: FieldConfig, selectedAssignees: sch
 
 export function creatorCategoryTrigger(cfg: FieldConfig, selectedCategory: schema.categoryType | undefined) {
 	return (
-		<Button
-			variant={"primary"}
-			className={cn("w-fit text-xs h-7", cfg.className)}
-			size={"sm"}
-		>
+		<Button variant={"primary"} className={cn("w-fit text-xs h-7", cfg.className)} size={"sm"}>
 			{selectedCategory ? (
 				<>
 					<RenderIcon
 						iconName={selectedCategory.icon || "IconCircleFilled"}
-						className={cn(
-							"size-3.5! [&_svg]:size-3.5!",
-							!cfg.iconOnly && "mr-1",
-						)}
+						className={cn("size-3.5! [&_svg]:size-3.5!", !cfg.iconOnly && "mr-1")}
 						color={selectedCategory.color || undefined}
 						button
 					/>
@@ -194,9 +153,7 @@ export function creatorCategoryTrigger(cfg: FieldConfig, selectedCategory: schem
 				</>
 			) : (
 				<>
-					<IconCategory
-						className={cn("h-3.5 w-3.5", !cfg.iconOnly && "mr-1")}
-					/>
+					<IconCategory className={cn("h-3.5 w-3.5", !cfg.iconOnly && "mr-1")} />
 					{!cfg.iconOnly && "Category"}
 				</>
 			)}
@@ -211,16 +168,12 @@ interface VisibilityTriggerCallbacks {
 export function creatorVisibilityTrigger(
 	cfg: FieldConfig,
 	visible: string | null | undefined,
-	callbacks: VisibilityTriggerCallbacks,
+	callbacks: VisibilityTriggerCallbacks
 ) {
 	return (
 		<Button
 			variant={"primary"}
-			className={cn(
-				"w-fit text-xs h-7",
-				visible === "private" && "border-primary/50",
-				cfg.className,
-			)}
+			className={cn("w-fit text-xs h-7", visible === "private" && "border-primary/50", cfg.className)}
 			size={"sm"}
 			onClick={callbacks.onToggle}
 		>
@@ -231,9 +184,7 @@ export function creatorVisibilityTrigger(
 				</>
 			) : (
 				<>
-					<IconLockOpen2
-						className={cn("h-3.5 w-3.5", !cfg.iconOnly && "mr-1")}
-					/>
+					<IconLockOpen2 className={cn("h-3.5 w-3.5", !cfg.iconOnly && "mr-1")} />
 					{!cfg.iconOnly && "Public"}
 				</>
 			)}
@@ -243,27 +194,18 @@ export function creatorVisibilityTrigger(
 
 export function creatorReleaseTrigger(cfg: FieldConfig, selectedRelease: schema.releaseType | undefined) {
 	return (
-		<Button
-			variant={"primary"}
-			className={cn("w-fit text-xs h-7", cfg.className)}
-			size={"sm"}
-		>
+		<Button variant={"primary"} className={cn("w-fit text-xs h-7", cfg.className)} size={"sm"}>
 			{selectedRelease ? (
 				<>
 					{selectedRelease.icon ? (
 						<RenderIcon
 							iconName={selectedRelease.icon}
-							className={cn(
-								"size-3.5! [&_svg]:size-3.5!",
-								!cfg.iconOnly && "mr-1",
-							)}
+							className={cn("size-3.5! [&_svg]:size-3.5!", !cfg.iconOnly && "mr-1")}
 							color={selectedRelease.color || undefined}
 							button
 						/>
 					) : (
-						<IconRocket
-							className={cn("h-3.5 w-3.5", !cfg.iconOnly && "mr-1")}
-						/>
+						<IconRocket className={cn("h-3.5 w-3.5", !cfg.iconOnly && "mr-1")} />
 					)}
 					{!cfg.iconOnly && selectedRelease.name}
 				</>
@@ -284,7 +226,7 @@ interface ParentTriggerCallbacks {
 export function creatorParentTrigger(
 	cfg: FieldConfig,
 	selectedParentTask: OrgTaskSearchResult | null | undefined,
-	callbacks: ParentTriggerCallbacks,
+	callbacks: ParentTriggerCallbacks
 ) {
 	if (selectedParentTask) {
 		return (
@@ -304,14 +246,8 @@ export function creatorParentTrigger(
 		);
 	}
 	return (
-		<Button
-			variant={"primary"}
-			className={cn("w-fit text-xs h-7", cfg.className)}
-			size={"sm"}
-		>
-			<IconGitBranch
-				className={cn("h-3.5 w-3.5", !cfg.iconOnly && "mr-1")}
-			/>
+		<Button variant={"primary"} className={cn("w-fit text-xs h-7", cfg.className)} size={"sm"}>
+			<IconGitBranch className={cn("h-3.5 w-3.5", !cfg.iconOnly && "mr-1")} />
 			{!cfg.iconOnly && "Subtask of..."}
 		</Button>
 	);

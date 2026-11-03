@@ -1,16 +1,19 @@
 import { and, eq, sql } from "drizzle-orm";
+import {
+	integrationConfig,
+	type integrationConfigType,
+	integrationStorage,
+	type integrationStorageType,
+} from "../../schema/integrations";
 import { db } from "../database";
-import { integrationConfig, integrationStorage, type integrationConfigType, type integrationStorageType } from "../../schema/integrations";
 
 export async function getIntegrationConfig<TValue = unknown>(
 	orgId: string,
 	integrationId: string,
 	key: string
-): Promise<
-	(Omit<integrationConfigType, "value"> & { value: TValue }) | null
-> {
+): Promise<(Omit<integrationConfigType, "value"> & { value: TValue }) | null> {
 	if (!orgId) {
-		throw new Error("getIntegrationConfig called without orgId")
+		throw new Error("getIntegrationConfig called without orgId");
 	}
 
 	const result = await db
@@ -22,18 +25,17 @@ export async function getIntegrationConfig<TValue = unknown>(
 				eq(integrationConfig.integrationId, integrationId),
 				eq(integrationConfig.key, key)
 			)
-		)
+		);
 
-	if (!result.length) return null
+	if (!result.length) return null;
 
-	const base = result[0] as integrationConfigType
+	const base = result[0] as integrationConfigType;
 
 	return {
 		...base,
-		value: base.value as TValue
-	}
+		value: base.value as TValue,
+	};
 }
-
 
 export async function getIntegrationConfigByValue<TValue = unknown>(
 	key: string,
@@ -50,16 +52,16 @@ export async function getIntegrationConfigByValue<TValue = unknown>(
 				eq(integrationConfig.key, key),
 				sql`${integrationConfig.value} ->> ${valueKey} = ${value}`
 			)
-		)
+		);
 
-	if (!result.length) return null
+	if (!result.length) return null;
 
-	const base = result[0] as integrationConfigType
+	const base = result[0] as integrationConfigType;
 
 	return {
 		...base,
-		value: base.value as TValue
-	}
+		value: base.value as TValue,
+	};
 }
 
 export async function getIntegrationConfigsByValue<TValue = unknown>(
@@ -85,7 +87,7 @@ export async function getIntegrationConfigsByValue<TValue = unknown>(
 		const base = row as integrationConfigType;
 		return {
 			...base,
-			value: base.value as TValue
+			value: base.value as TValue,
 		};
 	});
 }
@@ -105,20 +107,20 @@ export async function setIntegrationConfig<TValue = unknown>(
 				eq(integrationConfig.integrationId, integrationId),
 				eq(integrationConfig.key, key)
 			)
-		)
+		);
 
 	if (existing.length) {
-		const first = existing[0] as integrationConfigType
+		const first = existing[0] as integrationConfigType;
 
 		await db
 			.update(integrationConfig)
 			.set({ value, updatedAt: new Date() })
-			.where(eq(integrationConfig.id, first.id))
+			.where(eq(integrationConfig.id, first.id));
 
 		return {
 			...first,
-			value
-		}
+			value,
+		};
 	}
 
 	const [created] = await db
@@ -127,16 +129,16 @@ export async function setIntegrationConfig<TValue = unknown>(
 			organizationId: orgId,
 			integrationId,
 			key,
-			value
+			value,
 		})
-		.returning()
+		.returning();
 
-	if (!created) return undefined
+	if (!created) return undefined;
 
 	return {
 		...(created as integrationConfigType),
-		value
-	}
+		value,
+	};
 }
 
 export async function getIntegrationEnabled(orgId: string, integrationId: string): Promise<boolean> {
@@ -153,12 +155,10 @@ export async function getIntegrationStorage(
 	orgId: string,
 	integrationId: string
 ): Promise<integrationStorageType | null> {
-	const result = await db.select().from(integrationStorage).where(
-		and(
-			eq(integrationStorage.organizationId, orgId),
-			eq(integrationStorage.integrationId, integrationId)
-		)
-	);
+	const result = await db
+		.select()
+		.from(integrationStorage)
+		.where(and(eq(integrationStorage.organizationId, orgId), eq(integrationStorage.integrationId, integrationId)));
 	if (!result.length) return null;
 	return result[0] ?? null;
 }
@@ -193,16 +193,9 @@ export async function getOrganizationsWithIntegration(integrationId: string): Pr
 	const settings = await db
 		.select()
 		.from(integrationConfig)
-		.where(
-			and(
-				eq(integrationConfig.integrationId, integrationId),
-				eq(integrationConfig.key, "settings")
-			)
-		);
+		.where(and(eq(integrationConfig.integrationId, integrationId), eq(integrationConfig.key, "settings")));
 
-	const orgIds = settings
-		.filter((s: any) => s.value?.enabled === true)
-		.map((s: any) => s.organizationId);
+	const orgIds = settings.filter((s: any) => s.value?.enabled === true).map((s: any) => s.organizationId);
 
 	return orgIds;
 }

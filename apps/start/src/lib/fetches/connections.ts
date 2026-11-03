@@ -56,17 +56,14 @@ export async function getUserInfoSlack(accessToken: string): Promise<SlackUserTy
 		token: accessToken,
 	});
 
-	const response = await fetch(
-		"https://slack.com/api/openid.connect.userInfo",
-		{
-			method: "POST",
-			headers: {
-				"Content-Type": "application/x-www-form-urlencoded",
-				Accept: "application/json",
-			},
-			body,
+	const response = await fetch("https://slack.com/api/openid.connect.userInfo", {
+		method: "POST",
+		headers: {
+			"Content-Type": "application/x-www-form-urlencoded",
+			Accept: "application/json",
 		},
-	);
+		body,
+	});
 
 	if (!response.ok) {
 		throw new Error(`Slack API error: ${response.status} ${response.statusText}`);

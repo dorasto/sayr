@@ -5,6 +5,7 @@ initTracing(`sayr-backend`);
 import type { auth } from "@repo/auth/index";
 import { createNotificationClient, db } from "@repo/database";
 import { getEdition } from "@repo/edition";
+import { enqueue } from "@repo/queue";
 import { ensureBucketExists } from "@repo/storage";
 import { sql } from "drizzle-orm";
 import { type Context, Hono, type MiddlewareHandler } from "hono";
@@ -13,15 +14,14 @@ import { cors } from "hono/cors";
 import { csrf } from "hono/csrf";
 import { HTTPException } from "hono/http-exception";
 import { requestId } from "hono/request-id";
-import type { ApiKeyPrincipal } from "./lib/apiKeyAuth";
 import { rootSpanPlugin } from "@/tracing/index";
+import type { ApiKeyPrincipal } from "./lib/apiKeyAuth";
 import { apiRoute } from "./routes/api";
-import { mcpFetchHandler, mcpProtectedResourceMetadata } from "./routes/mcp";
 import sseRoute from "./routes/events";
+import { mcpFetchHandler, mcpProtectedResourceMetadata } from "./routes/mcp";
 import { renderRoute } from "./routes/render";
 import { webhookRoute } from "./routes/webhook";
 import { type RecordWideError, wideEventMiddleware } from "./tracing/wideEvent";
-import { enqueue } from "@repo/queue";
 export type AppTypeNotification =
 	| "mention"
 	| "comment"

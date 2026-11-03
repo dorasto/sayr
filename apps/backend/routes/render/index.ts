@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { serveStatic } from "hono/bun";
-import { AppEnv } from "@/index";
+import type { AppEnv } from "@/index";
 
 export const renderRoute = new Hono<AppEnv>();
 renderRoute.get("/ws", serveStatic({ path: "./public/render/ws.html" }));

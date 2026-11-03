@@ -1,7 +1,7 @@
-import { LoginComponent } from "@/components/auth/login";
 import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
-import { seo, getOgImageUrl } from "@/seo";
+import { LoginComponent } from "@/components/auth/login";
+import { getOgImageUrl, seo } from "@/seo";
 
 const getOAuthProviders = createServerFn({ method: "GET" }).handler(async () => {
 	return {

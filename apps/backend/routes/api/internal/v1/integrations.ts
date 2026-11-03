@@ -1,8 +1,8 @@
+import { getIntegrationEnabled, getOrganizationsWithIntegration, setIntegrationEnabled } from "@repo/database";
+import { createTraceAsync } from "@repo/opentelemetry/trace";
 import { Hono } from "hono";
 import type { AppEnv } from "@/index";
-import { getIntegrationEnabled, setIntegrationEnabled, getOrganizationsWithIntegration } from "@repo/database";
 import { traceOrgPermissionCheck } from "@/util";
-import { createTraceAsync } from "@repo/opentelemetry/trace";
 
 async function requireAdmin(c: any, orgId: string) {
 	const user = c.get("user") as { id: string } | undefined;

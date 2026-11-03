@@ -1,5 +1,3 @@
-import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
-import { SettingsProviderOrganization } from "@/contexts/ContextOrgSettings";
 import {
 	db,
 	getIssueTemplates,
@@ -10,9 +8,11 @@ import {
 	getTasksByOrganizationId,
 	schema,
 } from "@repo/database";
+import { PermissionError } from "@repo/util";
+import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { eq } from "drizzle-orm";
-import { PermissionError } from "@repo/util";
+import { SettingsProviderOrganization } from "@/contexts/ContextOrgSettings";
 import { requireAccount } from "@/getAccess";
 import { seo } from "@/seo";
 

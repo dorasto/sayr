@@ -1,24 +1,24 @@
 import { Button } from "@repo/ui/components/button";
-import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
-import { cn } from "@repo/ui/lib/utils";
-import {
-	IconCategory,
-	IconDots,
-	IconGitBranch,
-	IconLabel,
-	IconLockOpen2,
-	IconRocket,
-	IconUserPlus,
-} from "@tabler/icons-react";
-import React, { useCallback, useMemo, useState } from "react";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "@repo/ui/components/dropdown-menu";
+import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
+import { cn } from "@repo/ui/lib/utils";
+import {
+	IconCategory,
+	IconDots,
+	IconExternalLink,
+	IconGitBranch,
+	IconLabel,
+	IconLockOpen2,
+	IconRocket,
+	IconUserPlus,
+} from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
-import { IconExternalLink } from "@tabler/icons-react";
+import React, { useCallback, useMemo, useState } from "react";
 
 import GlobalTaskAssignees from "./assignee";
 import GlobalTaskCategory from "./category";
@@ -30,17 +30,6 @@ import GlobalTaskLabels from "./label";
 import GlobalTaskPriority from "./priority";
 import GlobalTaskRelease from "./release";
 import GlobalTaskStatus from "./status";
-import GlobalTaskVisibility from "./visibility";
-import { TaskVoting } from "./voting";
-import TaskPicker from "./task-picker";
-import {
-	type FieldConfig,
-	type FieldKey,
-	type TaskFieldToolbarProps,
-	DEFAULT_FIELDS,
-	VARIANT_STYLES,
-	resolveFieldEntry,
-} from "./task-field-toolbar-types";
 import {
 	creatorAssigneesTrigger,
 	creatorCategoryTrigger,
@@ -51,20 +40,31 @@ import {
 	creatorStatusTrigger,
 	creatorVisibilityTrigger,
 } from "./task-field-toolbar-triggers";
+import {
+	DEFAULT_FIELDS,
+	type FieldConfig,
+	type FieldKey,
+	resolveFieldEntry,
+	type TaskFieldToolbarProps,
+	VARIANT_STYLES,
+} from "./task-field-toolbar-types";
+import TaskPicker from "./task-picker";
+import GlobalTaskVisibility from "./visibility";
+import { TaskVoting } from "./voting";
 
 // Re-export types so existing consumers can still import from this module
 export type {
-	FieldKey,
 	FieldConfig,
 	FieldEntry,
+	FieldKey,
 	FieldPermissions,
 	TaskFieldToolbarProps,
 } from "./task-field-toolbar-types";
 export {
 	DEFAULT_FIELDS,
-	VARIANT_STYLES,
-	resolveFieldEntry,
 	getTaskFieldPermissions,
+	resolveFieldEntry,
+	VARIANT_STYLES,
 } from "./task-field-toolbar-types";
 
 // ────────────────────────────────────────────────────────────────────────────

@@ -1,4 +1,13 @@
-import { type Attributes, AttributeValue, context, type SpanContext, SpanKind, SpanStatusCode, trace, TraceFlags } from "@opentelemetry/api";
+import {
+	type Attributes,
+	type AttributeValue,
+	context,
+	type SpanContext,
+	SpanKind,
+	SpanStatusCode,
+	TraceFlags,
+	trace,
+} from "@opentelemetry/api";
 import { getTracer } from ".";
 
 export function getTraceContext() {
@@ -30,38 +39,27 @@ export type TraceAsync = <T>(
 	}
 ) => Promise<T>;
 
-function setSafeAttribute(
-	span: { setAttribute: (k: string, v: AttributeValue) => void },
-	key: string,
-	value: unknown
-) {
-	if (
-		value === undefined ||
-		value === null
-	) {
+function setSafeAttribute(span: { setAttribute: (k: string, v: AttributeValue) => void }, key: string, value: unknown) {
+	if (value === undefined || value === null) {
 		return;
 	}
 
-	if (
-		typeof value === "string" ||
-		typeof value === "number" ||
-		typeof value === "boolean"
-	) {
+	if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
 		span.setAttribute(key, value);
 		return;
 	}
 
 	if (Array.isArray(value)) {
 		const arr = value.filter(
-			(v): v is string | number | boolean =>
-				typeof v === "string" ||
-				typeof v === "number" ||
-				typeof v === "boolean"
+			(v): v is string | number | boolean => typeof v === "string" || typeof v === "number" || typeof v === "boolean"
 		);
 
 		if (arr.length > 0) {
 			// Convert to string array to satisfy AttributeValue array typing
-			span.setAttribute(key, arr.map((v) => String(v)));
+			span.setAttribute(
+				key,
+				arr.map((v) => String(v))
+			);
 		}
 		return;
 	}
@@ -128,11 +126,7 @@ export function createTraceAsync(): TraceAsync {
 		// ✅ Capture active context at execution time
 		const parentCtx = context.active();
 
-		const span = tracer.startSpan(
-			name,
-			{ kind: SpanKind.INTERNAL },
-			parentCtx
-		);
+		const span = tracer.startSpan(name, { kind: SpanKind.INTERNAL }, parentCtx);
 
 		// ✅ Set structured attributes
 		if (options?.description) {
@@ -146,10 +140,7 @@ export function createTraceAsync(): TraceAsync {
 		}
 
 		try {
-			const result = await context.with(
-				trace.setSpan(parentCtx, span),
-				fn
-			);
+			const result = await context.with(trace.setSpan(parentCtx, span), fn);
 
 			if (options?.onSuccess) {
 				const extra = options.onSuccess(result);
@@ -160,8 +151,7 @@ export function createTraceAsync(): TraceAsync {
 					}
 				}
 
-				const outcome =
-					extra.outcome ?? extra.description;
+				const outcome = extra.outcome ?? extra.description;
 				if (outcome) {
 					span.setAttribute("trace.outcome", outcome);
 				}
@@ -184,10 +174,10 @@ export function createTraceAsync(): TraceAsync {
 }
 
 export function maskEmail(email: string): string {
-	const [local, domain] = email.split('@')
-	if (!domain) return '***'
-	const [domainName, tld] = domain.split('.')
-	return `${local?.[0]}***@${domainName?.[0]}***.${tld}`
+	const [local, domain] = email.split("@");
+	if (!domain) return "***";
+	const [domainName, tld] = domain.split(".");
+	return `${local?.[0]}***@${domainName?.[0]}***.${tld}`;
 }
 
 /** ------------------------------------------------------------
@@ -196,10 +186,10 @@ export function maskEmail(email: string): string {
 export async function withTraceContext<T>(
 	traceContext:
 		| {
-			traceId?: string;
-			spanId?: string;
-			traceFlags?: number;
-		}
+				traceId?: string;
+				spanId?: string;
+				traceFlags?: number;
+		  }
 		| undefined,
 	spanName: string,
 	fn: () => Promise<T>

@@ -36,8 +36,8 @@ import { useStore } from "@tanstack/react-store";
 import { useEffect, useState } from "react";
 import { useLayoutData } from "@/components/admin/shell/context";
 import { navigationStore } from "@/lib/navigation-store";
+import type { OrgSettingsNavItem, OrgSettingsNavLabel } from "@/lib/routemap";
 import { orgSettingsNavigation, settingsNavigation } from "@/lib/routemap";
-import type { OrgSettingsNavLabel, OrgSettingsNavItem } from "@/lib/routemap";
 import { sidebarActions } from "@/lib/sidebar/sidebar-store";
 import UserDropdown from "./user-dropdown";
 
@@ -213,11 +213,7 @@ export function SettingsSidebar() {
 											: pathname === url;
 									const Icon = isActive ? item.activeIcon : item.icon;
 									return (
-										<SidebarMenuItem
-											key={item.title}
-											className="min-h-auto"
-											isActive={isActive}
-										>
+										<SidebarMenuItem key={item.title} className="min-h-auto" isActive={isActive}>
 											<Link to={url} className="w-full">
 												<SidebarMenuButton
 													size="small"

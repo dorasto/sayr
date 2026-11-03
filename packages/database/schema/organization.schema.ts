@@ -1,8 +1,8 @@
 import crypto from "node:crypto";
+import { defaultOrgAiSettings, type OrgAiSettings } from "@repo/util";
 import { relations, sql } from "drizzle-orm";
 import * as v from "drizzle-orm/pg-core";
 import { pgTable as table } from "drizzle-orm/pg-core";
-import { type OrgAiSettings, defaultOrgAiSettings } from "@repo/util";
 import { member } from "./member.schema";
 
 // OrgAiRateLimit/OrgAiSettings/defaultOrgAiSettings live in @repo/util (not

@@ -1,6 +1,6 @@
-import { ResizableRoot, ResizableHandle } from "prosekit/react/resizable";
-import type { ReactNodeViewProps } from "prosekit/react";
 import { IconArrowsDiagonal2 } from "@tabler/icons-react";
+import type { ReactNodeViewProps } from "prosekit/react";
+import { ResizableHandle, ResizableRoot } from "prosekit/react/resizable";
 
 export default function GifView(props: ReactNodeViewProps) {
 	const attrs = props.node.attrs as {

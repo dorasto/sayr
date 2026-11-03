@@ -41,7 +41,7 @@ export function getVisibilityDisplay(task: schema.TaskWithLabels): FieldDisplay 
 
 export function getVisibilityUpdatePayload(
 	task: schema.TaskWithLabels,
-	newVisibility: string,
+	newVisibility: string
 ): SingleFieldUpdatePayload {
 	return {
 		kind: "single",

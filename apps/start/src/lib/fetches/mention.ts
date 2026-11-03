@@ -11,11 +11,7 @@ const API_URL = import.meta.env.VITE_APP_ENV === "development" ? "/backend-api/i
  * @param limit - Max results (default 20).
  * @returns Array of UserSummary objects.
  */
-export async function searchMentionUsers(
-	orgId: string,
-	query?: string,
-	limit?: number,
-): Promise<schema.UserSummary[]> {
+export async function searchMentionUsers(orgId: string, query?: string, limit?: number): Promise<schema.UserSummary[]> {
 	const params = new URLSearchParams();
 	if (query) params.set("query", query);
 	if (limit) params.set("limit", String(limit));
@@ -49,14 +45,12 @@ export async function searchMentionUsers(
  * @param options.limit - Max results (default 20).
  * @returns Array of UserSummary objects.
  */
-export async function searchGlobalUsers(
-	options: {
-		query?: string;
-		orgId?: string;
-		taskId?: string;
-		limit?: number;
-	},
-): Promise<schema.UserSummary[]> {
+export async function searchGlobalUsers(options: {
+	query?: string;
+	orgId?: string;
+	taskId?: string;
+	limit?: number;
+}): Promise<schema.UserSummary[]> {
 	const params = new URLSearchParams();
 	if (options.query) params.set("query", options.query);
 	if (options.orgId) params.set("orgId", options.orgId);

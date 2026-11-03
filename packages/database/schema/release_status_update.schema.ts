@@ -2,22 +2,15 @@ import { randomUUID } from "node:crypto";
 import { relations } from "drizzle-orm";
 import * as v from "drizzle-orm/pg-core";
 import { pgTable as table } from "drizzle-orm/pg-core";
+import type { NodeJSON } from ".";
 import { user } from "./auth";
 import { organization } from "./organization.schema";
 import { release } from "./release.schema";
 import { releaseComment } from "./release_comment.schema";
-import type { NodeJSON } from ".";
 
-export const releaseUpdateHealthEnum = v.pgEnum("release_update_health", [
-	"on_track",
-	"at_risk",
-	"off_track",
-]);
+export const releaseUpdateHealthEnum = v.pgEnum("release_update_health", ["on_track", "at_risk", "off_track"]);
 
-export const releaseUpdateVisibilityEnum = v.pgEnum("release_update_visibility", [
-	"public",
-	"internal",
-]);
+export const releaseUpdateVisibilityEnum = v.pgEnum("release_update_visibility", ["public", "internal"]);
 
 export const releaseStatusUpdate = table(
 	"release_status_update",

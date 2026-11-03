@@ -1,118 +1,94 @@
-import { createTraceAsync } from "@repo/opentelemetry/trace";
-import { and, eq, or } from "drizzle-orm";
 import { db } from "@repo/database";
-import { JobGroups } from "@repo/queue";
+import { createTraceAsync } from "@repo/opentelemetry/trace";
+import type { JobGroups } from "@repo/queue";
+import { and, eq, or } from "drizzle-orm";
 
 const API_URL =
-    process.env.APP_ENV === "development"
-        ? "http://localhost:5468/api/internal"
-        : "http://backend:5468/api/internal";
+	process.env.APP_ENV === "development" ? "http://localhost:5468/api/internal" : "http://backend:5468/api/internal";
 /**
  * Attempts to find a Sayr user linked to the given GitHub numeric ID.
  * Returns the Sayr user ID if found, otherwise undefined.
  */
 async function findLinkedSayrUser(githubId?: number): Promise<string | undefined> {
-    if (!githubId) return undefined;
+	if (!githubId) return undefined;
 
-    const linked = await db.query.account.findFirst({
-        where: (a) =>
-            and(
-                eq(a.providerId, "github"),
-                eq(a.accountId, String(githubId))
-            ),
-        columns: { userId: true },
-    });
+	const linked = await db.query.account.findFirst({
+		where: (a) => and(eq(a.providerId, "github"), eq(a.accountId, String(githubId))),
+		columns: { userId: true },
+	});
 
-    return linked?.userId;
+	return linked?.userId;
 }
-export async function handleGithubCommitRef(
-    job: JobGroups["github"] & { type: "github_commit_ref" }
-) {
-    const traceAsync = createTraceAsync();
-    const {
-        organizationId,
-        repoOwner,
-        repoName,
-        repoPrivate,
-        commitSha,
-        commitUrl,
-        commitMessage,
-        authorLogin,
-        userId,
-        matches,
-    } = job.payload;
+export async function handleGithubCommitRef(job: JobGroups["github"] & { type: "github_commit_ref" }) {
+	const traceAsync = createTraceAsync();
+	const {
+		organizationId,
+		repoOwner,
+		repoName,
+		repoPrivate,
+		commitSha,
+		commitUrl,
+		commitMessage,
+		authorLogin,
+		userId,
+		matches,
+	} = job.payload;
 
-    const linkedUserId = await findLinkedSayrUser(userId || 0);
-    for (const match of matches) {
+	const linkedUserId = await findLinkedSayrUser(userId || 0);
+	for (const match of matches) {
+		await traceAsync(
+			"github.commit_ref.process",
+			async () => {
+				const task = await db.query.task.findFirst({
+					where: (t) =>
+						and(
+							eq(t.organizationId, organizationId),
+							or(
+								match.taskKey ? eq(t.shortId, match.taskKey) : undefined,
+								match.taskID ? eq(t.id, match.taskID) : undefined
+							)
+						),
+				});
 
-        await traceAsync(
-            "github.commit_ref.process",
-            async () => {
-                const task = await db.query.task.findFirst({
-                    where: (t) =>
-                        and(
-                            eq(t.organizationId, organizationId),
-                            or(
-                                match.taskKey
-                                    ? eq(t.shortId, match.taskKey)
-                                    : undefined,
-                                match.taskID
-                                    ? eq(t.id, match.taskID)
-                                    : undefined
-                            )
-                        ),
-                });
+				if (!task) return;
 
-                if (!task) return;
+				const res = await fetch(`${API_URL}/v1/admin/organization/task/activity`, {
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+						cookie: `sayr_internal=${process.env.INTERNAL_SECRET};`,
+						"user-agent": "Sayr-Worker/1.0",
+						"x-internal-secret": process.env.INTERNAL_SECRET!,
+						"x-internal-service": "sayr-worker",
+						"x-internal-timestamp": new Date().toISOString(),
+					},
+					body: JSON.stringify({
+						org_id: organizationId,
+						task_id: task.id,
+						type: "github_commit_ref",
+						visibility: repoPrivate ? "internal" : "public",
+						...(linkedUserId && { createdBy: linkedUserId }),
+						data: {
+							repo: `${repoOwner}/${repoName}`,
+							commitSha,
+							commitUrl,
+							message: commitMessage,
+							author: authorLogin,
+						},
+					}),
+				});
 
-                const res = await fetch(
-                    `${API_URL}/v1/admin/organization/task/activity`,
-                    {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json",
-                            cookie: `sayr_internal=${process.env.INTERNAL_SECRET};`,
-                            "user-agent": "Sayr-Worker/1.0",
-                            "x-internal-secret":
-                                process.env.INTERNAL_SECRET!,
-                            "x-internal-service":
-                                "sayr-worker",
-                            "x-internal-timestamp":
-                                new Date().toISOString(),
-                        },
-                        body: JSON.stringify({
-                            org_id: organizationId,
-                            task_id: task.id,
-                            type: "github_commit_ref",
-                            visibility: repoPrivate
-                                ? "internal"
-                                : "public",
-                            ...(linkedUserId && { createdBy: linkedUserId }),
-                            data: {
-                                repo: `${repoOwner}/${repoName}`,
-                                commitSha,
-                                commitUrl,
-                                message: commitMessage,
-                                author: authorLogin,
-                            },
-                        }),
-                    }
-                );
-
-                if (!res.ok) {
-                    console.error(
-                        `❌ Failed to add commit ref timeline for task ${task.shortId}: ${res.statusText}`
-                    );
-                }
-            },
-            {
-                description:
-                    "Posting GitHub commit reference to task timeline",
-                data: {
-                    taskKey: match.taskKey,
-                    commitSha,
-                },
-            }
-        );
-    }
+				if (!res.ok) {
+					console.error(`❌ Failed to add commit ref timeline for task ${task.shortId}: ${res.statusText}`);
+				}
+			},
+			{
+				description: "Posting GitHub commit reference to task timeline",
+				data: {
+					taskKey: match.taskKey,
+					commitSha,
+				},
+			}
+		);
+	}
 }

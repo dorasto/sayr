@@ -1,7 +1,8 @@
-import { notificationActions } from "@/lib/stores/notification-store";
 import type { schema, TeamPermissions } from "@repo/database";
 import { useStateManagement, useStateManagementInfiniteFetch } from "@repo/ui/hooks/useStateManagement.ts";
 import { createContext, type ReactNode, useContext, useEffect, useRef } from "react";
+import { notificationActions } from "@/lib/stores/notification-store";
+
 const API_URL = import.meta.env.VITE_APP_ENV === "development" ? "/backend-api/internal" : "/api/internal";
 
 interface InboxContextType {
@@ -14,42 +15,42 @@ interface InboxContextType {
 	releases: schema.releaseType[];
 	setReleases: (newValue: InboxContextType["releases"]) => void;
 	notifications: {
-		id: string
-		type: string
+		id: string;
+		type: string;
 		data: {
-			taskId: string
-			timelineEventId: string
-		}
-		delivered: boolean
-		readAt: string
-		createdAt: string
-		updatedAt: string
+			taskId: string;
+			timelineEventId: string;
+		};
+		delivered: boolean;
+		readAt: string;
+		createdAt: string;
+		updatedAt: string;
 		actor: {
-			id: string
-			name: string
-			image: string
-			displayName: string
-		}
+			id: string;
+			name: string;
+			image: string;
+			displayName: string;
+		};
 		recipient: {
-			id: string
-			name: string
-			image: string
-			displayName: string
-		}
+			id: string;
+			name: string;
+			image: string;
+			displayName: string;
+		};
 		organization: {
-			id: string
-			name: string
-			slug: string
-			logo: string
-			shortId: string
-		}
+			id: string;
+			name: string;
+			slug: string;
+			logo: string;
+			shortId: string;
+		};
 		task: {
-			id: string
-			shortId: number
-			status: string
-			priority: string
-		}
-		unread: boolean
+			id: string;
+			shortId: number;
+			status: string;
+			priority: string;
+		};
+		unread: boolean;
 	}[];
 	unreadCount: number;
 	refreshNotifications: () => void;
@@ -63,11 +64,10 @@ interface InboxContextType {
 		totalPages: number;
 		totalItems: number;
 		hasMore: boolean;
-	}
+	};
 }
 
 const InboxContext = createContext<InboxContextType | undefined>(undefined);
-
 
 export type Notification = {
 	id: string;
@@ -93,19 +93,18 @@ type NotificationPage = {
 	};
 };
 
-
 function getPageData(response: NotificationPage): NotificationPage {
 	return {
 		items: response.items ?? [],
 		unreadCount: response.unreadCount ?? 0,
 		pagination: response.pagination ??
 			response.pagination ?? {
-			page: 1,
-			limit: 20,
-			totalPages: 1,
-			totalItems: 0,
-			hasMore: false,
-		},
+				page: 1,
+				limit: 20,
+				totalPages: 1,
+				totalItems: 0,
+				hasMore: false,
+			},
 	};
 }
 export function RootProviderInbox({
@@ -128,10 +127,7 @@ export function RootProviderInbox({
 	const { value: newLabels, setValue: setLabels } = useStateManagement("inbox-labels", labels, 30000);
 	const { value: newCategories, setValue: setCategories } = useStateManagement("inbox-categories", categories, 30000);
 	const { value: newReleases, setValue: setReleases } = useStateManagement("inbox-releases", releases, 30000);
-	const notificationsQuery = useStateManagementInfiniteFetch<
-		NotificationPage,
-		Record<string, never>
-	>({
+	const notificationsQuery = useStateManagementInfiniteFetch<NotificationPage, Record<string, never>>({
 		key: ["inbox-notifications"],
 		fetch: {
 			url: "/v1/admin/notification",
@@ -139,7 +135,7 @@ export function RootProviderInbox({
 				const pageNumber = page ? Number(page) : 1;
 				const params = new URLSearchParams();
 				params.set("page", String(pageNumber));
-				params.set("limit", String(20))
+				params.set("limit", String(20));
 				const qs = params.toString();
 				const url = `${API_URL}/v1/admin/notification${qs ? `?${qs}` : ""}`;
 				const res = await fetch(url, {
@@ -150,9 +146,7 @@ export function RootProviderInbox({
 			},
 			getNextPageParam: (lastPage) => {
 				const pageData = getPageData(lastPage);
-				return pageData.pagination.hasMore
-					? String(pageData.pagination.page + 1)
-					: undefined;
+				return pageData.pagination.hasMore ? String(pageData.pagination.page + 1) : undefined;
 			},
 		},
 		staleTime: 30_000,
@@ -181,10 +175,8 @@ export function RootProviderInbox({
 
 		const title = originalTitle.current;
 
-		document.title = unreadCount > 0
-			? `(${unreadCount}) ${title}`
-			: title;
-		notificationActions.setCount(unreadCount)
+		document.title = unreadCount > 0 ? `(${unreadCount}) ${title}` : title;
+		notificationActions.setCount(unreadCount);
 		return () => {
 			document.title = title;
 		};

@@ -1,9 +1,10 @@
-import { Hono } from "hono";
+import { createPolar } from "@polar-sh/sdk/2026-10";
 import { db, getOrganization, schema } from "@repo/database";
 import { eq } from "drizzle-orm";
+import { Hono } from "hono";
 import { type AppEnv, isFirstPartyBrowserRequest } from "@/index";
 import { traceOrgPermissionCheck } from "@/util";
-import { createPolar } from "@polar-sh/sdk/2026-10";
+
 const polarClient = createPolar({
 	accessToken: process.env.POLAR_ACCESS_TOKEN!,
 });
@@ -125,7 +126,7 @@ app.get("/customer-portal", async (c) => {
 	if (!org) throw new Error("Org not found");
 
 	// 2️⃣ Ensure Polar org customer exists
-	let customerId = org.polarCustomerId;
+	const customerId = org.polarCustomerId;
 
 	if (!customerId) {
 		throw new Error("Customer not found for org");

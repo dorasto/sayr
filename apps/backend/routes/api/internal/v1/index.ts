@@ -1,12 +1,12 @@
+import { getEditionCapabilities } from "@repo/edition";
 import { Hono } from "hono";
 import type { AppEnv } from "@/index";
 import { apiRouteAdmin } from "./admin";
-import { apiRouteUserApiKeys } from "./apikey";
-import { apiRouteFile } from "./file";
-import { apiRouteConsole } from "./console";
-import { apiRoutePolar } from "./polar";
 import { aiRoute } from "./ai";
-import { getEditionCapabilities } from "@repo/edition";
+import { apiRouteUserApiKeys } from "./apikey";
+import { apiRouteConsole } from "./console";
+import { apiRouteFile } from "./file";
+import { apiRoutePolar } from "./polar";
 
 export const internalApiV1 = new Hono<AppEnv>();
 internalApiV1.route("/admin", apiRouteAdmin);

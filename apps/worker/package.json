@@ -1,40 +1,40 @@
 {
-  "name": "worker",
-  "version": "0.0.8",
-  "private": false,
-  "scripts": {
-    "internal:dev-main": "op run --env-file .env -- bun --watch run index.ts main",
-    "internal:dev-github": "op run --env-file .env -- bun --watch run index.ts github",
-    "build": "bun build index.ts --target=bun --outdir ./dist",
-    "start": "bun ./dist/index.js",
-    "zerops:build": "bun build index.ts --target=bun --outdir ./dist",
-    "zerops:start-main": "bun run dist/index.js main",
-    "zerops:start-github": "bun run dist/index.js github",
-    "internal:start": "op run --env-file .env -- bun run start",
-    "backfill:embeddings": "bun run scripts/backfill-task-embeddings.ts",
-    "lint": "biome check .",
-    "lint:fix": "biome check . --write",
-    "format": "biome format --write ."
-  },
-  "dependencies": {
-    "@clickhouse/client": "^1.18.2",
-    "@repo/ai": "workspace:*",
-    "@repo/database": "workspace:*",
-    "@repo/edition": "workspace:*",
-    "@repo/opentelemetry": "workspace:*",
-    "@repo/storage": "workspace:*",
-    "@repo/util": "workspace:*",
-    "cron": "^4.3.4",
-    "markdown-it": "^14.1.1",
-    "prosemirror-markdown": "^1.13.2",
-    "prosemirror-model": "1.25.4"
-  },
-  "devDependencies": {
-    "@biomejs/biome": "^2.1.1",
-    "@repo/queue": "workspace:*",
-    "@repo/typescript-config": "workspace:*",
-    "@types/bun": "^1.2.23",
-    "bun-types": "^1.2.21",
-    "typescript": "^5.3.3"
-  }
+	"name": "worker",
+	"version": "0.0.8",
+	"private": false,
+	"scripts": {
+		"internal:dev-main": "op run --env-file .env -- bun --watch run index.ts main",
+		"internal:dev-github": "op run --env-file .env -- bun --watch run index.ts github",
+		"build": "bun build index.ts --target=bun --outdir ./dist",
+		"start": "bun ./dist/index.js",
+		"zerops:build": "bun build index.ts --target=bun --outdir ./dist",
+		"zerops:start-main": "bun run dist/index.js main",
+		"zerops:start-github": "bun run dist/index.js github",
+		"internal:start": "op run --env-file .env -- bun run start",
+		"backfill:embeddings": "bun run scripts/backfill-task-embeddings.ts",
+		"lint": "biome check .",
+		"lint:fix": "biome check . --write",
+		"format": "biome format --write ."
+	},
+	"dependencies": {
+		"@clickhouse/client": "^1.18.2",
+		"@repo/ai": "workspace:*",
+		"@repo/database": "workspace:*",
+		"@repo/edition": "workspace:*",
+		"@repo/opentelemetry": "workspace:*",
+		"@repo/storage": "workspace:*",
+		"@repo/util": "workspace:*",
+		"cron": "^4.3.4",
+		"markdown-it": "^14.1.1",
+		"prosemirror-markdown": "^1.13.2",
+		"prosemirror-model": "1.25.4"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^2.1.1",
+		"@repo/queue": "workspace:*",
+		"@repo/typescript-config": "workspace:*",
+		"@types/bun": "^1.2.23",
+		"bun-types": "^1.2.21",
+		"typescript": "^5.3.3"
+	}
 }

@@ -1,11 +1,11 @@
-import { createComment, db, getOrganizationMembers, getTaskComments, schema } from "@repo/database";
 import type { McpServer } from "@modelcontextprotocol/server";
+import { createComment, db, getOrganizationMembers, getTaskComments, schema } from "@repo/database";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { resolveTaskId } from "../../../lib/apiRefs";
 import { assertMcpAccess } from "../../../lib/mcp/auth";
-import { prosekitJSONToMarkdown } from "../../../prosekit/markdown";
 import { notifyCommentCreated } from "../../../lib/tasks/notify";
+import { prosekitJSONToMarkdown } from "../../../prosekit/markdown";
 import { markdownToProsekitJSON } from "../../../prosekit/parser";
 import { resolveMarkdownMentions } from "../../../prosekit/resolveMarkdownMentions";
 import { findSSEClientsByUserId, sseBroadcastIndividual, sseBroadcastPublic, sseBroadcastToRoom } from "../../events";

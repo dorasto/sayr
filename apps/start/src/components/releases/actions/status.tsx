@@ -1,4 +1,4 @@
-import { releaseStatusConfig, RELEASE_STATUS_ORDER, type ReleaseStatusKey } from "../config";
+import { RELEASE_STATUS_ORDER, type ReleaseStatusKey, releaseStatusConfig } from "../config";
 import type { ReleaseFieldOption, ReleaseFieldUpdatePayload } from "./types";
 
 const STATUS_ICON_CLASS = "h-3.5 w-3.5";
@@ -38,7 +38,7 @@ export function getReleaseStatusDisplay(status: ReleaseStatusKey) {
  */
 export function getReleaseStatusUpdatePayload(
 	currentReleasedAt: Date | string | null,
-	newStatus: ReleaseStatusKey,
+	newStatus: ReleaseStatusKey
 ): ReleaseFieldUpdatePayload {
 	const label = releaseStatusConfig[newStatus].label;
 

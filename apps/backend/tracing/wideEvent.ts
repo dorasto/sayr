@@ -1,4 +1,4 @@
-import { context, trace, SpanStatusCode, type Attributes, SpanKind } from "@opentelemetry/api";
+import { type Attributes, context, SpanKind, SpanStatusCode, trace } from "@opentelemetry/api";
 import { getTracer } from "@repo/opentelemetry";
 import type { Context, Next } from "hono";
 
@@ -35,31 +35,19 @@ export function wideEventMiddleware() {
 				return;
 			}
 
-			const span = tracer.startSpan(
-				wide.name ?? "error",
-				{ kind: SpanKind.INTERNAL },
-				parentCtx
-			);
+			const span = tracer.startSpan(wide.name ?? "error", { kind: SpanKind.INTERNAL }, parentCtx);
 
 			try {
 				const { error, message, code, contextData } = wide;
 
 				span.setAttributes({
-					"trace.error.type":
-						(error as Error)?.name ?? typeof error,
-					"trace.error.message":
-						(error as Error)?.message ??
-						message ??
-						"Unknown error",
-					"trace.error.code":
-						code?.toString() ?? "Unknown",
+					"trace.error.type": (error as Error)?.name ?? typeof error,
+					"trace.error.message": (error as Error)?.message ?? message ?? "Unknown error",
+					"trace.error.code": code?.toString() ?? "Unknown",
 				});
 
 				if ((error as Error)?.stack) {
-					span.setAttribute(
-						"trace.error.stack",
-						(error as Error).stack as string
-					);
+					span.setAttribute("trace.error.stack", (error as Error).stack as string);
 				}
 
 				if (contextData) {
@@ -67,9 +55,7 @@ export function wideEventMiddleware() {
 						if (value !== undefined && value !== null) {
 							span.setAttribute(
 								`trace.error.context.${key}`,
-								typeof value === "string" ||
-									typeof value === "number" ||
-									typeof value === "boolean"
+								typeof value === "string" || typeof value === "number" || typeof value === "boolean"
 									? value
 									: JSON.stringify(value)
 							);
@@ -80,10 +66,7 @@ export function wideEventMiddleware() {
 				span.recordException(error as Error);
 				span.setStatus({
 					code: SpanStatusCode.ERROR,
-					message:
-						(error as Error)?.message ??
-						message ??
-						"Unknown error",
+					message: (error as Error)?.message ?? message ?? "Unknown error",
 				});
 			} catch (err) {
 				span.recordException(err as Error);

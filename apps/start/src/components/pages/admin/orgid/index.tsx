@@ -5,6 +5,7 @@ import { getInitials } from "@repo/util";
 import { IconCategory, IconPlug, IconProgress, IconTag, IconUsers } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
 import { useEffect, useMemo } from "react";
+import { useLayoutData } from "@/components/admin/shell/context";
 import {
 	TaskAgeChart,
 	TaskAssigneeChart,
@@ -16,7 +17,6 @@ import {
 	TaskThroughputChart,
 	TaskTimelineChart,
 } from "@/components/charts";
-import { useLayoutData } from "@/components/admin/shell/context";
 import { PageHeader } from "@/components/generic/PageHeader";
 import { SubWrapper } from "@/components/generic/wrapper";
 import { useLayoutOrganization } from "@/contexts/ContextOrg";

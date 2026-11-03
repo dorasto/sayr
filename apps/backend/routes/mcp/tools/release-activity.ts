@@ -1,3 +1,4 @@
+import type { McpServer } from "@modelcontextprotocol/server";
 import {
 	addReleaseLabel,
 	createReleaseComment,
@@ -15,7 +16,6 @@ import {
 	updateReleaseComment,
 	updateReleaseStatusUpdate,
 } from "@repo/database";
-import type { McpServer } from "@modelcontextprotocol/server";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { assertMcpAccess } from "../../../lib/mcp/auth";
@@ -35,9 +35,9 @@ import {
 	RELEASE_VISIBILITIES,
 } from "../../../lib/releases/input";
 import { toMarkdown } from "../../../lib/releases/serialize";
+import { withResolvedMentions } from "../../../prosekit/resolveMarkdownMentions";
 import { MARKDOWN_MENTIONS_HINT, type McpUserClaims, resolveAndRateLimitOrg, toolError, toolJson } from "../context";
 import { findRelease, guard, orgArg, releaseArg, releaseFailure } from "./releases";
-import { withResolvedMentions } from "../../../prosekit/resolveMarkdownMentions";
 
 const COMMENTS_DEFAULT_LIMIT = 10;
 const COMMENTS_MAX_LIMIT = 50;

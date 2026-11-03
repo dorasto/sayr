@@ -2,15 +2,12 @@ import { randomUUID } from "node:crypto";
 import { relations } from "drizzle-orm";
 import * as v from "drizzle-orm/pg-core";
 import { pgTable as table } from "drizzle-orm/pg-core";
+import { type NodeJSON, taskCommentReaction } from ".";
 import { user } from "./auth";
 import { organization } from "./organization.schema";
 import { task } from "./task.schema";
-import { taskCommentReaction, type NodeJSON } from ".";
 export const taskCommentVisibilityEnum = v.pgEnum("task_comment_visibility", ["public", "internal"]);
-export const taskCommentSourceEnum = v.pgEnum(
-	"task_comment_source",
-	["sayr", "github"]
-);
+export const taskCommentSourceEnum = v.pgEnum("task_comment_source", ["sayr", "github"]);
 export const taskComment = table(
 	"task_comment",
 	{
@@ -31,9 +28,7 @@ export const taskComment = table(
 		createdBy: v.text("created_by").references(() => user.id),
 		visibility: taskCommentVisibilityEnum("visibility").notNull().default("public"),
 		// ✅ Source of comment
-		source: taskCommentSourceEnum("source")
-			.notNull()
-			.default("sayr"),
+		source: taskCommentSourceEnum("source").notNull().default("sayr"),
 
 		// ✅ Threading: nullable parent comment ID for replies (single-level only)
 		// When null, this is a top-level comment. When set, this is a reply to that parent.
@@ -53,15 +48,15 @@ export const taskComment = table(
 	(t) => [
 		v.index("idx_task_comment_task").on(t.organizationId, t.taskId, t.createdAt),
 		v.index("idx_task_comment_creator").on(t.createdBy),
-		v.index("idx_task_comment_external_author").on(
-			t.externalAuthorLogin
-		),
+		v.index("idx_task_comment_external_author").on(t.externalAuthorLogin),
 		v.index("idx_task_comment_parent").on(t.parentId),
-		v.foreignKey({
-			columns: [t.parentId],
-			foreignColumns: [t.id],
-			name: "task_comment_parent_fk",
-		}).onDelete("cascade"),
+		v
+			.foreignKey({
+				columns: [t.parentId],
+				foreignColumns: [t.id],
+				name: "task_comment_parent_fk",
+			})
+			.onDelete("cascade"),
 	]
 );
 

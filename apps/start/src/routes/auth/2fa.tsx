@@ -1,13 +1,14 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
-import { useState } from "react";
 import { authClient } from "@repo/auth/client";
 import { Button } from "@repo/ui/components/button";
 import { Input } from "@repo/ui/components/input";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@repo/ui/components/input-otp";
-import { IconShieldCheck, IconKey } from "@tabler/icons-react";
-import { getAccess } from "@/getAccess";
+import { IconKey, IconShieldCheck } from "@tabler/icons-react";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
-import { seo, getOgImageUrl } from "@/seo";
+import { useState } from "react";
+import { getAccess } from "@/getAccess";
+import { getOgImageUrl, seo } from "@/seo";
+
 const checkAuth = createServerFn({ method: "GET" }).handler(async () => {
 	const { account } = await getAccess();
 	return { account };
@@ -85,7 +86,6 @@ function RouteComponent() {
 				</div>
 
 				<div className="bg-card rounded-lg border p-6">
-
 					<div className="flex flex-col items-center">
 						{useBackupCode ? (
 							<Input
@@ -96,12 +96,7 @@ function RouteComponent() {
 								maxLength={9}
 							/>
 						) : (
-							<InputOTP
-								value={code}
-								onChange={(value) => setCode(value)}
-								maxLength={6}
-								className="gap-2"
-							>
+							<InputOTP value={code} onChange={(value) => setCode(value)} maxLength={6} className="gap-2">
 								<InputOTPGroup>
 									<InputOTPSlot index={0} />
 									<InputOTPSlot index={1} />

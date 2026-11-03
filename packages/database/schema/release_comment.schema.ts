@@ -2,17 +2,14 @@ import { randomUUID } from "node:crypto";
 import { relations } from "drizzle-orm";
 import * as v from "drizzle-orm/pg-core";
 import { pgTable as table } from "drizzle-orm/pg-core";
+import type { NodeJSON } from ".";
 import { user } from "./auth";
 import { organization } from "./organization.schema";
 import { release } from "./release.schema";
-import { releaseStatusUpdate } from "./release_status_update.schema";
 import { releaseCommentReaction } from "./release_comment_reaction.schema";
-import type { NodeJSON } from ".";
+import { releaseStatusUpdate } from "./release_status_update.schema";
 
-export const releaseCommentVisibilityEnum = v.pgEnum("release_comment_visibility", [
-	"public",
-	"internal",
-]);
+export const releaseCommentVisibilityEnum = v.pgEnum("release_comment_visibility", ["public", "internal"]);
 
 export const releaseComment = table(
 	"release_comment",
@@ -30,9 +27,7 @@ export const releaseComment = table(
 			.notNull()
 			.references(() => organization.id, { onDelete: "cascade" }),
 		// null = comment on the release itself; set = comment on a specific status update
-		statusUpdateId: v
-			.text("status_update_id")
-			.references(() => releaseStatusUpdate.id, { onDelete: "cascade" }),
+		statusUpdateId: v.text("status_update_id").references(() => releaseStatusUpdate.id, { onDelete: "cascade" }),
 		createdBy: v.text("created_by").references(() => user.id, { onDelete: "set null" }),
 		content: v.jsonb("content").$type<NodeJSON>(),
 		visibility: releaseCommentVisibilityEnum("visibility").notNull().default("public"),
@@ -47,11 +42,13 @@ export const releaseComment = table(
 		v.index("idx_release_comment_org").on(t.organizationId, t.createdAt),
 		v.index("idx_release_comment_creator").on(t.createdBy),
 		v.index("idx_release_comment_parent").on(t.parentId),
-		v.foreignKey({
-			columns: [t.parentId],
-			foreignColumns: [t.id],
-			name: "release_comment_parent_fk",
-		}).onDelete("cascade"),
+		v
+			.foreignKey({
+				columns: [t.parentId],
+				foreignColumns: [t.id],
+				name: "release_comment_parent_fk",
+			})
+			.onDelete("cascade"),
 	]
 );
 

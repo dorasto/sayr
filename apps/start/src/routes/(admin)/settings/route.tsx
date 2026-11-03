@@ -10,11 +10,11 @@ import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
 import { cn } from "@repo/ui/lib/utils";
 import { ensureCdnUrl } from "@repo/util";
 import { IconChevronDown, IconSettings, IconUsers } from "@tabler/icons-react";
-import { Link, Outlet, createFileRoute, useLocation, useMatch } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useLocation, useMatch } from "@tanstack/react-router";
 import { useLayoutData } from "@/components/admin/shell/context";
 import { PageHeader } from "@/components/generic/PageHeader";
-import { orgSettingsNavigation, settingsNavigation } from "@/lib/routemap";
 import type { OrgSettingsNavItem } from "@/lib/routemap";
+import { orgSettingsNavigation, settingsNavigation } from "@/lib/routemap";
 
 export const Route = createFileRoute("/(admin)/settings")({
 	component: RouteComponent,

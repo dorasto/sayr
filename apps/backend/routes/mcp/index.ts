@@ -1,6 +1,6 @@
 import { createMcpProtectedRequestHandler } from "@better-auth/mcp";
-import { mcpOAuthConfig } from "@repo/auth";
 import { createMcpHandler, McpServer } from "@modelcontextprotocol/server";
+import { mcpOAuthConfig } from "@repo/auth";
 import { db, schema } from "@repo/database";
 import { and, eq } from "drizzle-orm";
 import { claimsFromAuthInfo, type McpUserClaims } from "./context";

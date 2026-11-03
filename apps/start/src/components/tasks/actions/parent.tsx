@@ -2,7 +2,7 @@ import type { schema } from "@repo/database";
 import StatusIcon from "@repo/ui/components/icons/status";
 import { formatTaskKey } from "@repo/util";
 import { IconGitBranch } from "@tabler/icons-react";
-import { setTaskParentAction, removeTaskParentAction } from "@/lib/fetches/task";
+import { removeTaskParentAction, setTaskParentAction } from "@/lib/fetches/task";
 import type { FieldDisplay, FieldOption, ParentFieldUpdatePayload } from "./types";
 
 /**

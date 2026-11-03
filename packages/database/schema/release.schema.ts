@@ -2,12 +2,12 @@ import { randomUUID } from "node:crypto";
 import { relations } from "drizzle-orm";
 import * as v from "drizzle-orm/pg-core";
 import { pgTable as table } from "drizzle-orm/pg-core";
-import { user } from "./auth";
-import { organization } from "./organization.schema";
-import { releaseLabelAssignment } from "./label.schema";
-import { releaseStatusUpdate } from "./release_status_update.schema";
-import { releaseComment } from "./release_comment.schema";
 import type { NodeJSON } from ".";
+import { user } from "./auth";
+import { releaseLabelAssignment } from "./label.schema";
+import { organization } from "./organization.schema";
+import { releaseComment } from "./release_comment.schema";
+import { releaseStatusUpdate } from "./release_status_update.schema";
 
 export const releaseStatusEnum = v.pgEnum("release_status", ["planned", "in-progress", "released", "archived"]);
 

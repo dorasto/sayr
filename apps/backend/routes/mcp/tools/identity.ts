@@ -1,5 +1,5 @@
-import { db, getOrganizations } from "@repo/database";
 import type { McpServer } from "@modelcontextprotocol/server";
+import { db, getOrganizations } from "@repo/database";
 import { eq } from "drizzle-orm";
 import { type McpUserClaims, toolError, toolJson } from "../context";
 

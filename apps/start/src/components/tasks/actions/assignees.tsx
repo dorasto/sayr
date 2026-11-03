@@ -12,7 +12,7 @@ export interface AssigneeOptionMeta {
  * Builds assignee options from the org's member list.
  */
 export function getAssigneeOptions(
-	members: schema.OrganizationWithMembers["members"],
+	members: schema.OrganizationWithMembers["members"]
 ): FieldOption<string, AssigneeOptionMeta>[] {
 	return (members || []).map((member) => {
 		const user = member.user;
@@ -38,9 +38,7 @@ export function getAssigneeOptions(
  * structure. This helper produces the same `FieldOption` shape so those
  * consumers can use the action system directly.
  */
-export function getAssigneeOptionsFromUsers(
-	users: schema.userType[],
-): FieldOption<string, AssigneeOptionMeta>[] {
+export function getAssigneeOptionsFromUsers(users: schema.userType[]): FieldOption<string, AssigneeOptionMeta>[] {
 	return (users || []).map((user) => ({
 		id: user.id,
 		label: user.name || user.email || "Unknown",
@@ -72,7 +70,7 @@ export function getAssigneeUpdatePayload(
 	task: schema.TaskWithLabels,
 	userId: string,
 	members: schema.OrganizationWithMembers["members"],
-	sseClientId: string,
+	sseClientId: string
 ): MultiFieldUpdatePayload {
 	const currentAssigneeIds = new Set((task.assignees || []).map((a) => a.id));
 	const isAssigned = currentAssigneeIds.has(userId);
@@ -87,10 +85,7 @@ export function getAssigneeUpdatePayload(
 
 	const newAssignees = isAssigned
 		? (task.assignees || []).filter((a) => a.id !== userId)
-		: [
-			...(task.assignees || []),
-			{ id: userId, name: user?.name ?? "", image: user?.image ?? null },
-		];
+		: [...(task.assignees || []), { id: userId, name: user?.name ?? "", image: user?.image ?? null }];
 
 	return {
 		kind: "multi",
@@ -122,7 +117,7 @@ export function getAssigneeBulkUpdatePayload(
 	task: schema.TaskWithLabels,
 	values: string[],
 	availableUsers: schema.userType[],
-	sseClientId: string,
+	sseClientId: string
 ): MultiFieldUpdatePayload {
 	const newAssignees = availableUsers.filter((user) => values.includes(user.id));
 

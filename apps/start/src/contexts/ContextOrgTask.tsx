@@ -22,8 +22,8 @@ export function RootProviderOrganizationTask({
 }) {
 	const { value: newTask, setValue: setTask } = useStateManagementKey(["task", task.id, organizationId], task, 1);
 	useEffect(() => {
-		setTask(task)
-	}, [task])
+		setTask(task);
+	}, [task]);
 	return <RootContext.Provider value={{ task: newTask, setTask }}>{children}</RootContext.Provider>;
 }
 

@@ -1,6 +1,6 @@
-import SettingsOrganizationViewsPage from "@/components/pages/admin/settings/orgId/views";
-import { SubWrapper } from "@/components/generic/wrapper";
 import { createFileRoute } from "@tanstack/react-router";
+import { SubWrapper } from "@/components/generic/wrapper";
+import SettingsOrganizationViewsPage from "@/components/pages/admin/settings/orgId/views";
 import { seo } from "@/seo";
 
 export const Route = createFileRoute("/(admin)/settings/org/$orgId/views/")({

@@ -1,12 +1,6 @@
-import {
-	context,
-	trace,
-	propagation,
-	SpanKind,
-	SpanStatusCode,
-} from "@opentelemetry/api";
-import type { Context, Next } from "hono";
+import { context, propagation, SpanKind, SpanStatusCode, trace } from "@opentelemetry/api";
 import { getTracer } from "@repo/opentelemetry";
+import type { Context, Next } from "hono";
 
 export function rootSpanPlugin() {
 	return async (c: Context, next: Next) => {
@@ -27,8 +21,7 @@ export function rootSpanPlugin() {
 				attributes: {
 					"http.request.method": c.req.method,
 					"url.path": c.req.path,
-					"user_agent.original":
-						c.req.header("user-agent") ?? "unknown",
+					"user_agent.original": c.req.header("user-agent") ?? "unknown",
 				},
 			},
 			parentCtx
@@ -45,10 +38,7 @@ export function rootSpanPlugin() {
 				await next();
 			});
 
-			span.setAttribute(
-				"http.response.status_code",
-				c.res.status
-			);
+			span.setAttribute("http.response.status_code", c.res.status);
 
 			if (c.res.status >= 500) {
 				span.setStatus({ code: SpanStatusCode.ERROR });
@@ -56,10 +46,7 @@ export function rootSpanPlugin() {
 				span.setStatus({ code: SpanStatusCode.OK });
 			}
 		} catch (err) {
-			span.setAttribute(
-				"http.response.status_code",
-				c.res?.status ?? 500
-			);
+			span.setAttribute("http.response.status_code", c.res?.status ?? 500);
 			span.recordException(err as Error);
 			span.setStatus({ code: SpanStatusCode.ERROR });
 			throw err;

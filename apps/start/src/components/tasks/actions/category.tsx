@@ -13,7 +13,7 @@ export interface CategoryOptionMeta {
  * Includes a "No Category" option at the top.
  */
 export function getCategoryOptions(
-	categories: schema.categoryType[],
+	categories: schema.categoryType[]
 ): FieldOption<string | null, CategoryOptionMeta | undefined>[] {
 	const noneOption: FieldOption<string | null, CategoryOptionMeta | undefined> = {
 		id: "none",
@@ -26,14 +26,7 @@ export function getCategoryOptions(
 	const catOptions: FieldOption<string | null, CategoryOptionMeta | undefined>[] = categories.map((cat) => ({
 		id: cat.id,
 		label: cat.name,
-		icon: (
-			<RenderIcon
-				iconName={cat.icon || "IconCircleFilled"}
-				size={14}
-				color={cat.color || undefined}
-				raw
-			/>
-		),
+		icon: <RenderIcon iconName={cat.icon || "IconCircleFilled"} size={14} color={cat.color || undefined} raw />,
 		value: cat.id,
 		keywords: `category ${cat.name}`,
 		metadata: {
@@ -45,20 +38,12 @@ export function getCategoryOptions(
 	return [noneOption, ...catOptions];
 }
 
-export function getCategoryDisplay(
-	task: schema.TaskWithLabels,
-	categories: schema.categoryType[],
-): FieldDisplay {
+export function getCategoryDisplay(task: schema.TaskWithLabels, categories: schema.categoryType[]): FieldDisplay {
 	const cat = categories.find((c) => c.id === task.category);
 	return {
 		label: cat?.name ?? "No category",
 		icon: cat ? (
-			<RenderIcon
-				iconName={cat.icon || "IconCircleFilled"}
-				size={14}
-				color={cat.color || undefined}
-				raw
-			/>
+			<RenderIcon iconName={cat.icon || "IconCircleFilled"} size={14} color={cat.color || undefined} raw />
 		) : (
 			<IconCategory className="h-4 w-4 opacity-60" />
 		),
@@ -68,11 +53,9 @@ export function getCategoryDisplay(
 export function getCategoryUpdatePayload(
 	task: schema.TaskWithLabels,
 	newCategoryId: string | null,
-	categories: schema.categoryType[],
+	categories: schema.categoryType[]
 ): SingleFieldUpdatePayload {
-	const name = newCategoryId
-		? (categories.find((c) => c.id === newCategoryId)?.name ?? "Unknown")
-		: null;
+	const name = newCategoryId ? (categories.find((c) => c.id === newCategoryId)?.name ?? "Unknown") : null;
 
 	return {
 		kind: "single",

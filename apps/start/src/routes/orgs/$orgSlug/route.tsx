@@ -1,15 +1,15 @@
-import { PublicOrganizationProvider } from "@/contexts/publicContextOrg";
+import { db, getIssueTemplates, getLabels, getOrganizationPublic } from "@repo/database";
+import { getEditionCapabilities } from "@repo/edition";
+import { createFileRoute, Outlet, useRouterState } from "@tanstack/react-router";
+import { createServerFn } from "@tanstack/react-start";
 import PublicNavigation from "@/components/public/navigation";
 import { OrganizationUnavailable } from "@/components/public/organization-unavailable";
 import { MobileTabBar } from "@/components/public/portal/nav/MobileTabBar";
 import { PublicLayoutPending } from "@/components/public/public-layout-pending";
-import { db, getIssueTemplates, getLabels, getOrganizationPublic } from "@repo/database";
-import { getEditionCapabilities } from "@repo/edition";
+import { PublicOrganizationProvider } from "@/contexts/publicContextOrg";
 import { getOgImageUrl, seo } from "@/seo";
-import { createFileRoute, Outlet, useRouterState } from "@tanstack/react-router";
-import { createServerFn } from "@tanstack/react-start";
 
-let cachedSystemOrgSlug: string | null | undefined = undefined;
+let cachedSystemOrgSlug: string | null | undefined;
 let lastFetch = 0;
 
 const TTL = 1000 * 60 * 60; // 1 hour

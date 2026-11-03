@@ -1,13 +1,13 @@
 import { useRouter } from "@tanstack/react-router";
 import { useCallback } from "react";
 import { useLayoutData } from "@/components/admin/shell/context";
+import { useServerEventsSubscription } from "@/hooks/useServerEventsSubscription";
 import { clearAuthCache } from "@/routes/(admin)/route";
 import { UserSettingsContent } from "./user-settings-content";
-import { useServerEventsSubscription } from "@/hooks/useServerEventsSubscription";
 
-// Re-export for consumers that import from this index
-export { UserSettingsContent, UserPreferences } from "./user-settings-content";
 export type { UserSettingsContentProps } from "./user-settings-content";
+// Re-export for consumers that import from this index
+export { UserPreferences, UserSettingsContent } from "./user-settings-content";
 
 /**
  * Admin-context wrapper for UserSettingsContent.

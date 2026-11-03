@@ -257,7 +257,11 @@ export async function updateReleaseStatusUpdateAction(
 	orgId: string,
 	releaseId: string,
 	updateId: string,
-	data: Partial<{ content: schema.NodeJSON; health: "on_track" | "at_risk" | "off_track"; visibility: "public" | "internal" }>,
+	data: Partial<{
+		content: schema.NodeJSON;
+		health: "on_track" | "at_risk" | "off_track";
+		visibility: "public" | "internal";
+	}>,
 	sseClientId: string
 ): Promise<{ success: boolean; data: schema.releaseStatusUpdateType; error?: string }> {
 	return fetch(`${BASE}/${releaseId}/status-updates/${updateId}`, {
@@ -295,10 +299,10 @@ export async function getReleaseCommentsAction(
 	const qs = statusUpdateId !== undefined ? `&statusUpdateId=${statusUpdateId ?? "null"}` : "";
 	const paginationQs = pagination
 		? [
-			pagination.limit !== undefined ? `&limit=${pagination.limit}` : "",
-			pagination.page !== undefined ? `&page=${pagination.page}` : "",
-			pagination.direction ? `&direction=${pagination.direction}` : "",
-		].join("")
+				pagination.limit !== undefined ? `&limit=${pagination.limit}` : "",
+				pagination.page !== undefined ? `&page=${pagination.page}` : "",
+				pagination.direction ? `&direction=${pagination.direction}` : "",
+			].join("")
 		: "";
 	return fetch(`${BASE}/${releaseId}/comments?org_id=${orgId}${qs}${paginationQs}`, {
 		credentials: "include",

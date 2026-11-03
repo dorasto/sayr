@@ -1,9 +1,9 @@
+import { randomUUID } from "node:crypto";
 import * as v from "drizzle-orm/pg-core";
 import { pgTable as table } from "drizzle-orm/pg-core";
-import { randomUUID } from "node:crypto";
-import { task } from "./task.schema";
 import { user } from "./auth";
 import { organization } from "./organization.schema";
+import { task } from "./task.schema";
 
 export const taskVote = table(
 	"task_vote",

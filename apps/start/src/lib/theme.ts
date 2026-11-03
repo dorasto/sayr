@@ -8,9 +8,7 @@ const storageKey = "_preferred-theme";
 const rootDomain = process.env.VITE_ROOT_DOMAIN;
 const isBarelocalhost = rootDomain === "localhost";
 
-export const getThemeServerFn = createServerFn().handler(
-	async () => (getCookie(storageKey) || "dark") as Theme,
-);
+export const getThemeServerFn = createServerFn().handler(async () => (getCookie(storageKey) || "dark") as Theme);
 
 export const setThemeServerFn = createServerFn({ method: "POST" })
 	.validator((data: Theme) => data)
@@ -20,5 +18,5 @@ export const setThemeServerFn = createServerFn({ method: "POST" })
 			path: "/",
 			maxAge: 60 * 60 * 24 * 365, // 1 year
 			sameSite: "lax",
-		}),
+		})
 	);

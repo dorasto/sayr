@@ -10,7 +10,7 @@ import {
 	selectShippedBecauseYouAsked,
 } from "@/lib/portal/activity";
 import { BOARD_PAGE_SIZE, useBoardList } from "./useBoardList";
-import { fetchPublicVotes, publicVotesKey, type PublicVoteEntry } from "./usePublicVotes";
+import { fetchPublicVotes, type PublicVoteEntry, publicVotesKey } from "./usePublicVotes";
 
 /** Pages loaded before the activity page stops and offers "Load more": the list endpoint cannot filter by author or id. */
 export const ACTIVITY_INITIAL_PAGES = 10;

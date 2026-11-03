@@ -2,13 +2,13 @@ import { randomUUID } from "node:crypto";
 import { relations } from "drizzle-orm";
 import * as v from "drizzle-orm/pg-core";
 import { pgTable as table } from "drizzle-orm/pg-core";
+import type { NodeJSON } from ".";
 import { user } from "./auth";
 import { category } from "./category.schema";
 import { label } from "./label.schema";
 import { organization } from "./organization.schema";
 import { release } from "./release.schema";
 import { visibleEnum } from "./task.schema";
-import { NodeJSON } from ".";
 
 export const issueTemplate = table("task_template", {
 	id: v

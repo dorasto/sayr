@@ -1,6 +1,6 @@
-import SettingsOrganizationLabelsPage from "@/components/pages/admin/settings/orgId/labels";
-import { SubWrapper } from "@/components/generic/wrapper";
 import { createFileRoute } from "@tanstack/react-router";
+import { SubWrapper } from "@/components/generic/wrapper";
+import SettingsOrganizationLabelsPage from "@/components/pages/admin/settings/orgId/labels";
 import { seo } from "@/seo";
 
 export const Route = createFileRoute("/(admin)/settings/org/$orgId/labels/")({

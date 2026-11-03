@@ -1,7 +1,7 @@
-import { createTraceAsync } from "@repo/opentelemetry/trace";
-import { and, eq } from "drizzle-orm";
 import { db, schema } from "@repo/database";
+import { createTraceAsync } from "@repo/opentelemetry/trace";
 import type { JobGroups } from "@repo/queue";
+import { and, eq } from "drizzle-orm";
 import { markdownToProsekitJSON } from "./markdownToProsekit";
 
 const API_URL =

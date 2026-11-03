@@ -2,11 +2,11 @@ import { randomUUID } from "node:crypto";
 import { relations } from "drizzle-orm";
 import * as v from "drizzle-orm/pg-core";
 import { pgTable as table } from "drizzle-orm/pg-core";
+import type { NodeJSON } from ".";
+import { user } from "./auth";
 import { organization } from "./organization.schema";
 import { task } from "./task.schema";
 import { taskComment } from "./taskComment.schema";
-import { user } from "./auth";
-import type { NodeJSON } from ".";
 
 export const taskCommentHistory = table(
 	"task_comment_history",

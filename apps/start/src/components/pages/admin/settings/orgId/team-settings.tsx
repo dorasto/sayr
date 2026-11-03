@@ -30,6 +30,7 @@ const defaultTeamPermissions: TeamPermissions = {
 		manageVotes: false,
 	},
 };
+
 import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
 import { Badge } from "@repo/ui/components/badge";
 import { Button } from "@repo/ui/components/button";

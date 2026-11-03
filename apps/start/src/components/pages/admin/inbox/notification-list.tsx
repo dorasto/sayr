@@ -2,9 +2,7 @@ import { ScrollArea } from "@repo/ui/components/scroll-area";
 import { Skeleton } from "@repo/ui/components/skeleton";
 import { useCallback, useEffect, useRef } from "react";
 import { useInbox } from "@/contexts/ContextInbox";
-import {
-	markNotificationReadAction,
-} from "@/lib/fetches/notification";
+import { markNotificationReadAction } from "@/lib/fetches/notification";
 import { NotificationEmptyState } from "./notifications/notification-empty-state";
 import { NotificationItem } from "./notifications/notification-item";
 
@@ -53,7 +51,7 @@ export function NotificationList({ onSelectTask, selectedNotificationId }: Notif
 					handleLoadMore();
 				}
 			},
-			{ threshold: 0.1 },
+			{ threshold: 0.1 }
 		);
 
 		observer.observe(sentinel);
@@ -66,7 +64,6 @@ export function NotificationList({ onSelectTask, selectedNotificationId }: Notif
 			refreshNotifications();
 		}
 	};
-
 
 	const handleClick = async (notification: any) => {
 		if (notification.unread) {

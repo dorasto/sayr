@@ -1,5 +1,6 @@
 import { randomBytes, randomUUID } from "node:crypto";
 import { Octokit } from "@octokit/rest";
+import { createPolar } from "@polar-sh/sdk/2026-10";
 import {
 	auth,
 	blockUser,
@@ -14,11 +15,11 @@ import {
 	getOrganizationMembers,
 	type OrganizationSettings,
 	publicOrganizationRedactions,
-	toPublicOrganizationSettings,
 	schema,
 	searchOrgInteractors,
 	searchOrgMembers,
 	type TeamPermissions,
+	toPublicOrganizationSettings,
 	unblockUser,
 } from "@repo/database";
 import { canCreateResource, getEditionCapabilities, getEffectiveLimits, getLimitReachedMessage } from "@repo/edition";
@@ -41,7 +42,6 @@ import {
 import type { ServerEventBaseMessage } from "@/routes/events/types";
 import { enforceLimit, refreshGitHubTokenIfNeeded, traceOrgPermissionCheck, tracePublicOrgAccessCheck } from "@/util";
 import { apiRouteAdminProjectTask } from "./task";
-import { createPolar } from "@polar-sh/sdk/2026-10";
 
 const polarClient = getEditionCapabilities().polarBillingEnabled
 	? createPolar({
