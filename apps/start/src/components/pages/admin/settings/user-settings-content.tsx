@@ -379,7 +379,7 @@ export function UserPreferences({ isDialog = false }: UserPreferenceTypes) {
 					</DropdownMenu>
 				</TileAction>
 			</Tile>
-			{isDialog == false && (
+			{isDialog === false && (
 				<Tile className="md:w-full">
 					<TileHeader>
 						<TileTitle>Task open behavior</TileTitle>

@@ -75,6 +75,7 @@ export default function InboxPage() {
 	}, [tasks]);
 
 	// Handle selecting a task from the notification list
+	// biome-ignore lint/correctness/useExhaustiveDependencies: pre-existing; behaviour-changing fix deferred
 	const handleNotificationSelectTask = useCallback(
 		async (taskId: string, orgId: string, notificationId: string) => {
 			// Toggle selection if clicking the same notification

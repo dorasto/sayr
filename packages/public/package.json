@@ -1,46 +1,47 @@
 {
-	"name": "@sayrio/public",
-	"version": "1.0.9",
-	"description": "Sayr.io public REST + Server‑Sent Events SDK",
-	"license": "MIT",
-	"type": "module",
-	"main": "dist/index.cjs",
-	"module": "dist/index.js",
-	"types": "dist/index.d.ts",
-	"exports": {
-		".": {
-			"types": "./dist/index.d.ts",
-			"import": "./dist/index.js",
-			"require": "./dist/index.cjs"
-		},
-		"./react": {
-			"types": "./dist/react/index.d.ts",
-			"import": "./dist/react/index.js",
-			"require": "./dist/react/index.cjs"
-		}
-	},
-	"files": [
-		"dist"
-	],
-	"sideEffects": false,
-	"peerDependencies": {
-		"react": ">=18"
-	},
-	"peerDependenciesMeta": {
-		"react": {
-			"optional": true
-		}
-	},
-	"publishConfig": {
-		"access": "public"
-	},
-	"scripts": {
-		"build": "tsup",
-		"dev": "tsup --watch"
-	},
-	"devDependencies": {
-		"@types/react": "^18.2.0",
-		"tsup": "^8.0.0",
-		"typescript": "^5.3.3"
-	}
+  "name": "@sayrio/public",
+  "version": "1.0.9",
+  "description": "Sayr.io public REST + Server‑Sent Events SDK",
+  "license": "MIT",
+  "type": "module",
+  "main": "dist/index.cjs",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./react": {
+      "types": "./dist/react/index.d.ts",
+      "import": "./dist/react/index.js",
+      "require": "./dist/react/index.cjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "peerDependencies": {
+    "react": ">=18"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "check-types": "tsc --noEmit",
+    "build": "tsup",
+    "dev": "tsup --watch"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.3.3"
+  }
 }

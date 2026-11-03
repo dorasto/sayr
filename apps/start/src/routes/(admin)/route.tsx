@@ -30,7 +30,10 @@ export const getUserOrganizations = createServerFn({ method: "GET" }).handler(as
 		const views = await getSavedViewsForOrganizations(organizations.map((org) => org.id));
 		const orgViews: Record<string, schema.savedViewType[]> = {};
 		for (const view of views) {
-			if (view.organizationId) (orgViews[view.organizationId] ??= []).push(view);
+			if (!view.organizationId) continue;
+			const list = orgViews[view.organizationId] ?? [];
+			list.push(view);
+			orgViews[view.organizationId] = list;
 		}
 		return { account, organizations, orgViews };
 	} catch (error) {

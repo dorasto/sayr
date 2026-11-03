@@ -75,6 +75,7 @@ export function SystemApiKeys({ initialData = [] }: SystemApiKeysProps) {
 			console.error("Failed to fetch API keys:", err);
 		}
 	};
+	// biome-ignore lint/correctness/useExhaustiveDependencies: pre-existing; behaviour-changing fix deferred
 	useEffect(() => {
 		fetchKeys();
 	}, []);

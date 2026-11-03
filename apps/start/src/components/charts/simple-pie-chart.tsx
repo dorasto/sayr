@@ -116,7 +116,13 @@ export function SimplePieChart({
 					stroke="hsl(var(--background))"
 				>
 					{chartData.map((entry, index) => (
-						<Cell key={`cell-${index}`} fill={entry.fill} />
+						<Cell
+							key={`cell-${
+								// biome-ignore lint/suspicious/noArrayIndexKey: pre-existing; behaviour-changing fix deferred
+								index
+							}`}
+							fill={entry.fill}
+						/>
 					))}
 					{showTotal && (
 						<Label

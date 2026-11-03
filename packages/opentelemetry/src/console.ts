@@ -88,11 +88,11 @@ export class PrettyConsoleSpanExporter implements SpanExporter {
 		const outcome = attrs["trace.outcome"];
 
 		if (description) {
-			console.log(pad + `  ↳ description: ${description}`);
+			console.log(`${pad}  ↳ description: ${description}`);
 		}
 
 		if (outcome) {
-			console.log(pad + `  ↳ outcome: ${outcome}`);
+			console.log(`${pad}  ↳ outcome: ${outcome}`);
 		}
 
 		const dataEntries = Object.entries(attrs).filter(
@@ -108,7 +108,7 @@ export class PrettyConsoleSpanExporter implements SpanExporter {
 				data[shortKey] = value;
 			}
 
-			console.log(pad + "  ↳ data:");
+			console.log(`${pad}  ↳ data:`);
 			console.log(formatData(data, pad));
 		}
 

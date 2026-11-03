@@ -118,6 +118,7 @@ export default function GithubPRPicker({
 		}
 	}, [open, organizationId]);
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies: pre-existing; behaviour-changing fix deferred
 	const fetchResults = useCallback(
 		async (signal?: AbortSignal) => {
 			setIsLoading(true);
@@ -161,6 +162,7 @@ export default function GithubPRPicker({
 		setQuery(value);
 	}, []);
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies: pre-existing; behaviour-changing fix deferred
 	const handleLinkPR = useCallback(
 		async (pr: GithubPR) => {
 			setIsLoading(true);

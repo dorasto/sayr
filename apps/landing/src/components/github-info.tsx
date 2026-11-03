@@ -76,7 +76,9 @@ export function GithubInfo({ repo, owner, token, baseUrl, fetchOptions, locale, 
 		baseUrl,
 		fetchOptions,
 	};
-	const { stars, forks } = use((promises[JSON.stringify(options)] ??= fetchRepositoryInfo(options)));
+	const cacheKey = JSON.stringify(options);
+	promises[cacheKey] ??= fetchRepositoryInfo(options);
+	const { stars, forks } = use(promises[cacheKey]);
 	const formatter = locale ? new Intl.NumberFormat(locale, formatterOptions) : defaultFormatter;
 
 	return (

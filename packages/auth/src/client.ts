@@ -22,7 +22,7 @@ const setLoginOriginCookie = () => {
 	const hostname = window.location.hostname;
 	const domain = hostname === "localhost" ? undefined : hostname.split(".").slice(-2).join(".");
 	const cookieParts = [
-		"login_origin=" + encodeURIComponent(origin),
+		`login_origin=${encodeURIComponent(origin)}`,
 		"path=/",
 		"max-age=500", // 5 minutes
 		"samesite=lax",

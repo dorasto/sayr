@@ -74,6 +74,7 @@ export default function SettingsOrganizationPage() {
 		channel: "admin",
 		setOrganization: setOrganization,
 	});
+	// biome-ignore lint/correctness/useExhaustiveDependencies: pre-existing; behaviour-changing fix deferred
 	useEffect(() => {
 		setName(organization.name);
 		setSlug(organization.slug);

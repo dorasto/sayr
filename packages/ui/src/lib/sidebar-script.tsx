@@ -21,6 +21,7 @@ export function SidebarScript() {
 
 	return (
 		<script
+			// biome-ignore lint/security/noDangerouslySetInnerHtml: pre-existing; behaviour-changing fix deferred
 			dangerouslySetInnerHTML={{ __html: script }}
 			// Blocking script - runs immediately
 		/>

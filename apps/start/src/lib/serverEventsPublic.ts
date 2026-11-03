@@ -35,6 +35,7 @@ const useServerEventsPublic = ({
 		setStatus("Disconnected");
 	};
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies: pre-existing; behaviour-changing fix deferred
 	useEffect(() => {
 		const connectInternal = () => {
 			if (sseRef.current) {

@@ -10,6 +10,7 @@
 		"./*": "./src/*.ts"
 	},
 	"scripts": {
+		"check-types": "tsc --noEmit",
 		"lint": "biome check .",
 		"lint:fix": "biome check . --write",
 		"format": "biome format --write ."

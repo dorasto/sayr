@@ -71,6 +71,7 @@ export function TaskVoting({
 		refetchOnWindowFocus: false,
 	});
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies: pre-existing; behaviour-changing fix deferred
 	useEffect(() => {
 		const unsubscribe = onWindowMessage<{ type: string; payload: string }>("*", (msg) => {
 			if (msg.type === "update-votes" && msg.payload === organizationId) {

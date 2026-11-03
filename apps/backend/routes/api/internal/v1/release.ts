@@ -993,7 +993,7 @@ apiRouteAdminRelease.post("/:releaseId/github_prs/link", async (c) => {
 			}
 		);
 
-		let githubPR;
+		let githubPR: (typeof schema.githubPullRequest.$inferSelect)[];
 		if (existingPR) {
 			// A PR row that belongs to another organization is never reused or overwritten.
 			if (existingPR.organizationId !== orgId) {

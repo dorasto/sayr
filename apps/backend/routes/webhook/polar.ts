@@ -34,7 +34,7 @@ app.post("/", async (c) => {
 		});
 		return c.text("Webhook secret not configured", 500);
 	}
-	let event;
+	let event: Awaited<ReturnType<typeof webhooks.validateEvent>> | undefined;
 	try {
 		event = await webhooks.validateEvent(rawBody, headers, process.env.POLAR_WEBHOOK_SECRET!);
 	} catch (err) {
@@ -401,7 +401,7 @@ async function handleSeatClaimed(data: models.CustomerSeat) {
 		return;
 	}
 
-	let user;
+	let user: Awaited<ReturnType<typeof db.query.user.findFirst>>;
 
 	// ✅ Always prefer metadata userId
 	if (data.seat_metadata?.userId) {

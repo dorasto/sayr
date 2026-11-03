@@ -23,6 +23,7 @@
 		"@opentelemetry/sdk-trace-web": "^2.5.0"
 	},
 	"scripts": {
+		"check-types": "tsc --noEmit",
 		"lint": "biome check .",
 		"lint:fix": "biome check . --write",
 		"format": "biome format --write ."

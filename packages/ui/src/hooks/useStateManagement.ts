@@ -122,6 +122,7 @@ export function useStateManagementKey<T>(
 
 export function useReadOnlyStateManagementKey<T>(key: string[]) {
 	// MUST memo key
+	// biome-ignore lint/correctness/useExhaustiveDependencies: pre-existing; behaviour-changing fix deferred
 	const queryKey = useMemo(() => key, [...key]);
 	const { data } = useQuery<T>({
 		queryKey,

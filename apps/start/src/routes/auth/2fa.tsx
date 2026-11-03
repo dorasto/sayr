@@ -52,12 +52,9 @@ function RouteComponent() {
 		setError("");
 
 		try {
-			let result;
-			if (useBackupCode) {
-				result = await authClient.twoFactor.verifyBackupCode({ code });
-			} else {
-				result = await authClient.twoFactor.verifyTotp({ code });
-			}
+			const result = useBackupCode
+				? await authClient.twoFactor.verifyBackupCode({ code })
+				: await authClient.twoFactor.verifyTotp({ code });
 			if (result.error) {
 				setError(result.error.message || "Invalid code");
 				return;

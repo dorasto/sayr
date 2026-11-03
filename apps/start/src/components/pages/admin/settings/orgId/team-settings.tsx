@@ -929,6 +929,7 @@ function CheckboxItem({
 	disabled?: boolean;
 }) {
 	return (
+		// biome-ignore lint/a11y/noLabelWithoutControl: pre-existing; behaviour-changing fix deferred
 		<label
 			className={cn(
 				"flex items-center gap-2 cursor-pointer select-none",

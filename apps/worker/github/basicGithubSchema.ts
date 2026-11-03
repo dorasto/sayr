@@ -25,7 +25,7 @@ export const basicGithubSchema = new Schema({
 				level: { default: 1 },
 			},
 			toDOM(node) {
-				return ["h" + node.attrs.level, 0];
+				return [`h${node.attrs.level}`, 0];
 			},
 		},
 

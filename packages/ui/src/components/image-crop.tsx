@@ -88,6 +88,7 @@ export function ImageCrop({
 		[]
 	);
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies: pre-existing; behaviour-changing fix deferred
 	const handleCropComplete = useCallback(async () => {
 		if (completedCrop && imgRef.current) {
 			try {

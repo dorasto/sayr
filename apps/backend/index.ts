@@ -302,7 +302,7 @@ app.use("*", async (c, next) => {
 		if (path === "/") {
 			url.pathname = "/api/public";
 		} else {
-			url.pathname = "/api/public" + path;
+			url.pathname = `/api/public${path}`;
 		}
 
 		const exists = routeExists(method, url.pathname);

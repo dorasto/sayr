@@ -1614,8 +1614,7 @@ export async function getGithubPRsAction(
 		}
 	}
 
-	const url =
-		`${API_URL}/v1/admin/organization/${orgId}/github_prs` + (params.toString() ? `?${params.toString()}` : "");
+	const url = `${API_URL}/v1/admin/organization/${orgId}/github_prs${params.toString() ? `?${params.toString()}` : ""}`;
 
 	return fetch(url, {
 		credentials: "include",
