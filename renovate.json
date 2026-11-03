@@ -1,40 +1,193 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["config:recommended"],
-  "enabledManagers": ["github-actions", "npm"],
+  "enabledManagers": ["npm", "github-actions", "dockerfile", "docker-compose", "custom.regex"],
+  "timezone": "Europe/London",
   "schedule": ["before 6am on monday"],
-  "prConcurrentLimit": 8,
+  "prHourlyLimit": 0,
+  "prConcurrentLimit": 10,
+  "minimumReleaseAge": "3 days",
+  "internalChecksFilter": "strict",
+  "osvVulnerabilityAlerts": true,
   "labels": ["dependencies"],
   "ignorePaths": ["apps/marketing/**"],
   "vulnerabilityAlerts": {
-    "labels": ["dependencies", "security"]
+    "description": "Security fixes skip the schedule and the release-age wait, and always carry a release label so check-release-label passes and the fix actually ships.",
+    "labels": ["dependencies", "security", "release:patch"],
+    "minimumReleaseAge": null
   },
   "lockFileMaintenance": {
+    "description": "Changes deployed transitive deps, so it releases like a runtime patch. Never automerged.",
     "enabled": true,
-    "schedule": ["before 6am on the first day of the month"]
+    "schedule": ["before 6am on the first day of the month"],
+    "labels": ["dependencies", "release:patch"],
+    "automerge": false
   },
+  "customManagers": [
+    {
+      "description": "Zerops runtime bases: `base: bun@1.2` (tracked against the same oven/bun images as the Dockerfiles). Zerops only offers some versions, so these never automerge.",
+      "customType": "regex",
+      "managerFilePatterns": ["/(^|/)zerops\\.ya?ml$/"],
+      "matchStrings": ["base:\\s*bun@(?<currentValue>\\d+\\.\\d+(?:\\.\\d+)?)"],
+      "depNameTemplate": "oven/bun",
+      "datasourceTemplate": "docker",
+      "versioningTemplate": "docker"
+    },
+    {
+      "description": "Zerops runtime bases: `base: nodejs@22`.",
+      "customType": "regex",
+      "managerFilePatterns": ["/(^|/)zerops\\.ya?ml$/"],
+      "matchStrings": ["base:\\s*nodejs@(?<currentValue>\\d+)"],
+      "depNameTemplate": "node",
+      "datasourceTemplate": "node-version",
+      "versioningTemplate": "node"
+    },
+    {
+      "description": "Single source of truth for the Bun version used by CI (setup-bun reads this file).",
+      "customType": "regex",
+      "managerFilePatterns": ["/(^|/)\\.bun-version$/"],
+      "matchStrings": ["^(?<currentValue>\\d+\\.\\d+\\.\\d+)"],
+      "depNameTemplate": "oven/bun",
+      "datasourceTemplate": "docker",
+      "versioningTemplate": "docker"
+    }
+  ],
   "packageRules": [
     {
-      "description": "Patch bumps grouped per workspace package (apps/start, apps/backend, packages/ui, etc.) rather than either extreme: one PR per dependency (too much noise across ~20 package.json files) or one PR for the whole monorepo (unreviewable, and one bad bump blocks every other update behind it).",
+      "description": "Runtime patch bumps, grouped per workspace package. After the catalog migration, deps left in a package's own package.json are only used by that package, so a change that only affects one app lands in that app's PR.",
       "matchUpdateTypes": ["patch"],
-      "groupName": "{{packageFileDir}} - patch",
+      "groupName": "{{#if packageFileDir}}{{packageFileDir}}{{else}}root{{/if}} - patch",
       "labels": ["dependencies", "release:patch"]
     },
     {
-      "description": "Minor bumps get their own group per workspace package, separate from patch — kept apart so a single PR's release label is never ambiguous between the two.",
+      "description": "Runtime minor bumps, grouped per workspace package, kept apart from patch so the release label is unambiguous.",
       "matchUpdateTypes": ["minor"],
-      "groupName": "{{packageFileDir}} - minor",
+      "groupName": "{{#if packageFileDir}}{{packageFileDir}}{{else}}root{{/if}} - minor",
       "labels": ["dependencies", "release:minor"]
     },
     {
-      "description": "Majors are never grouped — each carries real breaking-change risk and deserves its own review. This mirrors today's behavior, just with a correct release label instead of the previous config's blanket release:patch on every update type regardless of size.",
+      "description": "Majors are never grouped and wait for approval on the Dependency Dashboard instead of using up PR slots.",
       "matchUpdateTypes": ["major"],
-      "labels": ["dependencies", "release:major"]
+      "labels": ["dependencies", "release:major"],
+      "dependencyDashboardApproval": true
     },
     {
+      "description": "Shared deps defined once in the pnpm-workspace.yaml catalog: one PR updates every consumer. Treated as runtime (release label by update type, no automerge).",
+      "matchDepTypes": ["pnpm.catalog.default"],
+      "matchUpdateTypes": ["patch", "minor"],
+      "groupName": "shared catalog deps - {{updateType}}"
+    },
+    {
+      "description": "Dev tooling (devDependencies) never ships to users: separate group per package, release:skip so merging doesn't cut a release or deploy, and automerge once required checks pass.",
+      "matchDepTypes": ["devDependencies"],
+      "matchUpdateTypes": ["patch", "minor"],
+      "groupName": "{{#if packageFileDir}}{{packageFileDir}}{{else}}root{{/if}} - dev tooling",
+      "labels": ["dependencies", "release:skip"],
+      "automerge": true,
+      "automergeType": "pr"
+    },
+    {
+      "description": "Type-only packages, wherever they're declared, behave like dev tooling.",
+      "matchPackageNames": ["@types/**", "bun-types"],
+      "matchUpdateTypes": ["patch", "minor"],
+      "groupName": "{{#if packageFileDir}}{{packageFileDir}}{{else}}root{{/if}} - dev tooling",
+      "labels": ["dependencies", "release:skip"],
+      "automerge": true,
+      "automergeType": "pr"
+    },
+    {
+      "description": "Biome is dev tooling used by every package; one repo-wide PR instead of one per package.",
+      "matchPackageNames": ["@biomejs/biome"],
+      "matchUpdateTypes": ["patch", "minor"],
+      "groupName": "Biome"
+    },
+    {
+      "description": "Families whose packages must move together (PR #378 broke worker#build when @tanstack/ai and its adapter resolved to incompatible versions). Repo-wide, never automerged.",
+      "matchPackageNames": ["@tanstack/ai", "@tanstack/ai-*"],
+      "groupName": "TanStack AI",
+      "automerge": false
+    },
+    {
+      "matchPackageNames": ["prosemirror-*"],
+      "groupName": "ProseMirror",
+      "automerge": false
+    },
+    {
+      "matchPackageNames": ["@opentelemetry/**"],
+      "groupName": "OpenTelemetry",
+      "automerge": false
+    },
+    {
+      "matchPackageNames": ["@radix-ui/**", "radix-ui"],
+      "matchUpdateTypes": ["patch", "minor"],
+      "groupName": "Radix UI",
+      "automerge": false
+    },
+    {
+      "matchPackageNames": ["react", "react-dom", "@types/react", "@types/react-dom"],
+      "matchUpdateTypes": ["patch", "minor"],
+      "groupName": "React",
+      "automerge": false
+    },
+    {
+      "matchPackageNames": ["tailwindcss", "@tailwindcss/**", "tailwind-merge"],
+      "matchUpdateTypes": ["patch", "minor"],
+      "groupName": "Tailwind",
+      "automerge": false
+    },
+    {
+      "description": "One Bun version everywhere: .bun-version (CI), oven/bun images (Docker), bun@ bases (Zerops).",
+      "matchPackageNames": ["oven/bun"],
+      "groupName": "Bun runtime",
+      "labels": ["dependencies", "release:patch"],
+      "automerge": false
+    },
+    {
+      "description": "One Node version everywhere: node images (Docker), setup-node (CI), nodejs@ bases (Zerops).",
+      "matchPackageNames": ["node"],
+      "groupName": "Node runtime",
+      "labels": ["dependencies", "release:patch"],
+      "automerge": false
+    },
+    {
+      "description": "GitHub Actions don't ship to users. Not automerged: CI only exercises ci.yml, not the deploy/publish workflows.",
       "matchManagers": ["github-actions"],
       "groupName": "GitHub Actions",
-      "groupSlug": "github-actions"
+      "groupSlug": "github-actions",
+      "labels": ["dependencies", "release:skip"],
+      "automerge": false
+    },
+    {
+      "description": "pnpm.overrides are security pins on a specific major (e.g. `undici@^6`). Proposing a new major for them makes no sense; prune them instead.",
+      "matchDepTypes": ["pnpm.overrides", "overrides"],
+      "matchUpdateTypes": ["major"],
+      "enabled": false
+    },
+    {
+      "description": "Dev-only bumps to the published CLI must not publish a new npm version (publish-cli.yml defaults to a patch release for any packages/cli change).",
+      "matchFileNames": ["packages/cli/**"],
+      "matchDepTypes": ["devDependencies"],
+      "addLabels": ["cli-release:skip"]
+    },
+    {
+      "description": "Same for the published Paseo plugin.",
+      "matchFileNames": ["packages/paseo-plugin/**"],
+      "matchDepTypes": ["devDependencies"],
+      "addLabels": ["paseo-plugin-release:skip"]
+    },
+    {
+      "description": "apps/landing is excluded from the CI build (pre-existing shiki/rolldown WASM failure), so a green check proves nothing for it.",
+      "matchFileNames": ["apps/landing/**"],
+      "automerge": false,
+      "addLabels": ["needs-manual-check"]
+    },
+    {
+      "description": "The create-integration scaffold template isn't installed or tested; refresh it monthly in one PR so new integrations don't start on stale versions.",
+      "matchFileNames": ["packages/create-integration/src/template/**"],
+      "groupName": "create-integration template",
+      "schedule": ["before 6am on the first day of the month"],
+      "labels": ["dependencies", "release:skip"],
+      "automerge": false
     }
   ]
 }
