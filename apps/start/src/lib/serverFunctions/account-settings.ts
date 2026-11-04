@@ -15,9 +15,9 @@ async function requireSessionUser(headers: Headers) {
 	return session.user;
 }
 
-function findAccount(userId: string, issuer: string) {
+function findAccount(userId: string, providerId: string) {
 	return db.query.account.findFirst({
-		where: and(eq(authSchema.account.userId, userId), eq(authSchema.account.issuer, issuer)),
+		where: and(eq(authSchema.account.userId, userId), eq(authSchema.account.providerId, providerId)),
 	});
 }
 
@@ -61,11 +61,11 @@ export const getConnectionSettings = createServerFn({ method: "GET" }).handler(a
 	const headers = new Headers(getRequestHeaders());
 	const user = await requireSessionUser(headers);
 	const [email, github, doras, discord, slack] = await Promise.all([
-		findAccount(user.id, "local:credential"),
-		findAccount(user.id, "local:oauth:github"),
-		findAccount(user.id, "local:oauth:doras"),
-		findAccount(user.id, "local:oauth:discord"),
-		findAccount(user.id, "local:oauth:slack"),
+		findAccount(user.id, "credential"),
+		findAccount(user.id, "github"),
+		findAccount(user.id, "doras"),
+		findAccount(user.id, "discord"),
+		findAccount(user.id, "slack"),
 	]);
 	const [githubToken, discordToken, slackToken] = await Promise.all([
 		resolveAccessToken(github, headers),
