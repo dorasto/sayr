@@ -142,3 +142,5 @@ jobs:
     # pushes. Same reasoning as trigger-build above.
     uses: ./.github/workflows/zerops-deploy.yml
     secrets: inherit
+    with:
+      version: ${{ needs.release.outputs.version }}

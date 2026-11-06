@@ -32,10 +32,27 @@
 #   ZEROPS_SERVICE_ID_WORKERMAIN
 #   ZEROPS_SERVICE_ID_WORKERGITHUB
 #   ZEROPS_SERVICE_ID_INTEGRATIONS
+#   ZEROPS_SERVICE_ID_DB          - the PostgreSQL service (sayrdb)
 # Service IDs go through secrets (not hardcoded) per Zerops' own CI/CD
 # reference pattern, even though the ID alone can't authenticate anything —
 # this repo is public, so no reason to publish the project's service
 # topology when a secret costs nothing extra.
+#
+# Database backup: before any service that talks to the database is deployed,
+# the backup-db job asks Zerops for an on-demand backup of the PostgreSQL
+# service and waits until it exists. The backend runs migrations when its
+# new container starts (apps/backend/start.sh), so this is the last point
+# before the schema can change. If the backup fails, nothing that touches the
+# database is deployed. Backups are tagged `pre-deploy` plus the release
+# version (dots become dashes, e.g. v0-8-1) and the run ID, and the job
+# summary prints the exact backup name.
+#
+# Restoring: Zerops dashboard -> sayrdb -> Backups -> download the backup
+# tagged with the release, then restore it with pg_restore/psql (the zip holds
+# a pg_dump per schema). See https://docs.zerops.io/postgresql/how-to/backup
+#
+# Note: migrations also run whenever a backend container restarts or scales
+# up, not only on deploys. Those runs normally find nothing new to apply.
 
 name: Deploy to Zerops
 
@@ -45,7 +62,12 @@ on:
       - "v[0-9]+.[0-9]+.[0-9]+"
   # Invoked directly by release-on-merge.yml right after it tags a release —
   # see the header comment above for why the tag push alone can't do this.
-  workflow_call: {}
+  workflow_call:
+    inputs:
+      version:
+        description: "Release version being deployed (used to tag the database backup)"
+        required: false
+        type: string
   workflow_dispatch:
     inputs:
       marketing:
@@ -72,6 +94,10 @@ on:
         description: "integrations"
         type: boolean
         default: true
+      skip_backup:
+        description: "Skip the pre-deploy database backup (emergency hotfix only, e.g. if the Zerops backup API is down)"
+        type: boolean
+        default: false
 
 # One deploy run at a time; let an in-flight deploy finish rather than
 # cancel it mid-way.
@@ -86,6 +112,63 @@ permissions:
 # out and runs all selected services in parallel (same as the matrix build
 # in build-and-deploy.yml) instead of one after another in a single job.
 jobs:
+  backup-db:
+    name: Back up database
+    # Runs whenever at least one database-touching service is being deployed
+    # (everything except marketing), unless explicitly skipped on a manual run.
+    if: >-
+      github.event_name != 'workflow_dispatch' ||
+      (!inputs.skip_backup && (inputs.backend || inputs.start || inputs.workermain || inputs.workergithub || inputs.integrations))
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      ZEROPS_API: https://api.app-prg1.zerops.io/api/rest/public
+      ZEROPS_TOKEN: ${{ secrets.ZEROPS_TOKEN }}
+      DB_SERVICE_ID: ${{ secrets.ZEROPS_SERVICE_ID_DB }}
+      VERSION: ${{ inputs.version || github.ref_name }}
+      RUN_TAG: run-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - name: Request backup
+        run: |
+          set -euo pipefail
+          if [ -z "$DB_SERVICE_ID" ]; then
+            echo "::error::ZEROPS_SERVICE_ID_DB secret is not set"
+            exit 1
+          fi
+          # Tags: letters, numbers and :-_ only, max 24 chars.
+          VERSION_TAG=$(printf '%s' "$VERSION" | tr -c 'A-Za-z0-9:_-' '-' | cut -c1-24)
+          TAGS=$(jq -cn --arg v "$VERSION_TAG" --arg r "$RUN_TAG" '["pre-deploy", $r] + (if ($v | test("^v[0-9]")) then [$v] else [] end)')
+          echo "Tags: $TAGS"
+          curl -sSf -X POST \
+            -H "Authorization: Bearer $ZEROPS_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "{\"tags\": $TAGS}" \
+            "$ZEROPS_API/service-stack/$DB_SERVICE_ID/backup"
+          echo
+
+      - name: Wait for backup to finish
+        run: |
+          set -euo pipefail
+          # The backup runs asynchronously; it's done once a file carrying
+          # this run's unique tag shows up in the service's backup list.
+          for i in $(seq 1 60); do
+            NAME=$(curl -sSf -H "Authorization: Bearer $ZEROPS_TOKEN" \
+              "$ZEROPS_API/service-stack/$DB_SERVICE_ID/backup" \
+              | jq -r --arg t "$RUN_TAG" '[.files[] | select((.metadata.tags // []) | index($t))] | first | .name // empty')
+            if [ -n "$NAME" ]; then
+              echo "Backup ready: $NAME"
+              {
+                echo "### Database backup"
+                echo "Pre-deploy backup of sayrdb: \`$NAME\` (tags: pre-deploy, $RUN_TAG, version $VERSION)."
+                echo "Restore from Zerops dashboard -> sayrdb -> Backups."
+              } >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "::error::Backup did not appear within 10 minutes; not deploying."
+          exit 1
+
   marketing:
     name: Deploy marketing
     if: github.event_name != 'workflow_dispatch' || inputs.marketing
@@ -99,7 +182,12 @@ jobs:
 
   backend:
     name: Deploy backend
-    if: github.event_name != 'workflow_dispatch' || inputs.backend
+    needs: backup-db
+    # Deploy only once the backup succeeded (or was deliberately skipped).
+    if: >-
+      !cancelled() &&
+      (needs.backup-db.result == 'success' || needs.backup-db.result == 'skipped') &&
+      (github.event_name != 'workflow_dispatch' || inputs.backend)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -110,7 +198,12 @@ jobs:
 
   start:
     name: Deploy start
-    if: github.event_name != 'workflow_dispatch' || inputs.start
+    needs: backup-db
+    # Deploy only once the backup succeeded (or was deliberately skipped).
+    if: >-
+      !cancelled() &&
+      (needs.backup-db.result == 'success' || needs.backup-db.result == 'skipped') &&
+      (github.event_name != 'workflow_dispatch' || inputs.start)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -121,7 +214,12 @@ jobs:
 
   workermain:
     name: Deploy workermain
-    if: github.event_name != 'workflow_dispatch' || inputs.workermain
+    needs: backup-db
+    # Deploy only once the backup succeeded (or was deliberately skipped).
+    if: >-
+      !cancelled() &&
+      (needs.backup-db.result == 'success' || needs.backup-db.result == 'skipped') &&
+      (github.event_name != 'workflow_dispatch' || inputs.workermain)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -132,7 +230,12 @@ jobs:
 
   workergithub:
     name: Deploy workergithub
-    if: github.event_name != 'workflow_dispatch' || inputs.workergithub
+    needs: backup-db
+    # Deploy only once the backup succeeded (or was deliberately skipped).
+    if: >-
+      !cancelled() &&
+      (needs.backup-db.result == 'success' || needs.backup-db.result == 'skipped') &&
+      (github.event_name != 'workflow_dispatch' || inputs.workergithub)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -143,7 +246,12 @@ jobs:
 
   integrations:
     name: Deploy integrations
-    if: github.event_name != 'workflow_dispatch' || inputs.integrations
+    needs: backup-db
+    # Deploy only once the backup succeeded (or was deliberately skipped).
+    if: >-
+      !cancelled() &&
+      (needs.backup-db.result == 'success' || needs.backup-db.result == 'skipped') &&
+      (github.event_name != 'workflow_dispatch' || inputs.integrations)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
