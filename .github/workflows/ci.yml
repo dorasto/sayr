@@ -36,6 +36,29 @@ jobs:
       # until someone gets round to fixing/removing them.
       - run: pnpm turbo build --filter='!marketing' --filter='!landing' --continue
 
+  # Fails if the Drizzle schema and the committed migrations disagree: a schema
+  # change committed without its migration, or a drizzle-kit/drizzle-orm bump
+  # that changes the migration/snapshot format. Needs no database or env.
+  schema-drift:
+    name: Schema drift
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm -F @repo/database generate
+      - name: Check for uncommitted migrations
+        run: |
+          if [ -n "$(git status --porcelain -- packages/database/drizzle)" ]; then
+            git status --short -- packages/database/drizzle
+            echo "::error::drizzle-kit generate produced changes. Run 'pnpm -F @repo/database generate' and commit the migration."
+            exit 1
+          fi
+
   test:
     name: Test
     runs-on: ubuntu-latest
