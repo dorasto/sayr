@@ -50,6 +50,14 @@
       "depNameTemplate": "oven/bun",
       "datasourceTemplate": "docker",
       "versioningTemplate": "docker"
+    },
+    {
+      "description": "zcli version pinned in the zerops-push deploy action.",
+      "customType": "regex",
+      "managerFilePatterns": ["/^\\.github/actions/.+/action\\.ya?ml$/"],
+      "matchStrings": ["ZCLI_VERSION:\\s*(?<currentValue>v\\d+\\.\\d+\\.\\d+)"],
+      "depNameTemplate": "zeropsio/zcli",
+      "datasourceTemplate": "github-releases"
     }
   ],
   "packageRules": [
@@ -258,6 +266,11 @@
       "prBodyNotes": [
         "**Manual tier: discord.js.** Before merging:\n- [ ] Read the changelog and run the Discord bot against a test server."
       ]
+    },
+    {
+      "description": "zcli is deploy tooling: a bump doesn't change the app, so it shouldn't cut a release. Review it, since it changes how every deploy runs.",
+      "matchPackageNames": ["zeropsio/zcli"],
+      "labels": ["dependencies", "release:skip"]
     }
   ]
 }
