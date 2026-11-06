@@ -108,6 +108,12 @@ concurrency:
 permissions:
   contents: read
 
+# Shown as the app version name in the Zerops dashboard. Releases pass their
+# version (v1.2.3); a tag push uses the tag; a manual run leaves it empty and
+# the zerops-push action falls back to <branch>-<short sha>.
+env:
+  VERSION_NAME: ${{ inputs.version || (startsWith(github.ref, 'refs/tags/') && github.ref_name || '') }}
+
 # Six independent jobs, no `needs:` between them, so GitHub Actions fans them
 # out and runs all selected services in parallel (same as the matrix build
 # in build-and-deploy.yml) instead of one after another in a single job.
@@ -175,10 +181,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: zeropsio/actions@19329d7d7ecaad2c382fb30ea6e52aaa15ec1f20 # v1.0.2
+      - uses: ./.github/actions/zerops-push
         with:
           access-token: ${{ secrets.ZEROPS_TOKEN }}
           service-id: ${{ secrets.ZEROPS_SERVICE_ID_MARKETING }}
+          version-name: ${{ env.VERSION_NAME }}
 
   backend:
     name: Deploy backend
@@ -191,10 +198,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: zeropsio/actions@19329d7d7ecaad2c382fb30ea6e52aaa15ec1f20 # v1.0.2
+      - uses: ./.github/actions/zerops-push
         with:
           access-token: ${{ secrets.ZEROPS_TOKEN }}
           service-id: ${{ secrets.ZEROPS_SERVICE_ID_BACKEND }}
+          version-name: ${{ env.VERSION_NAME }}
 
   start:
     name: Deploy start
@@ -207,10 +215,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: zeropsio/actions@19329d7d7ecaad2c382fb30ea6e52aaa15ec1f20 # v1.0.2
+      - uses: ./.github/actions/zerops-push
         with:
           access-token: ${{ secrets.ZEROPS_TOKEN }}
           service-id: ${{ secrets.ZEROPS_SERVICE_ID_START }}
+          version-name: ${{ env.VERSION_NAME }}
 
   workermain:
     name: Deploy workermain
@@ -223,10 +232,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: zeropsio/actions@19329d7d7ecaad2c382fb30ea6e52aaa15ec1f20 # v1.0.2
+      - uses: ./.github/actions/zerops-push
         with:
           access-token: ${{ secrets.ZEROPS_TOKEN }}
           service-id: ${{ secrets.ZEROPS_SERVICE_ID_WORKERMAIN }}
+          version-name: ${{ env.VERSION_NAME }}
 
   workergithub:
     name: Deploy workergithub
@@ -239,10 +249,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: zeropsio/actions@19329d7d7ecaad2c382fb30ea6e52aaa15ec1f20 # v1.0.2
+      - uses: ./.github/actions/zerops-push
         with:
           access-token: ${{ secrets.ZEROPS_TOKEN }}
           service-id: ${{ secrets.ZEROPS_SERVICE_ID_WORKERGITHUB }}
+          version-name: ${{ env.VERSION_NAME }}
 
   integrations:
     name: Deploy integrations
@@ -255,7 +266,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: zeropsio/actions@19329d7d7ecaad2c382fb30ea6e52aaa15ec1f20 # v1.0.2
+      - uses: ./.github/actions/zerops-push
         with:
           access-token: ${{ secrets.ZEROPS_TOKEN }}
           service-id: ${{ secrets.ZEROPS_SERVICE_ID_INTEGRATIONS }}
+          version-name: ${{ env.VERSION_NAME }}

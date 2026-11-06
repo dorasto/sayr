@@ -1,0 +1,51 @@
+name: Zerops push
+description: >-
+  Deploy the checked-out repo to one Zerops service with a version name, so
+  the Zerops dashboard shows the release (e.g. v0.8.3) instead of "unnamed
+  version". Replaces zeropsio/actions, which runs a bare `zcli push` with no
+  way to pass --version-name and always downloads the newest zcli.
+
+inputs:
+  service-id:
+    description: Zerops service ID
+    required: true
+  access-token:
+    description: Zerops access token
+    required: true
+  version-name:
+    description: >-
+      Name shown for this app version in the Zerops dashboard. Empty (e.g. a
+      manual run from a branch) falls back to <branch>-<short sha>.
+    required: false
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - name: Install zcli
+      shell: bash
+      env:
+        # Pinned so deploys don't change behaviour when zcli releases.
+        ZCLI_VERSION: v1.1.3
+      run: |
+        set -euo pipefail
+        base="https://github.com/zeropsio/zcli/releases/download/${ZCLI_VERSION}"
+        curl -sSfL -o /tmp/zcli-linux-amd64 "$base/zcli-linux-amd64"
+        curl -sSfL -o /tmp/zcli-checksums.txt "$base/checksums.txt"
+        (cd /tmp && grep ' zcli-linux-amd64$' zcli-checksums.txt | sha256sum -c -)
+        sudo install -m 0755 /tmp/zcli-linux-amd64 /usr/local/bin/zcli
+
+    - name: Deploy
+      shell: bash
+      env:
+        ZEROPS_TOKEN: ${{ inputs.access-token }}
+        SERVICE_ID: ${{ inputs.service-id }}
+        VERSION_NAME: ${{ inputs.version-name }}
+      run: |
+        set -euo pipefail
+        if [ -z "$VERSION_NAME" ]; then
+          VERSION_NAME="${GITHUB_REF_NAME}-${GITHUB_SHA::8}"
+        fi
+        echo "Version name: $VERSION_NAME"
+        zcli login "$ZEROPS_TOKEN"
+        zcli push "$SERVICE_ID" --version-name "$VERSION_NAME"
