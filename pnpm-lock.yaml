@@ -8902,7 +8902,7 @@ packages:
     engines: {node: '>=20.20.0'}
 
   gif-picker-react-klipy@https://codeload.github.com/micenx/gif-picker-react-klipy/tar.gz/3a92a91785489a1dd914a27de8a24ce44690a976:
-    resolution: {tarball: https://codeload.github.com/micenx/gif-picker-react-klipy/tar.gz/3a92a91785489a1dd914a27de8a24ce44690a976}
+    resolution: {gitHosted: true, tarball: https://codeload.github.com/micenx/gif-picker-react-klipy/tar.gz/3a92a91785489a1dd914a27de8a24ce44690a976}
     version: 1.0.0
     peerDependencies:
       react: '>=18.0.0'
