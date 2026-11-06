@@ -1,5 +1,4 @@
 import type { schema } from "@repo/database";
-import { formatTaskKey } from "@repo/util";
 import {
 	AdaptiveDialog,
 	AdaptiveDialogContent,
@@ -10,11 +9,12 @@ import { Button } from "@repo/ui/components/button";
 // @ts-ignore
 import { useIsMobile } from "@repo/ui/hooks/use-mobile.tsx";
 import { cn } from "@repo/ui/lib/utils";
+import { formatTaskKey } from "@repo/util";
 import { IconArrowsDiagonal, IconArrowsDiagonalMinimize2 } from "@tabler/icons-react";
 import { motion } from "motion/react";
 import { useCallback, useState } from "react";
-import type { TaskDetailOrganization } from "../types";
 import type { FieldPermissions } from "../shared";
+import type { TaskDetailOrganization } from "../types";
 import { TaskDetailCompact } from "./task-detail-compact";
 
 // Collapsed matches the creator dialog's expanded size.

@@ -1,12 +1,12 @@
+import { getOrgPermissions } from "@repo/database";
+import { PermissionError } from "@repo/util";
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
+import { createServerFn } from "@tanstack/react-start";
 import { RootProviderOrganization } from "@/contexts/ContextOrg";
+import { requireAccount } from "@/getAccess";
 import { useOrgCommands } from "@/hooks/commands/useOrgCommands";
 import { getAdminOrganization } from "@/lib/serverFunctions/getAdminOrganization";
-import { createServerFn } from "@tanstack/react-start";
-import { getOrgPermissions } from "@repo/database";
-import { requireAccount } from "@/getAccess";
-import { seo, getOgImageUrl } from "@/seo";
-import { PermissionError } from "@repo/util";
+import { getOgImageUrl, seo } from "@/seo";
 
 /**
  * Fetches all merged organization-level permissions for the session user.

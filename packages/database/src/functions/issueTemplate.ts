@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
+import type * as schema from "../../schema";
 import { db } from "../database";
-import * as schema from "../../schema";
 
 /**
  * Fetches all issue templates for an organization with their labels and assignees.

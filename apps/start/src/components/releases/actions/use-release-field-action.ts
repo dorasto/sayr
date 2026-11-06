@@ -17,7 +17,7 @@ import type { ReleaseFieldUpdatePayload } from "./types";
  */
 export function useReleaseFieldAction(
 	release: schema.releaseType | schema.ReleaseWithTasks,
-	setRelease: (updater: (prev: schema.ReleaseWithTasks | null) => schema.ReleaseWithTasks | null) => void,
+	setRelease: (updater: (prev: schema.ReleaseWithTasks | null) => schema.ReleaseWithTasks | null) => void
 ) {
 	const { organization } = useLayoutOrganization();
 	const { value: sseClientId } = useStateManagement<string>("sse-clientId", "");
@@ -28,10 +28,13 @@ export function useReleaseFieldAction(
 			// Skip API calls for draft/unsaved releases (creator dialog pattern).
 			if (release.id === "draft") return;
 
-			const data = await runWithToast(
-				`update-release-${payload.field}`,
-				payload.toastMessages,
-				() => updateReleaseAction(organization.id, release.id, payload.updateData as Parameters<typeof updateReleaseAction>[2], sseClientId),
+			const data = await runWithToast(`update-release-${payload.field}`, payload.toastMessages, () =>
+				updateReleaseAction(
+					organization.id,
+					release.id,
+					payload.updateData as Parameters<typeof updateReleaseAction>[2],
+					sseClientId
+				)
 			);
 
 			if (data?.success && data.data) {
@@ -49,11 +52,11 @@ export function useReleaseFieldAction(
 								icon: updated.icon,
 								description: updated.description,
 							}
-						: null,
+						: null
 				);
 			}
 		},
-		[release.id, organization.id, sseClientId, runWithToast, setRelease],
+		[release.id, organization.id, sseClientId, runWithToast, setRelease]
 	);
 
 	return { execute };

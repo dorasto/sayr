@@ -87,13 +87,13 @@ export const Route = createFileRoute("/manifest.webmanifest")({
 						],
 						screenshots: organization.bannerImg
 							? [
-								{
-									src: organization.bannerImg,
-									sizes: "1280x720",
-									type: "image/png",
-									form_factor: "wide",
-								},
-							]
+									{
+										src: organization.bannerImg,
+										sizes: "1280x720",
+										type: "image/png",
+										form_factor: "wide",
+									},
+								]
 							: undefined,
 						theme_color: "#000000",
 						background_color: "#ffffff",

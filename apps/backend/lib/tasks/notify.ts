@@ -6,9 +6,9 @@ import {
 	getTaskAssigneeIds,
 	type schema,
 } from "@repo/database";
+import { type AppTypeNotification, createNotification } from "@/index";
 import { sseBroadcastByUserId } from "@/routes/events";
 import type { ServerEventBaseMessage } from "@/routes/events/types";
-import { AppTypeNotification, createNotification } from "@/index";
 
 /**
  * Creates notifications for task assignees and broadcasts them via WebSocket.
@@ -22,7 +22,7 @@ export async function notifyAssignees(params: {
 	taskId: string;
 	orgId: string;
 	actorId: string | undefined;
-	type: AppTypeNotification
+	type: AppTypeNotification;
 	timelineEventId?: string;
 }) {
 	try {
@@ -44,7 +44,7 @@ export async function notifyAssignees(params: {
 				data: {
 					taskId: params.taskId,
 					timelineEventId: params.timelineEventId ?? undefined,
-				}
+				},
 			} as Parameters<typeof createNotification>[0]);
 		}
 	} catch {
@@ -80,7 +80,7 @@ export async function notifyMentions(params: {
 				data: {
 					taskId: params.taskId,
 					timelineEventId: params.timelineEventId ?? undefined,
-				}
+				},
 			});
 		}
 	} catch {

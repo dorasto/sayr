@@ -2,10 +2,10 @@ import { randomUUID } from "node:crypto";
 import { relations } from "drizzle-orm";
 import * as v from "drizzle-orm/pg-core";
 import { pgTable as table } from "drizzle-orm/pg-core";
+import type { NodeJSON } from ".";
 import { user } from "./auth";
 import { organization } from "./organization.schema";
 import { task } from "./task.schema";
-import type { NodeJSON } from ".";
 
 export const timelineEventTypeEnum = v.pgEnum("timeline_event_type", [
 	"status_change",
@@ -31,7 +31,7 @@ export const timelineEventTypeEnum = v.pgEnum("timeline_event_type", [
 	"relation_removed",
 	"github_branch_linked",
 	"task_mentioned",
-	"integration"
+	"integration",
 ]);
 
 export const taskTimeline = table(

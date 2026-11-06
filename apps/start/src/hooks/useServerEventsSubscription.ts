@@ -61,6 +61,7 @@ export function useServerEventsSubscription({
 	const joinedChannel = joinChannels(channel);
 
 	// connect / reconnect effect (fixed)
+	// biome-ignore lint/correctness/useExhaustiveDependencies: pre-existing; behaviour-changing fix deferred
 	useEffect(() => {
 		const se = serverEventsRef.current;
 		if (!se) return;
@@ -99,6 +100,7 @@ export function useServerEventsSubscription({
 	}, [orgId, orgIds, joinedChannel, setSSESubscribedState]); // removed sseSubscribedState
 
 	// subscribe to SSE messages
+	// biome-ignore lint/correctness/useExhaustiveDependencies: pre-existing; behaviour-changing fix deferred
 	useEffect(() => {
 		const se = serverEventsRef.current;
 		if (!se?.event) return;

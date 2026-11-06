@@ -3,8 +3,8 @@ import { relations } from "drizzle-orm";
 import * as v from "drizzle-orm/pg-core";
 import { pgTable as table } from "drizzle-orm/pg-core";
 import { organization } from "./organization.schema";
-import { task } from "./task.schema";
 import { release } from "./release.schema";
+import { task } from "./task.schema";
 
 // Label visibility enum - reuses the existing "visible" PostgreSQL enum
 // (same DB enum as task.visible, but defined here to avoid circular imports)

@@ -1,5 +1,5 @@
-import { type PortalDateInput, toTime } from "./time";
 import { isTeamMember, type OrganizationMembersLike } from "./team";
+import { type PortalDateInput, toTime } from "./time";
 
 export interface UpdateCandidate {
 	createdAt: PortalDateInput;

@@ -1,12 +1,12 @@
+import { Octokit } from "@octokit/rest";
+import { db } from "@repo/database";
+import { createTraceAsync } from "@repo/opentelemetry/trace";
 import type { JobGroups } from "@repo/queue";
+import { getInstallationToken } from "@repo/util/github/auth";
+import { and, eq } from "drizzle-orm";
+import { postSayrComment } from "./comment";
 import { handleBlockKeyword, handleCloseKeyword, handleLinkKeyword, type KeywordContext } from "./keywordActions";
 import { extractSayrKeywords } from "./keywords";
-import { getInstallationToken } from "@repo/util/github/auth";
-import { Octokit } from "@octokit/rest";
-import { createTraceAsync } from "@repo/opentelemetry/trace";
-import { db } from "@repo/database";
-import { postSayrComment } from "./comment";
-import { eq, and } from "drizzle-orm";
 
 export async function handleSayrKeywordParse(job: JobGroups["github"] & { type: "sayr_keyword_parse" }) {
 	const traceAsync = createTraceAsync();

@@ -1,8 +1,8 @@
+import { createFileRoute } from "@tanstack/react-router";
 import { SubWrapper } from "@/components/generic/wrapper";
 import AiSettingsPage from "@/components/pages/admin/settings/orgId/ai";
-import { createFileRoute } from "@tanstack/react-router";
-import { seo } from "@/seo";
 import { useLayoutOrganizationSettings } from "@/contexts/ContextOrgSettings";
+import { seo } from "@/seo";
 
 export const Route = createFileRoute("/(admin)/settings/org/$orgId/ai/")({
 	head: () => ({ meta: seo({ title: "AI · Settings" }) }),
@@ -20,4 +20,3 @@ function RouteComponent() {
 		</SubWrapper>
 	);
 }
-

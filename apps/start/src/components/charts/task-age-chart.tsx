@@ -2,7 +2,7 @@
 
 import type { schema } from "@repo/database";
 import { useMemo } from "react";
-import { SimpleBarChart, type BarChartDataItem } from "./simple-bar-chart";
+import { type BarChartDataItem, SimpleBarChart } from "./simple-bar-chart";
 
 export interface TaskAgeChartProps {
 	tasks: schema.TaskWithLabels[];

@@ -2,8 +2,8 @@
 
 import type { schema } from "@repo/database";
 import { useMemo } from "react";
-import { priorityConfig, type PriorityKey } from "@/components/tasks/shared/config";
-import { SimpleBarChart, type BarChartDataItem } from "./simple-bar-chart";
+import { type PriorityKey, priorityConfig } from "@/components/tasks/shared/config";
+import { type BarChartDataItem, SimpleBarChart } from "./simple-bar-chart";
 
 export interface TaskPriorityBarProps {
 	tasks: schema.TaskWithLabels[];

@@ -1,9 +1,10 @@
-import { addLogEventTask, createTask, db, getOrganizationMembers, getTaskById, toPublicTask } from "@repo/database";
 import type { McpServer } from "@modelcontextprotocol/server";
+import { addLogEventTask, createTask, db, getOrganizationMembers, getTaskById, toPublicTask } from "@repo/database";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { resolveReleaseId, resolveTaskId } from "../../../lib/apiRefs";
 import { assertMcpAccess } from "../../../lib/mcp/auth";
+import { updateTaskService } from "../../../lib/tasks/updateTask";
 import {
 	TaskNotFoundError as AssigneesTaskNotFoundError,
 	NonMemberAssigneeError,
@@ -13,7 +14,6 @@ import {
 	TaskNotFoundError as LabelsTaskNotFoundError,
 	updateTaskLabelsService,
 } from "../../../lib/tasks/updateTaskLabels";
-import { updateTaskService } from "../../../lib/tasks/updateTask";
 import { prosekitJSONToMarkdown } from "../../../prosekit/markdown";
 import { markdownToProsekitJSON } from "../../../prosekit/parser";
 import { resolveMarkdownMentions } from "../../../prosekit/resolveMarkdownMentions";

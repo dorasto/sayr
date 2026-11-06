@@ -2,8 +2,8 @@
 
 import type { schema } from "@repo/database";
 import { useMemo } from "react";
-import { priorityConfig, type PriorityKey } from "@/components/tasks/shared/config";
-import { SimplePieChart, type PieChartDataItem } from "./simple-pie-chart";
+import { type PriorityKey, priorityConfig } from "@/components/tasks/shared/config";
+import { type PieChartDataItem, SimplePieChart } from "./simple-pie-chart";
 
 export interface TaskPriorityChartProps {
 	tasks: schema.TaskWithLabels[];

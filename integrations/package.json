@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "",
   "scripts": {
+    "check-types": "tsc --noEmit",
     "dev": "bun --watch run index.ts",
     "build": "bun build  index.ts --target=bun --outdir ./dist",
     "start": "bun ./dist/index.js",

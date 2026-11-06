@@ -16,7 +16,12 @@ import {
 } from "@repo/ui/components/tomui/combo-box-unified";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { cn } from "@repo/ui/lib/utils";
-import { getVisibilityOptions, getVisibilityDisplay, getVisibilityUpdatePayload, useTaskFieldAction } from "@/components/tasks/actions";
+import {
+	getVisibilityDisplay,
+	getVisibilityOptions,
+	getVisibilityUpdatePayload,
+	useTaskFieldAction,
+} from "@/components/tasks/actions";
 
 interface GlobalTaskVisibilityProps {
 	task: schema.TaskWithLabels;
@@ -55,9 +60,9 @@ export default function GlobalTaskVisibility({
 	const { execute } = useTaskFieldAction(
 		task,
 		tasks,
-		setSelectedTask ?? (() => { }),
-		setTasks ?? (() => { }),
-		sseClientId,
+		setSelectedTask ?? (() => {}),
+		setTasks ?? (() => {}),
+		sseClientId
 	);
 
 	const handleVisibilityChange = (value: string | null) => {
@@ -70,7 +75,12 @@ export default function GlobalTaskVisibility({
 	const display = getVisibilityDisplay(task);
 
 	return customTrigger ? (
-		<ComboBox value={task.visible ?? "public"} onValueChange={handleVisibilityChange} open={open} onOpenChange={setOpen}>
+		<ComboBox
+			value={task.visible ?? "public"}
+			onValueChange={handleVisibilityChange}
+			open={open}
+			onOpenChange={setOpen}
+		>
 			<ComboBoxTrigger asChild>{customTrigger}</ComboBoxTrigger>
 			<ComboBoxContent>
 				<ComboBoxSearch icon placeholder="Change visibility..." />
@@ -82,9 +92,7 @@ export default function GlobalTaskVisibility({
 								{opt.icon}
 								<div className="ml-2 flex flex-col">
 									<span>{opt.label}</span>
-									{opt.description && (
-										<span className="text-xs text-muted-foreground">{opt.description}</span>
-									)}
+									{opt.description && <span className="text-xs text-muted-foreground">{opt.description}</span>}
 								</div>
 							</ComboBoxItem>
 						))}
@@ -96,7 +104,12 @@ export default function GlobalTaskVisibility({
 		<div className="flex flex-col gap-3">
 			{showLabel && <Label variant={"subheading"}>Visibility</Label>}
 			<div className="flex flex-col gap-2">
-				<ComboBox value={task.visible ?? "public"} onValueChange={handleVisibilityChange} open={open} onOpenChange={setOpen}>
+				<ComboBox
+					value={task.visible ?? "public"}
+					onValueChange={handleVisibilityChange}
+					open={open}
+					onOpenChange={setOpen}
+				>
 					<ComboBoxTrigger disabled={!editable} className={className}>
 						<ComboBoxValue placeholder="Visibility">
 							<div className={cn("flex items-center gap-2", compact && "max-w-20 text-xs")}>

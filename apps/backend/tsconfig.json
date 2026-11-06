@@ -2,36 +2,16 @@
 	"extends": "@repo/typescript-config/base.json",
 	"compilerOptions": {
 		"paths": {
-			"@/routes/*": [
-				"./routes/*"
-			],
-			"@/public/*": [
-				"./public/*"
-			],
-			"@/index": [
-				"./index.ts"
-			],
-			"@/queue": [
-				"./queue.ts"
-			],
-			"@/util": [
-				"./util.ts"
-			],
-			"@/clickhouse": [
-				"./clickhouse.ts"
-			],
-			"@/getSession": [
-				"./getSession.ts"
-			],
-			"@/getApiKey": [
-				"./getApiKey.ts"
-			],
-			"@/tracing/*": [
-				"./tracing/*.ts"
-			],
-			"@/prosekit/*": [
-				"./prosekit/*.ts"
-			]
+			"@/routes/*": ["./routes/*"],
+			"@/public/*": ["./public/*"],
+			"@/index": ["./index.ts"],
+			"@/queue": ["./queue.ts"],
+			"@/util": ["./util.ts"],
+			"@/clickhouse": ["./clickhouse.ts"],
+			"@/getSession": ["./getSession.ts"],
+			"@/getApiKey": ["./getApiKey.ts"],
+			"@/tracing/*": ["./tracing/*.ts"],
+			"@/prosekit/*": ["./prosekit/*.ts"]
 		}
 	},
 	"include": [
@@ -45,7 +25,5 @@
 		"openapi",
 		"prosekit"
 	],
-	"exclude": [
-		"node_modules"
-	]
+	"exclude": ["node_modules"]
 }

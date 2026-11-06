@@ -4,8 +4,8 @@ import * as v from "drizzle-orm/pg-core";
 import { pgTable as table } from "drizzle-orm/pg-core";
 import { githubRepository } from "./github_repository.schema";
 import { organization } from "./organization.schema";
-import { task } from "./task.schema";
 import { release } from "./release.schema";
+import { task } from "./task.schema";
 
 export const githubPullRequest = table(
 	"github_pull_request",
@@ -30,17 +30,13 @@ export const githubPullRequest = table(
 				onDelete: "cascade",
 			}),
 
-		taskId: v
-			.text("task_id")
-			.references(() => task.id, {
-				onDelete: "set null",
-			}),
+		taskId: v.text("task_id").references(() => task.id, {
+			onDelete: "set null",
+		}),
 
-		releaseId: v
-			.text("release_id")
-			.references(() => release.id, {
-				onDelete: "set null",
-			}),
+		releaseId: v.text("release_id").references(() => release.id, {
+			onDelete: "set null",
+		}),
 
 		/** GitHub Data */
 		prNumber: v.integer("pr_number").notNull(),
@@ -58,49 +54,35 @@ export const githubPullRequest = table(
 
 		mergeCommitSha: v.text("merge_commit_sha"),
 
-		createdAt: v
-			.timestamp("created_at")
-			.defaultNow()
-			.notNull(),
+		createdAt: v.timestamp("created_at").defaultNow().notNull(),
 
-		updatedAt: v
-			.timestamp("updated_at")
-			.defaultNow()
-			.notNull(),
+		updatedAt: v.timestamp("updated_at").defaultNow().notNull(),
 	},
 	(t) => [
 		v.index("idx_github_pr_repo").on(t.repositoryId),
 		v.index("idx_github_pr_org").on(t.organizationId),
-		v.index("idx_github_pr_number").on(
-			t.repositoryId,
-			t.prNumber
-		),
-		v.uniqueIndex("uq_github_pr_repo_number").on(
-			t.repositoryId,
-			t.prNumber
-		),
+		v.index("idx_github_pr_number").on(t.repositoryId, t.prNumber),
+		v.uniqueIndex("uq_github_pr_repo_number").on(t.repositoryId, t.prNumber),
 	]
 );
 
-export type githubPullRequestType =
-	typeof githubPullRequest.$inferSelect;
+export type githubPullRequestType = typeof githubPullRequest.$inferSelect;
 
-export const githubPullRequestRelations =
-	relations(githubPullRequest, ({ one }) => ({
-		repository: one(githubRepository, {
-			fields: [githubPullRequest.repositoryId],
-			references: [githubRepository.id],
-		}),
-		organization: one(organization, {
-			fields: [githubPullRequest.organizationId],
-			references: [organization.id],
-		}),
-		task: one(task, {
-			fields: [githubPullRequest.taskId],
-			references: [task.id],
-		}),
-		release: one(release, {
-			fields: [githubPullRequest.releaseId],
-			references: [release.id],
-		}),
-	}));
+export const githubPullRequestRelations = relations(githubPullRequest, ({ one }) => ({
+	repository: one(githubRepository, {
+		fields: [githubPullRequest.repositoryId],
+		references: [githubRepository.id],
+	}),
+	organization: one(organization, {
+		fields: [githubPullRequest.organizationId],
+		references: [organization.id],
+	}),
+	task: one(task, {
+		fields: [githubPullRequest.taskId],
+		references: [task.id],
+	}),
+	release: one(release, {
+		fields: [githubPullRequest.releaseId],
+		references: [release.id],
+	}),
+}));

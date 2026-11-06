@@ -1,6 +1,6 @@
 import type { schema } from "@repo/database";
-import { IconAlertSquareFilled } from "@tabler/icons-react";
 import PriorityIcon from "@repo/ui/components/icons/priority";
+import { IconAlertSquareFilled } from "@tabler/icons-react";
 import { priorityConfig as sharedPriorityConfig } from "../shared/config";
 import type { FieldDisplay, FieldOption, SingleFieldUpdatePayload } from "./types";
 
@@ -41,7 +41,7 @@ export function getPriorityDisplay(task: schema.TaskWithLabels): FieldDisplay {
 
 export function getPriorityUpdatePayload(
 	task: schema.TaskWithLabels,
-	newPriority: string | null,
+	newPriority: string | null
 ): SingleFieldUpdatePayload {
 	const key = (newPriority ?? "none") as PriorityKey;
 	const label = sharedPriorityConfig[key]?.label ?? "None";

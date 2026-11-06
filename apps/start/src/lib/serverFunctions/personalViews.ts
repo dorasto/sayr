@@ -1,3 +1,4 @@
+import type { schema } from "@repo/database";
 import {
 	createPersonalView,
 	deletePersonalView,
@@ -5,7 +6,6 @@ import {
 	reorderPersonalViews,
 	updatePersonalView,
 } from "@repo/database";
-import type { schema } from "@repo/database";
 import { createServerFn } from "@tanstack/react-start";
 import { requireAccount } from "@/getAccess";
 

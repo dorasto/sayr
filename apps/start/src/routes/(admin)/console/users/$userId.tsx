@@ -1,8 +1,8 @@
-import { SubWrapper } from "@/components/generic/wrapper";
-import UserDetail from "@/components/console/user-detail";
-import { getConsoleUserServer } from "@/lib/serverFunctions/getConsoleData";
-import type { ConsoleUserDetail } from "@/lib/fetches/console";
 import { createFileRoute, redirect } from "@tanstack/react-router";
+import UserDetail from "@/components/console/user-detail";
+import { SubWrapper } from "@/components/generic/wrapper";
+import type { ConsoleUserDetail } from "@/lib/fetches/console";
+import { getConsoleUserServer } from "@/lib/serverFunctions/getConsoleData";
 import { seo } from "@/seo";
 
 export const Route = createFileRoute("/(admin)/console/users/$userId")({

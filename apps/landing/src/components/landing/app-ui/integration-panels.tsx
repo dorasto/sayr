@@ -12,7 +12,7 @@ import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { OrgMark, Person, Status } from "./atoms";
 import { DEMO_TASKS, FEATURED_TASK, ORG, PEOPLE, PUBLIC_STATUS_LABEL } from "./demo-data";
-import { fade, type ReplayProps, Reveal, stepProgress, Swap, Typed } from "./replay";
+import { fade, type ReplayProps, Reveal, Swap, stepProgress, Typed } from "./replay";
 import { Dim, Terminal } from "./terminal";
 
 // Small recreations for the homepage integrations section. Each one shows what

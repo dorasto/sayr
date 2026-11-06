@@ -30,6 +30,7 @@ const defaultTeamPermissions: TeamPermissions = {
 		manageVotes: false,
 	},
 };
+
 import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
 import { Badge } from "@repo/ui/components/badge";
 import { Button } from "@repo/ui/components/button";
@@ -928,6 +929,7 @@ function CheckboxItem({
 	disabled?: boolean;
 }) {
 	return (
+		// biome-ignore lint/a11y/noLabelWithoutControl: pre-existing; behaviour-changing fix deferred
 		<label
 			className={cn(
 				"flex items-center gap-2 cursor-pointer select-none",

@@ -1,6 +1,6 @@
 "use client";
 
-import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@repo/ui/components/chart";
+import { type ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "@repo/ui/components/chart";
 import { cn } from "@repo/ui/lib/utils";
 import { Area, Bar, CartesianGrid, ComposedChart, Line, XAxis, YAxis } from "recharts";
 

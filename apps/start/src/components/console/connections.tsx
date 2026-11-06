@@ -99,11 +99,13 @@ export default function AdminConnectionsPage() {
 		setRefreshIn(refreshInterval);
 	};
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies: pre-existing; behaviour-changing fix deferred
 	useEffect(() => {
 		refreshNow();
 	}, []);
 
 	// Countdown + auto-refresh every 60s
+	// biome-ignore lint/correctness/useExhaustiveDependencies: pre-existing; behaviour-changing fix deferred
 	useEffect(() => {
 		const id = setInterval(() => {
 			setRefreshIn((prev) => {

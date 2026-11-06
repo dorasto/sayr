@@ -15,12 +15,7 @@ export function getLabelOptions(orgLabels: schema.labelType[]): FieldOption<stri
 	return orgLabels.map((label) => ({
 		id: label.id,
 		label: label.name,
-		icon: (
-			<span
-				className="h-2 w-2 shrink-0 rounded-full"
-				style={{ backgroundColor: label.color || "#cccccc" }}
-			/>
-		),
+		icon: <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: label.color || "#cccccc" }} />,
 		value: label.id,
 		keywords: `label tag ${label.name}`,
 		metadata: {
@@ -48,16 +43,14 @@ export function getLabelUpdatePayload(
 	task: schema.TaskWithLabels,
 	labelId: string,
 	orgLabels: schema.labelType[],
-	sseClientId: string,
+	sseClientId: string
 ): MultiFieldUpdatePayload {
 	const currentLabelIds = new Set((task.labels || []).map((l) => l.id));
 	const isActive = currentLabelIds.has(labelId);
 	const label = orgLabels.find((l) => l.id === labelId);
 	const displayName = label?.name ?? "Unknown";
 
-	const newLabelIds = isActive
-		? [...currentLabelIds].filter((id) => id !== labelId)
-		: [...currentLabelIds, labelId];
+	const newLabelIds = isActive ? [...currentLabelIds].filter((id) => id !== labelId) : [...currentLabelIds, labelId];
 
 	const newLabels = isActive
 		? (task.labels || []).filter((l) => l.id !== labelId)
@@ -93,7 +86,7 @@ export function getLabelBulkUpdatePayload(
 	task: schema.TaskWithLabels,
 	values: string[],
 	availableLabels: schema.labelType[],
-	sseClientId: string,
+	sseClientId: string
 ): MultiFieldUpdatePayload {
 	const newLabels = availableLabels.filter((label) => values.includes(label.id));
 

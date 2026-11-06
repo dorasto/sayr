@@ -1,17 +1,17 @@
 import { eq, inArray } from "drizzle-orm";
 import { auth, db, type schema } from "..";
 
-export * from "./label";
-export * from "./organization";
-export * from "./task";
-export * from "./issueTemplate";
-export * from "./release";
-export * from "./notification";
-export * from "./integrations";
-export * from "./user";
-export * from "./github";
-export * from "./savedView";
 export * from "./favourite";
+export * from "./github";
+export * from "./integrations";
+export * from "./issueTemplate";
+export * from "./label";
+export * from "./notification";
+export * from "./organization";
+export * from "./release";
+export * from "./savedView";
+export * from "./task";
+export * from "./user";
 
 /**
  * Standard columns for user summary in Drizzle relation queries.

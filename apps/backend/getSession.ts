@@ -1,5 +1,5 @@
 import { auth } from "@repo/auth/index";
-import { auth as authSchema, db, schema } from "@repo/database";
+import { auth as authSchema, db, type schema } from "@repo/database";
 import { eq } from "drizzle-orm";
 import { getCookieValue } from "./util";
 

@@ -1,6 +1,6 @@
 import { parseHTML } from "linkedom";
-import { htmlFromJSON, createEditor } from "prosekit/core";
 import type { NodeJSON } from "prosekit/core";
+import { createEditor, htmlFromJSON } from "prosekit/core";
 import { defineExtension } from "@/components/prosekit/extensions";
 import { sanitizeDocJSON } from "@/components/prosekit/sanitize-doc";
 import { extractTextContent } from "@/lib/util";

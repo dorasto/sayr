@@ -1,5 +1,5 @@
-import { drizzle } from "drizzle-orm/postgres-js";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
+import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 
 // Import schemas
@@ -22,9 +22,6 @@ declare global {
 	// eslint-disable-next-line no-var
 	var _db: DrizzleClient | undefined;
 }
-
-// Make this file a module so `declare global` works
-export { };
 
 const g = globalThis as typeof globalThis & {
 	_pgClient?: PostgresClient;

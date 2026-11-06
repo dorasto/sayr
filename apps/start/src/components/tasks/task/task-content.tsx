@@ -6,7 +6,7 @@ import { SubWrapper } from "@/components/generic/wrapper";
 import { useLayoutOrganization } from "@/contexts/ContextOrg";
 import type { useToastAction } from "@/lib/util";
 import { cn } from "@/lib/utils";
-import { getMatchedIntegrations, InlineLabel, TaskFieldToolbar, getTaskFieldPermissions } from "../shared";
+import { getMatchedIntegrations, getTaskFieldPermissions, InlineLabel, TaskFieldToolbar } from "../shared";
 import GlobalTaskGithubIssue from "../shared/github-issue";
 import { TaskEditableHeader } from "./editable-header";
 import { AiInsights } from "./task-ai-insights";

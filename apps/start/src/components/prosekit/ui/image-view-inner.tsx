@@ -38,6 +38,8 @@ function ZoomableImage({ src, alt }: { src: string; alt: string }) {
 	};
 
 	return (
+		// biome-ignore lint/a11y/noStaticElementInteractions: pre-existing; behaviour-changing fix deferred
+		// biome-ignore lint/a11y/useKeyWithClickEvents: pre-existing; behaviour-changing fix deferred
 		<div
 			ref={containerRef}
 			className={cn(
@@ -104,6 +106,7 @@ export default function ImageView(props: ReactNodeViewProps) {
 				className="relative flex items-center justify-center box-border overflow-hidden my-2 group max-h-[600px] max-w-full min-h-16 min-w-16 outline-transparent! border-transparent! rounded-lg"
 			>
 				{url && (
+					// biome-ignore lint/a11y/useKeyWithClickEvents: pre-existing; behaviour-changing fix deferred
 					<img
 						src={url}
 						onLoad={handleImageLoad}

@@ -1,5 +1,5 @@
-import AdminConnectionsPage from "@/components/console/connections";
 import { createFileRoute, redirect } from "@tanstack/react-router";
+import AdminConnectionsPage from "@/components/console/connections";
 import { seo } from "@/seo";
 
 export const Route = createFileRoute("/(admin)/console/connections/")({

@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 import { AppWindow } from "./app-window";
 import { CategoryChip, LabelChip, Person, Priority, Status } from "./atoms";
 import { DEMO_TASKS, PEOPLE, STATUS_LABEL } from "./demo-data";
-import { fade, stepProgress, Swap, useReplay } from "./replay";
+import { fade, Swap, stepProgress, useReplay } from "./replay";
 
 // The task page's AI Insights (apps/start: task-ai-insights.tsx), recreated:
 // an AI Summary that streams in, then Recommendations as dashed chips. One gets

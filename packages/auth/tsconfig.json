@@ -1,21 +1,12 @@
 {
 	"extends": "@repo/typescript-config/base.json",
 	"compilerOptions": {
-		"types": [
-			"node",
-			"zod"
-		],
+		"types": ["node", "zod"],
 		"esModuleInterop": true,
 		"paths": {
-			"@repo/auth/*": [
-				"./src/*"
-			]
+			"@repo/auth/*": ["./src/*"]
 		}
 	},
-	"include": [
-		"src"
-	],
-	"exclude": [
-		"node_modules"
-	]
+	"include": ["src"],
+	"exclude": ["node_modules"]
 }

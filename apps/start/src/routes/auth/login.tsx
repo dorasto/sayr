@@ -2,7 +2,7 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { LoginComponent } from "@/components/auth/login";
 import { getAccess } from "@/getAccess";
-import { seo, getOgImageUrl } from "@/seo";
+import { getOgImageUrl, seo } from "@/seo";
 
 const checkAuth = createServerFn({ method: "GET" }).handler(async () => {
 	const { account } = await getAccess();

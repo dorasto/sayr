@@ -1,11 +1,11 @@
 import { createHash, randomBytes } from "node:crypto";
 import { db } from "@repo/database";
+import { createTraceAsync } from "@repo/opentelemetry/trace";
 import { removeObject, resolveSafeUploadType, uploadObject } from "@repo/storage";
 import { ensureCdnUrl, extractIdsFromUrl, getFileNameFromUrl } from "@repo/util";
 import { eq } from "drizzle-orm";
 import { Hono } from "hono";
 import type { AppEnv } from "@/index";
-import { createTraceAsync } from "@repo/opentelemetry/trace";
 import { traceOrgPermissionCheck } from "@/util";
 
 export const apiRouteFile = new Hono<AppEnv>();

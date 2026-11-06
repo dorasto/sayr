@@ -1,6 +1,5 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
 import {
 	ComboBox,
 	ComboBoxContent,
@@ -15,7 +14,8 @@ import {
 import { cn } from "@repo/ui/lib/utils";
 import { formatTaskKey } from "@repo/util";
 import { IconLoader2 } from "@tabler/icons-react";
-import { searchOrgTasks, type OrgTaskSearchResult } from "@/lib/fetches/searchTasks";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { type OrgTaskSearchResult, searchOrgTasks } from "@/lib/fetches/searchTasks";
 import { statusConfig } from "./config";
 
 const DEBOUNCE_MS = 300;

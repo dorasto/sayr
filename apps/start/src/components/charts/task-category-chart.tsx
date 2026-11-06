@@ -2,7 +2,7 @@
 
 import type { schema } from "@repo/database";
 import { useMemo } from "react";
-import { SimplePieChart, type PieChartDataItem } from "./simple-pie-chart";
+import { type PieChartDataItem, SimplePieChart } from "./simple-pie-chart";
 
 export interface TaskCategoryChartProps {
 	tasks: schema.TaskWithLabels[];

@@ -2,8 +2,8 @@
 
 import type { schema } from "@repo/database";
 import { useMemo } from "react";
-import { statusConfig, type StatusKey } from "@/components/tasks/shared/config";
-import { SimplePieChart, type PieChartDataItem } from "./simple-pie-chart";
+import { type StatusKey, statusConfig } from "@/components/tasks/shared/config";
+import { type PieChartDataItem, SimplePieChart } from "./simple-pie-chart";
 
 export interface TaskStatusChartProps {
 	tasks: schema.TaskWithLabels[];

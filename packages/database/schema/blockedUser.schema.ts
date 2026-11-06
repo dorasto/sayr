@@ -40,7 +40,7 @@ export const blockedUser = table(
 	(t) => [
 		v.unique("unq_blocked_user_org").on(t.organizationId, t.userId),
 		v.index("idx_blocked_user_org").on(t.organizationId),
-	],
+	]
 );
 
 /**

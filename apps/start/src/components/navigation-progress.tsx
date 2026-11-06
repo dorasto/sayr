@@ -1,6 +1,6 @@
+import { cn } from "@repo/ui/lib/utils";
 import { useRouterState } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { cn } from "@repo/ui/lib/utils";
 
 /**
  * NavigationProgress shows a loading bar during hard navigations (path changes),

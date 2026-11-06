@@ -27,42 +27,42 @@ import { notificationTypeConfig } from "./notification-type-config";
 
 export interface NotificationItemProps {
 	notification: {
-		id: string
-		type: string
+		id: string;
+		type: string;
 		data: {
-			taskId: string
-			timelineEventId: string
-		}
-		delivered: boolean
-		readAt: string
-		createdAt: string
-		updatedAt: string
+			taskId: string;
+			timelineEventId: string;
+		};
+		delivered: boolean;
+		readAt: string;
+		createdAt: string;
+		updatedAt: string;
 		actor: {
-			id: string
-			name: string
-			image: string
-			displayName: string
-		}
+			id: string;
+			name: string;
+			image: string;
+			displayName: string;
+		};
 		recipient: {
-			id: string
-			name: string
-			image: string
-			displayName: string
-		}
+			id: string;
+			name: string;
+			image: string;
+			displayName: string;
+		};
 		organization: {
-			id: string
-			name: string
-			slug: string
-			logo: string
-			shortId: string
-		}
+			id: string;
+			name: string;
+			slug: string;
+			logo: string;
+			shortId: string;
+		};
 		task: {
-			id: string
-			shortId: number
-			status: string
-			priority: string
-		}
-		unread: boolean
+			id: string;
+			shortId: number;
+			status: string;
+			priority: string;
+		};
+		unread: boolean;
 	};
 	isSelected: boolean;
 	onClick: () => void;

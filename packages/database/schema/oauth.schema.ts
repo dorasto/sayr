@@ -12,9 +12,7 @@ export const oauthClient = table(
 		clientId: v.text("client_id").notNull().unique(),
 		clientSecret: v.text("client_secret"),
 		clientDiscoveryId: v.text("client_discovery_id"),
-		disabled: v
-			.boolean("disabled")
-			.$defaultFn(() => false),
+		disabled: v.boolean("disabled").$defaultFn(() => false),
 		skipConsent: v.boolean("skip_consent"),
 		enableEndSession: v.boolean("enable_end_session"),
 		subjectType: v.text("subject_type"),
@@ -46,9 +44,7 @@ export const oauthClient = table(
 		grantTypes: v.text("grant_types").array(),
 		responseTypes: v.text("response_types").array(),
 		requirePKCE: v.boolean("require_pkce"),
-		dpopBoundAccessTokens: v
-			.boolean("dpop_bound_access_tokens")
-			.$defaultFn(() => false),
+		dpopBoundAccessTokens: v.boolean("dpop_bound_access_tokens").$defaultFn(() => false),
 		referenceId: v.text("reference_id"),
 		metadata: v.jsonb("metadata"),
 	},
@@ -68,17 +64,11 @@ export const oauthResource = table("oauth_resource", {
 	signingKeyId: v.text("signing_key_id"),
 	allowedScopes: v.text("allowed_scopes").array(),
 	customClaims: v.jsonb("custom_claims"),
-	dpopBoundAccessTokensRequired: v
-		.boolean("dpop_bound_access_tokens_required")
-		.$defaultFn(() => false),
-	disabled: v
-		.boolean("disabled")
-		.$defaultFn(() => false),
+	dpopBoundAccessTokensRequired: v.boolean("dpop_bound_access_tokens_required").$defaultFn(() => false),
+	disabled: v.boolean("disabled").$defaultFn(() => false),
 	createdAt: v.timestamp("created_at"),
 	updatedAt: v.timestamp("updated_at"),
-	policyVersion: v
-		.integer("policy_version")
-		.$defaultFn(() => 1),
+	policyVersion: v.integer("policy_version").$defaultFn(() => 1),
 	metadata: v.jsonb("metadata"),
 });
 
@@ -200,10 +190,7 @@ export const oauthConsent = table(
 		createdAt: v.timestamp("created_at"),
 		updatedAt: v.timestamp("updated_at"),
 	},
-	(t) => [
-		v.index("oauthConsent_clientId_idx").on(t.clientId),
-		v.index("oauthConsent_userId_idx").on(t.userId),
-	]
+	(t) => [v.index("oauthConsent_clientId_idx").on(t.clientId), v.index("oauthConsent_userId_idx").on(t.userId)]
 );
 
 // --------------------

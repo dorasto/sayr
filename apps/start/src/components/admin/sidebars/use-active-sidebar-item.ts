@@ -2,8 +2,8 @@ import { useRouterState } from "@tanstack/react-router";
 import { useStore } from "@tanstack/react-store";
 import { useMemo, useSyncExternalStore } from "react";
 import { useLayoutData } from "@/components/admin/shell/context";
-import { type FavouriteWithTarget, favouritesStore } from "@/lib/stores/favourites-store";
 import { heading, navigation } from "@/lib/routemap";
+import { type FavouriteWithTarget, favouritesStore } from "@/lib/stores/favourites-store";
 import { resolveActiveSidebarItem, type SidebarTarget } from "./sidebar-active";
 
 /** Row ids, shared by the rows and the targets list below. */

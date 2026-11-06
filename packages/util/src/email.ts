@@ -376,7 +376,7 @@ export async function deleteContactByEmail(email: string) {
 	);
 
 	if (!listResponse.ok) {
-		throw new Error(`Failed to find contact: ${listResponse.status} ` + (await listResponse.text()));
+		throw new Error(`Failed to find contact: ${listResponse.status} ${await listResponse.text()}`);
 	}
 
 	const result = await listResponse.json();
@@ -399,7 +399,7 @@ export async function deleteContactByEmail(email: string) {
 	);
 
 	if (!deleteResponse.ok) {
-		throw new Error(`Failed to delete contact: ${deleteResponse.status} ` + (await deleteResponse.text()));
+		throw new Error(`Failed to delete contact: ${deleteResponse.status} ${await deleteResponse.text()}`);
 	}
 
 	console.log(`Deleted contact ${contactId} (${email})`);

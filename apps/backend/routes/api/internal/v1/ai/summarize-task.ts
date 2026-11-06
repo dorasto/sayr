@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { createPolar } from "@polar-sh/sdk/2026-10";
 import { type RequestyMetadata, resolveModelId, streamText } from "@repo/ai";
 import { taskSummaryPrompt } from "@repo/ai-prompts";
 import {
@@ -23,7 +24,7 @@ import { fetchUrlAsText } from "../../../../../lib/ai/fetch-url-text";
 import { buildTimelineLine } from "../../../../../lib/ai/format-timeline";
 import { sanitizeCustomPrompt } from "../../../../../lib/ai/model";
 import { errorResponse } from "../../../../../responses";
-import { createPolar } from "@polar-sh/sdk/2026-10";
+
 const polarClient = createPolar({
 	accessToken: process.env.POLAR_ACCESS_TOKEN!,
 });
@@ -294,14 +295,14 @@ summarizeTaskRoute.post("/", async (c) => {
 
 	const totalUrlsFound = useUrlFetch
 		? (() => {
-			const seen = new Set<string>();
-			for (const u of extractUrls(descriptionText)) seen.add(u);
-			for (const item of (activity ?? []).filter((i) => i.eventType === "comment" && i.content)) {
-				const text = item.content ? extractPlainText(item.content) : "";
-				for (const u of extractUrls(text)) seen.add(u);
-			}
-			return seen.size;
-		})()
+				const seen = new Set<string>();
+				for (const u of extractUrls(descriptionText)) seen.add(u);
+				for (const item of (activity ?? []).filter((i) => i.eventType === "comment" && i.content)) {
+					const text = item.content ? extractPlainText(item.content) : "";
+					for (const u of extractUrls(text)) seen.add(u);
+				}
+				return seen.size;
+			})()
 		: 0;
 
 	console.log(

@@ -3,15 +3,9 @@
 	"compilerOptions": {
 		"esModuleInterop": true,
 		"paths": {
-			"@repo/opentelemetry/*": [
-				"./src/*"
-			]
+			"@repo/opentelemetry/*": ["./src/*"]
 		}
 	},
-	"include": [
-		"src"
-	],
-	"exclude": [
-		"node_modules"
-	]
+	"include": ["src"],
+	"exclude": ["node_modules"]
 }

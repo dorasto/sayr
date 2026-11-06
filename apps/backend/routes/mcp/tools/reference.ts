@@ -1,5 +1,5 @@
-import { db, getLabels, getOrCreateLabel } from "@repo/database";
 import type { McpServer } from "@modelcontextprotocol/server";
+import { db, getLabels, getOrCreateLabel } from "@repo/database";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { assertMcpAccess } from "../../../lib/mcp/auth";

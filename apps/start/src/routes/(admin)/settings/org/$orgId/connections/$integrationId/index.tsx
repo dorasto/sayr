@@ -19,9 +19,9 @@ import { useCallback, useState } from "react";
 import { MarkdownContent } from "@/components/generic/markdown-content";
 import RenderIcon from "@/components/generic/RenderIcon";
 import { SubWrapper } from "@/components/generic/wrapper";
+import { requireAccount } from "@/getAccess";
 import { useToastAction } from "@/lib/util";
 import { cn } from "@/lib/utils";
-import { requireAccount } from "@/getAccess";
 import { seo } from "@/seo";
 
 const getIntegrationMeta = createServerFn({ method: "GET" })

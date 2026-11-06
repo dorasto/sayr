@@ -1,15 +1,15 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
+import { headlessToast } from "@repo/ui/components/headless-toast";
+import SimpleClipboard from "@repo/ui/components/tomui/simple-clipboard";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { ensureCdnUrl, formatTaskKey } from "@repo/util";
 import { IconCopy, IconGitBranch, IconLink, IconUsers } from "@tabler/icons-react";
 import { useMatch } from "@tanstack/react-router";
+import { TaskContentSideContent } from "@/components/tasks/task/task-content";
 import { useLayoutOrganization } from "@/contexts/ContextOrg";
 import { useLayoutTask } from "@/contexts/ContextOrgTask";
 import { useLayoutTasks } from "@/contexts/ContextOrgTasks";
 import { useToastAction } from "@/lib/util";
-import { TaskContentSideContent } from "@/components/tasks/task/task-content";
-import { headlessToast } from "@repo/ui/components/headless-toast";
-import SimpleClipboard from "@repo/ui/components/tomui/simple-clipboard";
 
 /**
  * Fixed header for the task detail panel, height-matched to PageHeader.Identity (h-11).

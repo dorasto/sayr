@@ -16,7 +16,12 @@ import {
 } from "@repo/ui/components/tomui/combo-box-unified";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { cn } from "@repo/ui/lib/utils";
-import { getPriorityOptions, getPriorityDisplay, getPriorityUpdatePayload, useTaskFieldAction } from "@/components/tasks/actions";
+import {
+	getPriorityDisplay,
+	getPriorityOptions,
+	getPriorityUpdatePayload,
+	useTaskFieldAction,
+} from "@/components/tasks/actions";
 
 interface GlobalTaskPriorityProps {
 	task: schema.TaskWithLabels;
@@ -56,9 +61,9 @@ export default function GlobalTaskPriority({
 	const { execute } = useTaskFieldAction(
 		task,
 		tasks,
-		setSelectedTask ?? (() => { }),
-		setTasks ?? (() => { }),
-		sseClientId,
+		setSelectedTask ?? (() => {}),
+		setTasks ?? (() => {}),
+		sseClientId
 	);
 
 	const handlePriorityChange = (value: string | null) => {

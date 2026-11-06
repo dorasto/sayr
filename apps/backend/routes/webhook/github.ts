@@ -1,10 +1,10 @@
-import type { AppEnv } from "@/index";
-import { createTraceAsync, getTraceContext } from "@repo/opentelemetry/trace";
 import { db, schema } from "@repo/database";
+import { createTraceAsync, getTraceContext } from "@repo/opentelemetry/trace";
 import { enqueue } from "@repo/queue";
 import { verifySignature } from "@repo/util/github/verify";
 import { and, eq, or } from "drizzle-orm";
 import { Hono } from "hono";
+import type { AppEnv } from "@/index";
 import { SAYR_COMMENT_SYNC_MARKER, SAYR_TASK_LINK_MARKER_PREFIX } from "@/util";
 
 const app = new Hono<AppEnv>();

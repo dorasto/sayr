@@ -1,5 +1,5 @@
 import type { schema } from "@repo/database";
-import { db, getLabels, getReleases, getTasksByUserId, getOrgPermissions, type TeamPermissions } from "@repo/database";
+import { db, getLabels, getOrgPermissions, getReleases, getTasksByUserId, type TeamPermissions } from "@repo/database";
 import { ensureCdnUrl } from "@repo/util";
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";

@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { relations } from "drizzle-orm";
 import * as v from "drizzle-orm/pg-core";
 import { pgTable as table } from "drizzle-orm/pg-core";
+import type { NodeJSON } from ".";
 import { user } from "./auth";
 import { category } from "./category.schema";
 import { githubIssue } from "./github_issue.schema";
@@ -13,7 +14,6 @@ import { taskAssignee } from "./taskAssignee.schema";
 import { taskComment } from "./taskComment.schema";
 import { taskRelation } from "./taskRelation.schema";
 import { taskTimeline } from "./taskTimeline.schema";
-import type { NodeJSON } from ".";
 export const visibleEnum = v.pgEnum("visible", ["public", "private"]);
 export const statusEnum = v.pgEnum("status", ["backlog", "todo", "in-progress", "done", "canceled"]);
 export const priorityEnum = v.pgEnum("priority", ["none", "low", "medium", "high", "urgent"]);
@@ -64,11 +64,13 @@ export const task = table(
 		v.index("idx_task_org_release").on(t.organizationId, t.releaseId),
 		v.unique("task_organization_shortid_unique").on(t.organizationId, t.shortId),
 		v.index("idx_task_parent_id").on(t.parentId),
-		v.foreignKey({
-			columns: [t.parentId],
-			foreignColumns: [t.id],
-			name: "task_parent_fk",
-		}).onDelete("set null"),
+		v
+			.foreignKey({
+				columns: [t.parentId],
+				foreignColumns: [t.id],
+				name: "task_parent_fk",
+			})
+			.onDelete("set null"),
 	]
 );
 

@@ -1,7 +1,7 @@
-import type { AppEnv } from "@/index";
 import { Hono } from "hono";
-import { PolarWebhookHandler } from "./polar";
+import type { AppEnv } from "@/index";
 import { GithubWebhookHandler } from "./github";
+import { PolarWebhookHandler } from "./polar";
 
 export const webhookRoute = new Hono<AppEnv>();
 webhookRoute.route("/github", GithubWebhookHandler);

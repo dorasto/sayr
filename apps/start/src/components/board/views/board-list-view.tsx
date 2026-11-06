@@ -575,6 +575,7 @@ function DraggableBoardList({ tasks, flatSubtasks }: BoardListViewProps) {
 	const lastOverIdRef = useRef<string | null>(null);
 	const recentlyMovedRef = useRef(false);
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies: pre-existing; behaviour-changing fix deferred
 	useEffect(() => {
 		const frame = requestAnimationFrame(() => {
 			recentlyMovedRef.current = false;

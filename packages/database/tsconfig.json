@@ -1,20 +1,12 @@
 {
 	"extends": "@repo/typescript-config/base.json",
 	"compilerOptions": {
-		"types": [
-			"node"
-		],
+		"types": ["node"],
 		"esModuleInterop": true,
 		"paths": {
-			"@repo/database/*": [
-				"./src/*"
-			]
+			"@repo/database/*": ["./src/*"]
 		}
 	},
-	"include": [
-		"src"
-	],
-	"exclude": [
-		"node_modules"
-	],
+	"include": ["src"],
+	"exclude": ["node_modules"]
 }

@@ -1,9 +1,9 @@
+import { getOrganization, getReleaseBySlug } from "@repo/database";
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { getReleaseBySlug, getOrganization } from "@repo/database";
 import { createServerFn } from "@tanstack/react-start";
-import { requireAccount } from "@/getAccess";
-import { seo, getOgImageUrl } from "@/seo";
 import ReleaseDetailPage from "@/components/pages/admin/orgid/releases/release-slug";
+import { requireAccount } from "@/getAccess";
+import { getOgImageUrl, seo } from "@/seo";
 
 export const getAdminOrganizationRelease = createServerFn({ method: "GET" })
 	.validator((data: { orgId: string; releaseSlug: string }) => data)

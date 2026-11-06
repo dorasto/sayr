@@ -1,13 +1,13 @@
 "use client";
 
+import type { schema } from "@repo/database";
+import { useEffect } from "react";
 import { useLayoutData } from "@/components/admin/shell/context";
 import CreateCategory from "@/components/organization/create-category";
 import { useLayoutOrganizationSettings } from "@/contexts/ContextOrgSettings";
 import { useServerEventsSubscription } from "@/hooks/useServerEventsSubscription";
-import { useWSMessageHandler, WSMessageHandler } from "@/hooks/useWSMessageHandler";
+import { useWSMessageHandler, type WSMessageHandler } from "@/hooks/useWSMessageHandler";
 import type { ServerEventMessage } from "@/lib/serverEvents";
-import type { schema } from "@repo/database";
-import { useEffect } from "react";
 
 export default function SettingsOrganizationCategoriesPage() {
 	const { serverEvents } = useLayoutData();

@@ -3,6 +3,7 @@ import { createTraceAsync } from "@repo/opentelemetry/trace";
 import { Hono } from "hono";
 import z from "zod";
 import type { AppEnv } from "@/index";
+import { withResolvedMentions } from "@/prosekit/resolveMarkdownMentions";
 import { enforceLimit } from "@/util";
 import { loadReleaseDetail } from "../../../../../lib/releases/detail";
 import {
@@ -32,7 +33,6 @@ import {
 	ReleaseSchema,
 	releasePathParam,
 } from "./release-schemas";
-import { withResolvedMentions } from "@/prosekit/resolveMarkdownMentions";
 
 export const releasesRoute = new Hono<AppEnv>();
 

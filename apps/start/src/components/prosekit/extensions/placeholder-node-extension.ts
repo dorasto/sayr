@@ -1,6 +1,6 @@
+import type { Extension } from "prosekit/core";
 import { defineClickHandler, defineCommands, defineMarkSpec, toggleMark, union } from "prosekit/core";
 import type { Attrs } from "prosekit/pm/model";
-import type { Extension } from "prosekit/core";
 import { TextSelection } from "prosekit/pm/state";
 
 /**

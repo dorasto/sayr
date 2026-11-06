@@ -1,4 +1,10 @@
-import type { UISection, ParsedSection, UIPage, UIPageApi, ListItemTemplate } from "../types";
+import type {
+	ListItemTemplate,
+	ParsedSection,
+	UIPage,
+	UIPageApi,
+	UISection,
+} from "../types";
 
 export interface ParsedPage {
 	title: string;

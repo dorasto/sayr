@@ -1,5 +1,5 @@
-import type React from "react";
 import * as Icon from "@tabler/icons-react";
+import type React from "react";
 export const heading = [
 	{
 		title: "Overview",

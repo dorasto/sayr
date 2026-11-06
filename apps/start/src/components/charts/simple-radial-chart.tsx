@@ -1,6 +1,6 @@
 "use client";
 
-import { ChartContainer, type ChartConfig } from "@repo/ui/components/chart";
+import { type ChartConfig, ChartContainer } from "@repo/ui/components/chart";
 import { cn } from "@repo/ui/lib/utils";
 import { Label, PolarGrid, PolarRadiusAxis, RadialBar, RadialBarChart } from "recharts";
 

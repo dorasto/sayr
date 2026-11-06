@@ -36,10 +36,7 @@ export function getStatusDisplay(task: schema.TaskWithLabels): FieldDisplay {
 /**
  * Builds the update payload for changing a task's status.
  */
-export function getStatusUpdatePayload(
-	task: schema.TaskWithLabels,
-	newStatus: string,
-): SingleFieldUpdatePayload {
+export function getStatusUpdatePayload(task: schema.TaskWithLabels, newStatus: string): SingleFieldUpdatePayload {
 	const label = sharedStatusConfig[newStatus as StatusKey]?.label ?? newStatus;
 	return {
 		kind: "single",

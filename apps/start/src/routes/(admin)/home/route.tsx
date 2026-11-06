@@ -15,10 +15,10 @@ import { createServerFn } from "@tanstack/react-start";
 import { inArray } from "drizzle-orm";
 import { useCallback, useEffect } from "react";
 import { RootProviderLander } from "@/contexts/ContextLander";
+import { requireAccount } from "@/getAccess";
 import { useLanderCommands } from "@/hooks/commands/useLanderCommands";
 import { useLanderServerEventsSubscription } from "@/hooks/useLanderServerEventsSubscription";
 import { personalViewsActions } from "@/lib/stores/personal-views-store";
-import { requireAccount } from "@/getAccess";
 import { seo } from "@/seo";
 
 export const getLanderData = createServerFn({ method: "GET" }).handler(async () => {

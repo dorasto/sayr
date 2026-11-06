@@ -1,12 +1,12 @@
 import type { schema } from "@repo/database";
-import { IconMinus, IconPlus } from "@tabler/icons-react";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
+import { IconMinus, IconPlus } from "@tabler/icons-react";
 import { useEffect, useMemo } from "react";
 import { useLayoutOrganization } from "@/contexts/ContextOrg";
-import { updateTaskAction } from "@/lib/fetches/task";
-import type { OrgTaskSearchResult } from "@/lib/fetches/searchTasks";
-import { commandActions } from "@/lib/command-store";
 import { inReleaseMeta, taskStatusIcon } from "@/lib/command-item-helpers";
+import { commandActions } from "@/lib/command-store";
+import type { OrgTaskSearchResult } from "@/lib/fetches/searchTasks";
+import { updateTaskAction } from "@/lib/fetches/task";
 import type { CommandMap } from "@/types/command";
 import { useRegisterCommands } from "../useRegisterCommands";
 

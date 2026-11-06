@@ -1,8 +1,8 @@
 import { db } from "@repo/database";
 import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
-import SettingsOrganizationPageTeams from "@/components/pages/admin/settings/orgId/teams";
 import { SubWrapper } from "@/components/generic/wrapper";
+import SettingsOrganizationPageTeams from "@/components/pages/admin/settings/orgId/teams";
 import { requireOrgMember } from "@/getAccess";
 import { seo } from "@/seo";
 

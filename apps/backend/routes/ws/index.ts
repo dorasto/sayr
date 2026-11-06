@@ -819,9 +819,7 @@ function schedulePing(socket: ServerWebSocket) {
 	try {
 		const pingTs = Date.now();
 		wsClient.lastPing = pingTs;
-		socket.send(
-			`{"type":"PING","scope":"INDIVIDUAL","meta":{"ts":${pingTs},"lastLatency":${wsClient.lastLatency}}}`
-		);
+		socket.send(`{"type":"PING","scope":"INDIVIDUAL","meta":{"ts":${pingTs},"lastLatency":${wsClient.lastLatency}}}`);
 	} catch {
 		console.log("Failed to ping, closing", wsClient.id);
 		socket.close();

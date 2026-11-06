@@ -1,8 +1,9 @@
-import { NodeSDK } from "@opentelemetry/sdk-node";
-import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http";
 import { trace } from "@opentelemetry/api";
-import { PrettyConsoleSpanExporter } from "./console";
+import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http";
+import { NodeSDK } from "@opentelemetry/sdk-node";
 import { getEditionCapabilities } from "@repo/edition";
+import { PrettyConsoleSpanExporter } from "./console";
+
 let globalTracer: ReturnType<typeof trace.getTracer> | undefined;
 
 export async function initTracing(_serviceName: string) {

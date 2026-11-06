@@ -1,5 +1,5 @@
 import { and, eq, inArray, or, sql } from "drizzle-orm";
-import { db, auth, schema } from "..";
+import { auth, db, type schema } from "..";
 import { userSummarySelect } from "./index";
 
 /**
@@ -25,14 +25,12 @@ import { userSummarySelect } from "./index";
  * const results = await searchUsers({ query: "tom", includeIds: ["user_456"] });
  * ```
  */
-export async function searchUsers(
-	options?: {
-		query?: string;
-		limit?: number;
-		excludeIds?: string[];
-		includeIds?: string[];
-	},
-): Promise<schema.UserSummary[]> {
+export async function searchUsers(options?: {
+	query?: string;
+	limit?: number;
+	excludeIds?: string[];
+	includeIds?: string[];
+}): Promise<schema.UserSummary[]> {
 	const limit = options?.limit ?? 20;
 	const query = options?.query?.trim();
 	const excludeIds = options?.excludeIds ?? [];
@@ -42,7 +40,7 @@ export async function searchUsers(
 	// A user is considered banned if banned=true AND (banExpires IS NULL OR banExpires < now())
 	const isNotBanned = or(
 		sql`${auth.user.banned} IS NOT TRUE`,
-		sql`${auth.user.banExpires} IS NOT NULL AND ${auth.user.banExpires} < NOW()`,
+		sql`${auth.user.banExpires} IS NOT NULL AND ${auth.user.banExpires} < NOW()`
 	);
 
 	let users: schema.UserSummary[] = [];
@@ -64,23 +62,21 @@ export async function searchUsers(
 
 	// Search users by name/displayName using ILIKE
 	const searchCondition = and(
-		or(
-			sql`${auth.user.name} ILIKE ${`%${query}%`}`,
-			sql`${auth.user.displayName} ILIKE ${`%${query}%`}`,
-		),
+		or(sql`${auth.user.name} ILIKE ${`%${query}%`}`, sql`${auth.user.displayName} ILIKE ${`%${query}%`}`),
 		isNotBanned,
-		excludeIds.length > 0 ? sql`${auth.user.id} NOT IN (${sql.join(excludeIds.map(id => sql`${id}`), sql`, `)})` : undefined,
+		excludeIds.length > 0
+			? sql`${auth.user.id} NOT IN (${sql.join(
+					excludeIds.map((id) => sql`${id}`),
+					sql`, `
+				)})`
+			: undefined
 	);
 
-	const searchResults = await db
-		.select(userSummarySelect)
-		.from(auth.user)
-		.where(searchCondition)
-		.limit(limit);
+	const searchResults = await db.select(userSummarySelect).from(auth.user).where(searchCondition).limit(limit);
 
 	// Filter out prioritized users that are already in search results
-	const searchResultIds = new Set(searchResults.map(u => u.id));
-	const additionalPrioritized = prioritizedUsers.filter(u => !searchResultIds.has(u.id));
+	const searchResultIds = new Set(searchResults.map((u) => u.id));
+	const additionalPrioritized = prioritizedUsers.filter((u) => !searchResultIds.has(u.id));
 
 	// Combine: prioritized users first, then search results
 	users = [...additionalPrioritized, ...searchResults].slice(0, limit);

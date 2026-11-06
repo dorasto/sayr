@@ -3,9 +3,9 @@ import { relations } from "drizzle-orm";
 import * as v from "drizzle-orm/pg-core";
 import { pgTable as table } from "drizzle-orm/pg-core";
 import { user } from "./auth";
-import { taskComment } from "./taskComment.schema";
-import { task } from "./task.schema";
 import { organization } from "./organization.schema";
+import { task } from "./task.schema";
+import { taskComment } from "./taskComment.schema";
 
 export const taskCommentReaction = table(
 	"task_comment_reaction",

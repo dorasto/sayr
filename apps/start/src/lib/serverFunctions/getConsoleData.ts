@@ -68,9 +68,7 @@ export const getConsoleUsersServer = createServerFn({ method: "GET" })
 		const conditions = [];
 
 		if (search) {
-			conditions.push(
-				or(ilike(userTable.name, `%${search}%`), ilike(userTable.email, `%${search}%`)),
-			);
+			conditions.push(or(ilike(userTable.name, `%${search}%`), ilike(userTable.email, `%${search}%`)));
 		}
 
 		if (status === "active") {
@@ -267,13 +265,13 @@ export const getConsoleUserServer = createServerFn({ method: "GET" })
 			const orgIds = [...new Set(recentActivity.map((a) => a.organizationId))];
 			const orgsForActivity = orgIds.length
 				? await db
-					.select({
-						id: schema.organization.id,
-						name: schema.organization.name,
-						slug: schema.organization.slug,
-					})
-					.from(schema.organization)
-					.where(inArray(schema.organization.id, orgIds))
+						.select({
+							id: schema.organization.id,
+							name: schema.organization.name,
+							slug: schema.organization.slug,
+						})
+						.from(schema.organization)
+						.where(inArray(schema.organization.id, orgIds))
 				: [];
 			const orgMap = new Map(orgsForActivity.map((o) => [o.id, o]));
 
@@ -347,10 +345,7 @@ export const getConsoleOrgsServer = createServerFn({ method: "GET" })
 
 		if (search) {
 			conditions.push(
-				or(
-					ilike(schema.organization.name, `%${search}%`),
-					ilike(schema.organization.slug, `%${search}%`),
-				),
+				or(ilike(schema.organization.name, `%${search}%`), ilike(schema.organization.slug, `%${search}%`))
 			);
 		}
 
@@ -362,10 +357,7 @@ export const getConsoleOrgsServer = createServerFn({ method: "GET" })
 
 		const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
-		const [countResult] = await db
-			.select({ count: count() })
-			.from(schema.organization)
-			.where(whereClause);
+		const [countResult] = await db.select({ count: count() }).from(schema.organization).where(whereClause);
 		const totalItems = Number(countResult?.count ?? 0);
 		const totalPages = Math.max(Math.ceil(totalItems / limit), 1);
 

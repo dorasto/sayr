@@ -33,7 +33,7 @@ export const Route = createFileRoute("/auth/auth-check")({
 				if (originRaw) {
 					try {
 						origin = decodeURIComponent(originRaw);
-					} catch { }
+					} catch {}
 				}
 
 				if (redirectRaw) {
@@ -42,31 +42,23 @@ export const Route = createFileRoute("/auth/auth-check")({
 						if (decoded.startsWith("/")) {
 							redirectPath = decoded;
 						}
-					} catch { }
+					} catch {}
 				}
 
-				const location = origin
-					? `${origin}${redirectPath}`
-					: redirectPath;
+				const location = origin ? `${origin}${redirectPath}` : redirectPath;
 
 				const headers = new Headers();
 				headers.set("Location", location);
 				const domain = originRaw ? getCookieDomain(decodeURIComponent(originRaw)) : undefined;
 
-				headers.append(
-					"Set-Cookie",
-					`login_origin=; Path=/; Max-Age=0; SameSite=Lax; domain=.${domain}`
-				)
+				headers.append("Set-Cookie", `login_origin=; Path=/; Max-Age=0; SameSite=Lax; domain=.${domain}`);
 
-				headers.append(
-					"Set-Cookie",
-					"post_login_redirect=; Path=/; Max-Age=0; SameSite=Lax"
-				)
+				headers.append("Set-Cookie", "post_login_redirect=; Path=/; Max-Age=0; SameSite=Lax");
 
 				return new Response(null, {
 					status: 302,
 					headers,
-				})
+				});
 			},
 		},
 	},

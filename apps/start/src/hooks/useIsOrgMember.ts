@@ -1,5 +1,5 @@
-import type { schema } from "@repo/database";
 import { authClient } from "@repo/auth/client";
+import type { schema } from "@repo/database";
 import { useMemo } from "react";
 
 /**
@@ -12,13 +12,11 @@ import { useMemo } from "react";
  * @param organization - An organization object that includes a `members` array with
  *   nested `user` objects (i.e. `OrganizationWithMembers`).
  */
-export function useIsOrgMember(
-	organization: Pick<schema.OrganizationWithMembers, "members">,
-): boolean {
+export function useIsOrgMember(organization: Pick<schema.OrganizationWithMembers, "members">): boolean {
 	const { data: session } = authClient.useSession();
 
 	return useMemo(
 		() => !!session?.user?.id && organization.members.some((m) => m.user.id === session.user.id),
-		[session?.user?.id, organization.members],
+		[session?.user?.id, organization.members]
 	);
 }

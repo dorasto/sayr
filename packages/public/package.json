@@ -35,6 +35,7 @@
     "access": "public"
   },
   "scripts": {
+    "check-types": "tsc --noEmit",
     "build": "tsup",
     "dev": "tsup --watch"
   },

@@ -21,9 +21,10 @@ export function RootProviderOrganizationTask({
 	organizationId: string;
 }) {
 	const { value: newTask, setValue: setTask } = useStateManagementKey(["task", task.id, organizationId], task, 1);
+	// biome-ignore lint/correctness/useExhaustiveDependencies: pre-existing; behaviour-changing fix deferred
 	useEffect(() => {
-		setTask(task)
-	}, [task])
+		setTask(task);
+	}, [task]);
 	return <RootContext.Provider value={{ task: newTask, setTask }}>{children}</RootContext.Provider>;
 }
 

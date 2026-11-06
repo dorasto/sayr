@@ -1,14 +1,14 @@
+import { sendWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
 import { createFileRoute } from "@tanstack/react-router";
+import { useEffect } from "react";
+import { useLayoutData } from "@/components/admin/shell/context";
 import { TaskContentMain } from "@/components/tasks/task/task-content";
 import { useLayoutOrganization } from "@/contexts/ContextOrg";
 import { useLayoutTask } from "@/contexts/ContextOrgTask";
-import { useLayoutData } from "@/components/admin/shell/context";
-import { useWSMessageHandler, type WSMessageHandler } from "@/hooks/useWSMessageHandler";
 import { useLayoutTasks } from "@/contexts/ContextOrgTasks";
-import { sendWindowMessage } from "@repo/ui/hooks/useWindowMessaging.ts";
-import { useEffect } from "react";
-import { markNotificationsReadByTaskAction } from "@/lib/fetches/notification";
 import { useServerEventsSubscription } from "@/hooks/useServerEventsSubscription";
+import { useWSMessageHandler, type WSMessageHandler } from "@/hooks/useWSMessageHandler";
+import { markNotificationsReadByTaskAction } from "@/lib/fetches/notification";
 import type { ServerEventMessage } from "@/lib/serverEvents";
 import { notificationActions } from "@/lib/stores/notification-store";
 
@@ -36,7 +36,7 @@ function RouteComponent() {
 	useEffect(() => {
 		if (task.id) {
 			markNotificationsReadByTaskAction(task.id);
-			notificationActions.refresh()
+			notificationActions.refresh();
 		}
 	}, [task.id]);
 

@@ -1,5 +1,5 @@
-import { getRelease, getReleases, type schema } from "@repo/database";
 import type { McpServer } from "@modelcontextprotocol/server";
+import { getRelease, getReleases, type schema } from "@repo/database";
 import type { ApiKeyScope } from "@repo/util";
 import { z } from "zod";
 import { resolveReleaseId } from "../../../lib/apiRefs";
@@ -13,8 +13,8 @@ import {
 	markReleasedService,
 	updateReleaseService,
 } from "../../../lib/releases/lifecycle";
-import { MARKDOWN_MENTIONS_HINT, type McpUserClaims, resolveAndRateLimitOrg, toolError, toolJson } from "../context";
 import { withResolvedMentions } from "../../../prosekit/resolveMarkdownMentions";
+import { MARKDOWN_MENTIONS_HINT, type McpUserClaims, resolveAndRateLimitOrg, toolError, toolJson } from "../context";
 
 export const orgArg = z.string().describe('Organization slug (e.g. "platform") or id.');
 export const releaseArg = z.string().describe('Release slug (e.g. "v1.2.0") or id.');

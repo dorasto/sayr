@@ -13,6 +13,7 @@
 		"ioredis": "^5.8.2"
 	},
 	"scripts": {
+		"check-types": "tsc --noEmit",
 		"lint": "biome check .",
 		"lint:fix": "biome check . --write",
 		"format": "biome format --write ."

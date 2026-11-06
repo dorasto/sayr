@@ -10,6 +10,7 @@ import {
 import { createTraceAsync } from "@repo/opentelemetry/trace";
 import { and, eq } from "drizzle-orm";
 import { emitEvent } from "@/clickhouse";
+import { createNotification } from "@/index";
 import {
 	findClientBysseId,
 	findSSEClientsByUserId,
@@ -18,7 +19,6 @@ import {
 	sseBroadcastToRoom,
 } from "@/routes/events";
 import type { ServerEventBaseMessage } from "@/routes/events/types";
-import { createNotification } from "@/index";
 
 /**
  * Shared assignee-sync mutation service, extracted verbatim from the

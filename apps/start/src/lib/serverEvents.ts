@@ -47,6 +47,7 @@ const useServerEvents = (initialOrgId?: string, initialChannel?: string) => {
 		setStatus("Disconnected");
 	};
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies: pre-existing; behaviour-changing fix deferred
 	useEffect(() => {
 		const { orgId, channel, orgIds } = params;
 
@@ -128,7 +129,9 @@ const useServerEvents = (initialOrgId?: string, initialChannel?: string) => {
 									description: "You have been removed from the organization. Redirecting...",
 								});
 
-								setTimeout(() => (window.location.href = "/"));
+								setTimeout(() => {
+									window.location.href = "/";
+								});
 							}
 							return;
 

@@ -1,6 +1,10 @@
 import { createModel } from "@tanstack/ai";
 import { openaiCompatible } from "@tanstack/ai-openai/compatible";
-import { MODEL_ROSTER, type RequestyModelId, type RequestyModelOptions } from "./models.js";
+import {
+	MODEL_ROSTER,
+	type RequestyModelId,
+	type RequestyModelOptions,
+} from "./models.js";
 
 /**
  * `MODEL_ROSTER` wrapped for `openaiCompatible`'s `models` catalog. The
@@ -9,7 +13,10 @@ import { MODEL_ROSTER, type RequestyModelId, type RequestyModelOptions } from ".
  * to an untyped `Record<string, any>`.
  */
 const REQUESTY_MODEL_DEFS = MODEL_ROSTER.map((m) =>
-	createModel(m.id, { input: m.input, modelOptions: {} as RequestyModelOptions }),
+	createModel(m.id, {
+		input: m.input,
+		modelOptions: {} as RequestyModelOptions,
+	}),
 );
 
 const DEFAULT_REQUESTY_BASE_URL = "https://router.requesty.ai/v1";

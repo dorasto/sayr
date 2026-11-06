@@ -1,8 +1,8 @@
 "use client";
 
-import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@repo/ui/components/chart";
+import { type ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "@repo/ui/components/chart";
 import { cn } from "@repo/ui/lib/utils";
-import { Cell, Pie, PieChart, Label, type PieLabelRenderProps } from "recharts";
+import { Cell, Label, Pie, PieChart, type PieLabelRenderProps } from "recharts";
 
 export interface PieChartDataItem {
 	name: string;
@@ -116,7 +116,13 @@ export function SimplePieChart({
 					stroke="hsl(var(--background))"
 				>
 					{chartData.map((entry, index) => (
-						<Cell key={`cell-${index}`} fill={entry.fill} />
+						<Cell
+							key={`cell-${
+								// biome-ignore lint/suspicious/noArrayIndexKey: pre-existing; behaviour-changing fix deferred
+								index
+							}`}
+							fill={entry.fill}
+						/>
 					))}
 					{showTotal && (
 						<Label

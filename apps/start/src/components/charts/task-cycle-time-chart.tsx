@@ -2,7 +2,7 @@
 
 import type { schema } from "@repo/database";
 import { useMemo } from "react";
-import { SimpleAreaChart, type AreaChartSeries } from "./simple-area-chart";
+import { type AreaChartSeries, SimpleAreaChart } from "./simple-area-chart";
 
 export interface TaskCycleTimeChartProps {
 	tasks: schema.TaskWithLabels[];

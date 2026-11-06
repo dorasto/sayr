@@ -1,6 +1,7 @@
 import { db } from "@repo/database";
 import { createTraceAsync } from "@repo/opentelemetry/trace";
 import { and, eq } from "drizzle-orm";
+
 const API_URL =
 	process.env.APP_ENV === "development" ? "http://localhost:5468/api/internal" : "http://backend:5468/api/internal";
 
@@ -88,11 +89,7 @@ export async function handleLinkKeyword(ctx: KeywordContext) {
 			// Find Sayr task
 			// --------------------
 			const foundTask = await db.query.task.findFirst({
-				where: (t) =>
-					and(
-						eq(t.organizationId, ctx.orgId),
-						eq(t.shortId, ctx.taskKey)
-					),
+				where: (t) => and(eq(t.organizationId, ctx.orgId), eq(t.shortId, ctx.taskKey)),
 			});
 
 			if (!foundTask) {
@@ -105,11 +102,7 @@ export async function handleLinkKeyword(ctx: KeywordContext) {
 			// Check: issue already linked?
 			// --------------------
 			const issueAlreadyLinked = await db.query.githubIssue.findFirst({
-				where: (gi) =>
-					and(
-						eq(gi.organizationId, foundTask.organizationId),
-						eq(gi.issueNumber, ctx.number)
-					),
+				where: (gi) => and(eq(gi.organizationId, foundTask.organizationId), eq(gi.issueNumber, ctx.number)),
 			});
 
 			if (issueAlreadyLinked) {
@@ -122,11 +115,7 @@ export async function handleLinkKeyword(ctx: KeywordContext) {
 			// Check: task already linked?
 			// --------------------
 			const taskAlreadyLinked = await db.query.githubIssue.findFirst({
-				where: (gi) =>
-					and(
-						eq(gi.organizationId, foundTask.organizationId),
-						eq(gi.taskId, foundTask.id)
-					),
+				where: (gi) => and(eq(gi.organizationId, foundTask.organizationId), eq(gi.taskId, foundTask.id)),
 			});
 
 			if (taskAlreadyLinked) {
@@ -138,27 +127,24 @@ export async function handleLinkKeyword(ctx: KeywordContext) {
 			// --------------------
 			// Create link
 			// --------------------
-			const res = await fetch(
-				`${API_URL}/v1/admin/organization/task/github-link`,
-				{
-					method: "POST",
-					headers: {
-						"Content-Type": "application/json",
-						cookie: `sayr_internal=${process.env.INTERNAL_SECRET};`,
-						"user-agent": "Sayr-Worker/1.0",
-						"x-internal-secret": process.env.INTERNAL_SECRET!,
-						"x-internal-service": "sayr-worker",
-						"x-internal-timestamp": new Date().toISOString(),
-					},
-					body: JSON.stringify({
-						org_id: ctx.orgId,
-						task_id: foundTask.id,
-						repo_id: ctx.repoId,
-						issue_number: ctx.number,
-						issue_url: `https://github.com/${ctx.owner}/${ctx.repo}/issues/${ctx.number}`,
-					}),
-				}
-			);
+			const res = await fetch(`${API_URL}/v1/admin/organization/task/github-link`, {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+					cookie: `sayr_internal=${process.env.INTERNAL_SECRET};`,
+					"user-agent": "Sayr-Worker/1.0",
+					"x-internal-secret": process.env.INTERNAL_SECRET!,
+					"x-internal-service": "sayr-worker",
+					"x-internal-timestamp": new Date().toISOString(),
+				},
+				body: JSON.stringify({
+					org_id: ctx.orgId,
+					task_id: foundTask.id,
+					repo_id: ctx.repoId,
+					issue_number: ctx.number,
+					issue_url: `https://github.com/${ctx.owner}/${ctx.repo}/issues/${ctx.number}`,
+				}),
+			});
 
 			if (!res.ok) {
 				const msg = `Failed to link task ${ctx.taskKey} to this GitHub issue.`;

@@ -35,6 +35,7 @@ export default function CodeBlockView(props: ReactNodeViewProps) {
 					<Popover open={open} onOpenChange={setOpen}>
 						<PopoverTrigger
 							render={
+								// biome-ignore lint/a11y/useSemanticElements: pre-existing; behaviour-changing fix deferred
 								<Button
 									variant="ghost"
 									role="combobox"

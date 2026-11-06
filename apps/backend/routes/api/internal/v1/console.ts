@@ -1,15 +1,24 @@
+import { createPolar } from "@polar-sh/sdk/2026-10";
 import { auth } from "@repo/auth";
-import { auth as authSchema, db, schema, getUsersByIds, type OrganizationSettings, type OrgAiSettings, defaultOrgAiSettings } from "@repo/database";
-import { and, count, eq, ilike, inArray, isNotNull, or, sql, desc, asc } from "drizzle-orm";
+import {
+	auth as authSchema,
+	db,
+	defaultOrgAiSettings,
+	getUsersByIds,
+	type OrgAiSettings,
+	type OrganizationSettings,
+	schema,
+} from "@repo/database";
+import { createTraceAsync } from "@repo/opentelemetry/trace";
 import { ensureCdnUrl } from "@repo/util";
+import { and, asc, count, desc, eq, ilike, inArray, isNotNull, or, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import { z } from "zod";
-import type { AppEnv } from "@/index";
-import { createTraceAsync } from "@repo/opentelemetry/trace";
-import { paginatedSuccessResponse, errorResponse, successResponse } from "../../../../responses";
 import { queryAiUsageByOrg, queryAiUsageSummaryAllOrgs } from "@/clickhouse";
-import { createPolar } from "@polar-sh/sdk/2026-10";
+import type { AppEnv } from "@/index";
 import { sseBroadcastByUserId } from "@/routes/events";
+import { errorResponse, paginatedSuccessResponse, successResponse } from "../../../../responses";
+
 const polarClient = createPolar({
 	accessToken: process.env.POLAR_ACCESS_TOKEN!,
 });
@@ -54,52 +63,41 @@ apiRouteConsole.get("/users", async (c) => {
 				const conditions = [];
 
 				if (search) {
-					conditions.push(
-						or(
-							ilike(userTable.name, `%${search}%`),
-							ilike(userTable.email, `%${search}%`),
-						),
-					);
+					conditions.push(or(ilike(userTable.name, `%${search}%`), ilike(userTable.email, `%${search}%`)));
 				}
 
 				if (status === "active") {
 					conditions.push(eq(userTable.emailVerified, true));
-					conditions.push(
-						or(eq(userTable.banned, false), sql`${userTable.banned} IS NULL`),
-					);
+					conditions.push(or(eq(userTable.banned, false), sql`${userTable.banned} IS NULL`));
 				} else if (status === "banned") {
 					conditions.push(eq(userTable.banned, true));
 				} else if (status === "pending") {
 					conditions.push(eq(userTable.emailVerified, false));
-					conditions.push(
-						or(eq(userTable.banned, false), sql`${userTable.banned} IS NULL`),
-					);
+					conditions.push(or(eq(userTable.banned, false), sql`${userTable.banned} IS NULL`));
 				}
 
 				if (role === "admin") {
 					conditions.push(eq(userTable.role, "admin"));
 				} else if (role === "user") {
-					conditions.push(
-						or(eq(userTable.role, "user"), sql`${userTable.role} IS NULL`),
-					);
+					conditions.push(or(eq(userTable.role, "user"), sql`${userTable.role} IS NULL`));
 				}
 
 				const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
 				// Count total
-				const [countResult] = await db
-					.select({ count: count() })
-					.from(userTable)
-					.where(whereClause);
+				const [countResult] = await db.select({ count: count() }).from(userTable).where(whereClause);
 				const totalItems = Number(countResult?.count ?? 0);
 				const totalPages = Math.max(Math.ceil(totalItems / limit), 1);
 
 				// Determine sort column
 				const sortColumn =
-					sortBy === "name" ? userTable.name :
-						sortBy === "email" ? userTable.email :
-							sortBy === "role" ? userTable.role :
-								userTable.createdAt;
+					sortBy === "name"
+						? userTable.name
+						: sortBy === "email"
+							? userTable.email
+							: sortBy === "role"
+								? userTable.role
+								: userTable.createdAt;
 
 				const orderFn = sortDir === "asc" ? asc : desc;
 
@@ -128,15 +126,16 @@ apiRouteConsole.get("/users", async (c) => {
 
 				// Fetch connected provider IDs for all returned users
 				const userIds = users.map((u) => u.id);
-				const accountRows = userIds.length > 0
-					? await db
-						.select({
-							userId: accountTable.userId,
-							providerId: accountTable.providerId,
-						})
-						.from(accountTable)
-						.where(inArray(accountTable.userId, userIds))
-					: [];
+				const accountRows =
+					userIds.length > 0
+						? await db
+								.select({
+									userId: accountTable.userId,
+									providerId: accountTable.providerId,
+								})
+								.from(accountTable)
+								.where(inArray(accountTable.userId, userIds))
+						: [];
 
 				// Group provider IDs by userId (exclude credential provider)
 				const connectionsByUser = new Map<string, string[]>();
@@ -170,7 +169,7 @@ apiRouteConsole.get("/users", async (c) => {
 			{
 				description: "Listing console users with pagination",
 				data: { page, limit, search, status, role },
-			},
+			}
 		);
 
 		return c.json(paginatedSuccessResponse(result.users, result.pagination));
@@ -318,25 +317,20 @@ apiRouteConsole.get("/users/:userId", async (c) => {
 				const orgIds = [...new Set(recentActivity.map((a) => a.organizationId))];
 				const orgsForActivity = orgIds.length
 					? await db
-						.select({
-							id: schema.organization.id,
-							name: schema.organization.name,
-							slug: schema.organization.slug,
-						})
-						.from(schema.organization)
-						.where(inArray(schema.organization.id, orgIds))
+							.select({
+								id: schema.organization.id,
+								name: schema.organization.name,
+								slug: schema.organization.slug,
+							})
+							.from(schema.organization)
+							.where(inArray(schema.organization.id, orgIds))
 					: [];
 				const orgMap = new Map(orgsForActivity.map((o) => [o.id, o]));
 
 				const recentActivityWithOrg = recentActivity.map((a) => {
 					const org = orgMap.get(a.organizationId);
 					// Only include fromValue/toValue for safe event types (status, priority changes)
-					const safeEventTypes = [
-						"status_change",
-						"priority_change",
-						"category_change",
-						"release_change",
-					];
+					const safeEventTypes = ["status_change", "priority_change", "category_change", "release_change"];
 					const isSafe = safeEventTypes.includes(a.eventType);
 					return {
 						id: a.id,
@@ -368,7 +362,7 @@ apiRouteConsole.get("/users/:userId", async (c) => {
 			{
 				description: "Fetching console user detail",
 				data: { userId, adminId: session.userId },
-			},
+			}
 		);
 
 		if (!result) {
@@ -413,10 +407,7 @@ apiRouteConsole.post("/set-role", async (c) => {
 	}
 
 	const body = await c.req.json().catch(() => null);
-	const {
-		userId,
-		role,
-	}: { userId: string; role: "admin" | "user" } = body ?? {};
+	const { userId, role }: { userId: string; role: "admin" | "user" } = body ?? {};
 
 	if (!userId || !role) {
 		await recordWideError({
@@ -556,8 +547,8 @@ apiRouteConsole.post("/system-api-keys", async (c) => {
 						userId: systemUser.id,
 						rateLimitEnabled: false,
 						metadata: {
-							"source": "console-page-generated"
-						}
+							source: "console-page-generated",
+						},
 					},
 				}),
 			{
@@ -613,10 +604,7 @@ apiRouteConsole.get("/organizations", async (c) => {
 
 				if (search) {
 					conditions.push(
-						or(
-							ilike(schema.organization.name, `%${search}%`),
-							ilike(schema.organization.slug, `%${search}%`),
-						),
+						or(ilike(schema.organization.name, `%${search}%`), ilike(schema.organization.slug, `%${search}%`))
 					);
 				}
 
@@ -628,17 +616,16 @@ apiRouteConsole.get("/organizations", async (c) => {
 
 				const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
-				const [countResult] = await db
-					.select({ count: count() })
-					.from(schema.organization)
-					.where(whereClause);
+				const [countResult] = await db.select({ count: count() }).from(schema.organization).where(whereClause);
 				const totalItems = Number(countResult?.count ?? 0);
 				const totalPages = Math.max(Math.ceil(totalItems / limit), 1);
 
 				const sortColumn =
-					sortBy === "name" ? schema.organization.name :
-						sortBy === "plan" ? schema.organization.plan :
-							schema.organization.createdAt;
+					sortBy === "name"
+						? schema.organization.name
+						: sortBy === "plan"
+							? schema.organization.plan
+							: schema.organization.createdAt;
 
 				const orderFn = sortDir === "asc" ? asc : desc;
 
@@ -682,7 +669,7 @@ apiRouteConsole.get("/organizations", async (c) => {
 			{
 				description: "Listing console organizations with pagination",
 				data: { page, limit, search, plan },
-			},
+			}
 		);
 
 		return c.json(paginatedSuccessResponse(result.orgs, result.pagination));
@@ -793,7 +780,7 @@ apiRouteConsole.get("/organizations/mrr-summary", async (c) => {
 						seats,
 						recurring_interval: sub.recurring_interval,
 					};
-				}),
+				})
 			);
 			settled.push(...chunkResults);
 		}
@@ -814,14 +801,18 @@ apiRouteConsole.get("/organizations/mrr-summary", async (c) => {
 		}
 
 		const summaries = settled
-			.filter((r): r is PromiseFulfilledResult<{
-				org_id: string;
-				mrr_cents: number;
-				currency: string;
-				status: string;
-				seats: number | null;
-				recurring_interval: string;
-			}> => r.status === "fulfilled")
+			.filter(
+				(
+					r
+				): r is PromiseFulfilledResult<{
+					org_id: string;
+					mrr_cents: number;
+					currency: string;
+					status: string;
+					seats: number | null;
+					recurring_interval: string;
+				}> => r.status === "fulfilled"
+			)
 			.map((r) => r.value);
 
 		return c.json(successResponse(summaries));
@@ -954,7 +945,7 @@ apiRouteConsole.get("/organizations/:orgId", async (c) => {
 			{
 				description: "Fetching console organization detail",
 				data: { orgId, adminId: session.userId },
-			},
+			}
 		);
 
 		if (!result) {
@@ -1005,12 +996,9 @@ apiRouteConsole.delete("/system-api-keys/:keyId", async (c) => {
 		await traceAsync(
 			"console.system_api_keys.delete",
 			() =>
-				db.delete(schema.apikey).where(
-					and(
-						eq(schema.apikey.id, keyId),
-						eq(schema.apikey.referenceId, systemUser.id),
-					),
-				),
+				db
+					.delete(schema.apikey)
+					.where(and(eq(schema.apikey.id, keyId), eq(schema.apikey.referenceId, systemUser.id))),
 			{
 				description: "Deleting system API key",
 				data: { adminId: session.userId, keyId },
@@ -1063,9 +1051,9 @@ apiRouteConsole.get("/organizations/:orgId/ai-usage", async (c) => {
 			getUsersByIds(actorIds),
 			taskIds.length > 0
 				? db
-					.select({ id: schema.task.id, shortId: schema.task.shortId, title: schema.task.title })
-					.from(schema.task)
-					.where(inArray(schema.task.id, taskIds))
+						.select({ id: schema.task.id, shortId: schema.task.shortId, title: schema.task.title })
+						.from(schema.task)
+						.where(inArray(schema.task.id, taskIds))
 				: Promise.resolve([]),
 		]);
 
@@ -1090,9 +1078,10 @@ apiRouteConsole.get("/organizations/:orgId/ai-usage", async (c) => {
 				actor_image: user?.image ? ensureCdnUrl(user.image) : null,
 				task_short_id: task?.shortId ?? null,
 				task_title: task?.title ?? null,
-				task_url: task?.shortId != null && orgSlug && rootDomain
-					? `https://${orgSlug}.${rootDomain}/${task.shortId}`
-					: null,
+				task_url:
+					task?.shortId != null && orgSlug && rootDomain
+						? `https://${orgSlug}.${rootDomain}/${task.shortId}`
+						: null,
 			};
 		});
 
@@ -1169,13 +1158,17 @@ apiRouteConsole.patch("/organizations/:orgId/ai-settings", async (c) => {
 				}
 
 				// Merge AI settings: existing (or defaults) + incoming patch
-				const currentAi: OrgAiSettings = (org.settings as OrganizationSettings | null)?.ai ?? { ...defaultOrgAiSettings };
+				const currentAi: OrgAiSettings = (org.settings as OrganizationSettings | null)?.ai ?? {
+					...defaultOrgAiSettings,
+				};
 				const updatedAi: OrgAiSettings = {
 					...currentAi,
 					...(patch.disabled !== undefined ? { disabled: patch.disabled } : {}),
 					...(patch.rateLimited !== undefined ? { rateLimited: patch.rateLimited } : {}),
 					...(patch.taskSummary !== undefined ? { taskSummary: patch.taskSummary } : {}),
-					...(patch.taskSummaryCustomPrompt !== undefined ? { taskSummaryCustomPrompt: patch.taskSummaryCustomPrompt } : {}),
+					...(patch.taskSummaryCustomPrompt !== undefined
+						? { taskSummaryCustomPrompt: patch.taskSummaryCustomPrompt }
+						: {}),
 					...(patch.urlFetchEnabled !== undefined ? { urlFetchEnabled: patch.urlFetchEnabled } : {}),
 				};
 
@@ -1199,7 +1192,7 @@ apiRouteConsole.patch("/organizations/:orgId/ai-settings", async (c) => {
 			{
 				description: "Updating org AI settings via console",
 				data: { orgId, adminId: session.userId, patch },
-			},
+			}
 		);
 
 		if (result === null) {
@@ -1219,64 +1212,53 @@ apiRouteConsole.patch("/organizations/:orgId/ai-settings", async (c) => {
 	}
 });
 
-apiRouteConsole.post(
-	"/create-notification",
-	async (c) => {
-		const recordWideError = c.get("recordWideError");
-		const session = c.get("session");
-		const user = c.get("user");
+apiRouteConsole.post("/create-notification", async (c) => {
+	const recordWideError = c.get("recordWideError");
+	const session = c.get("session");
+	const user = c.get("user");
 
-		if (!session?.userId) {
-			return c.json(errorResponse("UNAUTHORIZED"), 401);
-		}
+	if (!session?.userId) {
+		return c.json(errorResponse("UNAUTHORIZED"), 401);
+	}
 
-		if (user?.role !== "system") {
-			return c.json(errorResponse("FORBIDDEN"), 403);
-		}
+	if (user?.role !== "system") {
+		return c.json(errorResponse("FORBIDDEN"), 403);
+	}
 
-		try {
-			const body = await c.req.json<{
-				id: string;
-				type: string;
-				recipientId: string;
-				actorId?: string | null;
-				scopeType?: string | null;
-				scopeId?: string | null;
-				resourceType?: string | null;
-				resourceId?: string | null;
-				data: Record<string, unknown>;
-			}>();
-			if (body.recipientId !== body.actorId) {
-				sseBroadcastByUserId(
-					body.recipientId,
-					"",
-					body.resourceId || "",
-					{
-						type: "NEW_NOTIFICATION",
-						data: body,
-						meta: {
-							ts: Date.now(),
-						},
-					},
-				);
-			}
-			return c.json({
-				success: true,
-			});
-		} catch (error) {
-			await recordWideError({
-				name: "console.notification_create.failed",
-				error,
-				code: "CONSOLE_NOTIFICATION_CREATE_FAILED",
-				message: "Failed to publish notification",
-				contextData: {
-					adminId: session.userId,
+	try {
+		const body = await c.req.json<{
+			id: string;
+			type: string;
+			recipientId: string;
+			actorId?: string | null;
+			scopeType?: string | null;
+			scopeId?: string | null;
+			resourceType?: string | null;
+			resourceId?: string | null;
+			data: Record<string, unknown>;
+		}>();
+		if (body.recipientId !== body.actorId) {
+			sseBroadcastByUserId(body.recipientId, "", body.resourceId || "", {
+				type: "NEW_NOTIFICATION",
+				data: body,
+				meta: {
+					ts: Date.now(),
 				},
 			});
-			return c.json(
-				errorResponse("Failed to publish notification"),
-				500,
-			);
 		}
-	},
-);
+		return c.json({
+			success: true,
+		});
+	} catch (error) {
+		await recordWideError({
+			name: "console.notification_create.failed",
+			error,
+			code: "CONSOLE_NOTIFICATION_CREATE_FAILED",
+			message: "Failed to publish notification",
+			contextData: {
+				adminId: session.userId,
+			},
+		});
+		return c.json(errorResponse("Failed to publish notification"), 500);
+	}
+});

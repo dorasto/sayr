@@ -108,7 +108,8 @@ export async function getReleaseTaskCounts(orgId: string): Promise<Record<string
 	const counts: Record<string, ReleaseTaskCounts> = {};
 	for (const row of rows) {
 		if (!row.releaseId || row.status === "canceled") continue;
-		const entry = (counts[row.releaseId] ??= { done: 0, inProgress: 0, planned: 0 });
+		const entry = counts[row.releaseId] ?? { done: 0, inProgress: 0, planned: 0 };
+		counts[row.releaseId] = entry;
 		if (row.status === "done") entry.done += row.count;
 		else if (row.status === "in-progress") entry.inProgress += row.count;
 		else entry.planned += row.count;

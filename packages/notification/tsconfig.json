@@ -1,20 +1,12 @@
 {
 	"extends": "@repo/typescript-config/base.json",
 	"compilerOptions": {
-		"types": [
-			"node"
-		],
+		"types": ["node"],
 		"esModuleInterop": true,
 		"paths": {
-			"@repo/notification/*": [
-				"./src/*"
-			]
+			"@repo/notification/*": ["./src/*"]
 		}
 	},
-	"include": [
-		"src"
-	],
-	"exclude": [
-		"node_modules"
-	]
+	"include": ["src"],
+	"exclude": ["node_modules"]
 }

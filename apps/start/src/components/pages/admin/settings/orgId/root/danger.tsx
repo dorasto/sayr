@@ -1,5 +1,3 @@
-import { useState } from "react";
-import { Button } from "@repo/ui/components/button";
 import {
 	AdaptiveDialog,
 	AdaptiveDialogBody,
@@ -11,17 +9,18 @@ import {
 	AdaptiveDialogTitle,
 	AdaptiveDialogTrigger,
 } from "@repo/ui/components/adaptive-dialog";
+import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
+import { Button } from "@repo/ui/components/button";
 import { Tile, TileAction, TileDescription, TileHeader, TileIcon, TileTitle } from "@repo/ui/components/doras-ui/tile";
 import { Input } from "@repo/ui/components/input";
 import { Label } from "@repo/ui/components/label";
 import { Separator } from "@repo/ui/components/separator";
-import { useToastAction } from "@/lib/util";
-import { transferOrganizationByUserId, deleteOrganizationAction } from "@/lib/fetches/organization";
+import { IconAlertTriangle, IconCrown, IconTrash, IconUser, IconUserPlus } from "@tabler/icons-react";
+import { useState } from "react";
 import { useLayoutData } from "@/components/admin/shell/context";
 import { useLayoutOrganizationSettings } from "@/contexts/ContextOrgSettings";
-import { IconCrown, IconUser, IconUserPlus, IconAlertTriangle, IconTrash } from "@tabler/icons-react";
-
-import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
+import { deleteOrganizationAction, transferOrganizationByUserId } from "@/lib/fetches/organization";
+import { useToastAction } from "@/lib/util";
 
 export default function Danger() {
 	const { account } = useLayoutData();

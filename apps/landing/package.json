@@ -3,6 +3,7 @@
 	"private": false,
 	"type": "module",
 	"scripts": {
+		"check-types": "fumadocs-mdx && tsc --noEmit",
 		"dev": "vite dev --port 3002",
 		"internal:dev": "op run --env-file .env -- pnpm run dev",
 		"build": "vite build",

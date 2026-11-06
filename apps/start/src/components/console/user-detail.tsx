@@ -220,8 +220,8 @@ function OrganizationsSection({ organizations }: { organizations: ConsoleUserOrg
 	return (
 		<div className="grid gap-4 md:grid-cols-2">
 			{organizations.map((org) => (
-				<Link to={`/console/organizations/$orgId`} params={{ orgId: org.id }}>
-					<Card key={org.id}>
+				<Link key={org.id} to={`/console/organizations/$orgId`} params={{ orgId: org.id }}>
+					<Card>
 						<CardHeader className="pb-3">
 							<div className="flex items-center gap-3">
 								<Avatar className="size-9 rounded-lg">

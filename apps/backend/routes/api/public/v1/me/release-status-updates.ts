@@ -10,6 +10,7 @@ import { and, eq } from "drizzle-orm";
 import { Hono } from "hono";
 import z from "zod";
 import type { AppEnv } from "@/index";
+import { withResolvedMentions } from "@/prosekit/resolveMarkdownMentions";
 import { broadcastReleaseStatusUpdatesChanged } from "../../../../../lib/releases/broadcast";
 import {
 	parseCreateStatusUpdateInput,
@@ -29,7 +30,6 @@ import {
 	ReleaseStatusUpdateSchema,
 	releasePathParam,
 } from "./release-schemas";
-import { withResolvedMentions } from "@/prosekit/resolveMarkdownMentions";
 
 export const releaseStatusUpdatesRoute = new Hono<AppEnv>();
 

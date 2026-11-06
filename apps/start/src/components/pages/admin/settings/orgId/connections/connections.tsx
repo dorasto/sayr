@@ -1,14 +1,14 @@
 import { Tile, TileAction, TileDescription, TileHeader, TileIcon, TileTitle } from "@repo/ui/components/doras-ui/tile";
+import { Label } from "@repo/ui/components/label";
+import { Skeleton } from "@repo/ui/components/skeleton";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@repo/ui/components/tooltip";
+import * as tabler from "@tabler/icons-react";
 import { IconCircleFilled, IconPlus } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
 import { useLayoutData } from "@/components/admin/shell/context";
 import { useLayoutOrganizationSettings } from "@/contexts/ContextOrgSettings";
-import { connections } from "./connections-data";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@repo/ui/components/tooltip";
-import { Label } from "@repo/ui/components/label";
 import { useServerEventsSubscription } from "@/hooks/useServerEventsSubscription";
-import * as tabler from "@tabler/icons-react";
-import { Skeleton } from "@repo/ui/components/skeleton";
+import { connections } from "./connections-data";
 
 interface ConnectionsPageProps {
 	connectionStatus?: Record<string, { connected: boolean; detail?: string }>;

@@ -7,7 +7,7 @@
 	},
 	"files": {
 		"maxSize": 1048576,
-		"includes": ["**", "!**/*.gen.ts"]
+		"includes": ["**", "!**/*.gen.ts", "!src/data/openapi-*.json", "!content/docs/api/reference/**"]
 	},
 	"formatter": {
 		"enabled": true,

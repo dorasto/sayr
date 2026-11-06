@@ -1,30 +1,42 @@
 // --- Types ---
-export type {
-	FieldOption,
-	FieldDisplay,
-	ToastMessages,
-	SingleFieldUpdatePayload,
-	MultiFieldUpdatePayload,
-	ParentFieldUpdatePayload,
-	RelationFieldUpdatePayload,
-	FieldUpdatePayload,
-} from "./types";
 
-// --- Field definitions ---
-export { getStatusOptions, getStatusDisplay, getStatusUpdatePayload } from "./status";
-export { getPriorityOptions, getPriorityDisplay, getPriorityUpdatePayload } from "./priority";
-export { getVisibilityOptions, getVisibilityDisplay, getVisibilityUpdatePayload } from "./visibility";
-export { getCategoryOptions, getCategoryDisplay, getCategoryUpdatePayload, type CategoryOptionMeta } from "./category";
-export { getReleaseOptions, getReleaseDisplay, getReleaseUpdatePayload, type ReleaseOptionMeta } from "./release";
-export { getAssigneeOptions, getAssigneeOptionsFromUsers, getAssigneeDisplay, getAssigneeUpdatePayload, getAssigneeBulkUpdatePayload, type AssigneeOptionMeta } from "./assignees";
-export { getLabelOptions, getLabelDisplay, getLabelUpdatePayload, getLabelBulkUpdatePayload, type LabelOptionMeta } from "./labels";
-export { getParentOptions, getParentDisplay, getParentUpdatePayload } from "./parent";
 export {
-	getRelationTypeOptions,
+	type AssigneeOptionMeta,
+	getAssigneeBulkUpdatePayload,
+	getAssigneeDisplay,
+	getAssigneeOptions,
+	getAssigneeOptionsFromUsers,
+	getAssigneeUpdatePayload,
+} from "./assignees";
+export { type CategoryOptionMeta, getCategoryDisplay, getCategoryOptions, getCategoryUpdatePayload } from "./category";
+export {
+	getLabelBulkUpdatePayload,
+	getLabelDisplay,
+	getLabelOptions,
+	getLabelUpdatePayload,
+	type LabelOptionMeta,
+} from "./labels";
+export { getParentDisplay, getParentOptions, getParentUpdatePayload } from "./parent";
+export { getPriorityDisplay, getPriorityOptions, getPriorityUpdatePayload } from "./priority";
+export {
 	getRelationTargetOptions,
+	getRelationTypeOptions,
 	getRelationUpdatePayload,
 	type RelationType,
 } from "./relations";
-
+export { getReleaseDisplay, getReleaseOptions, getReleaseUpdatePayload, type ReleaseOptionMeta } from "./release";
+// --- Field definitions ---
+export { getStatusDisplay, getStatusOptions, getStatusUpdatePayload } from "./status";
+export type {
+	FieldDisplay,
+	FieldOption,
+	FieldUpdatePayload,
+	MultiFieldUpdatePayload,
+	ParentFieldUpdatePayload,
+	RelationFieldUpdatePayload,
+	SingleFieldUpdatePayload,
+	ToastMessages,
+} from "./types";
 // --- Shared hook ---
 export { useTaskFieldAction } from "./use-task-field-action";
+export { getVisibilityDisplay, getVisibilityOptions, getVisibilityUpdatePayload } from "./visibility";

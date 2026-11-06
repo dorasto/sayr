@@ -34,7 +34,30 @@ jobs:
       # build failure unrelated to any particular PR (confirmed against a
       # clean checkout). Neither should block every other PR in the repo
       # until someone gets round to fixing/removing them.
-      - run: pnpm turbo build --filter='!marketing' --filter='!landing'
+      - run: pnpm turbo build --filter='!marketing' --filter='!landing' --continue
+
+  # Fails if the Drizzle schema and the committed migrations disagree: a schema
+  # change committed without its migration, or a drizzle-kit/drizzle-orm bump
+  # that changes the migration/snapshot format. Needs no database or env.
+  schema-drift:
+    name: Schema drift
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm -F @repo/database generate
+      - name: Check for uncommitted migrations
+        run: |
+          if [ -n "$(git status --porcelain -- packages/database/drizzle)" ]; then
+            git status --short -- packages/database/drizzle
+            echo "::error::drizzle-kit generate produced changes. Run 'pnpm -F @repo/database generate' and commit the migration."
+            exit 1
+          fi
 
   test:
     name: Test
@@ -48,17 +71,15 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm turbo test
+      - run: pnpm turbo test --continue
 
-  # Informational only — not required for merge. This repo has a pre-existing
-  # lint/type-error backlog from before this workflow existed, so treating
-  # either as a hard gate right now would block every future PR, not just
-  # ones that introduce new problems. Still runs and reports on every PR so
-  # backlog work is visible; promote to required once each is clean.
+  # apps/marketing is excluded for the same reason as in Build (being
+  # retired, ~5k pre-existing issues). Pre-existing violations whose fix
+  # would change runtime behaviour are suppressed inline with a
+  # "behaviour-changing fix deferred" reason — grep for that to find them.
   lint:
-    name: Lint (informational)
+    name: Lint
     runs-on: ubuntu-latest
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v6
       - uses: pnpm/action-setup@v4
@@ -68,12 +89,16 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm turbo lint
+      - run: pnpm turbo lint --filter='!marketing' --continue
 
+  # Only packages with a check-types script are checked. Packages that still
+  # have pre-existing type errors (apps/start, apps/backend, apps/worker,
+  # packages/database, packages/auth, packages/util, packages/storage,
+  # packages/cli, packages/create-integration, integrations/services/discordbot)
+  # get their script once they're clean.
   typecheck:
-    name: Typecheck (informational)
+    name: Typecheck
     runs-on: ubuntu-latest
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v6
       - uses: pnpm/action-setup@v4
@@ -83,4 +108,4 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm turbo check-types
+      - run: pnpm turbo check-types --continue

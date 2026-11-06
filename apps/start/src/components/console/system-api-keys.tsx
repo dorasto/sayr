@@ -1,14 +1,3 @@
-import { useEffect, useState } from "react";
-import { Button } from "@repo/ui/components/button";
-import {
-	Table,
-	TableBody,
-	TableCell,
-	TableHead,
-	TableHeader,
-	TableRow,
-} from "@repo/ui/components/table";
-import { Input } from "@repo/ui/components/input";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -21,7 +10,11 @@ import {
 	AlertDialogTrigger,
 } from "@repo/ui/components/alert-dialog";
 import { Badge } from "@repo/ui/components/badge";
-import { IconCopy, IconCheck } from "@tabler/icons-react";
+import { Button } from "@repo/ui/components/button";
+import { Input } from "@repo/ui/components/input";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@repo/ui/components/table";
+import { IconCheck, IconCopy } from "@tabler/icons-react";
+import { useEffect, useState } from "react";
 
 interface ApiKey {
 	id: string;
@@ -63,10 +56,7 @@ export function SystemApiKeys({ initialData = [] }: SystemApiKeysProps) {
 
 	const fetchKeys = async () => {
 		try {
-			const base =
-				import.meta.env.VITE_APP_ENV === "development"
-					? "/backend-api/internal"
-					: "/api/internal";
+			const base = import.meta.env.VITE_APP_ENV === "development" ? "/backend-api/internal" : "/api/internal";
 			const res = await fetch(`${base}/v1/console/system-api-keys`, {
 				credentials: "include",
 			});
@@ -85,6 +75,7 @@ export function SystemApiKeys({ initialData = [] }: SystemApiKeysProps) {
 			console.error("Failed to fetch API keys:", err);
 		}
 	};
+	// biome-ignore lint/correctness/useExhaustiveDependencies: pre-existing; behaviour-changing fix deferred
 	useEffect(() => {
 		fetchKeys();
 	}, []);
@@ -96,10 +87,7 @@ export function SystemApiKeys({ initialData = [] }: SystemApiKeysProps) {
 		setCreatedKey(null);
 
 		try {
-			const base =
-				import.meta.env.VITE_APP_ENV === "development"
-					? "/backend-api/internal"
-					: "/api/internal";
+			const base = import.meta.env.VITE_APP_ENV === "development" ? "/backend-api/internal" : "/api/internal";
 			const res = await fetch(`${base}/v1/console/system-api-keys`, {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
@@ -123,10 +111,7 @@ export function SystemApiKeys({ initialData = [] }: SystemApiKeysProps) {
 
 	const deleteKey = async (keyId: string) => {
 		try {
-			const base =
-				import.meta.env.VITE_APP_ENV === "development"
-					? "/backend-api/internal"
-					: "/api/internal";
+			const base = import.meta.env.VITE_APP_ENV === "development" ? "/backend-api/internal" : "/api/internal";
 			const res = await fetch(`${base}/v1/console/system-api-keys/${keyId}`, {
 				method: "DELETE",
 				credentials: "include",
@@ -169,21 +154,13 @@ export function SystemApiKeys({ initialData = [] }: SystemApiKeysProps) {
 			{createdKey && (
 				<div className="ph-no-capture p-4 bg-green-50 border border-green-200 rounded-lg">
 					<p className="text-sm font-medium text-green-800 mb-2">
-						API key created successfully! Copy it now — you won't be able to see it
-						again.
+						API key created successfully! Copy it now — you won't be able to see it again.
 					</p>
 					<div className="flex items-center gap-2">
-						<code className="flex-1 p-2 bg-white border rounded font-mono text-sm break-all">
-							{createdKey}
-						</code>
+						<code className="flex-1 p-2 bg-white border rounded font-mono text-sm break-all">{createdKey}</code>
 						<CopyKeyButton text={createdKey} />
 					</div>
-					<Button
-						variant="ghost"
-						size="sm"
-						className="mt-2"
-						onClick={() => setCreatedKey(null)}
-					>
+					<Button variant="ghost" size="sm" className="mt-2" onClick={() => setCreatedKey(null)}>
 						Dismiss
 					</Button>
 				</div>
@@ -209,9 +186,7 @@ export function SystemApiKeys({ initialData = [] }: SystemApiKeysProps) {
 							<TableRow key={key.id}>
 								<TableCell className="font-medium">{key.name}</TableCell>
 								<TableCell>
-									<code className="text-xs bg-muted px-1.5 py-0.5 rounded">
-										{key.start}...
-									</code>
+									<code className="text-xs bg-muted px-1.5 py-0.5 rounded">{key.start}...</code>
 								</TableCell>
 								<TableCell>
 									<Badge variant={key.enabled ? "default" : "secondary"}>
@@ -232,8 +207,8 @@ export function SystemApiKeys({ initialData = [] }: SystemApiKeysProps) {
 											<AlertDialogHeader>
 												<AlertDialogTitle>Delete API Key</AlertDialogTitle>
 												<AlertDialogDescription>
-													Are you sure you want to delete the API key "{key.name}"? This
-													action cannot be undone.
+													Are you sure you want to delete the API key "{key.name}"? This action cannot be
+													undone.
 												</AlertDialogDescription>
 											</AlertDialogHeader>
 											<AlertDialogFooter>

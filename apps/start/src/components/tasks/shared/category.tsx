@@ -2,6 +2,7 @@
 
 import type { schema } from "@repo/database";
 import { Badge } from "@repo/ui/components/badge";
+import { Button } from "@repo/ui/components/button";
 import { Label } from "@repo/ui/components/label";
 import {
 	ComboBox,
@@ -17,11 +18,15 @@ import {
 } from "@repo/ui/components/tomui/combo-box-unified";
 import { useStateManagement } from "@repo/ui/hooks/useStateManagement.ts";
 import { cn } from "@repo/ui/lib/utils";
+import { Link } from "@tanstack/react-router";
 import { XIcon } from "lucide-react";
 import RenderIcon from "@/components/generic/RenderIcon";
-import { getCategoryOptions, getCategoryDisplay, getCategoryUpdatePayload, useTaskFieldAction } from "@/components/tasks/actions";
-import { Button } from "@repo/ui/components/button";
-import { Link } from "@tanstack/react-router";
+import {
+	getCategoryDisplay,
+	getCategoryOptions,
+	getCategoryUpdatePayload,
+	useTaskFieldAction,
+} from "@/components/tasks/actions";
 import { InlineLabel } from "./inlinelabel";
 
 interface GlobalTaskCategoryProps {
@@ -63,9 +68,9 @@ export default function GlobalTaskCategory({
 	const { execute } = useTaskFieldAction(
 		task,
 		tasks,
-		setSelectedTask ?? (() => { }),
-		setTasks ?? (() => { }),
-		sseClientId,
+		setSelectedTask ?? (() => {}),
+		setTasks ?? (() => {}),
+		sseClientId
 	);
 
 	const handleCategoryChange = (categoryId: string | null) => {
@@ -78,12 +83,7 @@ export default function GlobalTaskCategory({
 	const display = getCategoryDisplay(task, categories);
 
 	return customTrigger ? (
-		<ComboBox
-			value={task.category || ""}
-			onValueChange={handleCategoryChange}
-			open={open}
-			onOpenChange={setOpen}
-		>
+		<ComboBox value={task.category || ""} onValueChange={handleCategoryChange} open={open} onOpenChange={setOpen}>
 			<ComboBoxTrigger asChild>{customTrigger}</ComboBoxTrigger>
 			<ComboBoxContent>
 				<ComboBoxSearch icon placeholder="Search categories..." />

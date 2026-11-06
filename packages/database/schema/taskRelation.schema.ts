@@ -35,7 +35,7 @@ export const taskRelation = table(
 		v.index("idx_task_relation_source").on(t.sourceTaskId),
 		v.index("idx_task_relation_target").on(t.targetTaskId),
 		v.unique("task_relation_unique").on(t.sourceTaskId, t.targetTaskId, t.type),
-	],
+	]
 );
 
 export type taskRelationType = typeof taskRelation.$inferSelect;

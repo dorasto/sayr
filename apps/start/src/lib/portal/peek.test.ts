@@ -1,10 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-	mapPublicTask,
-	normalizeShortId,
-	type PublicTaskResponse,
-	shouldInterceptRowClick,
-} from "./peek";
+import { mapPublicTask, normalizeShortId, type PublicTaskResponse, shouldInterceptRowClick } from "./peek";
 
 describe("normalizeShortId", () => {
 	it("accepts positive integers as numbers or strings", () => {

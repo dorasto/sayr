@@ -30,6 +30,7 @@ import {
 import { Input } from "@repo/ui/components/input";
 import { Label } from "@repo/ui/components/label";
 import { Separator } from "@repo/ui/components/separator";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@repo/ui/components/tooltip";
 import { cn } from "@repo/ui/lib/utils";
 import {
 	IconBadge,
@@ -57,7 +58,6 @@ import {
 	removeOrganizationMemberFromTeamAction,
 } from "@/lib/fetches/organization";
 import { useToastAction } from "@/lib/util";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@repo/ui/components/tooltip";
 
 export default function SettingsOrganizationPageMembers({
 	invites,

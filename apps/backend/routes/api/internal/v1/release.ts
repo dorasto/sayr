@@ -25,14 +25,14 @@ import {
 	updateReleaseComment,
 	updateReleaseStatusUpdate,
 } from "@repo/database";
+import { canCreateResource, getLimitReachedMessage } from "@repo/edition";
 import { createTraceAsync } from "@repo/opentelemetry/trace";
+import { and, eq } from "drizzle-orm";
 import { Hono } from "hono";
 import type { AppEnv } from "@/index";
 import { findClientBysseId, sseBroadcastPublic, sseBroadcastToRoom } from "@/routes/events";
-import { ServerEventBaseMessage } from "@/routes/events/types";
+import type { ServerEventBaseMessage } from "@/routes/events/types";
 import { enforceLimit, traceOrgPermissionCheck } from "@/util";
-import { and, eq } from "drizzle-orm";
-import { canCreateResource, getLimitReachedMessage } from "@repo/edition";
 
 export const apiRouteAdminRelease = new Hono<AppEnv>();
 
@@ -993,7 +993,7 @@ apiRouteAdminRelease.post("/:releaseId/github_prs/link", async (c) => {
 			}
 		);
 
-		let githubPR;
+		let githubPR: (typeof schema.githubPullRequest.$inferSelect)[];
 		if (existingPR) {
 			// A PR row that belongs to another organization is never reused or overwritten.
 			if (existingPR.organizationId !== orgId) {

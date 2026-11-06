@@ -1,17 +1,17 @@
 import type { schema } from "@repo/database";
-import type { OrgTaskSearchResult } from "@/lib/fetches/searchTasks";
 import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
 import { Badge } from "@repo/ui/components/badge";
 import { Label } from "@repo/ui/components/label";
 import { Separator } from "@repo/ui/components/separator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@repo/ui/components/tooltip";
+import { extractTaskText, formatTaskKey } from "@repo/util";
+import { IconHash } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
 import { priorityConfig, RenderCategory, RenderLabel, statusConfig } from "@/components/tasks";
 import { InlineLabel } from "@/components/tasks/shared/inlinelabel";
 import { usePublicOrganizationLayoutOptional } from "@/contexts/publicContextOrg";
+import type { OrgTaskSearchResult } from "@/lib/fetches/searchTasks";
 import { cn } from "@/lib/utils";
-import { IconHash } from "@tabler/icons-react";
-import { extractTaskText, formatTaskKey } from "@repo/util";
 
 type TaskMentionTask = schema.TaskWithLabels | OrgTaskSearchResult;
 

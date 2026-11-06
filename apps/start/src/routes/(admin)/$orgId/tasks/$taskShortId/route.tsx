@@ -1,10 +1,10 @@
+import { formatTaskKey } from "@repo/util";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import OrganizationTaskIdPage from "@/components/pages/admin/orgid/tasks/taskId";
 import { RootProviderOrganizationTask } from "@/contexts/ContextOrgTask";
 import { useTaskCommands } from "@/hooks/commands/useTaskCommands";
 import { getAdminOrganizationTask } from "@/lib/serverFunctions/getAdminOrganizationTask";
-import { formatTaskKey } from "@repo/util";
-import { seo, getOgImageUrl } from "@/seo";
+import { getOgImageUrl, seo } from "@/seo";
 
 export const Route = createFileRoute("/(admin)/$orgId/tasks/$taskShortId")({
 	loader: async ({ params, context }) => {

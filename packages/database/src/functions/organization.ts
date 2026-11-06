@@ -1,8 +1,8 @@
 import crypto from "node:crypto";
 import { ensureCdnUrl } from "@repo/util";
 import { and, eq, inArray, sql } from "drizzle-orm";
-import { db, schema, auth } from "..";
-import { type TeamPermissions } from "../../schema/member.schema";
+import type { TeamPermissions } from "../../schema/member.schema";
+import { auth, db, schema } from "..";
 import { userSummaryColumns, userSummarySelect } from "./index";
 
 /**

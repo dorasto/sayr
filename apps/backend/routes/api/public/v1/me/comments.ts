@@ -6,7 +6,6 @@ import z from "zod";
 import type { AppEnv } from "@/index";
 import { prosekitJSONToHTML } from "@/prosekit/html";
 import { prosekitJSONToMarkdown } from "@/prosekit/markdown";
-import { notifyCommentCreated } from "../../../../../lib/tasks/notify";
 import { markdownToProsekitJSON } from "@/prosekit/parser";
 import { resolveMarkdownMentions } from "@/prosekit/resolveMarkdownMentions";
 import {
@@ -18,6 +17,7 @@ import {
 import type { ServerEventBaseMessage } from "@/routes/events/types";
 import { assertApiAccess } from "../../../../../lib/apiKeyAuth";
 import { resolveOrganizationId, resolveTaskId } from "../../../../../lib/apiRefs";
+import { notifyCommentCreated } from "../../../../../lib/tasks/notify";
 import { bearerAuthResponses, describeOkNotFound } from "../../../../../openapi/helpers";
 import { errorResponse, paginatedSuccessResponse, successResponse } from "../../../../../responses";
 import { CommentSchema, CreatedBySchema, parsePaginationParam, resolveActorId } from "./schemas";
