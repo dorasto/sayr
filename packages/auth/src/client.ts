@@ -36,6 +36,9 @@ const setLoginOriginCookie = (returnTo?: string) => {
 	if (target) {
 		const path = `${target.pathname}${target.search}${target.hash}`;
 		document.cookie = `post_login_redirect=${encodeURIComponent(path)}; path=/; max-age=500; samesite=lax`;
+	} else {
+		// An abandoned sign-in may have left one behind. Redirects set by the server are HttpOnly, so this can't clear them.
+		document.cookie = "post_login_redirect=; path=/; max-age=0; samesite=lax";
 	}
 };
 
