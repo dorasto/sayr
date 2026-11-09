@@ -10,16 +10,14 @@ import {
 import { Badge } from "@repo/ui/components/badge";
 import TasqIcon from "@repo/ui/components/brand-icon";
 import { Button } from "@repo/ui/components/button";
-import { Dialog, DialogContent, DialogTrigger } from "@repo/ui/components/dialog";
 import { headlessToast } from "@repo/ui/components/headless-toast";
 import { Input } from "@repo/ui/components/input";
 import { Separator } from "@repo/ui/components/separator";
 import { cn } from "@repo/ui/lib/utils";
 import { IconBrandDiscordFilled, IconBrandGithubFilled, IconBrandSlack, IconFingerprint } from "@tabler/icons-react";
-import { createServerFn } from "@tanstack/react-start";
 import { ArrowRight } from "lucide-react";
-import { useEffect, useState } from "react";
-import { authErrorCode } from "@/lib/auth/reauth";
+import { cloneElement, useEffect, useState } from "react";
+import { authErrorCode, loginUrl } from "@/lib/auth/reauth";
 
 interface OAuthProviders {
 	github: boolean;
@@ -28,37 +26,29 @@ interface OAuthProviders {
 	slack: boolean;
 }
 
-const getOAuthProviders = createServerFn({ method: "GET" }).handler(async (): Promise<OAuthProviders> => {
-	return {
-		github: !!(process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET),
-		doras: !!(process.env.DORAS_CLIENT_ID && process.env.DORAS_CLIENT_SECRET),
-		discord: !!(process.env.DISCORD_CLIENT_ID && process.env.DISCORD_CLIENT_SECRET),
-		slack: !!(process.env.SLACK_CLIENT_ID && process.env.SLACK_CLIENT_SECRET),
-	};
-});
-
-interface Props {
-	trigger?: React.ReactElement;
+interface SignInButtonProps {
+	trigger: React.ReactElement<{ onClick?: () => void }>;
 }
 
-export default function LoginDialog({ trigger }: Props) {
-	const [providers, setProviders] = useState<OAuthProviders | undefined>(undefined);
-
-	useEffect(() => {
-		getOAuthProviders().then(setProviders);
-	}, []);
-
-	return (
-		<Dialog>
-			<DialogTrigger render={trigger || <Button variant="outline">Sign in</Button>} />
-			<DialogContent className="sm:max-w-sm p-0 gap-0 overflow-hidden rounded-2xl!">
-				<LoginComponent isDialog providers={providers} />
-			</DialogContent>
-		</Dialog>
-	);
+/**
+ * Sends the user to the sign-in page on the main app host and back to this page afterwards. Passkeys only work on that
+ * host, and the session cookie covers every subdomain, so org portals sign in there rather than in place.
+ */
+export default function SignInButton({ trigger }: SignInButtonProps) {
+	return cloneElement(trigger, {
+		onClick: () => {
+			window.location.href = loginUrl(window.location.href);
+		},
+	});
 }
 
-export function LoginComponent({ isDialog = false, providers }: { isDialog?: boolean; providers?: OAuthProviders }) {
+interface LoginComponentProps {
+	providers?: OAuthProviders;
+	/** Absolute, already-validated URL to finish on instead of the default post-sign-in page. */
+	returnTo?: string;
+}
+
+export function LoginComponent({ providers, returnTo }: LoginComponentProps) {
 	const [lastMethod, setLastMethod] = useState<string | null>(null);
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
@@ -82,17 +72,17 @@ export function LoginComponent({ isDialog = false, providers }: { isDialog?: boo
 			}
 			const result = await authClient.signIn.passkey({ autoFill: true });
 			if (result.data?.session) {
-				await signInEmail();
+				await signInEmail(returnTo);
 			}
 		})();
-	}, []);
+	}, [returnTo]);
 
 	// Signing in with a passkey only finds an existing account; it can't create one (registering a passkey needs a
 	// signed-in session), so a passkey with no account behind it just gets an explanation.
 	const handlePasskeySignIn = async () => {
 		const result = await authClient.signIn.passkey();
 		if (result.data?.session) {
-			await signInEmail();
+			await signInEmail(returnTo);
 			return;
 		}
 		const code = authErrorCode(result.error);
@@ -140,9 +130,9 @@ export function LoginComponent({ isDialog = false, providers }: { isDialog?: boo
 				if (e.data) {
 					//@ts-expect-error
 					if (e.data.twoFactorRedirect) {
-						signInEmailTwoFactor();
+						signInEmailTwoFactor(returnTo);
 					} else {
-						signInEmail();
+						signInEmail(returnTo);
 					}
 				}
 			});
@@ -202,7 +192,7 @@ export function LoginComponent({ isDialog = false, providers }: { isDialog?: boo
 		providers?.doras && {
 			id: "doras",
 			label: "Doras",
-			onClick: signInDoras,
+			onClick: () => signInDoras(returnTo),
 			icon: (
 				<>
 					<img
@@ -225,19 +215,19 @@ export function LoginComponent({ isDialog = false, providers }: { isDialog?: boo
 		providers?.github && {
 			id: "github",
 			label: "GitHub",
-			onClick: signInGithub,
+			onClick: () => signInGithub(returnTo),
 			icon: <IconBrandGithubFilled className="size-[18px]" />,
 		},
 		providers?.discord && {
 			id: "discord",
 			label: "Discord",
-			onClick: signInDiscord,
+			onClick: () => signInDiscord(returnTo),
 			icon: <IconBrandDiscordFilled className="size-[18px]" />,
 		},
 		providers?.slack && {
 			id: "slack",
 			label: "Slack",
-			onClick: signInSlack,
+			onClick: () => signInSlack(returnTo),
 			icon: <IconBrandSlack className="size-[18px]" />,
 		},
 		// Not offered on sign up (the grid is hidden there): a passkey can only sign in to an existing account.
@@ -256,9 +246,7 @@ export function LoginComponent({ isDialog = false, providers }: { isDialog?: boo
 	const hasAnyProvider = providerButtons.length > 0;
 
 	return (
-		<div
-			className={cn("rounded-2xl mx-auto w-full max-w-sm", !isDialog && "bg-card border shadow-sm", isDialog && "")}
-		>
+		<div className="rounded-2xl mx-auto w-full max-w-sm bg-card border shadow-sm">
 			{/* Header */}
 			<div className="flex flex-col items-center gap-2 px-6 pt-8 pb-6">
 				<div className="flex size-16 shrink-0 items-center justify-center mb-1" aria-hidden="true">

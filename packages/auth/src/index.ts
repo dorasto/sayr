@@ -133,6 +133,9 @@ const plugins = [
 	passkey({
 		rpID: rootUrl || "localhost",
 		rpName: "sayr.io",
+		// All sign-in happens on the main app host; org portals redirect there. Without this the plugin only
+		// accepts the `baseURL` origin (the bare root domain in production), and wildcard trustedOrigins don't count.
+		origin: (process.env.VITE_URL_ROOT || mcpPagesOrigin)?.replace(/\/$/, ""),
 	}),
 	// MCP server access (SAY-31) is cloud-only — self-hosted editions don't get the
 	// OAuth authorization-server endpoints at all, not just a feature gate on top.

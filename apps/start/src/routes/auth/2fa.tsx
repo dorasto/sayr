@@ -59,7 +59,8 @@ function RouteComponent() {
 				setError(result.error.message || "Invalid code");
 				return;
 			}
-			window.location.href = "/";
+			// auth-check returns to where sign-in started (an org portal, say); with nothing recorded it goes to "/".
+			window.location.href = "/auth/auth-check";
 		} catch (err) {
 			setError("An unexpected error occurred");
 		} finally {

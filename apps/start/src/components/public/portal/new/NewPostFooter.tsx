@@ -4,7 +4,7 @@ import { Button, buttonVariants } from "@repo/ui/components/button";
 import { ensureCdnUrl, getInitials } from "@repo/util";
 import { IconLoader2 } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
-import LoginDialog from "@/components/auth/login";
+import SignInButton from "@/components/auth/login";
 
 interface NewPostFooterProps {
 	orgSlug: string;
@@ -73,7 +73,7 @@ export function NewPostFooter({ orgSlug, loggedIn, isSubmitting, disabled, onSub
 					)}
 				</Button>
 			) : (
-				<LoginDialog
+				<SignInButton
 					trigger={
 						<Button size="sm" className="max-md:h-12 max-md:w-full">
 							Post to the board

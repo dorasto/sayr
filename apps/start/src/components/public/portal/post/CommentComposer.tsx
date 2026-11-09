@@ -8,7 +8,7 @@ import { IconArrowBack, IconLoader2 } from "@tabler/icons-react";
 import { useQueryClient } from "@tanstack/react-query";
 import type { NodeJSON } from "prosekit/core";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
-import LoginDialog from "@/components/auth/login";
+import SignInButton from "@/components/auth/login";
 import processUploads from "@/components/prosekit/upload";
 import { isMultiline } from "@/components/shared/comments/comment-input";
 import { usePublicOrganizationLayout } from "@/contexts/publicContextOrg";
@@ -138,7 +138,7 @@ export function PostCommentComposer({
 				)}
 			>
 				<span className="min-w-0 flex-1">Log in to comment and react</span>
-				<LoginDialog
+				<SignInButton
 					trigger={
 						<Button size="sm" className="h-7">
 							Log in
