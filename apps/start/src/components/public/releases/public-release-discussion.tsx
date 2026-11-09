@@ -14,7 +14,7 @@ import { IconArrowBack, IconLoader2 } from "@tabler/icons-react";
 import { type InfiniteData, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { NodeJSON } from "prosekit/core";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
-import LoginDialog from "@/components/auth/login";
+import SignInButton from "@/components/auth/login";
 import processUploads from "@/components/prosekit/upload";
 import { isMultiline } from "@/components/shared/comments/comment-input";
 import type { ReactionEmoji } from "@/components/tasks/task/timeline/reactions";
@@ -709,7 +709,7 @@ export function PublicReleaseDiscussion({
 			) : !session?.user ? (
 				<div className="mt-6 flex items-center gap-2 rounded-lg border bg-accent/50 px-3 py-2 text-muted-foreground text-sm">
 					<span className="min-w-0 flex-1">Log in to comment and react</span>
-					<LoginDialog
+					<SignInButton
 						trigger={
 							<Button size="sm" className="h-7">
 								Log in

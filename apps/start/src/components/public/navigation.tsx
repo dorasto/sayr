@@ -13,7 +13,7 @@ import {
 } from "@/components/settings/user-settings-dialog";
 import { usePublicOrganizationLayout } from "@/contexts/publicContextOrg";
 import { getOrgSlugFromPath, getPortalSection } from "@/lib/portal/nav";
-import LoginDialog from "../auth/login";
+import SignInButton from "../auth/login";
 import { ActivityBody } from "./portal/activity/ActivityBody";
 import { PortalSearch } from "./portal/search/PortalSearch";
 
@@ -136,7 +136,7 @@ export default function PublicNavigation() {
 								</Avatar>
 							</Button>
 						) : (
-							<LoginDialog
+							<SignInButton
 								trigger={
 									<Button variant="outline" size="sm">
 										Log in

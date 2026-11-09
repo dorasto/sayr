@@ -17,8 +17,10 @@ export const authClient = createAuthClient({
 		oauthProviderClient(),
 	],
 });
-const setLoginOriginCookie = () => {
-	const origin = window.location.origin;
+/** Tells /auth/auth-check where to finish: `returnTo` (an absolute URL) when given, otherwise back on this origin. */
+const setLoginOriginCookie = (returnTo?: string) => {
+	const target = returnTo ? new URL(returnTo) : null;
+	const origin = target?.origin ?? window.location.origin;
 	const hostname = window.location.hostname;
 	const domain = hostname === "localhost" ? undefined : hostname.split(".").slice(-2).join(".");
 	const cookieParts = [
@@ -31,76 +33,47 @@ const setLoginOriginCookie = () => {
 		cookieParts.push(`domain=.${domain}`);
 	}
 	document.cookie = cookieParts.join("; ");
+	if (target) {
+		const path = `${target.pathname}${target.search}${target.hash}`;
+		document.cookie = `post_login_redirect=${encodeURIComponent(path)}; path=/; max-age=500; samesite=lax`;
+	}
 };
 
-export const signInEmailTwoFactor = async () => {
+export const signInEmailTwoFactor = async (returnTo?: string) => {
+	// Before any await: the twoFactor plugin's redirect to /auth/2fa is already under way.
+	setLoginOriginCookie(returnTo);
 	const found = await authClient.getSession();
 	if (found.data) {
-		window.location.href = "/";
+		window.location.href = returnTo ?? "/";
 		return;
 	}
-	setLoginOriginCookie();
 	window.location.href = "/auth/2fa";
 };
 
-export const signInEmail = async () => {
+export const signInEmail = async (returnTo?: string) => {
 	const found = await authClient.getSession();
 	if (found.data) {
-		window.location.href = "/";
+		window.location.href = returnTo ?? "/";
 		return;
 	}
-	setLoginOriginCookie();
+	setLoginOriginCookie(returnTo);
 	window.location.href = "/auth/auth-check";
 };
 
-export const signInDoras = async () => {
+const signInSocial = async (provider: "doras" | "github" | "discord" | "slack", returnTo?: string) => {
 	const found = await authClient.getSession();
 	if (found.data) {
-		window.location.href = "/";
+		window.location.href = returnTo ?? "/";
 		return;
 	}
-	setLoginOriginCookie();
+	if (!returnTo) setLoginOriginCookie();
 	await authClient.signIn.social({
-		provider: "doras",
-		callbackURL: `/auth/auth-check`,
+		provider,
+		callbackURL: returnTo ?? "/auth/auth-check",
 	});
 };
 
-export const signInGithub = async () => {
-	const found = await authClient.getSession();
-	if (found.data) {
-		window.location.href = "/";
-		return;
-	}
-	setLoginOriginCookie();
-	await authClient.signIn.social({
-		provider: "github",
-		callbackURL: `/auth/auth-check`,
-	});
-};
-
-export const signInDiscord = async () => {
-	const found = await authClient.getSession();
-	if (found.data) {
-		window.location.href = "/";
-		return;
-	}
-	setLoginOriginCookie();
-	await authClient.signIn.social({
-		provider: "discord",
-		callbackURL: `/auth/auth-check`,
-	});
-};
-
-export const signInSlack = async () => {
-	const found = await authClient.getSession();
-	if (found.data) {
-		window.location.href = "/";
-		return;
-	}
-	setLoginOriginCookie();
-	await authClient.signIn.social({
-		provider: "slack",
-		callbackURL: `/auth/auth-check`,
-	});
-};
+export const signInDoras = (returnTo?: string) => signInSocial("doras", returnTo);
+export const signInGithub = (returnTo?: string) => signInSocial("github", returnTo);
+export const signInDiscord = (returnTo?: string) => signInSocial("discord", returnTo);
+export const signInSlack = (returnTo?: string) => signInSocial("slack", returnTo);

@@ -7,7 +7,7 @@ import { cn } from "@repo/ui/lib/utils";
 import { formatTaskKey, getDisplayName } from "@repo/util";
 import { Link } from "@tanstack/react-router";
 import { lazy, Suspense, useEffect, useMemo } from "react";
-import LoginDialog from "@/components/auth/login";
+import SignInButton from "@/components/auth/login";
 import { type BoardDataSource, BoardProvider } from "@/components/board/core/board-data";
 import { READ_ONLY_CAPABILITIES } from "@/components/board/core/capabilities";
 import { Page } from "@/components/generic/page";
@@ -262,7 +262,7 @@ export function PublicTaskContent() {
 							className="h-12 w-auto min-w-[76px] flex-row gap-1.5 rounded-lg px-4"
 						/>
 						{!isLoggedIn ? (
-							<LoginDialog
+							<SignInButton
 								trigger={
 									<Button size="lg" className="h-12 flex-1">
 										Log in to comment

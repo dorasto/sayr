@@ -15,6 +15,10 @@ describe("isSafeReturnUrl", () => {
 		expect(isSafeReturnUrl("javascript:alert(1)", "sayr.io")).toBe(false);
 		expect(isSafeReturnUrl("/relative", "sayr.io")).toBe(false);
 	});
+
+	it("rejects the files host, which serves user uploads", () => {
+		expect(isSafeReturnUrl("https://files.sayr.io/x.html", "sayr.io")).toBe(false);
+	});
 });
 
 describe("isSessionNotFresh", () => {

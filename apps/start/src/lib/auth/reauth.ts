@@ -18,11 +18,20 @@ export function reauthUrl(returnTo: string): string {
 	return `${import.meta.env.VITE_URL_ROOT}/auth/reauth?redirect=${encodeURIComponent(returnTo)}`;
 }
 
-/** Only send people back to Sayr itself (the root domain or one of its subdomains), never an outside site. */
+/** The sign-in page (on the main app host, the only origin passkeys work on), returning to `returnTo` afterwards. */
+export function loginUrl(returnTo: string): string {
+	return `${import.meta.env.VITE_URL_ROOT}/auth/login?redirect=${encodeURIComponent(returnTo)}`;
+}
+
+/**
+ * Only send people back to Sayr itself (the root domain or one of its subdomains), never an outside site or the
+ * files host, which serves user uploads.
+ */
 export function isSafeReturnUrl(value: string, rootDomain: string): boolean {
 	try {
 		const url = new URL(value);
 		if (url.protocol !== "https:" && url.protocol !== "http:") return false;
+		if (url.hostname === `files.${rootDomain}`) return false;
 		return url.hostname === rootDomain || url.hostname.endsWith(`.${rootDomain}`);
 	} catch {
 		return false;

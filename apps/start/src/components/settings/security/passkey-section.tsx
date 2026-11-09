@@ -111,6 +111,12 @@ export function PasskeySection({ onConfirmIdentity }: PasskeySectionProps) {
 							variant="outline"
 							size="sm"
 							onClick={() => {
+								// Passkeys only register on the main app host; this section also renders on org portals.
+								const appRoot = import.meta.env.VITE_URL_ROOT;
+								if (appRoot && window.location.origin !== new URL(appRoot).origin) {
+									window.location.href = `${appRoot}/settings/security`;
+									return;
+								}
 								setNewName("");
 								setAddError("");
 								setNeedsReauth(false);
