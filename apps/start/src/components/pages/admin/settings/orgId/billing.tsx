@@ -92,7 +92,6 @@ export default function SettingsOrganizationBillingPage({ limits }: { limits: Pl
 			{isAdmin && (
 				<BillingSubscriptionDetails
 					subscription={subscription}
-					onSubscriptionRevoked={() => window.location.reload()}
 				/>
 			)}
 			{isAdmin && <BillingSeatManagement subscription={subscription} onSeatsUpdated={refreshSubscription} />}
