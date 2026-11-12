@@ -16,8 +16,16 @@ const isProd = process.env.APP_ENV === "production";
  * Returns the token string or null if the org has no Polar customer.
  */
 async function getCustomerSessionToken(polarCustomerId: string, orgId: string): Promise<string> {
+	const membersResponse = await polarClient?.customers.members.list(polarCustomerId, {
+		role: "owner"
+	});
+	const ownerMember = membersResponse.items[0];
+	if (!ownerMember) {
+		throw new Error("No member found for team customer");
+	}
 	const session = await polarClient?.customerSessions.create({
 		customer_id: polarCustomerId,
+		member_id: ownerMember.id,
 		return_url: isProd
 			? `https://admin.sayr.io/settings/org/${orgId}/billing`
 			: `http://admin.app.localhost:3000/settings/org/${orgId}/billing`,
@@ -276,9 +284,9 @@ app.get("/orders", async (c) => {
 			seats: order.seats ?? null,
 			product: order.product
 				? {
-						id: order.product.id,
-						name: order.product.name,
-					}
+					id: order.product.id,
+					name: order.product.name,
+				}
 				: null,
 			description: order.description,
 			items: order.items.map((item) => ({
