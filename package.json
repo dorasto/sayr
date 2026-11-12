@@ -34,7 +34,7 @@
   },
   "dependencies": {
     "@octokit/rest": "^22.0.1",
-    "drizzle-orm": "^0.45.0"
+    "drizzle-orm": "0.45.2"
   },
   "pnpm": {
     "overrides": {
