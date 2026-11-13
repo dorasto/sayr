@@ -15,7 +15,7 @@
 		"format": "biome format --write ."
 	},
 	"dependencies": {
-		"@better-auth/mcp": "1.7.14",
+		"@better-auth/mcp": "1.7.20",
 		"@clickhouse/client": "^1.18.2",
 		"@hono/standard-validator": "^0.2.0",
 		"@modelcontextprotocol/server": "2.4.0",
