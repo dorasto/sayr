@@ -1,6 +1,6 @@
 import { randomBytes, randomUUID } from "node:crypto";
 import { Octokit } from "@octokit/rest";
-import { createPolar } from "@polar-sh/sdk/2026-10";
+import { createPolar, errors as polarErrors } from "@polar-sh/sdk/2026-10";
 import {
 	auth,
 	blockUser,
@@ -2358,10 +2358,12 @@ apiRouteAdminOrganization.delete("/delete", async (c) => {
 				);
 			}
 			// An org only gets a Polar customer once someone starts a checkout, so most free orgs have none and
-			// Polar answers 404. A failed billing cleanup must not block deleting the org itself.
+			// Polar answers 404 — that's fine to skip. Any other failure still stops the delete: deleting the
+			// customer is also what cancels its subscriptions, so we must not drop the org if it didn't happen.
 			polarClient &&
-				(await polarClient.customers.deleteExternal(org.id).catch((err) => {
-					console.error("[polar] Failed to delete external customer:", err);
+				(await polarClient.customers.deleteExternal(org.id).catch((err: unknown) => {
+					if (err instanceof polarErrors.ResourceNotFound) return;
+					throw err;
 				}));
 
 			await traceAsync(
