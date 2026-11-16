@@ -2357,7 +2357,12 @@ apiRouteAdminOrganization.delete("/delete", async (c) => {
 					400
 				);
 			}
-			polarClient && (await polarClient.customers.deleteExternal(org.id));
+			// An org only gets a Polar customer once someone starts a checkout, so most free orgs have none and
+			// Polar answers 404. A failed billing cleanup must not block deleting the org itself.
+			polarClient &&
+				(await polarClient.customers.deleteExternal(org.id).catch((err) => {
+					console.error("[polar] Failed to delete external customer:", err);
+				}));
 
 			await traceAsync(
 				"organization.delete.s3_files",
