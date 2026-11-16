@@ -1,6 +1,6 @@
 import { randomBytes, randomUUID } from "node:crypto";
 import { Octokit } from "@octokit/rest";
-import { createPolar } from "@polar-sh/sdk/2026-10";
+import { createPolar, errors as polarErrors } from "@polar-sh/sdk/2026-10";
 import {
 	auth,
 	blockUser,
@@ -2357,7 +2357,33 @@ apiRouteAdminOrganization.delete("/delete", async (c) => {
 					400
 				);
 			}
-			polarClient && (await polarClient.customers.deleteExternal(org.id));
+			// Make sure nothing keeps billing once the org is gone. We deliberately keep the Polar customer itself so
+			// past invoices stay reachable through Polar; removing it after a retention period is future work.
+			// Looked up by external id rather than `polarSubscriptionId`, which is only set once the
+			// subscription webhook lands. Any Polar failure stops the delete so we never drop a still-billing org.
+			if (polarClient) {
+				await traceAsync(
+					"organization.delete.cancel_subscriptions",
+					async () => {
+						for await (const subscription of polarClient.subscriptions.iterList({
+							external_customer_id: org.id,
+						})) {
+							if (subscription.status === "canceled" || subscription.status === "incomplete_expired") continue;
+							await polarClient.subscriptions.revoke(subscription.id).catch((err: unknown) => {
+								// Already cancelled or gone by the time we got to it — nothing left to stop.
+								if (
+									err instanceof polarErrors.AlreadyCanceledSubscription ||
+									err instanceof polarErrors.ResourceNotFound
+								) {
+									return;
+								}
+								throw err;
+							});
+						}
+					},
+					{ description: "Cancelling Polar subscriptions", data: { orgId } }
+				);
+			}
 
 			await traceAsync(
 				"organization.delete.s3_files",
