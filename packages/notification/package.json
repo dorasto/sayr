@@ -16,7 +16,7 @@
 		"format": "biome format --write ."
 	},
 	"peerDependencies": {
-		"drizzle-orm": ">=0.45.0"
+		"drizzle-orm": "0.45.4"
 	},
 	"peerDependenciesMeta": {
 		"drizzle-orm": {
