@@ -21,7 +21,7 @@
 		"@better-auth/oauth-provider": "1.7.16",
 		"@better-auth/passkey": "^1.7.16",
 		"@polar-sh/better-auth": "^2.0.0",
-		"@polar-sh/sdk": "^1.0.0",
+		"@polar-sh/sdk": "1.0.1",
 		"@repo/database": "workspace:*",
 		"@repo/edition": "workspace:*",
 		"@repo/util": "workspace:*",
