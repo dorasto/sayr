@@ -42,7 +42,7 @@
 		"@tanstack/react-router-ssr-query": "^1.167.3",
 		"@tanstack/react-start": "^1.169.4",
 		"@tanstack/react-store": "^0.11.2",
-		"@tanstack/react-table": "^8.21.3",
+		"@tanstack/react-table": "^9.0.0",
 		"@tanstack/router-plugin": "^1.168.48",
 		"@tanstack/store": "^0.11.2",
 		"@types/sharp": "^0.32.0",
